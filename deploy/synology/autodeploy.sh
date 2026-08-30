@@ -3,6 +3,7 @@ set -eu
 
 REPO_DIR="/volume1/docker/librechat"
 DEPLOY_DIR="$REPO_DIR/deploy/synology"
+WORKSPACE_DIR="$REPO_DIR/workspace"
 REMOTE_URL="https://github.com/justinthenick/LibreChat.git"
 BRANCH="server/synology"
 LOG_FILE="/volume1/docker/librechat-deploy.log"
@@ -133,6 +134,14 @@ post_status pending "$REMOTE_SHA" "Synology deployment in progress"
 # Only fast-forward updates are accepted. This preserves local private files and
 # aborts rather than rewriting deployment history.
 git_repo pull --ff-only origin "$BRANCH"
+
+# Create a dedicated shared workspace. LibreChat keeps its normal unprivileged
+# node user, gains only the Synology users group, and sees this directory at
+# /workspace. No repository, Docker socket, or broader /volume1 path is exposed.
+mkdir -p "$WORKSPACE_DIR"
+chown 1026:100 "$WORKSPACE_DIR"
+chmod 2770 "$WORKSPACE_DIR"
+log "Workspace ready at $WORKSPACE_DIR"
 
 cd "$DEPLOY_DIR"
 

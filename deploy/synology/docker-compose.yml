@@ -20,10 +20,12 @@ services:
       SESSION_COOKIE_SECURE: "false"
       SEARCH: "false"
       OPENROUTER_KEY: ${OPENROUTER_KEY}
-      AUTODEPLOY_MARKER: "2026-08-30-test-1"
+    group_add:
+      - "100"
     volumes:
       - ./.env:/app/.env:ro
       - ./librechat.yaml:/app/librechat.yaml:ro
+      - /volume1/docker/librechat/workspace:/workspace
       - librechat-data:/app/data
       - librechat-images:/app/client/public/images
       - librechat-uploads:/app/uploads

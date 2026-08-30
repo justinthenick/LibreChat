@@ -19,9 +19,24 @@ interface:
     create: true
     share: false
     public: false
+  mcpServers:
+    use: true
+    create: false
+    share: false
+    public: false
   fileSearch: false
   marketplace:
     use: false
+
+mcpServers:
+  filesystem:
+    type: stdio
+    command: npx
+    args:
+      - -y
+      - '@modelcontextprotocol/server-filesystem@2026.1.14'
+      - /workspace
+    timeout: 120000
 
 endpoints:
   custom:
