@@ -8,6 +8,7 @@ BRANCH="server/synology"
 LOG_FILE="/volume1/docker/librechat-deploy.log"
 GIT_IMAGE="alpine/git:latest"
 GIT_UID_GID="1026:100"
+FORCE_DEPLOY="${FORCE_DEPLOY:-0}"
 
 log() {
   printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" | tee -a "$LOG_FILE"
@@ -62,12 +63,16 @@ if [ -z "$REMOTE_SHA" ]; then
   exit 1
 fi
 
-if [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
+if [ "$LOCAL_SHA" = "$REMOTE_SHA" ] && [ "$FORCE_DEPLOY" != "1" ]; then
   log "No deployment change; already at $(short_sha "$LOCAL_SHA")"
   exit 0
 fi
 
-log "Change detected: $(short_sha "$LOCAL_SHA") -> $(short_sha "$REMOTE_SHA")"
+if [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
+  log "Forced deployment requested at $(short_sha "$LOCAL_SHA")"
+else
+  log "Change detected: $(short_sha "$LOCAL_SHA") -> $(short_sha "$REMOTE_SHA")"
+fi
 
 # Only fast-forward updates are accepted. This preserves local private files and
 # aborts rather than rewriting deployment history.
