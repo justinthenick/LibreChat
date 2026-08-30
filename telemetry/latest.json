@@ -1,5 +1,26 @@
 {
   "schema": 1,
-  "status": "initialising",
-  "message": "Waiting for first NAS telemetry publish"
+  "timestamp": "2026-08-30T20:25:47+1000",
+  "result": "check",
+  "stage": "steady_state",
+  "commit": "5a5424ea8fe7666fd031e7bcc11ae2f6cd5a9a2c",
+  "runtime": {
+    "librechat_container": "running",
+    "librechat_exit_code": "0",
+    "librechat_restart_count": "0",
+    "mongodb_container": "running",
+    "http_health": "pass",
+    "workspace": "pass",
+    "cloudflare_tunnel": "connected",
+    "volume1_used_percent": "15"
+  },
+  "last_failure": {
+    "timestamp": "",
+    "commit": "",
+    "stage": "",
+    "librechat_container": "",
+    "librechat_exit_code": "",
+    "cloudflare_tunnel": "",
+    "volume1_used_percent": ""
+  }
 }
