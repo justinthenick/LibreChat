@@ -35,6 +35,14 @@ env_value() {
   sed -n "s/^$1=//p" "$DEPLOY_DIR/.env" | head -n 1
 }
 
+prepare_workspace() {
+  # Shared only with the Synology users group. The LibreChat container keeps its
+  # normal unprivileged node user and receives GID 100 as a supplemental group.
+  mkdir -p "$WORKSPACE_DIR"
+  chown 1026:100 "$WORKSPACE_DIR"
+  chmod 2770 "$WORKSPACE_DIR"
+}
+
 post_status() {
   STATE="$1"
   SHA="$2"
@@ -102,6 +110,10 @@ if [ ! -f "$DEPLOY_DIR/.env" ]; then
   exit 1
 fi
 
+# Run on every scheduler pass so the workspace is repaired even if a previous
+# Compose run created the bind-mount directory as root before this script landed.
+prepare_workspace
+
 CURRENT_BRANCH="$(git_repo rev-parse --abbrev-ref HEAD)"
 if [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
   log "ERROR: repository is on $CURRENT_BRANCH, expected $BRANCH"
@@ -134,14 +146,7 @@ post_status pending "$REMOTE_SHA" "Synology deployment in progress"
 # Only fast-forward updates are accepted. This preserves local private files and
 # aborts rather than rewriting deployment history.
 git_repo pull --ff-only origin "$BRANCH"
-
-# Create a dedicated shared workspace. LibreChat keeps its normal unprivileged
-# node user, gains only the Synology users group, and sees this directory at
-# /workspace. No repository, Docker socket, or broader /volume1 path is exposed.
-mkdir -p "$WORKSPACE_DIR"
-chown 1026:100 "$WORKSPACE_DIR"
-chmod 2770 "$WORKSPACE_DIR"
-log "Workspace ready at $WORKSPACE_DIR"
+prepare_workspace
 
 cd "$DEPLOY_DIR"
 
