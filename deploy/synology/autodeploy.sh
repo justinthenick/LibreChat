@@ -5,10 +5,13 @@ REPO_DIR="/volume1/docker/librechat"
 DEPLOY_DIR="$REPO_DIR/deploy/synology"
 WORKSPACE_DIR="$REPO_DIR/workspace"
 CLOUDFLARE_OVERLAY="$DEPLOY_DIR/docker-compose.cloudflare.yml"
+TELEMETRY_SCRIPT="$DEPLOY_DIR/publish-telemetry.sh"
 REMOTE_URL="https://github.com/justinthenick/LibreChat.git"
 BRANCH="server/synology"
 LOG_FILE="/volume1/docker/librechat-deploy.log"
+EVENT_LOG_FILE="/volume1/docker/librechat-deploy-events.log"
 STATE_FILE="/volume1/docker/librechat-deploy.last-success"
+TELEMETRY_MARKER="/volume1/docker/librechat-telemetry.last-publish"
 LOCK_DIR="/tmp/librechat-autodeploy.lock"
 GIT_IMAGE="alpine/git:latest"
 GIT_UID_GID="1026:100"
@@ -22,7 +25,8 @@ LOCK_HELD=0
 CLOUDFLARE_ENABLED=0
 
 log() {
-  printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" | tee -a "$LOG_FILE"
+  LINE="$(printf '%s %s' "$(date '+%Y-%m-%d %H:%M:%S')" "$*")"
+  printf '%s\n' "$LINE" | tee -a "$LOG_FILE" "$EVENT_LOG_FILE"
 }
 
 git_repo() {
@@ -65,6 +69,33 @@ write_last_success() {
   mv -f "$TMP_STATE" "$STATE_FILE"
 }
 
+telemetry_configured() {
+  [ -f "$DEPLOY_DIR/.env" ] && [ -n "$(env_value GITHUB_TELEMETRY_TOKEN)" ]
+}
+
+publish_telemetry() {
+  RESULT="$1"
+  STAGE="$2"
+  SHA="$3"
+
+  if ! telemetry_configured; then
+    return 2
+  fi
+
+  if [ ! -f "$TELEMETRY_SCRIPT" ]; then
+    log "WARN: telemetry token is configured but publisher script is missing"
+    return 1
+  fi
+
+  if ! sh "$TELEMETRY_SCRIPT" "$RESULT" "$STAGE" "$SHA" >/dev/null 2>&1; then
+    log "WARN: sanitised GitHub telemetry publish failed"
+    return 1
+  fi
+
+  log "Sanitised GitHub telemetry published"
+  return 0
+}
+
 acquire_lock() {
   if mkdir "$LOCK_DIR" 2>/dev/null; then
     printf '%s\n' "$$" > "$LOCK_DIR/pid"
@@ -98,8 +129,6 @@ release_lock() {
 }
 
 prepare_workspace() {
-  # Shared only with the Synology users group. The LibreChat container keeps its
-  # normal unprivileged node user and receives GID 100 as a supplemental group.
   mkdir -p "$WORKSPACE_DIR"
   chown 1026:100 "$WORKSPACE_DIR"
   chmod 2770 "$WORKSPACE_DIR"
@@ -160,10 +189,17 @@ collect_diagnostics() {
 on_exit() {
   RC=$?
   trap - 0
-  release_lock
-  if [ "$RC" -ne 0 ] && [ -n "$STATUS_TARGET_SHA" ]; then
-    post_status failure "$STATUS_TARGET_SHA" "Synology deployment failed at $FAILED_STAGE"
+
+  if [ "$RC" -ne 0 ]; then
+    TELEMETRY_SHA="${STATUS_TARGET_SHA:-${REMOTE_SHA:-${LOCAL_SHA:-unknown}}}"
+    publish_telemetry failure "$FAILED_STAGE" "$TELEMETRY_SHA" || true
+
+    if [ -n "$STATUS_TARGET_SHA" ]; then
+      post_status failure "$STATUS_TARGET_SHA" "Synology deployment failed at $FAILED_STAGE"
+    fi
   fi
+
+  release_lock
   exit "$RC"
 }
 
@@ -194,7 +230,6 @@ workspace_check() {
 
 cloudflare_check() {
   if [ "$CLOUDFLARE_ENABLED" != "1" ]; then
-    # If the token has been removed, cloudflared should no longer be running.
     ! docker inspect librechat-cloudflared >/dev/null 2>&1
     return
   fi
@@ -245,8 +280,6 @@ else
   log "Cloudflare tunnel integration disabled"
 fi
 
-# Run on every scheduler pass so the workspace is repaired even if a previous
-# Compose run created the bind-mount directory as root before this script landed.
 prepare_workspace
 
 CURRENT_BRANCH="$(git_repo rev-parse --abbrev-ref HEAD)"
@@ -264,11 +297,12 @@ if [ -z "$REMOTE_SHA" ]; then
   exit 1
 fi
 
-# A Git checkout is not proof of deployment. Only the separately persisted
-# last-successful SHA suppresses a deployment, and only while runtime checks pass.
 if [ "$LAST_SUCCESS_SHA" = "$REMOTE_SHA" ] && [ "$LOCAL_SHA" = "$REMOTE_SHA" ] && [ "$FORCE_DEPLOY" != "1" ]; then
   if steady_state_check; then
     log "No deployment change; healthy deployment already recorded at $(short_sha "$REMOTE_SHA")"
+    if telemetry_configured && [ ! -f "$TELEMETRY_MARKER" ]; then
+      publish_telemetry check steady_state "$REMOTE_SHA" || true
+    fi
     exit 0
   fi
   log "Recorded deployment at $(short_sha "$REMOTE_SHA") is not healthy; reconciling runtime state"
@@ -296,8 +330,6 @@ post_status pending "$REMOTE_SHA" "Synology deployment in progress"
 
 FAILED_STAGE="git_update"
 if [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
-  # Only fast-forward updates are accepted. This preserves local private files and
-  # aborts rather than rewriting deployment history.
   if ! git_repo pull --ff-only origin "$BRANCH" >> "$LOG_FILE" 2>&1; then
     log "ERROR: Git fast-forward update failed"
     exit 1
@@ -381,6 +413,9 @@ if [ "$DEPLOYED_SHA" != "$REMOTE_SHA" ]; then
   exit 1
 fi
 write_last_success "$DEPLOYED_SHA"
+
+FAILED_STAGE="telemetry_publish"
+publish_telemetry success complete "$DEPLOYED_SHA" || true
 
 FAILED_STAGE="status_report"
 if [ "$CLOUDFLARE_ENABLED" = "1" ]; then
