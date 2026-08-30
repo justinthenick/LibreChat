@@ -98,6 +98,10 @@ health_check() {
   ' >/dev/null 2>&1
 }
 
+workspace_check() {
+  docker exec librechat sh -lc 'test -d /workspace && test -w /workspace' >/dev/null 2>&1
+}
+
 log "LibreChat deployment check started"
 
 if [ ! -d "$REPO_DIR/.git" ]; then
@@ -170,6 +174,12 @@ until health_check; do
   fi
   sleep 5
 done
+
+if ! workspace_check; then
+  log "ERROR: LibreChat cannot write to /workspace"
+  exit 1
+fi
+log "MCP workspace mount is writable"
 
 DEPLOYED_SHA="$(git_repo rev-parse HEAD)"
 post_status success "$DEPLOYED_SHA" "Synology deployment healthy"
