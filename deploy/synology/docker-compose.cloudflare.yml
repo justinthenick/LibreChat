@@ -1,15 +1,16 @@
 version: "3.7"
 
 # Optional Cloudflare Tunnel overlay for the Synology deployment.
-# This file is intentionally NOT loaded by autodeploy.sh yet. It becomes active
-# only when we explicitly add it to the compose command after a remotely managed
-# Cloudflare Tunnel and Access policy have been created.
+# autodeploy.sh loads this file automatically when CLOUDFLARE_TUNNEL_TOKEN is
+# present in the private NAS .env file. The tunnel can be connected before any
+# public hostname is routed, so enabling this overlay does not itself publish
+# LibreChat to the Internet.
 services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: librechat-cloudflared
     restart: unless-stopped
-    command: tunnel --no-autoupdate run
+    command: tunnel --no-autoupdate --loglevel info run
     environment:
       # Store the real token only in deploy/synology/.env on the NAS.
       # Never commit a Cloudflare Tunnel token to GitHub.

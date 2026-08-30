@@ -4,6 +4,7 @@ set -eu
 REPO_DIR="/volume1/docker/librechat"
 DEPLOY_DIR="$REPO_DIR/deploy/synology"
 WORKSPACE_DIR="$REPO_DIR/workspace"
+CLOUDFLARE_OVERLAY="$DEPLOY_DIR/docker-compose.cloudflare.yml"
 REMOTE_URL="https://github.com/justinthenick/LibreChat.git"
 BRANCH="server/synology"
 LOG_FILE="/volume1/docker/librechat-deploy.log"
@@ -18,6 +19,7 @@ FORCE_DEPLOY="${FORCE_DEPLOY:-0}"
 STATUS_TARGET_SHA=""
 FAILED_STAGE="startup"
 LOCK_HELD=0
+CLOUDFLARE_ENABLED=0
 
 log() {
   printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" | tee -a "$LOG_FILE"
@@ -37,6 +39,17 @@ short_sha() {
 
 env_value() {
   sed -n "s/^$1=//p" "$DEPLOY_DIR/.env" | head -n 1
+}
+
+compose() {
+  if [ "$CLOUDFLARE_ENABLED" = "1" ]; then
+    docker-compose \
+      -f "$DEPLOY_DIR/docker-compose.yml" \
+      -f "$CLOUDFLARE_OVERLAY" \
+      "$@"
+  else
+    docker-compose -f "$DEPLOY_DIR/docker-compose.yml" "$@"
+  fi
 }
 
 read_last_success() {
@@ -129,13 +142,17 @@ collect_diagnostics() {
   log "Collecting deployment diagnostics for stage $FAILED_STAGE"
   {
     printf '%s\n' "--- docker-compose ps ---"
-    docker-compose ps || true
+    compose ps || true
     printf '%s\n' "--- librechat containers ---"
     docker ps -a --filter name=librechat || true
     printf '%s\n' "--- volume usage ---"
     df -h /volume1 || true
     printf '%s\n' "--- api logs (last 80 lines) ---"
-    docker-compose logs --tail=80 api || true
+    compose logs --tail=80 api || true
+    if [ "$CLOUDFLARE_ENABLED" = "1" ]; then
+      printf '%s\n' "--- cloudflared logs (last 80 lines) ---"
+      docker logs --tail=80 librechat-cloudflared || true
+    fi
     printf '%s\n' "--- end diagnostics ---"
   } >> "$LOG_FILE" 2>&1
 }
@@ -175,6 +192,25 @@ workspace_check() {
   ' >/dev/null 2>&1
 }
 
+cloudflare_check() {
+  if [ "$CLOUDFLARE_ENABLED" != "1" ]; then
+    # If the token has been removed, cloudflared should no longer be running.
+    ! docker inspect librechat-cloudflared >/dev/null 2>&1
+    return
+  fi
+
+  RUNNING="$(docker inspect -f '{{.State.Running}}' librechat-cloudflared 2>/dev/null || true)"
+  if [ "$RUNNING" != "true" ]; then
+    return 1
+  fi
+
+  docker logs --tail=200 librechat-cloudflared 2>&1 | grep -q "Registered tunnel connection"
+}
+
+steady_state_check() {
+  health_check && workspace_check && cloudflare_check
+}
+
 log "LibreChat deployment check started"
 
 if ! acquire_lock; then
@@ -198,6 +234,17 @@ if [ ! -f "$DEPLOY_DIR/.env" ]; then
   exit 1
 fi
 
+if [ -n "$(env_value CLOUDFLARE_TUNNEL_TOKEN)" ]; then
+  CLOUDFLARE_ENABLED=1
+  if [ ! -f "$CLOUDFLARE_OVERLAY" ]; then
+    log "ERROR: Cloudflare tunnel token is configured but overlay is missing at $CLOUDFLARE_OVERLAY"
+    exit 1
+  fi
+  log "Cloudflare tunnel integration enabled"
+else
+  log "Cloudflare tunnel integration disabled"
+fi
+
 # Run on every scheduler pass so the workspace is repaired even if a previous
 # Compose run created the bind-mount directory as root before this script landed.
 prepare_workspace
@@ -218,16 +265,21 @@ if [ -z "$REMOTE_SHA" ]; then
 fi
 
 # A Git checkout is not proof of deployment. Only the separately persisted
-# last-successful SHA suppresses a deployment. This ensures failed SHAs retry.
+# last-successful SHA suppresses a deployment, and only while runtime checks pass.
 if [ "$LAST_SUCCESS_SHA" = "$REMOTE_SHA" ] && [ "$LOCAL_SHA" = "$REMOTE_SHA" ] && [ "$FORCE_DEPLOY" != "1" ]; then
-  log "No deployment change; healthy deployment already recorded at $(short_sha "$REMOTE_SHA")"
-  exit 0
+  if steady_state_check; then
+    log "No deployment change; healthy deployment already recorded at $(short_sha "$REMOTE_SHA")"
+    exit 0
+  fi
+  log "Recorded deployment at $(short_sha "$REMOTE_SHA") is not healthy; reconciling runtime state"
 fi
 
 STATUS_TARGET_SHA="$REMOTE_SHA"
 
 if [ "$FORCE_DEPLOY" = "1" ]; then
   log "Forced deployment requested at $(short_sha "$REMOTE_SHA")"
+elif [ "$LAST_SUCCESS_SHA" = "$REMOTE_SHA" ] && [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
+  log "Reconciling unhealthy deployment at $(short_sha "$REMOTE_SHA")"
 elif [ "$LAST_SUCCESS_SHA" = "$REMOTE_SHA" ]; then
   log "Repository checkout differs from recorded deployment; reconciling to $(short_sha "$REMOTE_SHA")"
 elif [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
@@ -262,14 +314,14 @@ prepare_workspace
 cd "$DEPLOY_DIR"
 
 FAILED_STAGE="compose_validation"
-if ! docker-compose config >/dev/null 2>> "$LOG_FILE"; then
+if ! compose config >/dev/null 2>> "$LOG_FILE"; then
   log "ERROR: Compose validation failed"
   exit 1
 fi
 log "Compose validation passed"
 
 FAILED_STAGE="image_pull"
-if ! docker-compose pull >> "$LOG_FILE" 2>&1; then
+if ! compose pull >> "$LOG_FILE" 2>&1; then
   log "ERROR: image pull failed"
   collect_diagnostics
   exit 1
@@ -277,7 +329,7 @@ fi
 log "Image pull completed"
 
 FAILED_STAGE="compose_up"
-if ! docker-compose up -d >> "$LOG_FILE" 2>&1; then
+if ! compose up -d --remove-orphans >> "$LOG_FILE" 2>&1; then
   log "ERROR: Compose update failed"
   collect_diagnostics
   exit 1
@@ -305,6 +357,23 @@ if ! workspace_check; then
 fi
 log "MCP workspace mount passed write/read/delete check"
 
+FAILED_STAGE="cloudflare_check"
+if [ "$CLOUDFLARE_ENABLED" = "1" ]; then
+  COUNT=0
+  until cloudflare_check; do
+    COUNT=$((COUNT + 1))
+    if [ "$COUNT" -ge 12 ]; then
+      log "ERROR: Cloudflare tunnel did not register a connection after 60 seconds"
+      collect_diagnostics
+      exit 1
+    fi
+    sleep 5
+  done
+  log "Cloudflare tunnel connector registered"
+else
+  log "Cloudflare tunnel connector not configured"
+fi
+
 FAILED_STAGE="state_record"
 DEPLOYED_SHA="$(git_repo rev-parse HEAD)"
 if [ "$DEPLOYED_SHA" != "$REMOTE_SHA" ]; then
@@ -314,7 +383,11 @@ fi
 write_last_success "$DEPLOYED_SHA"
 
 FAILED_STAGE="status_report"
-post_status success "$DEPLOYED_SHA" "Synology deployment healthy"
+if [ "$CLOUDFLARE_ENABLED" = "1" ]; then
+  post_status success "$DEPLOYED_SHA" "Synology deployment healthy; Cloudflare tunnel connected"
+else
+  post_status success "$DEPLOYED_SHA" "Synology deployment healthy"
+fi
 STATUS_TARGET_SHA=""
 FAILED_STAGE="complete"
 log "Deployment healthy at $DEPLOYED_SHA"
