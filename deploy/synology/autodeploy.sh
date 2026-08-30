@@ -8,7 +8,11 @@ BRANCH="server/synology"
 LOG_FILE="/volume1/docker/librechat-deploy.log"
 GIT_IMAGE="alpine/git:latest"
 GIT_UID_GID="1026:100"
+STATUS_IMAGE="curlimages/curl:8.10.1"
+STATUS_REPO="justinthenick/LibreChat"
+STATUS_CONTEXT="nas/librechat"
 FORCE_DEPLOY="${FORCE_DEPLOY:-0}"
+STATUS_TARGET_SHA=""
 
 log() {
   printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" | tee -a "$LOG_FILE"
@@ -25,6 +29,54 @@ remote_sha() {
 short_sha() {
   printf '%s' "$1" | cut -c1-8
 }
+
+env_value() {
+  sed -n "s/^$1=//p" "$DEPLOY_DIR/.env" | head -n 1
+}
+
+post_status() {
+  STATE="$1"
+  SHA="$2"
+  DESCRIPTION="$3"
+  TOKEN="$(env_value GITHUB_DEPLOY_STATUS_TOKEN)"
+
+  if [ -z "$TOKEN" ]; then
+    log "WARN: GitHub deployment status token is not configured; status not reported"
+    return 0
+  fi
+
+  if ! docker run --rm \
+    -e GH_TOKEN="$TOKEN" \
+    -e GH_STATE="$STATE" \
+    -e GH_SHA="$SHA" \
+    -e GH_DESCRIPTION="$DESCRIPTION" \
+    -e GH_REPO="$STATUS_REPO" \
+    -e GH_CONTEXT="$STATUS_CONTEXT" \
+    --entrypoint sh "$STATUS_IMAGE" -c '
+      payload=$(printf "{\"state\":\"%s\",\"description\":\"%s\",\"context\":\"%s\"}" "$GH_STATE" "$GH_DESCRIPTION" "$GH_CONTEXT")
+      curl -fsS -X POST \
+        -H "Accept: application/vnd.github+json" \
+        -H "Authorization: Bearer $GH_TOKEN" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        "https://api.github.com/repos/$GH_REPO/statuses/$GH_SHA" \
+        -d "$payload" >/dev/null
+    '; then
+    log "WARN: could not report GitHub commit status for $(short_sha "$SHA")"
+  fi
+
+  return 0
+}
+
+on_exit() {
+  RC=$?
+  trap - 0
+  if [ "$RC" -ne 0 ] && [ -n "$STATUS_TARGET_SHA" ]; then
+    post_status failure "$STATUS_TARGET_SHA" "Synology deployment failed; check NAS deploy log"
+  fi
+  exit "$RC"
+}
+
+trap on_exit 0
 
 health_check() {
   docker exec librechat node -e '
@@ -68,11 +120,15 @@ if [ "$LOCAL_SHA" = "$REMOTE_SHA" ] && [ "$FORCE_DEPLOY" != "1" ]; then
   exit 0
 fi
 
+STATUS_TARGET_SHA="$REMOTE_SHA"
+
 if [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
   log "Forced deployment requested at $(short_sha "$LOCAL_SHA")"
 else
   log "Change detected: $(short_sha "$LOCAL_SHA") -> $(short_sha "$REMOTE_SHA")"
 fi
+
+post_status pending "$REMOTE_SHA" "Synology deployment in progress"
 
 # Only fast-forward updates are accepted. This preserves local private files and
 # aborts rather than rewriting deployment history.
@@ -102,4 +158,6 @@ until health_check; do
 done
 
 DEPLOYED_SHA="$(git_repo rev-parse HEAD)"
+post_status success "$DEPLOYED_SHA" "Synology deployment healthy"
+STATUS_TARGET_SHA=""
 log "Deployment healthy at $DEPLOYED_SHA"
