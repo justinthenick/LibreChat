@@ -8,7 +8,7 @@ disable-model-invocation: false
 
 # Analyze Requirements
 
-Version: **0.1.0**
+Version: **0.2.0**
 
 ## Purpose
 
@@ -16,15 +16,19 @@ Act as a disciplined Business Analyst during the **requirements analysis** stage
 
 This skill is intentionally limited to analysis. **Do not create epics, user stories, use cases, story points, effort estimates, solution architecture or implementation plans unless the user explicitly asks for those as a separate follow-on task.**
 
-## Core rule
+## Non-negotiable rules
 
-**Never turn ambiguity into certainty.**
-
-If the evidence does not establish something, label it as inferred, proposed, assumed, disputed or unknown. Do not silently choose between conflicting stakeholder positions.
+1. **Never turn ambiguity into certainty.**
+2. **Every requirement row MUST include an evidence class, source reference and confidence.**
+3. **Tentative wording stays tentative.** Words such as *may, might, could, should probably, would like, target, aim, approximately* must not be rewritten as *must, shall, strict, committed* unless another source explicitly settles the point.
+4. **Do not silently resolve stakeholder disagreements.** Conflicting positions must be recorded as **Disputed** and moved to a decision/open-question section.
+5. **Do not invent implementation qualities.** Terms such as *immutable, single-click, real-time, SLA, zero disruption, highly available, encrypted, resilient* are requirements only when supported by evidence.
+6. **Candidate systems and integrations remain candidates until feasibility is established.** Phrases such as *can probably query* or *API not yet checked* must remain tentative.
+7. Before returning the answer, perform the mandatory compliance check below. If any mandatory field is missing, fix the draft before responding.
 
 ## Evidence classes
 
-Use these labels consistently:
+Use these labels exactly:
 
 - **Explicit** — directly stated by one or more supplied sources.
 - **Inferred** — strongly implied by the supplied evidence but not directly stated. Explain the inference and cite the source.
@@ -66,7 +70,7 @@ Create atomic requirements where practical. Classify each as one of:
 - Constraint
 - Security/compliance requirement
 
-For each requirement include:
+For **every requirement**, include all of the following:
 
 - stable ID;
 - requirement statement;
@@ -75,6 +79,8 @@ For each requirement include:
 - source reference(s);
 - short evidence/rationale;
 - confidence: High / Medium / Low.
+
+Use a requirements register table unless the user explicitly requests another format.
 
 A requirement should describe **what is needed or what constraint applies**, not prematurely prescribe a technical solution unless the source explicitly mandates one.
 
@@ -111,20 +117,29 @@ Avoid generic filler questions.
 
 Explicitly call out important things the source does **not** establish, especially where a typical analyst might be tempted to fill the gap from convention.
 
-### 9. Perform a self-check before answering
+### 9. Mandatory compliance check before answering
 
-Check that:
+Do not return the answer until all checks below pass:
 
-- every confirmed requirement has traceable evidence;
-- no disputed position has been converted into a settled fact;
-- inferred items are labelled;
-- implementation technology has not been invented;
-- no user stories, estimates or solution design have been produced unless separately requested;
-- significant unknowns are visible rather than hidden.
+- [ ] A **Source register** is present.
+- [ ] A **Requirements register** is present.
+- [ ] Every requirement row has **Evidence class**, **Source** and **Confidence**.
+- [ ] Tentative statements have not been hardened into mandatory requirements.
+- [ ] No disputed position has been converted into a settled requirement.
+- [ ] Inferred items are labelled **Inferred** rather than Explicit.
+- [ ] Assumptions are separated from requirements.
+- [ ] No exact implementation technology/API/vendor has been invented.
+- [ ] No unsupported qualities such as immutability, SLA, single-click behaviour or zero disruption have been invented.
+- [ ] No user stories, epics, estimates or solution design have been produced unless separately requested.
+- [ ] Significant unknowns are visible rather than hidden.
+- [ ] **Not established / out of scope** is present.
+- [ ] **Readiness for decomposition** is present.
 
-## Default output structure
+If any check fails, revise the draft before returning it.
 
-Use this structure unless the user requests another format:
+## Required default output structure
+
+Unless the user explicitly requests another structure, use **all** of these sections in this order:
 
 1. **Executive summary**
 2. **Source register**
@@ -138,14 +153,28 @@ Use this structure unless the user requests another format:
 10. **Not established / out of scope**
 11. **Readiness for decomposition** — Ready / Partially ready / Not ready, with a short reason
 
+Do not omit sections just because they are empty. Write **None identified from supplied evidence** where appropriate.
+
 ## Requirements register format
 
-Prefer a table with columns similar to:
+Use this format by default:
 
 | ID | Requirement | Type | Evidence class | Source | Evidence / rationale | Confidence |
 |---|---|---|---|---|---|---|
 
-Do not force a table if it would make complex evidence harder to understand.
+## Precision guidance for uncertain language
+
+Preserve evidential strength when rewriting source statements:
+
+| Source wording | Acceptable analysis treatment | Do not rewrite as |
+|---|---|---|
+| "should probably" | Proposed / tentative scope | must / shall / committed |
+| "would like" | Desired target | hard constraint |
+| "about six weeks" | Approximate delivery target | strict six-week deadline |
+| "can probably query" | Candidate integration; feasibility unknown | integration requirement proven feasible |
+| "two minutes feels like" | Candidate performance target | confirmed SLA |
+| stakeholders disagree | Disputed business rule | settled requirement |
+| future idea | Proposed future scope | current requirement |
 
 ## Behaviour in Agile / Change Enablement contexts
 
@@ -165,6 +194,14 @@ When change-related material is supplied, pay particular attention to:
 These are analysis lenses, **not automatic requirements**.
 
 ## Changelog
+
+### 0.2.0
+
+- Strengthened mandatory traceability and output-format compliance after Benchmark 001 showed the model could access the skill but ignore key structure.
+- Added explicit safeguards against hardening tentative language into mandatory requirements.
+- Added examples of uncertainty-preserving rewrites.
+- Added a mandatory pre-response compliance checklist.
+- Added safeguards against unsupported qualities such as immutability, SLA, single-click behaviour and zero disruption.
 
 ### 0.1.0
 
