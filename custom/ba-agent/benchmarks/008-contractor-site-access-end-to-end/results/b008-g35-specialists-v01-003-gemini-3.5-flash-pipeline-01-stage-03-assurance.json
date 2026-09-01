@@ -1,0 +1,33 @@
+{
+  "agent_path": "custom/ba-agent/agents/assurance-analyst/AGENT.md",
+  "agent_sha256": "be123b96e34adae17e878b457f8ccaefb047b2a9c5914df1d8cafd1f09aac800",
+  "agent_version": "0.1.0",
+  "ended_at": "2026-09-01T09:59:30Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "max_output_tokens": 8192,
+  "model": "gemini-3.5-flash",
+  "pipeline": "Benchmark 008 \u2014 Three-Specialist BA Pipeline",
+  "run_id": "b008-g35-specialists-v01-003",
+  "stage_id": "assurance",
+  "stage_index": 3,
+  "stage_input_sha256": "e5b9c6d4fa149c37cf339fc470a7a05ff85985ea584e54669d988815c22bae1b",
+  "stage_name": "Assurance Analyst",
+  "started_at": "2026-09-01T09:59:08Z",
+  "status": "success",
+  "temperature": 0.0,
+  "upstream_output_sha256": "e7550eb501dc86dafb19820bb28bffc7e8b819ea6edc1af5ca052e5be6101e5e",
+  "usage": {
+    "candidatesTokenCount": 2551,
+    "promptTokenCount": 3287,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 3287
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 4676,
+    "totalTokenCount": 10514
+  }
+}
