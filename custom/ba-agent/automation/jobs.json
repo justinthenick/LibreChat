@@ -28,6 +28,15 @@
       "mode": "both",
       "repeat": 1,
       "temperature": 0.0
+    },
+    {
+      "id": "b005-g35-ab-v01-001",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/005-planned-maintenance-acceptance-criteria",
+      "model": "gemini-3.5-flash",
+      "mode": "both",
+      "repeat": 1,
+      "temperature": 0.0
     }
   ]
 }
