@@ -66,10 +66,15 @@ def main():
 
     root = Path(args.root).resolve()
     benchmark_rel = "custom/ba-agent/benchmarks/{}".format(args.benchmark)
-    runner_rel = "custom/ba-agent/tools/benchmark_runner.py"
 
-    runner_text = github_fetch_text(args.repo, args.branch, runner_rel)
-    write_repo_file(root, runner_rel, runner_text)
+    for tool_rel in (
+        "custom/ba-agent/tools/benchmark_runner.py",
+        "custom/ba-agent/tools/benchmark_worker.py",
+    ):
+        write_repo_file(root, tool_rel, github_fetch_text(args.repo, args.branch, tool_rel))
+
+    jobs_rel = "custom/ba-agent/automation/jobs.json"
+    write_repo_file(root, jobs_rel, github_fetch_text(args.repo, args.branch, jobs_rel))
 
     config_rel = benchmark_rel + "/benchmark.json"
     config_text = github_fetch_text(args.repo, args.branch, config_rel)
@@ -100,12 +105,19 @@ def main():
     print("Root: {}".format(root))
     print("Python 3.8+ supported.")
     print("")
-    print("Next command:")
+    print("Run queued jobs once:")
     print(
-        "python3 {runner} {benchmark} --model gemini-3.5-flash --mode skill "
-        "--env-file /volume1/docker/librechat/.env --refresh-from-github --publish-github".format(
-            runner=root / runner_rel,
-            benchmark=root / benchmark_rel,
+        "python3 {worker} --once --env-file /volume1/docker/librechat/deploy/synology/.env".format(
+            worker=root / "custom/ba-agent/tools/benchmark_worker.py"
+        )
+    )
+    print("")
+    print("Or run continuously (GitHub-controlled queue):")
+    print(
+        "nohup python3 {worker} --interval 300 --env-file /volume1/docker/librechat/deploy/synology/.env "
+        "> {log} 2>&1 &".format(
+            worker=root / "custom/ba-agent/tools/benchmark_worker.py",
+            log=root / "custom/ba-agent/automation/worker.log",
         )
     )
     return 0
