@@ -6,7 +6,9 @@ This folder contains version-controlled Business Analyst skills and benchmark ca
 
 Build a reliable BA agent for an ITIL Change Enablement / Agile delivery environment. The first capability is deliberately narrow: **requirements analysis from messy source material**.
 
-Version 0.1 does **not** create epics, user stories, use cases, estimates, solution designs, or implementation plans. Those will be separate skills so each capability can be benchmarked independently.
+Current `analyze-requirements` version: **0.3.0**.
+
+This capability does **not** create epics, user stories, use cases, estimates, solution designs, or implementation plans. Those will be separate skills so each capability can be benchmarked independently.
 
 ## Benchmark 001 — Change Validation Automation
 
@@ -15,6 +17,7 @@ Files:
 - `benchmarks/001-change-validation-automation/input.md` — the only benchmark material the model should see.
 - `benchmarks/001-change-validation-automation/gold-standard.md` — evaluator-only expected analysis.
 - `benchmarks/001-change-validation-automation/scoring-rubric.md` — evaluator-only scoring method.
+- `benchmarks/001-change-validation-automation/results/` — versioned benchmark run notes and scores.
 - `skills/analyze-requirements/SKILL.md` — skill under test.
 
 ## Test procedure
@@ -42,14 +45,26 @@ Score both responses independently using `scoring-rubric.md`. Record:
 - model and exact model version/name
 - reasoning/temperature settings if exposed
 - date/time
+- skill version
 - baseline score
 - skill score
 - hallucinations
 - missed requirements
 - unresolved contradictions that were incorrectly converted into facts
 - useful questions raised
+- recurring failure modes across repeated runs
 
 Do not allow the model being tested to read the gold standard or scoring rubric. For a clean benchmark, disable unrelated browsing/tools and do not expose this repository through Filesystem MCP during the run.
+
+## Current benchmark learning
+
+Benchmark 001 has already demonstrated that a specialist skill can materially improve a weaker baseline model, but also exposed an important distinction:
+
+- **Evidence class** answers: *How is this statement supported by the source?*
+- **Requirement status** answers: *How agreed or committed is it?*
+- **Confidence** answers: *How confident is the analyst that the extraction/classification accurately reflects the evidence?*
+
+These are deliberately separate dimensions in skill v0.3.
 
 ## Versioning rule
 
