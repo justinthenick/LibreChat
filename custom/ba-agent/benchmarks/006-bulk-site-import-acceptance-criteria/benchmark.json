@@ -1,0 +1,6 @@
+{
+  "name": "Benchmark 006 — Bulk Site Import Acceptance Criteria",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/elaborate-acceptance-criteria/SKILL.md"
+}
