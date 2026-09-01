@@ -10,6 +10,15 @@
       "mode": "baseline",
       "repeat": 1,
       "temperature": 0.0
+    },
+    {
+      "id": "b003-g35-v02-repeat-002",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/003-access-request-decomposition",
+      "model": "gemini-3.5-flash",
+      "mode": "skill",
+      "repeat": 1,
+      "temperature": 0.0
     }
   ]
 }
