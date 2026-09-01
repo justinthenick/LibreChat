@@ -8,7 +8,7 @@ disable-model-invocation: false
 
 # Analyze Requirements
 
-Version: **0.2.0**
+Version: **0.3.0**
 
 ## Purpose
 
@@ -19,12 +19,14 @@ This skill is intentionally limited to analysis. **Do not create epics, user sto
 ## Non-negotiable rules
 
 1. **Never turn ambiguity into certainty.**
-2. **Every requirement row MUST include an evidence class, source reference and confidence.**
-3. **Tentative wording stays tentative.** Words such as *may, might, could, should probably, would like, target, aim, approximately* must not be rewritten as *must, shall, strict, committed* unless another source explicitly settles the point.
-4. **Do not silently resolve stakeholder disagreements.** Conflicting positions must be recorded as **Disputed** and moved to a decision/open-question section.
-5. **Do not invent implementation qualities.** Terms such as *immutable, single-click, real-time, SLA, zero disruption, highly available, encrypted, resilient* are requirements only when supported by evidence.
-6. **Candidate systems and integrations remain candidates until feasibility is established.** Phrases such as *can probably query* or *API not yet checked* must remain tentative.
-7. Before returning the answer, perform the mandatory compliance check below. If any mandatory field is missing, fix the draft before responding.
+2. **Every requirement row MUST include an evidence class, requirement status, source reference and confidence.**
+3. **Evidence class and requirement status are separate dimensions.** Evidence class says how the source supports the statement. Requirement status says how agreed/committed the item is.
+4. **Tentative wording stays tentative.** Words such as *may, might, could, should probably, would like, target, aim, approximately* must not be rewritten as *must, shall, strict, committed* unless another source explicitly settles the point.
+5. **Do not silently resolve stakeholder disagreements.** Conflicting positions must remain disputed and be moved to a decision/open-question section.
+6. **Never invent a decision owner or governance authority.** If the source does not establish who owns a decision, write **Decision owner: Unknown** and raise an open question. Do not infer CAB, executive leadership, a steering committee, Change Governance, an architecture board or another authority merely because such a role would commonly exist.
+7. **Do not invent implementation qualities.** Terms such as *immutable, single-click, real-time, SLA, zero disruption, highly available, encrypted, resilient* are requirements only when supported by evidence.
+8. **Candidate systems and integrations remain candidates until feasibility is established.** Phrases such as *can probably query* or *API not yet checked* must remain tentative.
+9. Before returning the answer, perform the mandatory compliance check below. If any mandatory field is missing or a tentative item has been hardened, fix the draft before responding.
 
 ## Evidence classes
 
@@ -32,12 +34,38 @@ Use these labels exactly:
 
 - **Explicit** — directly stated by one or more supplied sources.
 - **Inferred** — strongly implied by the supplied evidence but not directly stated. Explain the inference and cite the source.
-- **Proposed** — a useful analyst recommendation that is not yet a requirement. Keep it separate from confirmed requirements.
+- **Proposed** — a useful analyst recommendation that is not yet a requirement. Keep it separate from confirmed requirements where practical.
 - **Assumption** — something that may be necessary to proceed but is not established by evidence.
-- **Disputed** — sources materially disagree.
-- **Unknown** — available evidence is insufficient.
+- **Disputed** — the source evidence itself materially conflicts or cannot be represented as one uncontested statement.
+- **Unknown** — available evidence is insufficient to establish the point.
 
 Do not promote Inferred, Proposed, Assumption, Disputed or Unknown items to Explicit requirements.
+
+## Requirement statuses
+
+For every requirement/register item, also assign one of these statuses:
+
+- **Confirmed** — sufficiently clear and settled in the supplied evidence to treat as a current requirement or constraint.
+- **Candidate** — explicitly suggested or plausible, but not yet agreed/committed.
+- **Target** — a desired outcome, timeframe, threshold or performance aim that is not established as a hard commitment.
+- **Disputed** — stakeholders or sources materially disagree about the required outcome.
+- **Deferred** — explicitly identified as later/future scope rather than current scope.
+- **Unknown** — the available evidence is insufficient to determine status.
+
+### Evidence class is not requirement status
+
+These dimensions MUST be assessed independently.
+
+Examples:
+
+- "We should probably start with the ten most common change types" → **Evidence: Explicit; Status: Candidate**.
+- "I would like a useful first release in about six weeks" → **Evidence: Explicit; Status: Target**.
+- "Two minutes feels like the longest people will wait" → **Evidence: Explicit; Status: Target** unless another source makes it mandatory.
+- "The current approval process should remain in place for now" → **Evidence: Explicit; Status: Confirmed** constraint unless contradicted.
+- Two stakeholders explicitly disagree about blocking → the positions are explicit, but the business rule is **Status: Disputed**.
+- "Eventually I would like safe fixes" → **Evidence: Explicit; Status: Deferred** future scope.
+
+**Confidence is a third, separate concept.** Confidence reflects how confident the analyst is that the extraction/classification accurately represents the evidence. A Target can have High confidence; a Confirmed item can still have Medium confidence if source wording is unclear.
 
 ## Procedure
 
@@ -57,7 +85,9 @@ Keep this grounded in evidence. Do not add benefits that were not supported.
 
 ### 3. Identify stakeholders and actors
 
-List only stakeholders/actors supported by the source. Distinguish a stakeholder from a system or data source. Do not invent organizational roles merely because they would normally exist.
+List only stakeholders/actors supported by the source. Distinguish a stakeholder from a system or data source. Do not invent organizational roles, seniority, ownership or decision authority merely because they would normally exist.
+
+If a source names a role but does not establish that role as sponsor, owner, approver or governance authority, do not assign that authority.
 
 ### 4. Extract requirements
 
@@ -76,6 +106,7 @@ For **every requirement**, include all of the following:
 - requirement statement;
 - type;
 - evidence class;
+- requirement status;
 - source reference(s);
 - short evidence/rationale;
 - confidence: High / Medium / Low.
@@ -83,6 +114,8 @@ For **every requirement**, include all of the following:
 Use a requirements register table unless the user explicitly requests another format.
 
 A requirement should describe **what is needed or what constraint applies**, not prematurely prescribe a technical solution unless the source explicitly mandates one.
+
+Do not use mandatory language (*must, shall, prohibited, required*) for Candidate or Target items unless the statement itself is explicitly a mandatory requirement and the status is Confirmed.
 
 ### 5. Detect conflicts and ambiguity
 
@@ -93,13 +126,22 @@ Create a dedicated section for:
 - undefined thresholds;
 - tentative targets;
 - technically unverified claims;
-- scope uncertainty.
+- scope uncertainty;
+- unknown decision ownership.
 
-For each conflict, state the competing positions and the decision that is required. **Do not resolve the conflict yourself.**
+For each conflict or unresolved decision, state:
+
+- the competing positions or uncertainty;
+- the decision that is required;
+- **Decision owner: [supported role]** only when the source establishes one; otherwise **Decision owner: Unknown**.
+
+**Do not resolve the conflict yourself.**
 
 ### 6. Separate assumptions and proposals
 
 List assumptions and analyst proposals separately from requirements. Explain why each arose.
+
+A proposal must not quietly become a requirement later in the same answer. If proposing a duration, process, working group, UI pattern, architecture approach or governance mechanism that is not in the evidence, label it clearly as **Proposed** and do not imply stakeholder agreement.
 
 ### 7. Raise open questions
 
@@ -113,9 +155,22 @@ Prefer decision-oriented questions such as:
 
 Avoid generic filler questions.
 
+When decision ownership is not evidenced, include a question to establish it rather than assigning an owner yourself.
+
 ### 8. State what is not established
 
 Explicitly call out important things the source does **not** establish, especially where a typical analyst might be tempted to fill the gap from convention.
+
+Pay particular attention to absent:
+
+- decision rights / approval authority;
+- vendor or product names;
+- API capability;
+- hard deadlines or SLAs;
+- retention/immutability requirements;
+- detailed security approval processes;
+- UI/architecture patterns;
+- governance bodies or committees.
 
 ### 9. Mandatory compliance check before answering
 
@@ -123,11 +178,17 @@ Do not return the answer until all checks below pass:
 
 - [ ] A **Source register** is present.
 - [ ] A **Requirements register** is present.
-- [ ] Every requirement row has **Evidence class**, **Source** and **Confidence**.
+- [ ] Every requirement row has **Evidence class**, **Requirement status**, **Source** and **Confidence**.
+- [ ] **Evidence class** and **Requirement status** have been assessed independently.
 - [ ] Tentative statements have not been hardened into mandatory requirements.
+- [ ] Desired dates/timeframes are **Target** unless the evidence establishes a commitment.
+- [ ] Suggested scope is **Candidate** unless the evidence establishes agreement.
+- [ ] Future ideas are **Deferred**, not current requirements.
 - [ ] No disputed position has been converted into a settled requirement.
 - [ ] Inferred items are labelled **Inferred** rather than Explicit.
 - [ ] Assumptions are separated from requirements.
+- [ ] No decision owner, governance body or approval authority has been invented.
+- [ ] Unknown decision ownership is explicitly labelled **Unknown**.
 - [ ] No exact implementation technology/API/vendor has been invented.
 - [ ] No unsupported qualities such as immutability, SLA, single-click behaviour or zero disruption have been invented.
 - [ ] No user stories, epics, estimates or solution design have been produced unless separately requested.
@@ -159,22 +220,22 @@ Do not omit sections just because they are empty. Write **None identified from s
 
 Use this format by default:
 
-| ID | Requirement | Type | Evidence class | Source | Evidence / rationale | Confidence |
-|---|---|---|---|---|---|---|
+| ID | Requirement | Type | Evidence class | Requirement status | Source | Evidence / rationale | Confidence |
+|---|---|---|---|---|---|---|---|
 
 ## Precision guidance for uncertain language
 
-Preserve evidential strength when rewriting source statements:
+Preserve evidential strength and commitment level when rewriting source statements:
 
-| Source wording | Acceptable analysis treatment | Do not rewrite as |
-|---|---|---|
-| "should probably" | Proposed / tentative scope | must / shall / committed |
-| "would like" | Desired target | hard constraint |
-| "about six weeks" | Approximate delivery target | strict six-week deadline |
-| "can probably query" | Candidate integration; feasibility unknown | integration requirement proven feasible |
-| "two minutes feels like" | Candidate performance target | confirmed SLA |
-| stakeholders disagree | Disputed business rule | settled requirement |
-| future idea | Proposed future scope | current requirement |
+| Source wording | Evidence class | Requirement status | Acceptable treatment | Do not rewrite as |
+|---|---|---|---|---|
+| "should probably" | Explicit | Candidate | tentative/proposed scope | must / shall / committed |
+| "would like" | Explicit | Target | desired target | hard constraint |
+| "about six weeks" | Explicit | Target | approximate delivery target | strict six-week deadline |
+| "can probably query" | Explicit | Candidate | candidate integration; feasibility unknown | integration proven feasible |
+| "two minutes feels like" | Explicit | Target | candidate performance target | confirmed SLA |
+| stakeholders disagree | Explicit/Disputed as appropriate | Disputed | unresolved business rule | settled requirement |
+| future idea | Explicit | Deferred | future scope | current requirement |
 
 ## Behaviour in Agile / Change Enablement contexts
 
@@ -194,6 +255,15 @@ When change-related material is supplied, pay particular attention to:
 These are analysis lenses, **not automatic requirements**.
 
 ## Changelog
+
+### 0.3.0
+
+- Added **Requirement status** as a separate dimension from evidence class after repeated Benchmark 001 v0.2 runs showed that explicitly stated but tentative wording could still be promoted into requirements.
+- Added statuses: Confirmed, Candidate, Target, Disputed, Deferred and Unknown.
+- Added explicit examples separating evidence provenance from commitment status.
+- Added a non-negotiable rule against inventing decision owners, governance bodies or approval authority.
+- Added **Decision owner: Unknown** handling for unresolved governance ownership.
+- Strengthened checks against over-specifying security sign-off processes and other conventional-but-unsupported governance details.
 
 ### 0.2.0
 
