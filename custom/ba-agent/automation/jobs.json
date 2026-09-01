@@ -2,132 +2,21 @@
   "schema": 1,
   "enabled": true,
   "jobs": [
-    {
-      "id": "b003-g35-runner-baseline-001",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/003-access-request-decomposition",
-      "model": "gemini-3.5-flash",
-      "mode": "baseline",
-      "repeat": 1,
-      "temperature": 0.0
-    },
-    {
-      "id": "b003-g35-v02-repeat-002",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/003-access-request-decomposition",
-      "model": "gemini-3.5-flash",
-      "mode": "skill",
-      "repeat": 1,
-      "temperature": 0.0
-    },
-    {
-      "id": "b004-g35-ab-001",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/004-release-evidence-decomposition",
-      "model": "gemini-3.5-flash",
-      "mode": "both",
-      "repeat": 1,
-      "temperature": 0.0
-    },
-    {
-      "id": "b005-g35-ab-v01-001",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/005-planned-maintenance-acceptance-criteria",
-      "model": "gemini-3.5-flash",
-      "mode": "both",
-      "repeat": 1,
-      "temperature": 0.0
-    },
-    {
-      "id": "b006-g35-ab-v01-001",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/006-bulk-site-import-acceptance-criteria",
-      "model": "gemini-3.5-flash",
-      "mode": "both",
-      "repeat": 1,
-      "temperature": 0.0
-    },
-    {
-      "id": "b007-g35-ab-v01-001",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/007-release-verification-test-cases",
-      "model": "gemini-3.5-flash",
-      "mode": "both",
-      "repeat": 1,
-      "temperature": 0.0
-    },
-    {
-      "id": "b007-g35-v02-002",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/007-release-verification-test-cases",
-      "model": "gemini-3.5-flash",
-      "mode": "skill",
-      "repeat": 1,
-      "temperature": 0.0
-    },
-    {
-      "id": "b007-g35-v03-003",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/007-release-verification-test-cases",
-      "model": "gemini-3.5-flash",
-      "mode": "skill",
-      "repeat": 1,
-      "temperature": 0.0
-    },
-    {
-      "id": "b008-g35-composite-v01-001",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/008-contractor-site-access-end-to-end",
-      "model": "gemini-3.5-flash",
-      "mode": "both",
-      "repeat": 1,
-      "temperature": 0.0
-    },
-    {
-      "id": "b008-g35-composite-v02-002",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/008-contractor-site-access-end-to-end",
-      "model": "gemini-3.5-flash",
-      "mode": "skill",
-      "repeat": 1,
-      "temperature": 0.0
-    },
-    {
-      "id": "b008-g35-specialists-v01-003",
-      "enabled": true,
-      "runner": "pipeline",
-      "benchmark": "custom/ba-agent/benchmarks/008-contractor-site-access-end-to-end",
-      "pipeline_config": "pipeline-specialists.json",
-      "model": "gemini-3.5-flash",
-      "repeat": 1,
-      "temperature": 0.0
-    },
-    {
-      "id": "b009-g35-composite-v02-ab-001",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/009-service-ownership-update-end-to-end",
-      "model": "gemini-3.5-flash",
-      "mode": "both",
-      "repeat": 1,
-      "temperature": 0.0
-    },
-    {
-      "id": "b010-g35-handoff-v01-ab-001",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/010-solution-change-readiness-handoff",
-      "model": "gemini-3.5-flash",
-      "mode": "both",
-      "repeat": 1,
-      "temperature": 0.0
-    },
-    {
-      "id": "b011-g35-itil-v01-ab-001",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/011-emergency-change-itil-alignment",
-      "model": "gemini-3.5-flash",
-      "mode": "both",
-      "repeat": 1,
-      "temperature": 0.0
-    }
+    {"id":"b003-g35-runner-baseline-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/003-access-request-decomposition","model":"gemini-3.5-flash","mode":"baseline","repeat":1,"temperature":0.0},
+    {"id":"b003-g35-v02-repeat-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/003-access-request-decomposition","model":"gemini-3.5-flash","mode":"skill","repeat":1,"temperature":0.0},
+    {"id":"b004-g35-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/004-release-evidence-decomposition","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b005-g35-ab-v01-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/005-planned-maintenance-acceptance-criteria","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b006-g35-ab-v01-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/006-bulk-site-import-acceptance-criteria","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b007-g35-ab-v01-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/007-release-verification-test-cases","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b007-g35-v02-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/007-release-verification-test-cases","model":"gemini-3.5-flash","mode":"skill","repeat":1,"temperature":0.0},
+    {"id":"b007-g35-v03-003","enabled":true,"benchmark":"custom/ba-agent/benchmarks/007-release-verification-test-cases","model":"gemini-3.5-flash","mode":"skill","repeat":1,"temperature":0.0},
+    {"id":"b008-g35-composite-v01-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/008-contractor-site-access-end-to-end","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b008-g35-composite-v02-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/008-contractor-site-access-end-to-end","model":"gemini-3.5-flash","mode":"skill","repeat":1,"temperature":0.0},
+    {"id":"b008-g35-specialists-v01-003","enabled":true,"runner":"pipeline","benchmark":"custom/ba-agent/benchmarks/008-contractor-site-access-end-to-end","pipeline_config":"pipeline-specialists.json","model":"gemini-3.5-flash","repeat":1,"temperature":0.0},
+    {"id":"b009-g35-composite-v02-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/009-service-ownership-update-end-to-end","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b010-g35-handoff-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/010-solution-change-readiness-handoff","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b011-g35-itil-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/011-emergency-change-itil-alignment","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b010-g35-handoff-v02-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/010-solution-change-readiness-handoff","model":"gemini-3.5-flash","mode":"skill","repeat":1,"temperature":0.0},
+    {"id":"b012-g35-itil-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/012-planned-certificate-change-itil-alignment","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0}
   ]
 }
