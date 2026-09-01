@@ -81,7 +81,7 @@ Skill:
 
 - `skills/prepare-solution-change-readiness/SKILL.md`
 - current version: **0.2.0**
-- status: **retained after focused B010 correction; B013 generalization queued**
+- status: **retained after B010; B013 generalization currently provider-quota blocked**
 
 Purpose: convert sufficiently mature BA delivery evidence into a controlled handoff for solution/design review and Change Enablement without pretending to be the Solution Architect, Change Manager or approver.
 
@@ -103,24 +103,13 @@ Decision: **retain `prepare-solution-change-readiness` v0.2.0.** Do not tune fur
 
 ### Benchmark 013 — Vendor Export Solution / Change-Readiness Handoff
 
-B013 is the materially different handoff generalization benchmark. It tests an external-vendor invoice-exception export with:
+B013 is the materially different handoff generalization benchmark. It tests an external-vendor invoice-exception export with Candidate SFTP, disputed tokenisation with Decision Owner Unknown, a 15-minute Target, Deferred scheduled exports, Unknown file retention, draft-but-not-approved field mapping, unverified MFT-gateway reuse and missing downstream implementation/Change evidence.
 
-- Candidate SFTP transfer;
-- disputed account-ID tokenisation with Decision Owner Unknown;
-- a non-binding 15-minute Target;
-- Deferred scheduled exports;
-- Unknown generated-file retention;
-- a reviewed field mapping that is evidence but not approved interface design;
-- unverified possible reuse of an existing Managed File Transfer gateway;
-- unexecuted test designs and missing downstream implementation/Change evidence.
+Job: `b013-g35-handoff-v02-ab-001`, Gemini 3.5 Flash, temperature `0.0`, baseline + v0.2.
 
-Queued A/B job:
+The first baseline attempt at 2026-09-02 00:40:29 Australia/Sydney was **quota_blocked** before model execution. Gemini reported the free-tier `generate_content` daily request limit of 20 requests for `gemini-3.5-flash` had been exhausted. The NAS worker intentionally attempts each unique job ID once, so this job will not automatically retry; a new job ID must be queued after quota becomes available.
 
-- `b013-g35-handoff-v02-ab-001`
-- Gemini 3.5 Flash, temperature `0.0`
-- baseline + `prepare-solution-change-readiness` v0.2
-
-If v0.2 remains strong without selecting transfer architecture, resolving the data-handling dispute or promoting gaps into governance gates, treat the handoff capability as generalized enough for composition testing.
+No B013 score exists yet. Do not infer handoff generalization from the provider-blocked attempt.
 
 ## Capability 6 — ITIL 4 Alignment / Readiness Assessment
 
@@ -128,7 +117,7 @@ Skill:
 
 - `skills/assess-itil-alignment/SKILL.md`
 - current version: **0.2.0**
-- status: **focused B012 correction queued**
+- status: **retained / generalized enough for composition planning**
 
 Purpose: assess supplied BA, solution-handoff, release, deployment, configuration and change-readiness evidence against relevant **ITIL 4 practice concepts** while keeping ITIL guidance separate from organisation-specific policy and authority.
 
@@ -149,22 +138,21 @@ v0.1 cleanly separated local policy from ITIL guidance, preserved the Unknown Em
 
 Gemini 3.5 Flash, temperature `0.0`:
 
-| Run | Raw / Final | Tokens | Decision |
+| Run | Final | Tokens | Decision |
 |---|---:|---:|---|
 | Baseline | **94/100** | 5,211 | Strong control with minor readiness precision issues. |
-| `assess-itil-alignment` v0.1 | **96/100** | 6,759 | Strong overall, but do not freeze due one reusable governance-gating defect. |
+| `assess-itil-alignment` v0.1 | **96/100** | 6,759 | Strong but exposed a gap-to-gate variant. |
+| **`assess-itil-alignment` v0.2 focused rerun** | **100/100** | **7,303** | **Retain; zero penalties.** |
 
-B012 confirms that v0.1 generalizes on Change/Release/Deployment/Service Configuration separation, Standard Change Model scope, Unknown Change Authority, schedule conflict and policy-vs-guidance separation. It also exposed a narrower **gap-to-gate promotion** defect: recovery/backout and configuration-update ownership/timing were labelled as required pre-authorisation evidence even though the packet did not establish those as mandatory local gates.
+B012 v0.1 exposed a narrower **gap-to-gate promotion** defect: recovery/backout and configuration-update ownership/timing were labelled as required pre-authorisation evidence even though the packet did not establish those as mandatory local gates.
 
-No universal ITIL rollback mandate was claimed, so no rubric penalty applied; nevertheless this is governance-significant because it can make a change appear blocked by an organisation-specific requirement that was never established.
+v0.2 made one focused correction: relevant `Not evidenced` practice concerns may be raised as questions/clarifications but may not become mandatory gates, approvals or pre-authorisation prerequisites without explicit local-policy/source support.
 
-Decision: create `assess-itil-alignment` **v0.2.0** with one focused correction only. Relevant `Not evidenced` practice concerns may be raised as questions/clarifications, but cannot become `Evidence required`, mandatory gates or pre-authorisation prerequisites unless explicit local policy/source evidence establishes that status.
+The focused rerun confirms the correction. Recovery/backout and configuration-update ownership/timing remain clarifications; the schedule conflict remains a genuine local-policy gate; Standard Change scope and Unknown Change Authority are preserved; Release, Deployment and Service Configuration Management remain distinct; and no universal CAB/rollback/PIR/CMDB/security/maturity/execution obligation is invented.
 
-Queued Skill-only rerun:
+Decision: **retain `assess-itil-alignment` v0.2.0.** B011 plus corrected B012 provide enough isolated evidence for composition planning. Do not retune against these benchmarks for cosmetic score gains.
 
-- `b012-g35-itil-v02-002`
-
-Do not modify the frozen Composite BA Delivery Analyst merely to add ITIL wording. Only after isolated ITIL correction/generalization and handoff generalization should composition be tested.
+Do not modify the frozen Composite BA Delivery Analyst merely to add ITIL wording. Composition remains deferred until the B013 solution/change-readiness generalization completes cleanly.
 
 ## Test timeline
 
@@ -178,6 +166,8 @@ Do not modify the frozen Composite BA Delivery Analyst merely to add ITIL wordin
 4. runner calls Gemini directly;
 5. raw result, metadata and manifests publish back to this feature branch;
 6. evaluator-only gold standard/rubric are used after the run and are never sent to the model under test.
+
+The worker attempts each unique job ID once. A provider-blocked run therefore needs a **new job ID** for an intentional retry after quota becomes available; this avoids repeated polling consuming or hammering provider quota.
 
 ## Benchmark discipline
 
@@ -197,6 +187,6 @@ Do not modify the frozen Composite BA Delivery Analyst merely to add ITIL wordin
 4. test/assurance derivation — **v0.3 retained**
 5. Composite BA Delivery Analyst — **v0.2 frozen / preferred**
 6. specialist pipeline — **experimental; not preferred**
-7. solution/change-readiness handoff — **v0.2 retained; B013 generalization queued**
-8. ITIL 4 alignment/readiness — **v0.2 focused B012 rerun queued**
-9. composition of validated handoff + ITIL alignment into the preferred BA workflow — **after isolated validation/generalization**
+7. solution/change-readiness handoff — **v0.2 retained; B013 retry required after provider quota resets**
+8. ITIL 4 alignment/readiness — **v0.2 retained/generalized enough for composition planning**
+9. composition of validated handoff + ITIL alignment into the preferred BA workflow — **after B013 completes cleanly**
