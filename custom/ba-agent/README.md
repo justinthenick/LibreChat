@@ -69,7 +69,7 @@ Skill:
 
 - `skills/elaborate-acceptance-criteria/SKILL.md`
 - current version: **0.1.0**
-- status: **experimental / generalization testing**
+- status: **validated/generalized**
 
 Purpose: turn sufficiently ready delivery items into traceable, testable acceptance criteria without creating new behavior.
 
@@ -96,15 +96,48 @@ Runner-native Gemini 3.5 Flash results at temperature `0.0`:
 | `elaborate-acceptance-criteria` v0.1 | **98/100** |
 | Difference | **+2** |
 
-The Skill improved explicit readiness, per-criterion traceability and evidence classification, but the baseline was already exceptionally strong because the benchmark prompt and upstream decomposition imposed substantial discipline. v0.1 also introduced a small amount of unsupported `purging` / `storage and archiving` wording around the Unknown retention item, though not as committed design.
-
-Decision: **retain v0.1 unchanged; do not tune from Benchmark 005.** Move to a harder, materially different acceptance-criteria benchmark to test whether the Skill provides reusable value rather than optimizing against an easy baseline.
+The Skill improved explicit readiness, per-criterion traceability and evidence classification, but the baseline was already exceptionally strong. Decision: retain v0.1 unchanged and test it on a harder domain rather than tuning against Benchmark 005.
 
 ### Benchmark 006 — Bulk Site Import Acceptance Criteria
 
-Purpose: generalization/stress test in a batch-data domain with a Partially Ready item, a confirmed negative minimum-data boundary, disputed duplicate handling, Candidate Master Site Registry validation, a non-binding performance Target, Deferred recurring imports, Unknown retention, Unknown site-name/region validation, and strict no-invention boundaries around file/batch/integration behavior.
+Runner-native Gemini 3.5 Flash results:
 
-A runner-native Gemini 3.5 Flash baseline + v0.1 Skill A/B job is queued as `b006-g35-ab-v01-001`.
+| Run | Score |
+|---|---:|
+| No skill baseline | **77/100** |
+| `elaborate-acceptance-criteria` v0.1 | **98/100** |
+| **Improvement** | **+21** |
+
+The baseline converted Unknown site-name/region validation into an asserted `no validation is performed` rule. v0.1 preserved the Unknown area, kept duplicate handling disputed, registry validation Candidate, the performance Target non-binding, recurring imports Deferred and registry access read-only, while maintaining full criterion traceability.
+
+Conclusion: **`elaborate-acceptance-criteria` v0.1 is validated/generalized across materially different service-notification and batch-data problems.** Do not tune v0.2 unless later cross-capability testing exposes a reusable defect.
+
+## Capability 4 — Test-case / assurance derivation
+
+Skill:
+
+- `skills/derive-test-cases/SKILL.md`
+- current version: **0.1.0**
+- status: **experimental / Benchmark 007 queued**
+
+Purpose: derive traceable behavioural test cases and assurance coverage from sufficiently ready acceptance criteria without inventing execution mechanics.
+
+Core rules include:
+
+- test only Ready or confirmed portions of Partially Ready criteria;
+- preserve Blocked/Disputed/Unknown/Candidate/Target/Deferred status;
+- trace every test to AC ID, delivery item and upstream REQ ID(s);
+- derive negative cases only from established logical boundaries;
+- do not invent UI steps, accounts, environments, concrete test data, validation/error text, APIs, storage, retries/timeouts, mocks/stubs, automation frameworks or test tooling;
+- keep Targets non-binding unless upstream explicitly makes them acceptance commitments;
+- represent conditional security/process constraints without implying Candidate implementation is committed;
+- perform a coverage-integrity check before returning output.
+
+### Benchmark 007 — Release Verification Test Cases
+
+Purpose: first A/B benchmark for `derive-test-cases` v0.1. The benchmark combines Ready behavioural acceptance criteria, an explicit positive/negative Change-reference boundary, conditional integration constraints, a disputed rollback decision, Candidate automated import, unapproved pilot services, a non-binding completion Target, Deferred predictive scoring and Unknown retention.
+
+A runner-native Gemini 3.5 Flash baseline + v0.1 Skill A/B job is queued as `b007-g35-ab-v01-001`.
 
 ## Automated benchmark runner
 
@@ -134,5 +167,6 @@ Current intended sequence:
 
 1. `analyze-requirements` — **validated**
 2. `decompose-requirements` — **validated/generalized**
-3. `elaborate-acceptance-criteria` — **v0.1 retained; Benchmark 006 generalization queued**
-4. future capability — test/assurance traceability and solution handoff
+3. `elaborate-acceptance-criteria` — **validated/generalized**
+4. `derive-test-cases` — **experimental / Benchmark 007 queued**
+5. future capability — solution / change-readiness handoff
