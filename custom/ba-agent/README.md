@@ -117,8 +117,8 @@ Conclusion: **`elaborate-acceptance-criteria` v0.1 is validated/generalized acro
 Skill:
 
 - `skills/derive-test-cases/SKILL.md`
-- current version: **0.1.0**
-- status: **experimental / Benchmark 007 queued**
+- current version: **0.3.0**
+- status: **experimental / focused Benchmark 007 correction queued**
 
 Purpose: derive traceable behavioural test cases and assurance coverage from sufficiently ready acceptance criteria without inventing execution mechanics.
 
@@ -130,14 +130,42 @@ Core rules include:
 - derive negative cases only from established logical boundaries;
 - do not invent UI steps, accounts, environments, concrete test data, validation/error text, APIs, storage, retries/timeouts, mocks/stubs, automation frameworks or test tooling;
 - keep Targets non-binding unless upstream explicitly makes them acceptance commitments;
-- represent conditional security/process constraints without implying Candidate implementation is committed;
+- represent conditional constraints as assurance states without inventing inspection mechanisms;
+- do not manufacture future execution prerequisites from absent UI/API/environment/test-data/tooling details;
 - perform a coverage-integrity check before returning output.
 
 ### Benchmark 007 — Release Verification Test Cases
 
-Purpose: first A/B benchmark for `derive-test-cases` v0.1. The benchmark combines Ready behavioural acceptance criteria, an explicit positive/negative Change-reference boundary, conditional integration constraints, a disputed rollback decision, Candidate automated import, unapproved pilot services, a non-binding completion Target, Deferred predictive scoring and Unknown retention.
+Runner-native Gemini 3.5 Flash results:
 
-A runner-native Gemini 3.5 Flash baseline + v0.1 Skill A/B job is queued as `b007-g35-ab-v01-001`.
+| Run | Score | Finding |
+|---|---:|---|
+| No-skill baseline | **97/100** | Very strong behavioural coverage and discipline. |
+| `derive-test-cases` v0.1 | **95/100** | Strong tests, but the closing gaps section over-prescribed future UI/API/environment/test-data/sign-off prerequisites. |
+| `derive-test-cases` v0.2 | **93/100** | Core test derivation remained strong, but the closing section still treated unsourced execution details as prerequisites and introduced a retention `compliance owner`; some assurance wording also implied inspection mechanisms. |
+
+Decision: the defect is narrow and reusable, so do not abandon the capability. v0.3 removes the default execution-planning gaps section, permits only explicit upstream blockers to be carried forward, and requires assurance checks to state **what** must hold rather than **how** it should be inspected.
+
+A Skill-only v0.3 rerun is queued as `b007-g35-v03-003`. If it returns to the strong baseline range without material invention, retain v0.3 and move directly to the agent-composition layer before adding more isolated skills.
+
+## Planned agent-composition layer
+
+Once Capability 4 clears its focused correction, the next benchmark will test a **single composite BA Delivery Analyst agent** using the existing single-call runner. The agent will combine the validated capability sequence while preserving explicit stage boundaries and handoffs:
+
+1. analyze requirements;
+2. decompose requirements;
+3. elaborate acceptance criteria;
+4. derive test / assurance coverage.
+
+The end-to-end composition benchmark will use a fresh messy source packet and evaluator-only gold/rubric. It will score final quality plus stage fidelity, uncertainty/status preservation, cross-stage traceability, contradictions, invented scope/mechanics and token usage.
+
+Only if the single composite agent demonstrates useful value will the lab proceed to a true multi-call specialist-agent comparison. The preferred specialist split is:
+
+- Requirements Analyst — requirements analysis;
+- Delivery Refinement Analyst — decomposition + acceptance criteria;
+- Assurance Analyst — test / assurance derivation.
+
+A multi-call pipeline would require a runner enhancement so each stage output is persisted, hashed and supplied as the next stage input. Do not modify NAS execution infrastructure until the single-agent composition test justifies that added complexity.
 
 ## Automated benchmark runner
 
@@ -168,5 +196,6 @@ Current intended sequence:
 1. `analyze-requirements` — **validated**
 2. `decompose-requirements` — **validated/generalized**
 3. `elaborate-acceptance-criteria` — **validated/generalized**
-4. `derive-test-cases` — **experimental / Benchmark 007 queued**
-5. future capability — solution / change-readiness handoff
+4. `derive-test-cases` — **v0.3 correction queued**
+5. agent composition — **next after Capability 4 clears**
+6. future capability — solution / change-readiness handoff
