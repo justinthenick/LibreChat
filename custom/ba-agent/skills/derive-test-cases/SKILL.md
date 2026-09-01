@@ -8,7 +8,7 @@ disable-model-invocation: false
 
 # Derive Test Cases
 
-**Version: 0.1.0**
+Version: **0.2.0**
 
 ## Purpose
 
@@ -18,7 +18,7 @@ This skill does **not** design test automation, test environments, architecture,
 
 ## Core principle
 
-A test case verifies an established condition; it must not create new product behaviour merely to make testing convenient.
+A test case verifies an established condition; it must not create new product behaviour or future execution prerequisites merely to make testing convenient.
 
 ## Non-negotiable rules
 
@@ -49,28 +49,35 @@ A test case verifies an established condition; it must not create new product be
    - mock/stub architecture;
    - exact test data values, formats or boundary numbers.
 
-4. **No synthetic business rules.**
+4. **Do not manufacture future execution prerequisites.**
+   The same no-invention rule applies to `gaps`, `next steps`, `execution planning` and recommendations.
+   - Do not say that a UI path, API endpoint, test environment, test account, concrete data value, format, protocol, mock/stub, automation tool or other execution mechanism `must be defined` unless upstream establishes that mechanism exists and is required.
+   - If execution detail is absent, say only that execution mechanics are **not established** and leave them open.
+   - Do not convert an Unknown decision owner into a requirement to assign an owner, sign-off role or approval authority. Preserve `Decision owner: Unknown` unless upstream establishes otherwise.
+
+5. **No synthetic business rules.**
    Do not resolve disputed decisions, infer approval rights, invent duplicate/error handling, add field validation rules or assume behavior for Unknown areas.
 
-5. **Logical complements are allowed only when necessary.**
+6. **Logical complements are allowed only when necessary.**
    If an acceptance criterion explicitly establishes an `only when`, `must not`, `cannot`, `remains available when`, or equivalent boundary, a positive and/or negative test may be derived from that boundary.
    Label such cases `Derived boundary` when the expected result is the logical complement rather than separately explicit wording.
 
-6. **Do not harden Targets.**
+7. **Do not harden Targets.**
    A Target may be listed as a non-binding performance/quality observation opportunity, but do not turn it into a pass/fail release gate or mandatory test unless upstream has done so.
 
-7. **Constraint assurance may differ from functional testing.**
+8. **Constraint assurance may differ from functional testing.**
    For security/process/read-only constraints, state what must be verified without inventing the inspection mechanism or evidence source. Do not assume code review, logs, IAM reports, database inspection, API traces or any other mechanism unless established upstream.
 
-8. **Avoid over-splitting.**
+9. **Avoid over-splitting.**
    Create enough cases to cover materially distinct acceptance conditions and supported negative boundaries, but do not multiply cases by invented data combinations, browsers, channels, roles, states, environments or permutations.
 
-9. **Coverage integrity check is mandatory.**
+10. **Coverage integrity check is mandatory.**
    Before returning the answer, verify:
    - each Ready criterion is covered by at least one test case or assurance check;
    - no test case points to a non-existent AC/work-item/REQ ID;
    - Blocked/Candidate/Deferred/Unknown behavior has not leaked into committed tests;
-   - every expected outcome is grounded in the supplied acceptance criteria.
+   - every expected outcome is grounded in the supplied acceptance criteria;
+   - remaining gaps contain only sourced unresolved decisions, unknowns, dependencies or explicitly established execution inputs.
 
 ## Test-case wording
 
@@ -93,7 +100,7 @@ Do not use Given/When/Then unless every clause is source-backed.
 6. Candidate / conditional coverage notes
 7. Target / deferred coverage notes
 8. Traceability and coverage summary
-9. Remaining gaps before execution planning
+9. Remaining **sourced** gaps before execution planning
 
 Recommended table:
 
@@ -101,4 +108,4 @@ Recommended table:
 
 ## Final quality bar
 
-A strong answer is traceable and executable at a behavioural level without pretending that unresolved requirements, implementation details or test mechanics are known.
+A strong answer is traceable and executable at a behavioural level without pretending that unresolved requirements, implementation details, future execution mechanisms, governance or test mechanics are known.
