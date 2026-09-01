@@ -4,7 +4,7 @@ This folder contains version-controlled Business Analyst skills and benchmark ca
 
 ## Goal
 
-Build a reliable BA agent for an ITIL / Agile delivery environment using **separately benchmarked capabilities** rather than one monolithic prompt.
+Build a reliable BA agent for an ITIL / Agile delivery environment using **separately benchmarked capabilities** and evidence-driven composition rather than assuming one monolithic prompt or a multi-agent design is best.
 
 ## Capability 1 — Requirements analysis
 
@@ -12,6 +12,7 @@ Skill:
 
 - `skills/analyze-requirements/SKILL.md`
 - current version: **0.4.0**
+- status: **validated**
 
 Purpose: convert messy source material into a traceable requirements analysis while preserving uncertainty, requirement status, decision ownership and evidence strength.
 
@@ -38,6 +39,7 @@ Skill:
 
 - `skills/decompose-requirements/SKILL.md`
 - current version: **0.2.0**
+- status: **validated/generalized**
 
 Purpose: take a completed requirements analysis and shape supported delivery work without forcing everything into user stories.
 
@@ -73,18 +75,7 @@ Skill:
 
 Purpose: turn sufficiently ready delivery items into traceable, testable acceptance criteria without creating new behavior.
 
-Core rules include:
-
-- Ready items may be elaborated only to the extent evidence supports them;
-- Partially Ready items are elaborated only for their confirmed portion;
-- Blocked/Disputed/Unknown behavior remains blocked rather than being resolved in criteria;
-- Candidate/Conditional scope stays non-committed;
-- Targets remain planning/quality objectives rather than mandatory pass/fail criteria;
-- Deferred work receives no current acceptance criteria;
-- every criterion traces to its delivery item and upstream requirement IDs;
-- Given/When/Then is used only where every precondition/action/outcome is evidenced;
-- no invented UI, file/channel, validation/error, retry/timeout, workflow, role/permission, storage, API/protocol, governance or architecture details;
-- logically necessary negative conditions are allowed only as explicit `Derived boundary` criteria.
+Core rules include preserving readiness/status, keeping disputed/Candidate/Target/Deferred/Unknown areas non-committed, tracing every criterion to delivery items and upstream requirements, and refusing unsupported UI, validation/error, workflow, architecture or governance detail.
 
 ### Benchmark 005 — Planned Maintenance Notification Acceptance Criteria
 
@@ -96,8 +87,6 @@ Runner-native Gemini 3.5 Flash results at temperature `0.0`:
 | `elaborate-acceptance-criteria` v0.1 | **98/100** |
 | Difference | **+2** |
 
-The Skill improved explicit readiness, per-criterion traceability and evidence classification, but the baseline was already exceptionally strong. Decision: retain v0.1 unchanged and test it on a harder domain rather than tuning against Benchmark 005.
-
 ### Benchmark 006 — Bulk Site Import Acceptance Criteria
 
 Runner-native Gemini 3.5 Flash results:
@@ -108,9 +97,9 @@ Runner-native Gemini 3.5 Flash results:
 | `elaborate-acceptance-criteria` v0.1 | **98/100** |
 | **Improvement** | **+21** |
 
-The baseline converted Unknown site-name/region validation into an asserted `no validation is performed` rule. v0.1 preserved the Unknown area, kept duplicate handling disputed, registry validation Candidate, the performance Target non-binding, recurring imports Deferred and registry access read-only, while maintaining full criterion traceability.
+The harder batch-data benchmark exposed baseline status leakage while v0.1 preserved Unknown validation, disputed duplicate handling, Candidate registry validation, the non-binding Target, Deferred recurring imports and read-only registry constraints.
 
-Conclusion: **`elaborate-acceptance-criteria` v0.1 is validated/generalized across materially different service-notification and batch-data problems.** Do not tune v0.2 unless later cross-capability testing exposes a reusable defect.
+Conclusion: **`elaborate-acceptance-criteria` v0.1 is validated/generalized.**
 
 ## Capability 4 — Test-case / assurance derivation
 
@@ -118,7 +107,7 @@ Skill:
 
 - `skills/derive-test-cases/SKILL.md`
 - current version: **0.3.0**
-- status: **experimental / focused Benchmark 007 correction queued**
+- status: **retained after focused correction**
 
 Purpose: derive traceable behavioural test cases and assurance coverage from sufficiently ready acceptance criteria without inventing execution mechanics.
 
@@ -129,10 +118,8 @@ Core rules include:
 - trace every test to AC ID, delivery item and upstream REQ ID(s);
 - derive negative cases only from established logical boundaries;
 - do not invent UI steps, accounts, environments, concrete test data, validation/error text, APIs, storage, retries/timeouts, mocks/stubs, automation frameworks or test tooling;
-- keep Targets non-binding unless upstream explicitly makes them acceptance commitments;
-- represent conditional constraints as assurance states without inventing inspection mechanisms;
-- do not manufacture future execution prerequisites from absent UI/API/environment/test-data/tooling details;
-- perform a coverage-integrity check before returning output.
+- conditional constraints become assurance states describing **what** must hold, not an invented inspection mechanism;
+- do not manufacture future execution prerequisites from absent technical detail.
 
 ### Benchmark 007 — Release Verification Test Cases
 
@@ -141,31 +128,67 @@ Runner-native Gemini 3.5 Flash results:
 | Run | Score | Finding |
 |---|---:|---|
 | No-skill baseline | **97/100** | Very strong behavioural coverage and discipline. |
-| `derive-test-cases` v0.1 | **95/100** | Strong tests, but the closing gaps section over-prescribed future UI/API/environment/test-data/sign-off prerequisites. |
-| `derive-test-cases` v0.2 | **93/100** | Core test derivation remained strong, but the closing section still treated unsourced execution details as prerequisites and introduced a retention `compliance owner`; some assurance wording also implied inspection mechanisms. |
+| `derive-test-cases` v0.1 | **95/100** | Strong tests, but closing gaps over-prescribed future execution prerequisites. |
+| `derive-test-cases` v0.2 | **93/100** | Core derivation remained strong; closing section still manufactured prerequisites/ownership and leaked inspection mechanics. |
+| `derive-test-cases` v0.3 | **98/100** | Core defect corrected; no material invention or execution-method leakage. |
 
-Decision: the defect is narrow and reusable, so do not abandon the capability. v0.3 removes the default execution-planning gaps section, permits only explicit upstream blockers to be carried forward, and requires assurance checks to state **what** must hold rather than **how** it should be inspected.
+Decision: **retain `derive-test-cases` v0.3.** Do not tune another version from Benchmark 007. The capability is strong enough to enter cross-capability composition testing.
 
-A Skill-only v0.3 rerun is queued as `b007-g35-v03-003`. If it returns to the strong baseline range without material invention, retain v0.3 and move directly to the agent-composition layer before adding more isolated skills.
+## Agent-composition layer
 
-## Planned agent-composition layer
+### Single composite agent — BA Delivery Analyst v0.1
 
-Once Capability 4 clears its focused correction, the next benchmark will test a **single composite BA Delivery Analyst agent** using the existing single-call runner. The agent will combine the validated capability sequence while preserving explicit stage boundaries and handoffs:
+Agent:
 
-1. analyze requirements;
-2. decompose requirements;
-3. elaborate acceptance criteria;
-4. derive test / assurance coverage.
+- `agents/ba-delivery-analyst/AGENT.md`
+- current version: **0.1.0**
+- status: **Benchmark 008 queued**
 
-The end-to-end composition benchmark will use a fresh messy source packet and evaluator-only gold/rubric. It will score final quality plus stage fidelity, uncertainty/status preservation, cross-stage traceability, contradictions, invented scope/mechanics and token usage.
+The composite agent coordinates four explicit stages in a single model call:
 
-Only if the single composite agent demonstrates useful value will the lab proceed to a true multi-call specialist-agent comparison. The preferred specialist split is:
+1. requirements analysis;
+2. delivery decomposition;
+3. acceptance-criteria elaboration;
+4. behavioural test / assurance derivation.
 
-- Requirements Analyst — requirements analysis;
-- Delivery Refinement Analyst — decomposition + acceptance criteria;
-- Assurance Analyst — test / assurance derivation.
+Each stage must produce an explicit handoff and downstream detail may never become more certain than upstream evidence. Cross-stage integrity checks require REQ -> delivery item -> AC -> test traceability and prevent disputed/Candidate/Target/Deferred/Unknown material leaking into committed downstream work.
 
-A multi-call pipeline would require a runner enhancement so each stage output is persisted, hashed and supplied as the next stage input. Do not modify NAS execution infrastructure until the single-agent composition test justifies that added complexity.
+### Benchmark 008 — Contractor Site Access End-to-End BA Delivery
+
+Benchmark path:
+
+- `benchmarks/008-contractor-site-access-end-to-end`
+
+This is a fresh messy-source end-to-end benchmark. It compares a no-agent baseline with the single composite BA Delivery Analyst using the existing runner, so no NAS execution-infrastructure change is required.
+
+The evaluator scores:
+
+- stage fidelity;
+- uncertainty/status preservation;
+- cross-stage traceability;
+- contradictions or status drift;
+- invented scope/mechanics/authority;
+- final downstream usability;
+- token usage/cost as a secondary architectural measure.
+
+Queued NAS job:
+
+- `b008-g35-composite-v01-001`
+- model: `gemini-3.5-flash`
+- mode: baseline + composite agent
+- temperature: `0.0`
+
+No specialist multi-agent runner changes will be made until Benchmark 008 demonstrates that composition is valuable.
+
+## Proposed specialist-agent architecture — conditional next step
+
+Only if the single composite agent is useful, compare it with a small specialist architecture:
+
+- **Requirements Analyst** — requirements analysis;
+- **Delivery Refinement Analyst** — decomposition + acceptance criteria;
+- **Assurance Analyst** — test / assurance derivation.
+
+A true multi-call pipeline would require runner support for persisted stage outputs, stage-to-stage input handoffs, per-stage hashes/metadata, token usage and end-to-end scoring. That infrastructure is intentionally deferred until the single-call composite result justifies the complexity and extra model calls.
 
 ## Automated benchmark runner
 
@@ -173,7 +196,7 @@ The NAS benchmark loop consists of:
 
 1. GitHub-controlled `custom/ba-agent/automation/jobs.json`;
 2. Synology DSM Task Scheduler periodically invoking `benchmark_worker.py --once`;
-3. the worker refreshing benchmark/skill files from GitHub;
+3. the worker refreshing benchmark/skill/agent files from GitHub;
 4. `benchmark_runner.py` calling Gemini directly;
 5. raw result + metadata/manifest files being published back to the feature branch;
 6. evaluator scoring against the repo-held gold standard/rubric.
@@ -182,20 +205,22 @@ The runner never loads evaluator-only gold-standard or scoring-rubric files into
 
 ## Benchmark discipline
 
-- Use the same model/settings for paired baseline and Skill runs.
+- Use the same model/settings for paired baseline and Skill/Agent runs.
 - Change one material variable at a time.
 - Keep evaluator-only gold/rubric files out of model context.
-- Record exact model, temperature, input/prompt/skill hashes and provider status.
-- Treat model quality and Skill quality as separate variables.
+- Record exact model, temperature, input/prompt/skill or agent hashes and provider status.
+- Treat model quality, capability quality and composition quality as separate variables.
 - Do not optimize indefinitely against one benchmark; use materially different benchmarks for generalization.
+- Do not assume multi-agent is better: require evidence that added calls, handoffs and complexity improve quality enough to justify their cost.
 
 ## Capability sequence
 
-Current intended sequence:
+Current sequence:
 
 1. `analyze-requirements` — **validated**
 2. `decompose-requirements` — **validated/generalized**
 3. `elaborate-acceptance-criteria` — **validated/generalized**
-4. `derive-test-cases` — **v0.3 correction queued**
-5. agent composition — **next after Capability 4 clears**
-6. future capability — solution / change-readiness handoff
+4. `derive-test-cases` — **v0.3 retained**
+5. single composite BA Delivery Analyst — **Benchmark 008 queued**
+6. specialist-agent comparison — **conditional on Benchmark 008**
+7. future capability — solution / change-readiness handoff
