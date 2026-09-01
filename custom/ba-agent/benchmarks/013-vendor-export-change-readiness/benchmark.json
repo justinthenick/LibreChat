@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "name": "Benchmark 013 — Vendor Export Solution / Change-Readiness Handoff",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/prepare-solution-change-readiness/SKILL.md"
+}
