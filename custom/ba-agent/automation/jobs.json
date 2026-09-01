@@ -91,6 +91,16 @@
       "mode": "skill",
       "repeat": 1,
       "temperature": 0.0
+    },
+    {
+      "id": "b008-g35-specialists-v01-003",
+      "enabled": true,
+      "runner": "pipeline",
+      "benchmark": "custom/ba-agent/benchmarks/008-contractor-site-access-end-to-end",
+      "pipeline_config": "pipeline-specialists.json",
+      "model": "gemini-3.5-flash",
+      "repeat": 1,
+      "temperature": 0.0
     }
   ]
 }
