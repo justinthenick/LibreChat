@@ -111,16 +111,6 @@ Skill:
 
 Purpose: derive traceable behavioural test cases and assurance coverage from sufficiently ready acceptance criteria without inventing execution mechanics.
 
-Core rules include:
-
-- test only Ready or confirmed portions of Partially Ready criteria;
-- preserve Blocked/Disputed/Unknown/Candidate/Target/Deferred status;
-- trace every test to AC ID, delivery item and upstream REQ ID(s);
-- derive negative cases only from established logical boundaries;
-- do not invent UI steps, accounts, environments, concrete test data, validation/error text, APIs, storage, retries/timeouts, mocks/stubs, automation frameworks or test tooling;
-- conditional constraints become assurance states describing **what** must hold, not an invented inspection mechanism;
-- do not manufacture future execution prerequisites from absent technical detail.
-
 ### Benchmark 007 — Release Verification Test Cases
 
 Runner-native Gemini 3.5 Flash results:
@@ -132,17 +122,17 @@ Runner-native Gemini 3.5 Flash results:
 | `derive-test-cases` v0.2 | **93/100** | Core derivation remained strong; closing section still manufactured prerequisites/ownership and leaked inspection mechanics. |
 | `derive-test-cases` v0.3 | **98/100** | Core defect corrected; no material invention or execution-method leakage. |
 
-Decision: **retain `derive-test-cases` v0.3.** Do not tune another version from Benchmark 007. The capability is strong enough to enter cross-capability composition testing.
+Decision: **retain `derive-test-cases` v0.3.** Do not tune another version from Benchmark 007.
 
 ## Agent-composition layer
 
-### Single composite agent — BA Delivery Analyst v0.1
+### Single composite agent — BA Delivery Analyst
 
 Agent:
 
 - `agents/ba-delivery-analyst/AGENT.md`
-- current version: **0.1.0**
-- status: **Benchmark 008 queued**
+- current version: **0.2.0**
+- status: **focused Benchmark 008 correction queued**
 
 The composite agent coordinates four explicit stages in a single model call:
 
@@ -151,44 +141,74 @@ The composite agent coordinates four explicit stages in a single model call:
 3. acceptance-criteria elaboration;
 4. behavioural test / assurance derivation.
 
-Each stage must produce an explicit handoff and downstream detail may never become more certain than upstream evidence. Cross-stage integrity checks require REQ -> delivery item -> AC -> test traceability and prevent disputed/Candidate/Target/Deferred/Unknown material leaking into committed downstream work.
-
 ### Benchmark 008 — Contractor Site Access End-to-End BA Delivery
 
 Benchmark path:
 
 - `benchmarks/008-contractor-site-access-end-to-end`
 
-This is a fresh messy-source end-to-end benchmark. It compares a no-agent baseline with the single composite BA Delivery Analyst using the existing runner, so no NAS execution-infrastructure change is required.
+First paired Gemini 3.5 Flash result:
 
-The evaluator scores:
+| Run | Raw score | Penalties | Final | Total tokens |
+|---|---:|---:|---:|---:|
+| No-agent baseline | **49/100** | -32 | **17/100** | **6,488** |
+| Composite v0.1 | **73/100** | >= -85 | **0/100** | **9,030** |
 
-- stage fidelity;
-- uncertainty/status preservation;
-- cross-stage traceability;
-- contradictions or status drift;
-- invented scope/mechanics/authority;
-- final downstream usability;
-- token usage/cost as a secondary architectural measure.
+The composite materially improved stage separation, handoffs, status preservation and end-to-end traceability, and reduced the baseline's architecture/test-mechanism invention. However, it introduced a harder governance failure: Stage 1 created a generic `Decision Owner` column and repeatedly converted source/proposer roles into unsupported decision authority. Under the rubric's per-occurrence authority penalty, this makes v0.1 non-production-ready regardless of its stronger raw structure.
+
+Other v0.1 defects included:
+
+- no explicit overall `Partially Ready` statement;
+- explicit process-boundary constraints did not survive the full downstream chain;
+- missing-field submission prevention was derived without an explicit upstream only-when/cannot boundary;
+- manual issuance fallback was partly reframed as a recording/UI path;
+- some tests leaked `selects` / `logs` execution mechanisms;
+- an assurance note invented future Security verification ownership.
+
+Token impact of v0.1 versus baseline:
+
+- prompt tokens: **+142.1%**;
+- candidate/output tokens: **+9.7%**;
+- reasoning/thought tokens: **+42.7%**;
+- total tokens: **+39.2%**.
+
+### Architecture decision after v0.1
+
+**Do not build the true multi-call specialist-agent runner yet.**
+
+The failure can still be attributed to the single composite agent's control semantics rather than to an inherent need for separate model calls. The agent already contained the right high-level authority rule but allowed a generic owner field that encouraged source-to-authority substitution under combined stage load.
+
+`BA Delivery Analyst` v0.2 therefore makes one focused correction set:
+
+- no generic Decision Owner column;
+- source/proposer explicitly separated from authority;
+- Decision Owner appears only for explicit unresolved decisions and defaults to Unknown unless sourced;
+- overall readiness must be explicit;
+- process/security constraints must survive every handoff;
+- missing-data rejection/prevention cannot be inferred from mere data capture;
+- manual fallback remains an outcome rather than a UI/recording mechanism;
+- test/assurance language cannot invent `logs`, `selects`, future verifiers or governance owners.
 
 Queued NAS job:
 
-- `b008-g35-composite-v01-001`
+- `b008-g35-composite-v02-002`
 - model: `gemini-3.5-flash`
-- mode: baseline + composite agent
+- mode: composite agent only
 - temperature: `0.0`
 
-No specialist multi-agent runner changes will be made until Benchmark 008 demonstrates that composition is valuable.
+The existing baseline remains the comparison control, avoiding an unnecessary extra Gemini call.
 
 ## Proposed specialist-agent architecture — conditional next step
 
-Only if the single composite agent is useful, compare it with a small specialist architecture:
+Only if composite v0.2 fixes the hard authority/traceability defects while retaining the structural gains will the lab proceed to a specialist comparison:
 
 - **Requirements Analyst** — requirements analysis;
 - **Delivery Refinement Analyst** — decomposition + acceptance criteria;
 - **Assurance Analyst** — test / assurance derivation.
 
-A true multi-call pipeline would require runner support for persisted stage outputs, stage-to-stage input handoffs, per-stage hashes/metadata, token usage and end-to-end scoring. That infrastructure is intentionally deferred until the single-call composite result justifies the complexity and extra model calls.
+A true multi-call pipeline would require runner support for persisted stage outputs, stage-to-stage input handoffs, per-stage hashes/metadata, token usage and end-to-end scoring. That infrastructure remains intentionally deferred.
+
+If composite v0.2 still violates authority/status controls, that will be evidence that single-call cognitive load/composition interference is the limiting factor; at that point a multi-call specialist pipeline becomes a justified architecture experiment rather than speculative complexity.
 
 ## Automated benchmark runner
 
@@ -221,6 +241,6 @@ Current sequence:
 2. `decompose-requirements` — **validated/generalized**
 3. `elaborate-acceptance-criteria` — **validated/generalized**
 4. `derive-test-cases` — **v0.3 retained**
-5. single composite BA Delivery Analyst — **Benchmark 008 queued**
-6. specialist-agent comparison — **conditional on Benchmark 008**
+5. single composite BA Delivery Analyst — **v0.2 focused rerun queued**
+6. specialist-agent comparison — **conditional on v0.2 evidence**
 7. future capability — solution / change-readiness handoff
