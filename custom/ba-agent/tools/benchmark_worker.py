@@ -2,7 +2,7 @@
 """Poll a GitHub-controlled BA benchmark job queue and run new jobs on the NAS.
 
 Python 3.8+ standard library only. The worker never stores API keys; it passes the
-configured private .env path to benchmark_runner.py. Each unique job ID is
+configured private .env path to the selected runner. Each unique job ID is
 attempted once and recorded locally. To retry, publish a new job ID.
 """
 
@@ -37,7 +37,7 @@ def fetch_json(repo, branch, repo_path):
         url,
         headers={
             "Accept": "application/vnd.github.raw+json",
-            "User-Agent": "ba-agent-benchmark-worker/1.0",
+            "User-Agent": "ba-agent-benchmark-worker/1.1",
             "X-GitHub-Api-Version": "2022-11-28",
         },
     )
@@ -49,7 +49,6 @@ def fetch_json(repo, branch, repo_path):
         raise WorkerError("GitHub HTTP {} for {}: {}".format(exc.code, repo_path, body[:500]))
     except urllib.error.URLError as exc:
         raise WorkerError("GitHub network error for {}: {}".format(repo_path, exc.reason))
-
     try:
         value = json.loads(raw)
     except json.JSONDecodeError as exc:
@@ -90,52 +89,82 @@ def validate_job(job):
     model = str(job.get("model") or "").strip()
     if not model:
         raise WorkerError("Job {} is missing model".format(job_id))
-    mode = str(job.get("mode") or "skill").strip()
-    if mode not in ("baseline", "skill", "both"):
-        raise WorkerError("Job {} has invalid mode {}".format(job_id, mode))
+    runner = str(job.get("runner") or "benchmark").strip().lower()
+    if runner not in ("benchmark", "pipeline"):
+        raise WorkerError("Job {} has invalid runner {}".format(job_id, runner))
     repeat = int(job.get("repeat") or 1)
     if repeat < 1 or repeat > 5:
         raise WorkerError("Job {} repeat must be 1..5".format(job_id))
     temperature = float(job.get("temperature", 0.0))
     if temperature < 0.0 or temperature > 2.0:
         raise WorkerError("Job {} temperature must be 0..2".format(job_id))
-    return {
+
+    normalized = {
         "id": job_id,
         "benchmark": benchmark,
         "model": model,
-        "mode": mode,
+        "runner": runner,
         "repeat": repeat,
         "temperature": temperature,
         "enabled": bool(job.get("enabled", True)),
     }
+    if runner == "benchmark":
+        mode = str(job.get("mode") or "skill").strip()
+        if mode not in ("baseline", "skill", "both"):
+            raise WorkerError("Job {} has invalid mode {}".format(job_id, mode))
+        normalized["mode"] = mode
+    else:
+        normalized["pipeline_config"] = str(job.get("pipeline_config") or "pipeline-specialists.json").strip()
+    return normalized
 
 
 def run_job(root, env_file, token_env, repo, branch, job):
-    runner = root / "custom/ba-agent/tools/benchmark_runner.py"
     benchmark = root / job["benchmark"]
-    if not runner.exists():
-        raise WorkerError("Runner not found: {}".format(runner))
-    if not benchmark.exists():
-        benchmark.mkdir(parents=True, exist_ok=True)
+    benchmark.mkdir(parents=True, exist_ok=True)
 
-    cmd = [
-        sys.executable,
-        str(runner),
-        str(benchmark),
-        "--model", job["model"],
-        "--mode", job["mode"],
-        "--repeat", str(job["repeat"]),
-        "--temperature", str(job["temperature"]),
-        "--run-id", job["id"],
-        "--env-file", str(env_file),
-        "--refresh-from-github",
-        "--publish-github",
-        "--github-token-env", token_env,
-        "--github-repo", repo,
-        "--github-branch", branch,
-    ]
+    if job["runner"] == "pipeline":
+        runner = root / "custom/ba-agent/tools/agent_pipeline_runner.py"
+        if not runner.exists():
+            raise WorkerError("Pipeline runner not found: {}".format(runner))
+        cmd = [
+            sys.executable,
+            str(runner),
+            str(benchmark),
+            "--pipeline-config", job["pipeline_config"],
+            "--model", job["model"],
+            "--temperature", str(job["temperature"]),
+            "--run-id", job["id"],
+            "--env-file", str(env_file),
+            "--refresh-from-github",
+            "--publish-github",
+            "--github-token-env", token_env,
+            "--github-repo", repo,
+            "--github-branch", branch,
+        ]
+        label = "pipeline {}".format(job["pipeline_config"])
+    else:
+        runner = root / "custom/ba-agent/tools/benchmark_runner.py"
+        if not runner.exists():
+            raise WorkerError("Runner not found: {}".format(runner))
+        cmd = [
+            sys.executable,
+            str(runner),
+            str(benchmark),
+            "--model", job["model"],
+            "--mode", job["mode"],
+            "--repeat", str(job["repeat"]),
+            "--temperature", str(job["temperature"]),
+            "--run-id", job["id"],
+            "--env-file", str(env_file),
+            "--refresh-from-github",
+            "--publish-github",
+            "--github-token-env", token_env,
+            "--github-repo", repo,
+            "--github-branch", branch,
+        ]
+        label = "{}".format(job["mode"])
 
-    print("[worker] starting {}: {} {} {}".format(job["id"], job["model"], job["mode"], job["benchmark"]))
+    print("[worker] starting {}: {} {} {}".format(job["id"], job["model"], label, job["benchmark"]))
     proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     output = proc.stdout or ""
     if output:
@@ -185,18 +214,19 @@ def main():
                 if job["enabled"] and job["id"] not in known:
                     pending.append(job)
 
-            if pending:
-                print("[worker] {} new job(s)".format(len(pending)))
-            else:
-                print("[worker] no new jobs")
+            print("[worker] {} new job(s)".format(len(pending)) if pending else "[worker] no new jobs")
 
             for job in pending:
                 record = {
                     "model": job["model"],
-                    "mode": job["mode"],
+                    "runner": job["runner"],
                     "benchmark": job["benchmark"],
                     "attempted_at_epoch": int(time.time()),
                 }
+                if job["runner"] == "benchmark":
+                    record["mode"] = job["mode"]
+                else:
+                    record["pipeline_config"] = job["pipeline_config"]
                 try:
                     rc, output = run_job(root, env_file, args.github_token_env, args.repo, args.branch, job)
                     record["return_code"] = rc
