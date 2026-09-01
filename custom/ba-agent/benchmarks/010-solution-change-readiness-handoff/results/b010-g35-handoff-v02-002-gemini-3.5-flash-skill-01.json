@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 010 — Solution / Change-Readiness Handoff",
+  "benchmark_dir": "010-solution-change-readiness-handoff",
+  "ended_at": "2026-09-01T14:00:29Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "d2b13b3ceb692866e5cd68b7b56ccb7be3c4a8cc9d865f495da6454ebfc2b211",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "skill",
+  "model": "gemini-3.5-flash",
+  "prompt_sha256": "dc3d19f87cd8b11349197300a3fad22c568b03b7a84871031b6cb02ee9350e66",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/prepare-solution-change-readiness/SKILL.md",
+  "skill_sha256": "b18b5fc6db55de3c58c5af8af867352f37e8cb63998b33d4b464e88cf3cb8e5e",
+  "skill_version": "0.2.0",
+  "started_at": "2026-09-01T14:00:04Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 2668,
+    "promptTokenCount": 2432,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 2432
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 4509,
+    "totalTokenCount": 9609
+  }
+}
