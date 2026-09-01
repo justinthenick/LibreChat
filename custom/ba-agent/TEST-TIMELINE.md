@@ -36,10 +36,12 @@ This ledger records the development and benchmark history for the BA Agent Lab.
 | 20:30:03–20:30:32 | B009 Service Ownership Update End-to-End — baseline | NAS runner; baseline | 49/100 | Independent architecture control. |
 | 20:30:32–20:31:07 | B009 — Composite BA Delivery Analyst v0.2 | NAS runner; composite single call | 94/100; 10,720 tokens | Generalized successfully; freeze composite v0.2 as preferred BA architecture. |
 | 20:37:05 | BA Benchmark Cycle evaluator | ChatGPT scheduled condition watch | no new B010/B011 result yet | Hourly evaluation/development loop remains enabled. |
-| 20:40:03–20:40:17 | B010 Solution / Change-Readiness Handoff — baseline | NAS runner; baseline | raw result success | Evaluator score pending at time of ledger creation. |
-| 20:40:17–20:40:40 | B010 — `prepare-solution-change-readiness` v0.1 | NAS runner; Skill | raw result success | Evaluator score pending at time of ledger creation. |
-| 20:40:49–20:41:12 | B011 Emergency Payment Change ITIL Alignment — baseline | NAS runner; baseline | raw result success | Evaluator score pending at time of ledger creation. |
-| 20:41:12–20:41:33 | B011 — `assess-itil-alignment` v0.1 | NAS runner; Skill | raw result success | Evaluator score pending at time of ledger creation. |
+| 20:40:03–20:40:17 | B010 Solution / Change-Readiness Handoff — baseline | NAS runner; baseline; 14s | **65/100**; 4,467 tokens | Strong raw structure but unsafe downstream process/content invention. |
+| 20:40:17–20:40:40 | B010 — `prepare-solution-change-readiness` v0.1 | NAS runner; Skill; 23s | **75/100**; 8,661 tokens | Better evidence discipline, but reusable gap-to-gate promotion invented sign-off/approval requirements. Do not retain v0.1. |
+| 20:40:49–20:41:12 | B011 Emergency Payment Change ITIL Alignment — baseline | NAS runner; baseline; 23s | **92/100**; 5,420 tokens | Strong baseline; minor policy/readiness precision issues. |
+| 20:41:12–20:41:33 | B011 — `assess-itil-alignment` v0.1 | NAS runner; Skill; 21s | **98/100**; 7,057 tokens | Retain v0.1; zero penalties; create materially different ITIL generalization benchmark. |
+| 21:27 | B010/B011 evaluator decision | ChatGPT evaluation | B010 v0.1 rejected; B011 v0.1 retained | Created B010 handoff v0.2 focused only on gap-to-gate promotion. Created B012 planned certificate/proxy change ITIL generalization benchmark. |
+| 21:27 | Queue update | GitHub-controlled NAS jobs | `b010-g35-handoff-v02-002` Skill-only + `b012-g35-itil-v01-ab-001` baseline/Skill | Three new model calls queued total; no NAS infrastructure change required. |
 
 ## Current architecture decision
 
@@ -49,7 +51,8 @@ This ledger records the development and benchmark history for the BA Agent Lab.
 - Test / assurance: `derive-test-cases` v0.3 — retained after focused correction.
 - Composite BA Delivery Analyst v0.2 — frozen / preferred architecture after B008 95/100 and B009 94/100 with zero penalties.
 - Three-specialist pipeline — retained as experimental infrastructure, not preferred after B008 53/100 at 23,748 tokens.
-- Active isolated capability tracks: Solution / Change-Readiness (B010) and ITIL 4 alignment/readiness (B011).
+- Solution / Change-Readiness: v0.1 exposed reusable **gap-to-gate promotion**; v0.2 queued for focused B010 rerun.
+- ITIL 4 alignment/readiness: `assess-itil-alignment` v0.1 retained after B011 98/100; B012 generalization queued.
 
 ## Timing observations
 
