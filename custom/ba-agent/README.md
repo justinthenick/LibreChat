@@ -56,11 +56,9 @@ Gemini 3.5 Flash, temperature `0.0`:
 | No-agent baseline | **67** | **-18** | **49/100** | **6,602** |
 | **Composite v0.2** | **94** | **0** | **94/100** | **10,720** |
 
-B009 is materially different from B008 and confirms generalization. Composite v0.2 preserves the emergency-approval dispute, Candidate Service Registry automation and pilot scope, non-binding Target, Deferred recertification, Unknown retention, process/governance boundaries and full cross-stage traceability without rubric penalties.
+B009 is materially different from B008 and confirms generalization. Composite v0.2 preserves status/authority and cross-stage traceability without rubric penalties.
 
-Minor deductions were limited to wording of the disputed emergency proposition and omission of a Stage-4 conditional security assurance state. Neither is a production-blocking reusable defect.
-
-**Architecture decision: freeze Composite BA Delivery Analyst v0.2.** Do not tune it further against B008/B009. Re-open only if a later independent benchmark exposes a genuine reusable defect.
+**Architecture decision: freeze Composite BA Delivery Analyst v0.2.** Re-open only if a later independent benchmark exposes a genuine reusable defect.
 
 ## Specialist pipeline infrastructure
 
@@ -82,16 +80,29 @@ The pipeline runner persists every stage output plus metadata/hash information a
 Skill:
 
 - `skills/prepare-solution-change-readiness/SKILL.md`
-- status: **experimental / Benchmark 010 queued**
+- current version: **0.2.0**
+- status: **focused correction queued**
 
 Purpose: convert sufficiently mature BA delivery evidence into a controlled handoff for solution/design review and Change Enablement without pretending to be the Solution Architect, Change Manager or approver.
 
-Benchmark:
+### Benchmark 010 — Solution / Change-Readiness Handoff
 
-- `benchmarks/010-solution-change-readiness-handoff`
-- queued job: `b010-g35-handoff-v01-ab-001`
+Gemini 3.5 Flash, temperature `0.0`:
 
-The capability should identify what is ready to hand off, unresolved solution/design decisions, test/assurance evidence, deployment/change-readiness dependencies, and process/security/governance constraints without inventing implementation architecture, CAB approval, release dates, rollback mechanisms or decision authority.
+| Run | Raw | Penalties | Final | Tokens |
+|---|---:|---:|---:|---:|
+| Baseline | 95 | -30 | **65/100** | 4,467 |
+| `prepare-solution-change-readiness` v0.1 | 95 | -20 | **75/100** | 8,661 |
+
+v0.1 materially improved evidence packaging and status preservation, but exposed one reusable defect: **gap-to-gate promotion**. It converted missing downstream evidence into unsourced mandatory sign-off/approval gates (`signed-off technical design`, `necessary business/technical approvals`).
+
+Decision: do not retain v0.1 as validated. v0.2 adds one focused semantic control: missing evidence categories may not become mandatory approvals/sign-offs/CAB/owner/governance gates unless the source explicitly establishes them.
+
+Queued Skill-only rerun:
+
+- `b010-g35-handoff-v02-002`
+
+If v0.2 removes the gap-to-gate failure while preserving the good evidence/status/traceability behavior, retain it and move to a materially different handoff generalization benchmark rather than further tuning B010.
 
 ## Capability 6 — ITIL 4 Alignment / Readiness Assessment
 
@@ -99,46 +110,43 @@ Skill:
 
 - `skills/assess-itil-alignment/SKILL.md`
 - current version: **0.1.0**
-- status: **experimental / Benchmark 011 queued**
+- status: **retained after B011; generalization queued**
 
 Purpose: assess supplied BA, solution-handoff, release, deployment, configuration and change-readiness evidence against relevant **ITIL 4 practice concepts** while keeping ITIL guidance separate from organisation-specific policy and authority.
 
-The lab deliberately uses the term **ITIL alignment/readiness**, not formal `ITIL compliance`, because this capability is not a certification audit. Missing evidence is reported as `Not evidenced` rather than automatically `Non-compliant`.
-
-Core controls:
-
-- do not invent universal CAB, rollback, PIR, change-category, CMDB-tooling or approval requirements;
-- do not infer Change Authority / Emergency Change Authority from job title or stakeholder activity;
-- distinguish Change Enablement, Release Management, Deployment Management and Service Configuration Management concerns;
-- treat explicit internal policy separately from ITIL guidance and stakeholder opinion;
-- preserve Candidate/Target/Deferred/Disputed/Unknown status;
-- do not invent an official ITIL maturity/capability score without authorised ITIL Maturity Model criteria;
-- trace findings to supplied evidence.
-
-Public reference provenance is recorded in `references/itil-public-basis.md` and is limited to high-level PeopleCert public descriptions rather than licensed Practice Guide content.
+The lab deliberately uses **ITIL alignment/readiness**, not formal `ITIL compliance`. Missing evidence is reported as `Not evidenced` rather than automatically `Non-compliant`.
 
 ### Benchmark 011 — Emergency Payment Change ITIL Alignment
 
-Benchmark path:
+Gemini 3.5 Flash, temperature `0.0`:
 
-- `benchmarks/011-emergency-change-itil-alignment`
+| Run | Final | Tokens |
+|---|---:|---:|
+| Baseline | **92/100** | 5,420 |
+| `assess-itil-alignment` v0.1 | **98/100** | 7,057 |
 
-Queued job:
+v0.1 cleanly separated local policy from ITIL guidance, preserved the Unknown Emergency Change Authority, rejected universal CAB/rollback/PIR/CMDB requirements, distinguished Change Enablement vs Release vs Deployment vs Service Configuration Management, and incurred **zero penalties**.
 
-- `b011-g35-itil-v01-ab-001`
-- model: `gemini-3.5-flash`
-- mode: baseline + skill
-- temperature: `0.0`
+Decision: **retain v0.1 unchanged**. Do not tune against B011.
 
-Benchmark 011 tests Change Enablement risk/authorisation/schedule concerns, Release vs Deployment separation, Service Configuration Management evidence, local-policy vs ITIL-guidance separation, unknown emergency authority, and traps such as unsupported `ITIL requires CAB`, rollback/PIR mandates, false compliance conclusions and unofficial maturity scoring.
+### Benchmark 012 — Planned Certificate Change ITIL Alignment
 
-Development plan:
+A materially different generalization benchmark now tests a planned certificate/proxy change rather than an emergency change. It includes an explicit Standard Change Model that covers routine certificate replacement but **not** the proxy-endpoint change, an Unknown local Change Authority, a schedule conflict, prepared release evidence, a deployment procedure whose applicability is only partial, an unagreed recovery suggestion and configuration-information gaps.
 
-1. score B011 baseline and v0.1 independently;
-2. if v0.1 shows a reusable defect, make one focused correction and rerun Skill-only;
-3. if strong, create a materially different ITIL-alignment generalization benchmark rather than tuning against B011;
-4. only after isolated validation, test composition with the frozen BA / solution-change-readiness stack;
-5. keep the frozen Composite BA Delivery Analyst v0.2 unchanged unless an independent composition test reveals a real cross-capability defect.
+Key traps include automatic Standard Change/pre-authorisation claims, universal CAB/rollback mandates, invented Change Authority, CMDB tooling and promotion of stakeholder opinion into policy.
+
+Queued A/B job:
+
+- `b012-g35-itil-v01-ab-001`
+- Gemini 3.5 Flash
+- temperature `0.0`
+- baseline + v0.1 Skill
+
+Only after isolated ITIL generalization should ITIL composition be tested with the frozen BA / solution-change-readiness workflow.
+
+## Test timeline
+
+`custom/ba-agent/TEST-TIMELINE.md` is the permanent experiment ledger. From runner-native B003 onward it records exact start/end times, duration, scores, token usage where relevant and resulting decisions. Pre-runner B001/B002 entries use GitHub result-recording timestamps and are labelled accordingly.
 
 ## Automated benchmark loop
 
@@ -167,6 +175,6 @@ Development plan:
 4. test/assurance derivation — **v0.3 retained**
 5. Composite BA Delivery Analyst — **v0.2 frozen / preferred**
 6. specialist pipeline — **experimental; not preferred**
-7. solution/change-readiness handoff — **B010 active**
-8. ITIL 4 alignment/readiness — **B011 active**
-9. composition of validated handoff + ITIL alignment into the preferred BA workflow — **after isolated validation**
+7. solution/change-readiness handoff — **v0.2 focused B010 rerun queued**
+8. ITIL 4 alignment/readiness — **v0.1 retained; B012 generalization queued**
+9. composition of validated handoff + ITIL alignment into the preferred BA workflow — **after isolated validation/generalization**
