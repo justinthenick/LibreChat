@@ -1,63 +1,60 @@
 #!/usr/bin/env python3
 """Run BA benchmarks directly against the Gemini API.
 
-The runner deliberately keeps evaluator-only gold standards/rubrics out of model
-context. It can run a baseline, a skill-assisted case, or both, and saves raw
-outputs plus reproducibility metadata under the benchmark's results directory.
+Python 3.8+ standard-library-only runner for Synology/NAS environments.
+It can refresh benchmark-visible inputs/skills from GitHub, run baseline/skill
+cases, save reproducibility metadata, and publish raw results back to GitHub
+without requiring a local git executable.
 
-Python standard library only; suitable for a small Synology/NAS environment.
+Evaluator-only gold standards/rubrics are never loaded or sent to the model.
 """
 
-from __future__ import annotations
-
 import argparse
+import base64
 import datetime as dt
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
-import subprocess
 import sys
-import time
-from typing import Any
 import urllib.error
 import urllib.parse
 import urllib.request
 
-
 DEFAULT_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
+DEFAULT_GITHUB_REPO = "justinthenick/LibreChat"
+DEFAULT_GITHUB_BRANCH = "feature/ba-agent-v0.1"
 KEY_ENV_CANDIDATES = ("GEMINI_API_KEY", "GOOGLE_KEY", "GOOGLE_API_KEY")
+GITHUB_TOKEN_DEFAULT_ENV = "GITHUB_BA_BENCHMARK_TOKEN"
 
 
 class RunnerError(RuntimeError):
     pass
 
 
-def sha256_text(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
-def utc_now() -> dt.datetime:
+def utc_now():
     return dt.datetime.now(dt.timezone.utc)
 
 
-def iso_z(value: dt.datetime) -> str:
+def iso_z(value):
     return value.astimezone(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def slug(value: str) -> str:
+def slug(value):
     value = value.strip().lower()
     value = re.sub(r"[^a-z0-9._-]+", "-", value)
     return value.strip("-") or "run"
 
 
-def load_dotenv(path: Path) -> dict[str, str]:
-    """Parse simple KEY=VALUE .env files without shell execution."""
-    result: dict[str, str] = {}
-    if not path.exists():
-        raise RunnerError(f"Environment file not found: {path}")
+def sha256_text(text):
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
+
+def load_dotenv(path):
+    result = {}
+    if not path.exists():
+        raise RunnerError("Environment file not found: {}".format(path))
     for raw in path.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
@@ -73,23 +70,34 @@ def load_dotenv(path: Path) -> dict[str, str]:
     return result
 
 
-def resolve_api_key(env_file: Path | None) -> tuple[str, str]:
-    merged = dict(os.environ)
+def merged_environment(env_file):
+    merged = {}
     if env_file is not None:
-        # Real environment wins over the file if both are set.
-        from_file = load_dotenv(env_file)
-        from_file.update(merged)
-        merged = from_file
+        merged.update(load_dotenv(env_file))
+    merged.update(os.environ)
+    return merged
 
+
+def resolve_api_key(env):
     for name in KEY_ENV_CANDIDATES:
-        value = merged.get(name, "").strip()
+        value = env.get(name, "").strip()
         if value:
             return value, name
-    names = ", ".join(KEY_ENV_CANDIDATES)
-    raise RunnerError(f"No Gemini API key found. Set one of: {names}, or use --env-file.")
+    raise RunnerError("No Gemini API key found. Set one of: {}".format(", ".join(KEY_ENV_CANDIDATES)))
 
 
-def strip_skill_frontmatter(text: str) -> str:
+def resolve_github_token(env, token_env):
+    value = env.get(token_env, "").strip()
+    if value:
+        return value
+    raise RunnerError(
+        "GitHub publishing requested but {} is not set. Add a fine-grained token with Contents: Read and write for the repo.".format(
+            token_env
+        )
+    )
+
+
+def strip_skill_frontmatter(text):
     if not text.startswith("---\n"):
         return text
     lines = text.splitlines()
@@ -99,22 +107,22 @@ def strip_skill_frontmatter(text: str) -> str:
     return text
 
 
-def skill_version(text: str) -> str | None:
+def skill_version(text):
     match = re.search(r"^Version:\s*\*\*([^*]+)\*\*", text, flags=re.MULTILINE)
     return match.group(1).strip() if match else None
 
 
-def read_json(path: Path) -> dict[str, Any]:
+def read_json(path):
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise RunnerError(f"Cannot read JSON config {path}: {exc}") from exc
+    except (OSError, ValueError) as exc:
+        raise RunnerError("Cannot read JSON config {}: {}".format(path, exc))
     if not isinstance(value, dict):
-        raise RunnerError(f"Benchmark config must be a JSON object: {path}")
+        raise RunnerError("Benchmark config must be a JSON object: {}".format(path))
     return value
 
 
-def resolve_path(base: Path, configured: str | None, fallback: str | None = None) -> Path | None:
+def resolve_path(base, configured, fallback=None):
     value = configured or fallback
     if not value:
         return None
@@ -124,21 +132,136 @@ def resolve_path(base: Path, configured: str | None, fallback: str | None = None
     return path
 
 
-def gemini_generate(
-    *,
-    api_key: str,
-    api_base: str,
-    model: str,
-    user_prompt: str,
-    system_instruction: str | None,
-    temperature: float,
-    max_output_tokens: int,
-    timeout: int,
-) -> dict[str, Any]:
-    encoded_model = urllib.parse.quote(model, safe="._-")
-    endpoint = f"{api_base.rstrip('/')}/models/{encoded_model}:generateContent"
+def find_lab_root(start):
+    current = start.resolve()
+    for candidate in [current] + list(current.parents):
+        if (candidate / "custom" / "ba-agent").exists():
+            return candidate
+    return None
 
-    payload: dict[str, Any] = {
+
+def github_api_request(url, method="GET", token=None, payload=None, timeout=60):
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "ba-agent-benchmark-runner/2.0",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    if token:
+        headers["Authorization"] = "Bearer {}".format(token)
+    data = None
+    if payload is not None:
+        data = json.dumps(payload).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+    request = urllib.request.Request(url, data=data, method=method, headers=headers)
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            raw = response.read().decode("utf-8")
+            return response.status, json.loads(raw) if raw else {}
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")
+        try:
+            body = json.loads(raw)
+        except ValueError:
+            body = {"message": raw[:1000]}
+        raise RunnerError("GitHub API HTTP {}: {}".format(exc.code, body.get("message", "request failed")))
+    except urllib.error.URLError as exc:
+        raise RunnerError("GitHub API network error: {}".format(exc.reason))
+
+
+def github_fetch_text(repo, branch, repo_path):
+    encoded_path = urllib.parse.quote(repo_path.strip("/"), safe="/")
+    ref = urllib.parse.quote(branch, safe="")
+    url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(repo, encoded_path, ref)
+    _, data = github_api_request(url)
+    if not isinstance(data, dict) or data.get("type") != "file":
+        raise RunnerError("GitHub path is not a file: {}".format(repo_path))
+    content = data.get("content", "")
+    if data.get("encoding") != "base64":
+        raise RunnerError("Unsupported GitHub content encoding for {}".format(repo_path))
+    return base64.b64decode(content).decode("utf-8")
+
+
+def github_put_text(repo, branch, repo_path, text, token, message):
+    encoded_path = urllib.parse.quote(repo_path.strip("/"), safe="/")
+    ref = urllib.parse.quote(branch, safe="")
+    get_url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(repo, encoded_path, ref)
+    sha = None
+    try:
+        _, existing = github_api_request(get_url, token=token)
+        if isinstance(existing, dict):
+            sha = existing.get("sha")
+    except RunnerError as exc:
+        if "HTTP 404" not in str(exc):
+            raise
+
+    put_url = "https://api.github.com/repos/{}/contents/{}".format(repo, encoded_path)
+    payload = {
+        "message": message,
+        "content": base64.b64encode(text.encode("utf-8")).decode("ascii"),
+        "branch": branch,
+    }
+    if sha:
+        payload["sha"] = sha
+    _, result = github_api_request(put_url, method="PUT", token=token, payload=payload)
+    commit = result.get("commit") if isinstance(result, dict) else None
+    return commit.get("sha") if isinstance(commit, dict) else None
+
+
+def refresh_from_github(benchmark_dir, repo, branch):
+    root = find_lab_root(benchmark_dir)
+    if root is None:
+        raise RunnerError(
+            "Cannot infer lab root. Expected benchmark under <root>/custom/ba-agent/. Use the NAS bootstrap once to create the lab tree."
+        )
+
+    benchmark_rel = benchmark_dir.resolve().relative_to(root.resolve()).as_posix()
+    config_rel = benchmark_rel + "/benchmark.json"
+    config_text = github_fetch_text(repo, branch, config_rel)
+    config_path = benchmark_dir / "benchmark.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(config_text, encoding="utf-8")
+    config = json.loads(config_text)
+
+    input_rel = benchmark_rel + "/" + str(config.get("input") or "input.md")
+    prompt_rel = benchmark_rel + "/" + str(config.get("prompt") or "prompt.md")
+    input_path = benchmark_dir / str(config.get("input") or "input.md")
+    prompt_path = benchmark_dir / str(config.get("prompt") or "prompt.md")
+
+    input_path.parent.mkdir(parents=True, exist_ok=True)
+    prompt_path.parent.mkdir(parents=True, exist_ok=True)
+    input_path.write_text(github_fetch_text(repo, branch, input_rel), encoding="utf-8")
+    prompt_path.write_text(github_fetch_text(repo, branch, prompt_rel), encoding="utf-8")
+
+    skill_config = config.get("skill")
+    if skill_config:
+        skill_path = (benchmark_dir / str(skill_config)).resolve()
+        skill_rel = skill_path.relative_to(root.resolve()).as_posix()
+        skill_path.parent.mkdir(parents=True, exist_ok=True)
+        skill_path.write_text(github_fetch_text(repo, branch, skill_rel), encoding="utf-8")
+
+    return config
+
+
+def safe_provider_error(raw, code):
+    try:
+        parsed = json.loads(raw)
+        error = parsed.get("error") if isinstance(parsed, dict) else None
+        if isinstance(error, dict):
+            compact = {"message": str(error.get("message") or "HTTP {}".format(code))}
+            if error.get("status"):
+                compact["status"] = error["status"]
+            if error.get("details"):
+                compact["details"] = error["details"]
+            return json.dumps(compact, ensure_ascii=False)
+    except ValueError:
+        pass
+    return "HTTP {}: provider request failed".format(code)
+
+
+def gemini_generate(api_key, api_base, model, user_prompt, system_instruction, temperature, max_output_tokens, timeout):
+    encoded_model = urllib.parse.quote(model, safe="._-")
+    endpoint = "{}/models/{}:generateContent".format(api_base.rstrip("/"), encoded_model)
+    payload = {
         "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
         "generationConfig": {
             "temperature": temperature,
@@ -148,15 +271,14 @@ def gemini_generate(
     if system_instruction:
         payload["system_instruction"] = {"parts": [{"text": system_instruction}]}
 
-    body = json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
         endpoint,
-        data=body,
+        data=json.dumps(payload).encode("utf-8"),
         method="POST",
         headers={
             "Content-Type": "application/json",
             "x-goog-api-key": api_key,
-            "User-Agent": "ba-agent-benchmark-runner/1.0",
+            "User-Agent": "ba-agent-benchmark-runner/2.0",
         },
     )
 
@@ -192,7 +314,7 @@ def gemini_generate(
 
     try:
         data = json.loads(raw)
-    except json.JSONDecodeError:
+    except ValueError:
         return {
             "status": "provider_error",
             "http_status": status_code,
@@ -206,13 +328,13 @@ def gemini_generate(
 
     candidates = data.get("candidates") or []
     if not candidates:
-        prompt_feedback = data.get("promptFeedback") or data.get("prompt_feedback")
+        feedback = data.get("promptFeedback") or data.get("prompt_feedback")
         return {
             "status": "no_candidate",
             "http_status": status_code,
             "started_at": iso_z(started),
             "ended_at": iso_z(utc_now()),
-            "error": json.dumps(prompt_feedback, ensure_ascii=False) if prompt_feedback else "No candidate returned",
+            "error": json.dumps(feedback, ensure_ascii=False) if feedback else "No candidate returned",
             "text": "",
             "usage": data.get("usageMetadata") or data.get("usage_metadata"),
             "finish_reason": None,
@@ -223,7 +345,6 @@ def gemini_generate(
     texts = [part.get("text", "") for part in parts if isinstance(part, dict) and part.get("text")]
     output_text = "\n".join(texts).strip()
     finish_reason = first.get("finishReason") or first.get("finish_reason")
-
     return {
         "status": "success" if output_text else "empty_output",
         "http_status": status_code,
@@ -236,27 +357,7 @@ def gemini_generate(
     }
 
 
-def safe_provider_error(raw: str, code: int) -> str:
-    """Keep useful provider diagnostics without storing request headers or API keys."""
-    try:
-        parsed = json.loads(raw)
-        error = parsed.get("error") if isinstance(parsed, dict) else None
-        if isinstance(error, dict):
-            message = str(error.get("message") or f"HTTP {code}")
-            status = error.get("status")
-            details = error.get("details")
-            compact: dict[str, Any] = {"message": message}
-            if status:
-                compact["status"] = status
-            if details:
-                compact["details"] = details
-            return json.dumps(compact, ensure_ascii=False)
-    except json.JSONDecodeError:
-        pass
-    return f"HTTP {code}: provider request failed"
-
-
-def render_result_markdown(meta: dict[str, Any], output_text: str) -> str:
+def render_result_markdown(meta, output_text):
     lines = [
         "# BA Benchmark Raw Result",
         "",
@@ -264,88 +365,62 @@ def render_result_markdown(meta: dict[str, Any], output_text: str) -> str:
         "",
         "## Run metadata",
         "",
-        f"- Benchmark: `{meta['benchmark']}`",
-        f"- Mode: `{meta['mode']}`",
-        f"- Provider: `gemini`",
-        f"- Model: `{meta['model']}`",
-        f"- Status: `{meta['status']}`",
-        f"- Started: `{meta['started_at']}`",
-        f"- Ended: `{meta['ended_at']}`",
-        f"- Temperature: `{meta['temperature']}`",
-        f"- Max output tokens: `{meta['max_output_tokens']}`",
-        f"- Input SHA-256: `{meta['input_sha256']}`",
-        f"- Prompt SHA-256: `{meta['prompt_sha256']}`",
+        "- Benchmark: `{}`".format(meta["benchmark"]),
+        "- Mode: `{}`".format(meta["mode"]),
+        "- Provider: `gemini`",
+        "- Model: `{}`".format(meta["model"]),
+        "- Status: `{}`".format(meta["status"]),
+        "- Started: `{}`".format(meta["started_at"]),
+        "- Ended: `{}`".format(meta["ended_at"]),
+        "- Temperature: `{}`".format(meta["temperature"]),
+        "- Max output tokens: `{}`".format(meta["max_output_tokens"]),
+        "- Input SHA-256: `{}`".format(meta["input_sha256"]),
+        "- Prompt SHA-256: `{}`".format(meta["prompt_sha256"]),
     ]
     if meta.get("skill_path"):
-        lines.append(f"- Skill: `{meta['skill_path']}`")
-        lines.append(f"- Skill version: `{meta.get('skill_version') or 'unknown'}`")
-        lines.append(f"- Skill SHA-256: `{meta.get('skill_sha256')}`")
+        lines.append("- Skill: `{}`".format(meta["skill_path"]))
+        lines.append("- Skill version: `{}`".format(meta.get("skill_version") or "unknown"))
+        lines.append("- Skill SHA-256: `{}`".format(meta.get("skill_sha256")))
     if meta.get("finish_reason"):
-        lines.append(f"- Finish reason: `{meta['finish_reason']}`")
+        lines.append("- Finish reason: `{}`".format(meta["finish_reason"]))
     if meta.get("usage"):
-        lines.append(f"- Usage metadata: `{json.dumps(meta['usage'], ensure_ascii=False, sort_keys=True)}`")
+        lines.append("- Usage metadata: `{}`".format(json.dumps(meta["usage"], ensure_ascii=False, sort_keys=True)))
     if meta.get("error"):
-        lines.extend(["", "## Provider status", "", f"`{meta['error']}`"])
+        lines.extend(["", "## Provider status", "", "`{}`".format(meta["error"])])
     lines.extend(["", "---", "", "## Model output", "", output_text or "_No model output._", ""])
     return "\n".join(lines)
 
 
-def find_repo_root(start: Path) -> Path | None:
-    current = start.resolve()
-    for candidate in (current, *current.parents):
-        if (candidate / ".git").exists():
-            return candidate
-    return None
-
-
-def git_publish(repo_root: Path, files: list[Path], commit_message: str, push: bool) -> dict[str, Any]:
-    rels = [str(path.resolve().relative_to(repo_root.resolve())) for path in files]
-    result: dict[str, Any] = {"commit": None, "push": None}
-
-    subprocess.run(["git", "-C", str(repo_root), "add", "--", *rels], check=True)
-    commit = subprocess.run(
-        ["git", "-C", str(repo_root), "commit", "-m", commit_message],
-        text=True,
-        capture_output=True,
-    )
-    if commit.returncode != 0:
-        combined = (commit.stdout + "\n" + commit.stderr).strip()
-        if "nothing to commit" not in combined.lower():
-            raise RunnerError(f"git commit failed: {combined}")
-        result["commit"] = "nothing_to_commit"
-    else:
-        sha = subprocess.check_output(["git", "-C", str(repo_root), "rev-parse", "HEAD"], text=True).strip()
-        result["commit"] = sha
-
-    if push:
-        pushed = subprocess.run(["git", "-C", str(repo_root), "push", "origin", "HEAD"], text=True, capture_output=True)
-        result["push"] = "success" if pushed.returncode == 0 else (pushed.stdout + "\n" + pushed.stderr).strip()
-    return result
-
-
-def parse_args(argv: list[str]) -> argparse.Namespace:
+def parse_args(argv):
     parser = argparse.ArgumentParser(description="Run a BA benchmark against Gemini without exposing evaluator files.")
-    parser.add_argument("benchmark", type=Path, help="Benchmark directory containing benchmark.json/input/prompt.")
-    parser.add_argument("--model", required=True, help="Exact Gemini model ID. No automatic fallback is performed.")
+    parser.add_argument("benchmark", type=Path)
+    parser.add_argument("--model", required=True)
     parser.add_argument("--mode", choices=("baseline", "skill", "both"), default="both")
-    parser.add_argument("--skill", type=Path, help="Override skill file configured in benchmark.json.")
-    parser.add_argument("--input", type=Path, help="Override input file configured in benchmark.json.")
-    parser.add_argument("--prompt", type=Path, help="Override prompt file configured in benchmark.json.")
-    parser.add_argument("--env-file", type=Path, help="Optional .env containing GEMINI_API_KEY, GOOGLE_KEY or GOOGLE_API_KEY.")
+    parser.add_argument("--skill", type=Path)
+    parser.add_argument("--input", type=Path)
+    parser.add_argument("--prompt", type=Path)
+    parser.add_argument("--env-file", type=Path)
     parser.add_argument("--api-base", default=DEFAULT_API_BASE)
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--max-output-tokens", type=int, default=8192)
     parser.add_argument("--timeout", type=int, default=180)
-    parser.add_argument("--repeat", type=int, default=1, help="Runs per requested mode; default 1.")
-    parser.add_argument("--run-id", help="Optional run ID prefix. Default is UTC timestamp.")
-    parser.add_argument("--git-commit", action="store_true", help="Commit generated result files to the current git repository.")
-    parser.add_argument("--git-push", action="store_true", help="Push the result commit to origin HEAD. Implies --git-commit.")
+    parser.add_argument("--repeat", type=int, default=1)
+    parser.add_argument("--run-id")
+    parser.add_argument("--refresh-from-github", action="store_true")
+    parser.add_argument("--github-repo", default=DEFAULT_GITHUB_REPO)
+    parser.add_argument("--github-branch", default=DEFAULT_GITHUB_BRANCH)
+    parser.add_argument("--publish-github", action="store_true")
+    parser.add_argument("--github-token-env", default=GITHUB_TOKEN_DEFAULT_ENV)
     return parser.parse_args(argv)
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv=None):
     args = parse_args(argv or sys.argv[1:])
     benchmark_dir = args.benchmark.resolve()
+
+    if args.refresh_from_github:
+        refresh_from_github(benchmark_dir, args.github_repo, args.github_branch)
+
     config_path = benchmark_dir / "benchmark.json"
     config = read_json(config_path) if config_path.exists() else {}
 
@@ -354,70 +429,67 @@ def main(argv: list[str] | None = None) -> int:
     skill_path = args.skill.resolve() if args.skill else resolve_path(benchmark_dir, config.get("skill"))
 
     if input_path is None or not input_path.exists():
-        raise RunnerError(f"Benchmark input not found: {input_path}")
+        raise RunnerError("Benchmark input not found: {}".format(input_path))
     if prompt_path is None or not prompt_path.exists():
-        raise RunnerError(f"Benchmark prompt not found: {prompt_path}. Add prompt.md or pass --prompt.")
+        raise RunnerError("Benchmark prompt not found: {}".format(prompt_path))
     if args.mode in ("skill", "both") and (skill_path is None or not skill_path.exists()):
-        raise RunnerError("Skill mode requested but no valid skill file is configured. Use --skill or benchmark.json.")
+        raise RunnerError("Skill mode requested but no valid skill file is configured.")
     if args.repeat < 1:
         raise RunnerError("--repeat must be at least 1")
     if not (0.0 <= args.temperature <= 2.0):
         raise RunnerError("--temperature must be between 0.0 and 2.0")
 
-    api_key, key_source = resolve_api_key(args.env_file.resolve() if args.env_file else None)
+    env_file = args.env_file.resolve() if args.env_file else None
+    env = merged_environment(env_file)
+    api_key, key_source = resolve_api_key(env)
+    github_token = resolve_github_token(env, args.github_token_env) if args.publish_github else None
+
     input_text = input_path.read_text(encoding="utf-8")
     instruction_text = prompt_path.read_text(encoding="utf-8").strip()
-    user_prompt = f"{instruction_text}\n\n---\n\n# Supplied benchmark material\n\n{input_text.strip()}\n"
+    user_prompt = instruction_text + "\n\n---\n\n" + input_text
 
-    raw_skill_text = skill_path.read_text(encoding="utf-8") if skill_path else None
-    injected_skill_text = strip_skill_frontmatter(raw_skill_text) if raw_skill_text else None
-    version = skill_version(raw_skill_text or "")
+    skill_text = None
+    skill_body = None
+    skill_ver = None
+    if skill_path is not None and skill_path.exists():
+        skill_text = skill_path.read_text(encoding="utf-8")
+        skill_body = strip_skill_frontmatter(skill_text).strip()
+        skill_ver = skill_version(skill_text)
 
-    benchmark_name = str(config.get("name") or benchmark_dir.name)
     results_dir = benchmark_dir / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
+    run_prefix = args.run_id or utc_now().strftime("%Y%m%dT%H%M%SZ")
+    benchmark_name = str(config.get("name") or benchmark_dir.name)
+    modes = ["baseline", "skill"] if args.mode == "both" else [args.mode]
+    written = []
+    manifest_runs = []
+    stop_remaining = False
 
-    base_run_id = args.run_id or utc_now().strftime("%Y%m%dT%H%M%SZ")
-    requested_modes = [args.mode] if args.mode != "both" else ["baseline", "skill"]
-    generated_files: list[Path] = []
-    manifest_runs: list[dict[str, Any]] = []
-
-    print(f"Benchmark : {benchmark_name}")
-    print(f"Model     : {args.model}")
-    print(f"Modes     : {', '.join(requested_modes)}")
-    print(f"Repeat    : {args.repeat}")
-    print(f"API key   : loaded from {key_source} (value not displayed)")
-    print(f"Results   : {results_dir}")
-
-    stop_for_quota = False
-    for repetition in range(1, args.repeat + 1):
-        for mode in requested_modes:
-            if stop_for_quota:
+    for mode in modes:
+        for iteration in range(1, args.repeat + 1):
+            if stop_remaining:
                 break
-            system_instruction = injected_skill_text if mode == "skill" else None
-            label = f"{base_run_id}-{slug(args.model)}-{mode}"
-            if args.repeat > 1:
-                label += f"-r{repetition}"
-            if mode == "skill" and version:
-                label += f"-v{slug(version)}"
-
-            print(f"\nRunning {mode} ({repetition}/{args.repeat}) ...", flush=True)
+            system_instruction = skill_body if mode == "skill" else None
             result = gemini_generate(
-                api_key=api_key,
-                api_base=args.api_base,
-                model=args.model,
-                user_prompt=user_prompt,
-                system_instruction=system_instruction,
-                temperature=args.temperature,
-                max_output_tokens=args.max_output_tokens,
-                timeout=args.timeout,
+                api_key,
+                args.api_base,
+                args.model,
+                user_prompt,
+                system_instruction,
+                args.temperature,
+                args.max_output_tokens,
+                args.timeout,
             )
+            suffix = "{}-{}-{}-{:02d}".format(run_prefix, slug(args.model), mode, iteration)
+            md_path = results_dir / (suffix + ".md")
+            json_path = results_dir / (suffix + ".json")
 
-            meta: dict[str, Any] = {
+            meta = {
+                "schema": 2,
                 "benchmark": benchmark_name,
-                "benchmark_dir": str(benchmark_dir),
+                "benchmark_dir": benchmark_dir.name,
                 "mode": mode,
-                "repetition": repetition,
+                "iteration": iteration,
                 "provider": "gemini",
                 "model": args.model,
                 "status": result["status"],
@@ -426,75 +498,74 @@ def main(argv: list[str] | None = None) -> int:
                 "ended_at": result["ended_at"],
                 "temperature": args.temperature,
                 "max_output_tokens": args.max_output_tokens,
-                "input_path": str(input_path),
                 "input_sha256": sha256_text(input_text),
-                "prompt_path": str(prompt_path),
                 "prompt_sha256": sha256_text(instruction_text),
                 "skill_path": str(skill_path) if mode == "skill" and skill_path else None,
-                "skill_version": version if mode == "skill" else None,
-                "skill_sha256": sha256_text(raw_skill_text) if mode == "skill" and raw_skill_text else None,
+                "skill_version": skill_ver if mode == "skill" else None,
+                "skill_sha256": sha256_text(skill_text) if mode == "skill" and skill_text else None,
                 "finish_reason": result.get("finish_reason"),
                 "usage": result.get("usage"),
                 "error": result.get("error"),
+                "api_key_source": key_source,
+                "runner_python": sys.version.split()[0],
+                "github_source": {
+                    "repo": args.github_repo,
+                    "branch": args.github_branch,
+                    "refreshed": bool(args.refresh_from_github),
+                },
             }
 
-            md_path = results_dir / f"{label}.md"
-            meta_path = results_dir / f"{label}.json"
             md_path.write_text(render_result_markdown(meta, result.get("text", "")), encoding="utf-8")
-            meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
-            generated_files.extend([md_path, meta_path])
-            manifest_runs.append({**meta, "output_markdown": str(md_path), "metadata_json": str(meta_path)})
-            print(f"Status    : {result['status']}")
-            print(f"Saved     : {md_path.name}")
+            json_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+            written.extend([md_path, json_path])
+            manifest_runs.append({"markdown": md_path.name, "metadata": json_path.name, "status": result["status"]})
 
-            # Never silently switch model/retry on quota exhaustion. This preserves experimental validity.
+            print("[{}] {} {} -> {}".format(result["status"], mode, iteration, md_path))
             if result["status"] == "quota_blocked":
-                print("Quota blocked. Stopping remaining runs; no model fallback or retry performed.")
-                stop_for_quota = True
-        if stop_for_quota:
-            break
+                print("Quota blocked; stopping remaining calls to avoid contaminating the experiment.")
+                stop_remaining = True
+                break
 
     manifest = {
-        "schema": 1,
-        "benchmark": benchmark_name,
-        "run_id": base_run_id,
+        "schema": 2,
         "created_at": iso_z(utc_now()),
-        "provider": "gemini",
+        "benchmark": benchmark_name,
         "model": args.model,
-        "temperature": args.temperature,
-        "max_output_tokens": args.max_output_tokens,
-        "mode_requested": args.mode,
-        "repeat_requested": args.repeat,
-        "quota_stopped": stop_for_quota,
+        "mode": args.mode,
+        "repeat": args.repeat,
         "runs": manifest_runs,
     }
-    manifest_path = results_dir / f"{base_run_id}-{slug(args.model)}-manifest.json"
+    manifest_path = results_dir / (run_prefix + "-" + slug(args.model) + "-manifest.json")
     manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
-    generated_files.append(manifest_path)
+    written.append(manifest_path)
 
-    if args.git_push:
-        args.git_commit = True
-    if args.git_commit:
-        repo_root = find_repo_root(benchmark_dir)
-        if repo_root is None:
-            raise RunnerError("--git-commit requested but no .git repository was found above the benchmark directory")
-        publish = git_publish(
-            repo_root,
-            generated_files,
-            commit_message=f"BA benchmark: {benchmark_name} on {args.model} ({base_run_id})",
-            push=args.git_push,
-        )
-        print(f"Git commit: {publish['commit']}")
-        if args.git_push:
-            print(f"Git push  : {publish['push']}")
+    if args.publish_github:
+        root = find_lab_root(benchmark_dir)
+        if root is None:
+            raise RunnerError("Cannot infer lab root for GitHub publishing.")
+        commit_shas = []
+        for path in written:
+            rel = path.resolve().relative_to(root.resolve()).as_posix()
+            text = path.read_text(encoding="utf-8")
+            sha = github_put_text(
+                args.github_repo,
+                args.github_branch,
+                rel,
+                text,
+                github_token,
+                "benchmark: publish {}".format(path.name),
+            )
+            commit_shas.append(sha)
+        print("Published {} result files to {}@{}.".format(len(written), args.github_repo, args.github_branch))
+        if commit_shas:
+            print("Last GitHub commit: {}".format(commit_shas[-1]))
 
-    print(f"\nManifest  : {manifest_path}")
-    return 2 if stop_for_quota else 0
+    return 0
 
 
 if __name__ == "__main__":
     try:
-        raise SystemExit(main())
+        sys.exit(main())
     except RunnerError as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
-        raise SystemExit(1)
+        print("ERROR: {}".format(exc), file=sys.stderr)
+        sys.exit(2)
