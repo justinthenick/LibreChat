@@ -81,7 +81,7 @@ Skill:
 
 - `skills/prepare-solution-change-readiness/SKILL.md`
 - current version: **0.2.0**
-- status: **focused correction queued**
+- status: **retained after focused B010 correction; B013 generalization queued**
 
 Purpose: convert sufficiently mature BA delivery evidence into a controlled handoff for solution/design review and Change Enablement without pretending to be the Solution Architect, Change Manager or approver.
 
@@ -92,25 +92,43 @@ Gemini 3.5 Flash, temperature `0.0`:
 | Run | Raw | Penalties | Final | Tokens |
 |---|---:|---:|---:|---:|
 | Baseline | 95 | -30 | **65/100** | 4,467 |
-| `prepare-solution-change-readiness` v0.1 | 95 | -20 | **75/100** | 8,661 |
+| v0.1 | 95 | -20 | **75/100** | 8,661 |
+| **v0.2 focused rerun** | **100** | **0** | **100/100** | **9,609** |
 
-v0.1 materially improved evidence packaging and status preservation, but exposed one reusable defect: **gap-to-gate promotion**. It converted missing downstream evidence into unsourced mandatory sign-off/approval gates (`signed-off technical design`, `necessary business/technical approvals`).
+v0.1 exposed a reusable **gap-to-gate promotion** defect by converting missing downstream evidence into unsourced sign-off/approval gates. v0.2 added one focused semantic control: missing evidence categories may not become mandatory approvals/sign-offs/CAB/owner/governance gates unless the source explicitly establishes them.
 
-Decision: do not retain v0.1 as validated. v0.2 adds one focused semantic control: missing evidence categories may not become mandatory approvals/sign-offs/CAB/owner/governance gates unless the source explicitly establishes them.
+The B010 v0.2 rerun removed that defect completely while preserving status, evidence and traceability discipline. No solution architecture, Change authority, CAB decision, dates, rollback mechanism or test execution was invented.
 
-Queued Skill-only rerun:
+Decision: **retain `prepare-solution-change-readiness` v0.2.0.** Do not tune further on B010.
 
-- `b010-g35-handoff-v02-002`
+### Benchmark 013 — Vendor Export Solution / Change-Readiness Handoff
 
-If v0.2 removes the gap-to-gate failure while preserving the good evidence/status/traceability behavior, retain it and move to a materially different handoff generalization benchmark rather than further tuning B010.
+B013 is the materially different handoff generalization benchmark. It tests an external-vendor invoice-exception export with:
+
+- Candidate SFTP transfer;
+- disputed account-ID tokenisation with Decision Owner Unknown;
+- a non-binding 15-minute Target;
+- Deferred scheduled exports;
+- Unknown generated-file retention;
+- a reviewed field mapping that is evidence but not approved interface design;
+- unverified possible reuse of an existing Managed File Transfer gateway;
+- unexecuted test designs and missing downstream implementation/Change evidence.
+
+Queued A/B job:
+
+- `b013-g35-handoff-v02-ab-001`
+- Gemini 3.5 Flash, temperature `0.0`
+- baseline + `prepare-solution-change-readiness` v0.2
+
+If v0.2 remains strong without selecting transfer architecture, resolving the data-handling dispute or promoting gaps into governance gates, treat the handoff capability as generalized enough for composition testing.
 
 ## Capability 6 — ITIL 4 Alignment / Readiness Assessment
 
 Skill:
 
 - `skills/assess-itil-alignment/SKILL.md`
-- current version: **0.1.0**
-- status: **retained after B011; generalization queued**
+- current version: **0.2.0**
+- status: **focused B012 correction queued**
 
 Purpose: assess supplied BA, solution-handoff, release, deployment, configuration and change-readiness evidence against relevant **ITIL 4 practice concepts** while keeping ITIL guidance separate from organisation-specific policy and authority.
 
@@ -125,24 +143,28 @@ Gemini 3.5 Flash, temperature `0.0`:
 | Baseline | **92/100** | 5,420 |
 | `assess-itil-alignment` v0.1 | **98/100** | 7,057 |
 
-v0.1 cleanly separated local policy from ITIL guidance, preserved the Unknown Emergency Change Authority, rejected universal CAB/rollback/PIR/CMDB requirements, distinguished Change Enablement vs Release vs Deployment vs Service Configuration Management, and incurred **zero penalties**.
-
-Decision: **retain v0.1 unchanged**. Do not tune against B011.
+v0.1 cleanly separated local policy from ITIL guidance, preserved the Unknown Emergency Change Authority, rejected universal CAB/rollback/PIR/CMDB requirements, distinguished Change Enablement vs Release vs Deployment vs Service Configuration Management, and incurred zero penalties.
 
 ### Benchmark 012 — Planned Certificate Change ITIL Alignment
 
-A materially different generalization benchmark now tests a planned certificate/proxy change rather than an emergency change. It includes an explicit Standard Change Model that covers routine certificate replacement but **not** the proxy-endpoint change, an Unknown local Change Authority, a schedule conflict, prepared release evidence, a deployment procedure whose applicability is only partial, an unagreed recovery suggestion and configuration-information gaps.
+Gemini 3.5 Flash, temperature `0.0`:
 
-Key traps include automatic Standard Change/pre-authorisation claims, universal CAB/rollback mandates, invented Change Authority, CMDB tooling and promotion of stakeholder opinion into policy.
+| Run | Raw / Final | Tokens | Decision |
+|---|---:|---:|---|
+| Baseline | **94/100** | 5,211 | Strong control with minor readiness precision issues. |
+| `assess-itil-alignment` v0.1 | **96/100** | 6,759 | Strong overall, but do not freeze due one reusable governance-gating defect. |
 
-Queued A/B job:
+B012 confirms that v0.1 generalizes on Change/Release/Deployment/Service Configuration separation, Standard Change Model scope, Unknown Change Authority, schedule conflict and policy-vs-guidance separation. It also exposed a narrower **gap-to-gate promotion** defect: recovery/backout and configuration-update ownership/timing were labelled as required pre-authorisation evidence even though the packet did not establish those as mandatory local gates.
 
-- `b012-g35-itil-v01-ab-001`
-- Gemini 3.5 Flash
-- temperature `0.0`
-- baseline + v0.1 Skill
+No universal ITIL rollback mandate was claimed, so no rubric penalty applied; nevertheless this is governance-significant because it can make a change appear blocked by an organisation-specific requirement that was never established.
 
-Only after isolated ITIL generalization should ITIL composition be tested with the frozen BA / solution-change-readiness workflow.
+Decision: create `assess-itil-alignment` **v0.2.0** with one focused correction only. Relevant `Not evidenced` practice concerns may be raised as questions/clarifications, but cannot become `Evidence required`, mandatory gates or pre-authorisation prerequisites unless explicit local policy/source evidence establishes that status.
+
+Queued Skill-only rerun:
+
+- `b012-g35-itil-v02-002`
+
+Do not modify the frozen Composite BA Delivery Analyst merely to add ITIL wording. Only after isolated ITIL correction/generalization and handoff generalization should composition be tested.
 
 ## Test timeline
 
@@ -175,6 +197,6 @@ Only after isolated ITIL generalization should ITIL composition be tested with t
 4. test/assurance derivation — **v0.3 retained**
 5. Composite BA Delivery Analyst — **v0.2 frozen / preferred**
 6. specialist pipeline — **experimental; not preferred**
-7. solution/change-readiness handoff — **v0.2 focused B010 rerun queued**
-8. ITIL 4 alignment/readiness — **v0.1 retained; B012 generalization queued**
+7. solution/change-readiness handoff — **v0.2 retained; B013 generalization queued**
+8. ITIL 4 alignment/readiness — **v0.2 focused B012 rerun queued**
 9. composition of validated handoff + ITIL alignment into the preferred BA workflow — **after isolated validation/generalization**
