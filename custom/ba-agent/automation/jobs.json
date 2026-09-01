@@ -101,6 +101,15 @@
       "model": "gemini-3.5-flash",
       "repeat": 1,
       "temperature": 0.0
+    },
+    {
+      "id": "b009-g35-composite-v02-ab-001",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/009-service-ownership-update-end-to-end",
+      "model": "gemini-3.5-flash",
+      "mode": "both",
+      "repeat": 1,
+      "temperature": 0.0
     }
   ]
 }
