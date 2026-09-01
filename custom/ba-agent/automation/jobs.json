@@ -119,6 +119,15 @@
       "mode": "both",
       "repeat": 1,
       "temperature": 0.0
+    },
+    {
+      "id": "b011-g35-itil-v01-ab-001",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/011-emergency-change-itil-alignment",
+      "model": "gemini-3.5-flash",
+      "mode": "both",
+      "repeat": 1,
+      "temperature": 0.0
     }
   ]
 }
