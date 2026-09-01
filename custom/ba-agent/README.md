@@ -22,7 +22,8 @@ The common quality controls are status preservation, explicit evidence/authority
 ### Composite BA Delivery Analyst
 
 Agent: `agents/ba-delivery-analyst/AGENT.md`  
-Current version: **0.2.0**
+Current version: **0.2.0**  
+Status: **frozen / preferred architecture**
 
 Single-call sequence:
 
@@ -44,51 +45,22 @@ Gemini 3.5 Flash, temperature `0.0`:
 | **Composite v0.2** | **95** | **0** | **95/100** | **10,439** |
 | Three-specialist pipeline v0.1 | 76 | -23 | **53/100** | **23,748** |
 
-#### Composite v0.2 finding
+Composite v0.2 corrected the v0.1 authority/governance failure and retained strong handoffs, constraint survival and end-to-end traceability. The three-specialist pipeline technically worked but amplified upstream semantic errors downstream and cost about 2.28x the tokens.
 
-v0.2 corrected the v0.1 authority/governance failure and retained strong handoffs, constraint survival and end-to-end traceability. Emergency/disputed behavior stayed unresolved; Candidate automation/pilot stayed non-committed; Target and Deferred work remained correctly classified; Unknown retention was not converted into design or tests. No rubric penalties applied.
+### Benchmark 009 — Service Ownership Update End-to-End
 
-**Composite v0.2 is retained as the preferred architecture control.**
+Gemini 3.5 Flash, temperature `0.0`:
 
-#### Specialist pipeline finding
+| Architecture | Raw | Penalties | Final | Total tokens |
+|---|---:|---:|---:|---:|
+| No-agent baseline | **67** | **-18** | **49/100** | **6,602** |
+| **Composite v0.2** | **94** | **0** | **94/100** | **10,720** |
 
-The persisted three-call pipeline technically worked end to end, but it amplified semantic errors across handoffs:
+B009 is materially different from B008 and confirms generalization. Composite v0.2 preserves the emergency-approval dispute, Candidate Service Registry automation and pilot scope, non-binding Target, Deferred recertification, Unknown retention, process/governance boundaries and full cross-stage traceability without rubric penalties.
 
-- Stage 1 invented routing/workflow-engine concepts;
-- refinement introduced an unsupported `compliance auditor` actor;
-- Unknown retention became a committed no-purge/no-delete acceptance criterion;
-- assurance then converted that invented criterion into a committed test.
+Minor deductions were limited to wording of the disputed emergency proposition and omission of a Stage-4 conditional security assurance state. Neither is a production-blocking reusable defect.
 
-The pipeline scored **53/100** and consumed **23,748 tokens**, about **2.28x** the composite v0.2 token usage while scoring 42 points lower.
-
-**Architecture decision: prefer Composite BA Delivery Analyst v0.2.** Keep the pipeline runner as experimental infrastructure, but do not tune the specialist pipeline further against B008.
-
-## Benchmark 009 — Service Ownership Update End-to-End
-
-Path: `benchmarks/009-service-ownership-update-end-to-end`
-
-Purpose: fresh generalization test for Composite BA Delivery Analyst v0.2 in a materially different service-data/governance domain.
-
-Key traps include:
-
-- disputed Severity-1 emergency approval authority;
-- Candidate Service Registry automation with unverified integration capability;
-- Candidate Finance Applications / Network Tools pilot;
-- non-binding one-business-day Target;
-- Deferred quarterly ownership recertification;
-- Unknown evidence-retention period;
-- conditional imported-update source traceability;
-- explicit service-governance / HR / application-lifecycle / Change-authority boundaries;
-- no established UI, validation, API, storage, queue, workflow or test mechanics.
-
-Queued NAS job:
-
-- `b009-g35-composite-v02-ab-001`
-- model: `gemini-3.5-flash`
-- mode: baseline + Composite v0.2
-- temperature: `0.0`
-
-If v0.2 remains strong on B009 without material status drift or invention, treat the composite architecture as generalized enough to freeze before moving to the next capability layer.
+**Architecture decision: freeze Composite BA Delivery Analyst v0.2.** Do not tune it further against B008/B009. Re-open only if a later independent benchmark exposes a genuine reusable defect.
 
 ## Specialist pipeline infrastructure
 
@@ -103,7 +75,23 @@ Pipeline tooling:
 - `tools/agent_pipeline_runner.py`
 - pipeline-aware `tools/benchmark_worker.py`
 
-The pipeline runner persists every stage output plus metadata/hash information and passes the prior artifact into the next model call. It is retained for future architecture experiments even though B008 currently favors the simpler composite.
+The pipeline runner persists every stage output plus metadata/hash information and passes the prior artifact into the next model call. It is retained for future architecture experiments, but is not the default BA architecture.
+
+## Next capability layer — Solution / Change-Readiness Handoff
+
+The four BA stages and composite architecture are now frozen. The next capability should convert sufficiently mature BA delivery evidence into a controlled handoff for solution/design review and Change Enablement without pretending to be the Solution Architect, Change Manager or approver.
+
+The capability should identify:
+
+- what is ready to hand off;
+- what remains blocked, disputed, Candidate, Target, Deferred or Unknown;
+- required solution/design decisions that are not yet resolved;
+- test/assurance evidence available versus missing;
+- deployment/change-readiness dependencies and decision points;
+- explicit process/security/governance constraints that must survive into solution/change work;
+- a traceable handoff summary without inventing implementation architecture, CAB approval, release dates, rollback mechanisms or decision authority.
+
+This capability should be benchmarked separately before being composed into the frozen BA Delivery Analyst.
 
 ## Automated benchmark loop
 
@@ -130,6 +118,6 @@ The pipeline runner persists every stage output plus metadata/hash information a
 2. requirements decomposition — **validated/generalized**
 3. acceptance criteria — **validated/generalized**
 4. test/assurance derivation — **v0.3 retained**
-5. Composite BA Delivery Analyst — **v0.2 preferred, B009 generalization queued**
-6. specialist pipeline — **experimental; B008 not preferred**
-7. next after B009 — solution/change-readiness handoff capability
+5. Composite BA Delivery Analyst — **v0.2 frozen / preferred**
+6. specialist pipeline — **experimental; not preferred**
+7. solution/change-readiness handoff — **next active capability**
