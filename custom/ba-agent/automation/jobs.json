@@ -82,6 +82,15 @@
       "mode": "both",
       "repeat": 1,
       "temperature": 0.0
+    },
+    {
+      "id": "b008-g35-composite-v02-002",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/008-contractor-site-access-end-to-end",
+      "model": "gemini-3.5-flash",
+      "mode": "skill",
+      "repeat": 1,
+      "temperature": 0.0
     }
   ]
 }
