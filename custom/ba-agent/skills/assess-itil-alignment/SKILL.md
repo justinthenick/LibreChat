@@ -8,7 +8,7 @@ disable-model-invocation: false
 
 # Assess ITIL Alignment
 
-Version: **0.1.0**
+Version: **0.2.0**
 
 ## Purpose
 
@@ -65,25 +65,30 @@ Do not use `Compliant` / `Non-compliant` as default statuses.
 3. **Missing evidence is not proof of failure.**
    If risk assessment, authorisation evidence, schedule coordination, configuration impact or another relevant artifact is absent, mark it `Not evidenced` or `Partially evidenced`. Do not infer that the activity did not happen.
 
-4. **Separate ITIL guidance from organisational policy.**
+4. **Do not promote gaps into unsourced gates.**
+   A practice concern or missing evidence category may be relevant without being a mandatory local prerequisite. Do not label a missing item `Evidence required`, a mandatory gate, approval condition, sign-off, pre-authorisation prerequisite or blocking governance requirement unless explicit organisational policy, authority rules or supplied source evidence establishes that status. If the source does not establish mandatory status, use `Not evidenced`, `Partially evidenced`, `Readiness question` or `Clarification required` instead.
+
+   In particular, do not turn a missing recovery/backout approach, PIR, configuration-update owner/timing, support plan, communications plan or other sensible practice concern into a mandatory pre-authorisation requirement merely because it is relevant to ITIL. A stakeholder proposal remains a proposal.
+
+5. **Separate ITIL guidance from organisational policy.**
    Explicit internal policy/process requirements take their own sourced status. A stakeholder saying `ITIL requires X` is not proof that ITIL requires X and is not proof that X is organisational policy.
 
-5. **Preserve upstream delivery status.**
+6. **Preserve upstream delivery status.**
    Candidate, Target, Deferred, Disputed and Unknown work remains so. ITIL assessment must not promote or resolve it.
 
-6. **Keep release, deployment and change concerns distinct.**
+7. **Keep release, deployment and change concerns distinct.**
    Do not collapse release packaging/availability, technical deployment execution and change authorisation/risk/schedule governance into one invented workflow.
 
-7. **Configuration impact is evidence-driven.**
+8. **Configuration impact is evidence-driven.**
    Where configuration/service records are affected, identify whether required information/impact/update responsibility is evidenced. Do not invent CI classes, CMDB fields, discovery tooling or update mechanisms.
 
-8. **No invented assurance mechanics.**
+9. **No invented assurance mechanics.**
    State what evidence or condition is relevant without prescribing a tool, API, dashboard, log query, meeting, CAB, form, automation or inspection method unless sourced.
 
-9. **No unofficial maturity score.**
+10. **No unofficial maturity score.**
    Do not present a numeric `ITIL maturity` or capability level unless the supplied assessment explicitly uses authorised criteria for the ITIL Maturity Model. This skill's rubric scores are benchmark scores, not ITIL maturity ratings.
 
-10. **Traceability is mandatory.**
+11. **Traceability is mandatory.**
     Every material alignment finding should cite the supplied artifact/requirement/change item/evidence ID where IDs exist.
 
 ## Assessment workflow
@@ -106,16 +111,17 @@ For each relevant practice, separate:
 Classify each material finding as one of:
 
 - `No current blocker`;
-- `Readiness dependency`;
-- `Decision required`;
-- `Evidence required`;
+- `Readiness dependency` — only where the supplied source establishes a dependency;
+- `Decision required` — only where the supplied source establishes a decision is unresolved;
+- `Evidence required` — only where supplied policy/source explicitly makes that evidence required;
+- `Clarification required` — relevant but mandatory status is not established;
 - `Future / non-current scope`.
 
-Do not claim a release/change is approved or rejected unless the source establishes that decision.
+Do not claim a release/change is approved or rejected unless the source establishes that decision. Do not infer mandatory readiness gates from generic ITIL relevance.
 
 ### 4. Produce focused follow-up questions
 
-Ask only questions whose answers would materially change the alignment/readiness conclusion. Keep unknown ownership Unknown unless sourced.
+Ask only questions whose answers would materially change the alignment/readiness conclusion. Keep unknown ownership Unknown unless sourced. A question may ask whether a practice concern is required locally; it must not presume that it is.
 
 ### 5. Perform an anti-invention audit
 
@@ -124,6 +130,7 @@ Before returning the result verify that you have not:
 - created a CAB or approval authority;
 - converted a proposal into policy;
 - treated missing evidence as proven non-compliance;
+- promoted a relevant but unsourced gap into a mandatory local gate;
 - invented rollback/PIR/change-classification/configuration mechanisms;
 - promoted Candidate/Target/Deferred/Unknown scope;
 - confused release, deployment and change governance;
@@ -152,6 +159,12 @@ A strong answer helps a Change Manager, BA, Service Owner or delivery lead under
 Public PeopleCert ITIL 4 descriptions current at skill creation identify Change Enablement, Release Management, Deployment Management, Service Configuration Management and IT Asset Management as closely related Plan/Implement/Control practices. Public Change Enablement material emphasises risk assessment, authorisation and change scheduling; public Service Configuration Management material emphasises accurate and reliable configuration information when and where needed.
 
 ## Changelog
+
+### 0.2.0
+
+- Added explicit protection against gap-to-gate promotion after Benchmark 012.
+- Missing practice-relevant evidence may not become a mandatory approval/pre-authorisation gate unless supplied local policy/source evidence establishes that status.
+- Added `Clarification required` for relevant gaps whose mandatory status is not established.
 
 ### 0.1.0
 
