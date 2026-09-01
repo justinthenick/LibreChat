@@ -64,6 +64,15 @@
       "mode": "skill",
       "repeat": 1,
       "temperature": 0.0
+    },
+    {
+      "id": "b007-g35-v03-003",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/007-release-verification-test-cases",
+      "model": "gemini-3.5-flash",
+      "mode": "skill",
+      "repeat": 1,
+      "temperature": 0.0
     }
   ]
 }
