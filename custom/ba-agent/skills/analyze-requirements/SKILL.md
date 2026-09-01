@@ -8,7 +8,7 @@ disable-model-invocation: false
 
 # Analyze Requirements
 
-Version: **0.3.0**
+Version: **0.4.0**
 
 ## Purpose
 
@@ -21,12 +21,15 @@ This skill is intentionally limited to analysis. **Do not create epics, user sto
 1. **Never turn ambiguity into certainty.**
 2. **Every requirement row MUST include an evidence class, requirement status, source reference and confidence.**
 3. **Evidence class and requirement status are separate dimensions.** Evidence class says how the source supports the statement. Requirement status says how agreed/committed the item is.
-4. **Tentative wording stays tentative.** Words such as *may, might, could, should probably, would like, target, aim, approximately* must not be rewritten as *must, shall, strict, committed* unless another source explicitly settles the point.
-5. **Do not silently resolve stakeholder disagreements.** Conflicting positions must remain disputed and be moved to a decision/open-question section.
-6. **Never invent a decision owner or governance authority.** If the source does not establish who owns a decision, write **Decision owner: Unknown** and raise an open question. Do not infer CAB, executive leadership, a steering committee, Change Governance, an architecture board or another authority merely because such a role would commonly exist.
-7. **Do not invent implementation qualities.** Terms such as *immutable, single-click, real-time, SLA, zero disruption, highly available, encrypted, resilient* are requirements only when supported by evidence.
-8. **Candidate systems and integrations remain candidates until feasibility is established.** Phrases such as *can probably query* or *API not yet checked* must remain tentative.
-9. Before returning the answer, perform the mandatory compliance check below. If any mandatory field is missing or a tentative item has been hardened, fix the draft before responding.
+4. **Requirement wording must match requirement status.** Candidate, Target, Deferred and Unknown items must not use mandatory wording such as *must*, *shall*, *required* or *prohibited* unless the mandatory part itself is independently Confirmed.
+5. **Tentative wording stays tentative.** Words such as *may, might, could, should probably, would like, target, aim, approximately* must not be rewritten as *must, shall, strict, committed* unless another source explicitly settles the point.
+6. **Do not silently resolve stakeholder disagreements.** Conflicting positions must remain disputed and be moved to a decision/open-question section.
+7. **Never invent a decision owner or governance authority.** If the source does not establish who owns a decision, write **Decision owner: Unknown** and raise an open question. Do not infer CAB, executive leadership, a steering committee, Change Governance, an architecture board or another authority merely because such a role would commonly exist.
+8. **Activity/responsibility is not decision authority.** A person who investigates, facilitates, implements, reviews or supplies evidence does not automatically own the resulting business, governance or policy decision.
+9. **Separate required outcomes from proposed mechanisms.** In contradictions, ambiguities and open questions, state the outcome/decision that must be established. Do not prescribe a workshop, spike, asynchronous process, tiered model, committee, architecture pattern or other method unless the source explicitly requires it. Put analyst-suggested methods only in **Analyst proposals**.
+10. **Do not invent implementation qualities.** Terms such as *immutable, single-click, real-time, SLA, zero disruption, highly available, encrypted, resilient* are requirements only when supported by evidence.
+11. **Candidate systems and integrations remain candidates until feasibility is established.** Phrases such as *can probably query* or *API not yet checked* must remain tentative.
+12. Before returning the answer, perform the mandatory compliance check below. If any mandatory field is missing or a tentative item has been hardened, fix the draft before responding.
 
 ## Evidence classes
 
@@ -89,6 +92,13 @@ List only stakeholders/actors supported by the source. Distinguish a stakeholder
 
 If a source names a role but does not establish that role as sponsor, owner, approver or governance authority, do not assign that authority.
 
+Where useful, distinguish:
+
+- **Evidenced activity/responsibility** — e.g. investigates APIs, reviews security, performs checks, facilitates delivery;
+- **Established decision authority** — only where the source explicitly gives that role authority to approve/decide.
+
+Do not convert the first into the second.
+
 ### 4. Extract requirements
 
 Create atomic requirements where practical. Classify each as one of:
@@ -115,7 +125,14 @@ Use a requirements register table unless the user explicitly requests another fo
 
 A requirement should describe **what is needed or what constraint applies**, not prematurely prescribe a technical solution unless the source explicitly mandates one.
 
-Do not use mandatory language (*must, shall, prohibited, required*) for Candidate or Target items unless the statement itself is explicitly a mandatory requirement and the status is Confirmed.
+### Modal language must align with status
+
+- **Confirmed** items may use *must/shall/required/prohibited* where the source supports mandatory treatment.
+- **Candidate** items should use wording such as *candidate*, *proposed scope*, *may*, *could* or *is being considered*.
+- **Target** items should use wording such as *target*, *aim*, *desired* or *approximately*.
+- **Disputed** items should describe the unresolved rule/positions, not state one side as mandatory.
+- **Deferred** items should be stated as future/later scope, not current delivery obligations.
+- **Unknown** items should not be written as requirements at all unless the register is explicitly being used to track unknowns.
 
 ### 5. Detect conflicts and ambiguity
 
@@ -132,8 +149,17 @@ Create a dedicated section for:
 For each conflict or unresolved decision, state:
 
 - the competing positions or uncertainty;
-- the decision that is required;
+- the **required outcome/decision** that must be established;
 - **Decision owner: [supported role]** only when the source establishes one; otherwise **Decision owner: Unknown**.
+
+A required outcome should say *what must be decided or established*, not *how the analyst recommends getting there*.
+
+Examples:
+
+- Good: **Required outcome:** Establish whether failed checks block implementation or remain advisory.
+- Bad unless sourced: **Required decision:** Run a workshop and implement a tiered blocking model.
+- Good: **Required outcome:** Verify candidate API capability and performance.
+- Bad unless sourced: **Required decision:** Run a two-week technical spike and use asynchronous processing.
 
 **Do not resolve the conflict yourself.**
 
@@ -141,7 +167,9 @@ For each conflict or unresolved decision, state:
 
 List assumptions and analyst proposals separately from requirements. Explain why each arose.
 
-A proposal must not quietly become a requirement later in the same answer. If proposing a duration, process, working group, UI pattern, architecture approach or governance mechanism that is not in the evidence, label it clearly as **Proposed** and do not imply stakeholder agreement.
+A proposal must not quietly become a requirement later in the same answer. If proposing a duration, process, workshop, spike, working group, UI pattern, architecture approach, alternative policy model or governance mechanism that is not in the evidence, label it clearly as **Proposed** and do not imply stakeholder agreement.
+
+When offering an alternative not explicitly raised by stakeholders, keep it under **Analyst proposals** rather than inserting it as a third stakeholder option in the contradiction itself.
 
 ### 7. Raise open questions
 
@@ -156,6 +184,8 @@ Prefer decision-oriented questions such as:
 Avoid generic filler questions.
 
 When decision ownership is not evidenced, include a question to establish it rather than assigning an owner yourself.
+
+Open questions should ask for missing facts/decisions. Keep suggested discovery techniques or implementation methods in **Analyst proposals**.
 
 ### 8. State what is not established
 
@@ -180,6 +210,7 @@ Do not return the answer until all checks below pass:
 - [ ] A **Requirements register** is present.
 - [ ] Every requirement row has **Evidence class**, **Requirement status**, **Source** and **Confidence**.
 - [ ] **Evidence class** and **Requirement status** have been assessed independently.
+- [ ] Requirement modal wording matches its status; Candidate/Target/Deferred items are not written as mandatory current obligations.
 - [ ] Tentative statements have not been hardened into mandatory requirements.
 - [ ] Desired dates/timeframes are **Target** unless the evidence establishes a commitment.
 - [ ] Suggested scope is **Candidate** unless the evidence establishes agreement.
@@ -188,7 +219,10 @@ Do not return the answer until all checks below pass:
 - [ ] Inferred items are labelled **Inferred** rather than Explicit.
 - [ ] Assumptions are separated from requirements.
 - [ ] No decision owner, governance body or approval authority has been invented.
+- [ ] Activity/responsibility has not been mistaken for decision authority.
 - [ ] Unknown decision ownership is explicitly labelled **Unknown**.
+- [ ] Required outcomes are separated from analyst-suggested mechanisms.
+- [ ] Suggested workshops, spikes, async patterns, tiered models or other delivery/solution methods appear only as **Analyst proposals** unless directly sourced.
 - [ ] No exact implementation technology/API/vendor has been invented.
 - [ ] No unsupported qualities such as immutability, SLA, single-click behaviour or zero disruption have been invented.
 - [ ] No user stories, epics, estimates or solution design have been produced unless separately requested.
@@ -255,6 +289,14 @@ When change-related material is supplied, pay particular attention to:
 These are analysis lenses, **not automatic requirements**.
 
 ## Changelog
+
+### 0.4.0
+
+- Added explicit separation of **required outcomes** from analyst-suggested delivery or solution mechanisms after Benchmark 001 v0.3 occasionally put spikes, async handling or tiered models into decision statements.
+- Added a rule that analyst-generated alternatives belong under **Analyst proposals**, not as implied stakeholder positions.
+- Strengthened distinction between evidenced **activity/responsibility** and actual **decision authority**.
+- Strengthened modal-language alignment so Candidate, Target and Deferred items cannot read like mandatory Confirmed requirements.
+- Expanded the mandatory compliance check to cover these failure modes.
 
 ### 0.3.0
 
