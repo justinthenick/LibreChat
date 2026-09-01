@@ -69,6 +69,7 @@ def main():
 
     for tool_rel in (
         "custom/ba-agent/tools/benchmark_runner.py",
+        "custom/ba-agent/tools/agent_pipeline_runner.py",
         "custom/ba-agent/tools/benchmark_worker.py",
         "custom/ba-agent/tools/run_worker_once.sh",
     ):
