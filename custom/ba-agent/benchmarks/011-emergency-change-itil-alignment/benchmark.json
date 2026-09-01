@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "name": "Benchmark 011 — Emergency Payment Change ITIL Alignment",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/assess-itil-alignment/SKILL.md"
+}
