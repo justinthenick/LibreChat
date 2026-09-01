@@ -70,6 +70,7 @@ def main():
     for tool_rel in (
         "custom/ba-agent/tools/benchmark_runner.py",
         "custom/ba-agent/tools/benchmark_worker.py",
+        "custom/ba-agent/tools/run_worker_once.sh",
     ):
         write_repo_file(root, tool_rel, github_fetch_text(args.repo, args.branch, tool_rel))
 
@@ -105,21 +106,10 @@ def main():
     print("Root: {}".format(root))
     print("Python 3.8+ supported.")
     print("")
-    print("Run queued jobs once:")
-    print(
-        "python3 {worker} --once --env-file /volume1/docker/librechat/deploy/synology/.env".format(
-            worker=root / "custom/ba-agent/tools/benchmark_worker.py"
-        )
-    )
+    print("Recommended worker invocation (one poll, safe for DSM Task Scheduler):")
+    print("sh {}".format(root / "custom/ba-agent/tools/run_worker_once.sh"))
     print("")
-    print("Or run continuously (GitHub-controlled queue):")
-    print(
-        "nohup python3 {worker} --interval 300 --env-file /volume1/docker/librechat/deploy/synology/.env "
-        "> {log} 2>&1 &".format(
-            worker=root / "custom/ba-agent/tools/benchmark_worker.py",
-            log=root / "custom/ba-agent/automation/worker.log",
-        )
-    )
+    print("For unattended operation, schedule that command every 5 minutes in DSM Task Scheduler.")
     return 0
 
 
