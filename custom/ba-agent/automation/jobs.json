@@ -110,6 +110,15 @@
       "mode": "both",
       "repeat": 1,
       "temperature": 0.0
+    },
+    {
+      "id": "b010-g35-handoff-v01-ab-001",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/010-solution-change-readiness-handoff",
+      "model": "gemini-3.5-flash",
+      "mode": "both",
+      "repeat": 1,
+      "temperature": 0.0
     }
   ]
 }
