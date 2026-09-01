@@ -1,0 +1,6 @@
+{
+  "name": "Benchmark 007 — Release Verification Test Cases",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/derive-test-cases/SKILL.md"
+}
