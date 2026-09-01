@@ -1,246 +1,135 @@
 # BA Agent Lab
 
-This folder contains version-controlled Business Analyst skills and benchmark cases for LibreChat.
+Version-controlled Business Analyst skills, agents and benchmarks for LibreChat.
 
 ## Goal
 
-Build a reliable BA agent for an ITIL / Agile delivery environment using **separately benchmarked capabilities** and evidence-driven composition rather than assuming one monolithic prompt or a multi-agent design is best.
+Build a reliable ITIL / Agile BA capability using evidence-driven benchmarking. Individual capabilities are tested first, then composition architectures are compared rather than assuming either a monolithic prompt or multi-agent design is best.
 
-## Capability 1 — Requirements analysis
+## Validated capability stack
 
-Skill:
+| Capability | Current version | Status | Key evidence |
+|---|---:|---|---|
+| `analyze-requirements` | 0.4.0 | validated | B001 v0.3 avg 95; B002 Gemini 3.6 95, Gemini 3.5 81 |
+| `decompose-requirements` | 0.2.0 | validated/generalized | B003 70 -> 99, repeat 99; B004 68 -> 92 |
+| `elaborate-acceptance-criteria` | 0.1.0 | validated/generalized | B005 96 -> 98; B006 77 -> 98 |
+| `derive-test-cases` | 0.3.0 | retained | B007 baseline 97; v0.1 95; v0.2 93; corrected v0.3 98 |
 
-- `skills/analyze-requirements/SKILL.md`
-- current version: **0.4.0**
-- status: **validated**
+The common quality controls are status preservation, explicit evidence/authority separation, stable traceability, no silent dispute resolution, no promotion of Candidate/Target/Deferred/Unknown work, and refusal to invent architecture, workflow, UI, governance or test execution detail.
 
-Purpose: convert messy source material into a traceable requirements analysis while preserving uncertainty, requirement status, decision ownership and evidence strength.
+## Agent composition
 
-### Benchmark 001 — Change Validation Automation
+### Composite BA Delivery Analyst
 
-Latest validated Gemini 3.6 Flash results:
+Agent: `agents/ba-delivery-analyst/AGENT.md`  
+Current version: **0.2.0**
 
-- no skill: **57/100**
-- v0.2: **84/100**, **86/100** — average **85**
-- v0.3: **93/100**, **97/100** — average **95**
-
-### Benchmark 002 — Major Incident Communications Automation
-
-| Model | No skill | `analyze-requirements` v0.4 | Improvement |
-|---|---:|---:|---:|
-| Gemini 3.6 Flash | 57 | **95** | **+38** |
-| Gemini 3.5 Flash | 60 | **81** | **+21** |
-
-Conclusion: `analyze-requirements` v0.4 is validated as a useful reusable capability.
-
-## Capability 2 — Requirements decomposition
-
-Skill:
-
-- `skills/decompose-requirements/SKILL.md`
-- current version: **0.2.0**
-- status: **validated/generalized**
-
-Purpose: take a completed requirements analysis and shape supported delivery work without forcing everything into user stories.
-
-Core rules include preserving upstream status, isolating disputes and technical discovery, keeping Candidate/Target/Deferred work non-committed, maintaining traceability, and refusing invented estimates, architecture, governance or downstream mechanisms.
-
-### Benchmark 003 — Application Access Request Delivery Decomposition
-
-Runner-native Gemini 3.5 Flash results at temperature `0.0`:
-
-| Run | Score |
-|---|---:|
-| No skill baseline | **70/100** |
-| `decompose-requirements` v0.2 | **99/100** |
-| v0.2 repeat | **99/100** |
-
-### Benchmark 004 — Release Evidence and Deployment Validation Decomposition
-
-| Run | Score |
-|---|---:|
-| No skill baseline | **68/100** |
-| `decompose-requirements` v0.2 | **92/100** |
-| **Improvement** | **+24** |
-
-Conclusion: `decompose-requirements` v0.2 is validated/generalized across materially different decomposition problems. Stop tuning decomposition for now.
-
-## Capability 3 — Acceptance-criteria elaboration
-
-Skill:
-
-- `skills/elaborate-acceptance-criteria/SKILL.md`
-- current version: **0.1.0**
-- status: **validated/generalized**
-
-Purpose: turn sufficiently ready delivery items into traceable, testable acceptance criteria without creating new behavior.
-
-Core rules include preserving readiness/status, keeping disputed/Candidate/Target/Deferred/Unknown areas non-committed, tracing every criterion to delivery items and upstream requirements, and refusing unsupported UI, validation/error, workflow, architecture or governance detail.
-
-### Benchmark 005 — Planned Maintenance Notification Acceptance Criteria
-
-Runner-native Gemini 3.5 Flash results at temperature `0.0`:
-
-| Run | Score |
-|---|---:|
-| No skill baseline | **96/100** |
-| `elaborate-acceptance-criteria` v0.1 | **98/100** |
-| Difference | **+2** |
-
-### Benchmark 006 — Bulk Site Import Acceptance Criteria
-
-Runner-native Gemini 3.5 Flash results:
-
-| Run | Score |
-|---|---:|
-| No skill baseline | **77/100** |
-| `elaborate-acceptance-criteria` v0.1 | **98/100** |
-| **Improvement** | **+21** |
-
-The harder batch-data benchmark exposed baseline status leakage while v0.1 preserved Unknown validation, disputed duplicate handling, Candidate registry validation, the non-binding Target, Deferred recurring imports and read-only registry constraints.
-
-Conclusion: **`elaborate-acceptance-criteria` v0.1 is validated/generalized.**
-
-## Capability 4 — Test-case / assurance derivation
-
-Skill:
-
-- `skills/derive-test-cases/SKILL.md`
-- current version: **0.3.0**
-- status: **retained after focused correction**
-
-Purpose: derive traceable behavioural test cases and assurance coverage from sufficiently ready acceptance criteria without inventing execution mechanics.
-
-### Benchmark 007 — Release Verification Test Cases
-
-Runner-native Gemini 3.5 Flash results:
-
-| Run | Score | Finding |
-|---|---:|---|
-| No-skill baseline | **97/100** | Very strong behavioural coverage and discipline. |
-| `derive-test-cases` v0.1 | **95/100** | Strong tests, but closing gaps over-prescribed future execution prerequisites. |
-| `derive-test-cases` v0.2 | **93/100** | Core derivation remained strong; closing section still manufactured prerequisites/ownership and leaked inspection mechanics. |
-| `derive-test-cases` v0.3 | **98/100** | Core defect corrected; no material invention or execution-method leakage. |
-
-Decision: **retain `derive-test-cases` v0.3.** Do not tune another version from Benchmark 007.
-
-## Agent-composition layer
-
-### Single composite agent — BA Delivery Analyst
-
-Agent:
-
-- `agents/ba-delivery-analyst/AGENT.md`
-- current version: **0.2.0**
-- status: **focused Benchmark 008 correction queued**
-
-The composite agent coordinates four explicit stages in a single model call:
+Single-call sequence:
 
 1. requirements analysis;
 2. delivery decomposition;
 3. acceptance-criteria elaboration;
 4. behavioural test / assurance derivation.
 
-### Benchmark 008 — Contractor Site Access End-to-End BA Delivery
+Each stage has an explicit handoff and downstream detail may never become more certain than upstream evidence.
 
-Benchmark path:
+### Benchmark 008 — Contractor Site Access End-to-End
 
-- `benchmarks/008-contractor-site-access-end-to-end`
+Gemini 3.5 Flash, temperature `0.0`:
 
-First paired Gemini 3.5 Flash result:
-
-| Run | Raw score | Penalties | Final | Total tokens |
+| Architecture | Raw | Penalties | Final | Total tokens |
 |---|---:|---:|---:|---:|
-| No-agent baseline | **49/100** | -32 | **17/100** | **6,488** |
-| Composite v0.1 | **73/100** | >= -85 | **0/100** | **9,030** |
+| No-agent baseline | 49 | -32 | **17/100** | **6,488** |
+| Composite v0.1 | 73 | >= -85 | **0/100** | **9,030** |
+| **Composite v0.2** | **95** | **0** | **95/100** | **10,439** |
+| Three-specialist pipeline v0.1 | 76 | -23 | **53/100** | **23,748** |
 
-The composite materially improved stage separation, handoffs, status preservation and end-to-end traceability, and reduced the baseline's architecture/test-mechanism invention. However, it introduced a harder governance failure: Stage 1 created a generic `Decision Owner` column and repeatedly converted source/proposer roles into unsupported decision authority. Under the rubric's per-occurrence authority penalty, this makes v0.1 non-production-ready regardless of its stronger raw structure.
+#### Composite v0.2 finding
 
-Other v0.1 defects included:
+v0.2 corrected the v0.1 authority/governance failure and retained strong handoffs, constraint survival and end-to-end traceability. Emergency/disputed behavior stayed unresolved; Candidate automation/pilot stayed non-committed; Target and Deferred work remained correctly classified; Unknown retention was not converted into design or tests. No rubric penalties applied.
 
-- no explicit overall `Partially Ready` statement;
-- explicit process-boundary constraints did not survive the full downstream chain;
-- missing-field submission prevention was derived without an explicit upstream only-when/cannot boundary;
-- manual issuance fallback was partly reframed as a recording/UI path;
-- some tests leaked `selects` / `logs` execution mechanisms;
-- an assurance note invented future Security verification ownership.
+**Composite v0.2 is retained as the preferred architecture control.**
 
-Token impact of v0.1 versus baseline:
+#### Specialist pipeline finding
 
-- prompt tokens: **+142.1%**;
-- candidate/output tokens: **+9.7%**;
-- reasoning/thought tokens: **+42.7%**;
-- total tokens: **+39.2%**.
+The persisted three-call pipeline technically worked end to end, but it amplified semantic errors across handoffs:
 
-### Architecture decision after v0.1
+- Stage 1 invented routing/workflow-engine concepts;
+- refinement introduced an unsupported `compliance auditor` actor;
+- Unknown retention became a committed no-purge/no-delete acceptance criterion;
+- assurance then converted that invented criterion into a committed test.
 
-**Do not build the true multi-call specialist-agent runner yet.**
+The pipeline scored **53/100** and consumed **23,748 tokens**, about **2.28x** the composite v0.2 token usage while scoring 42 points lower.
 
-The failure can still be attributed to the single composite agent's control semantics rather than to an inherent need for separate model calls. The agent already contained the right high-level authority rule but allowed a generic owner field that encouraged source-to-authority substitution under combined stage load.
+**Architecture decision: prefer Composite BA Delivery Analyst v0.2.** Keep the pipeline runner as experimental infrastructure, but do not tune the specialist pipeline further against B008.
 
-`BA Delivery Analyst` v0.2 therefore makes one focused correction set:
+## Benchmark 009 — Service Ownership Update End-to-End
 
-- no generic Decision Owner column;
-- source/proposer explicitly separated from authority;
-- Decision Owner appears only for explicit unresolved decisions and defaults to Unknown unless sourced;
-- overall readiness must be explicit;
-- process/security constraints must survive every handoff;
-- missing-data rejection/prevention cannot be inferred from mere data capture;
-- manual fallback remains an outcome rather than a UI/recording mechanism;
-- test/assurance language cannot invent `logs`, `selects`, future verifiers or governance owners.
+Path: `benchmarks/009-service-ownership-update-end-to-end`
+
+Purpose: fresh generalization test for Composite BA Delivery Analyst v0.2 in a materially different service-data/governance domain.
+
+Key traps include:
+
+- disputed Severity-1 emergency approval authority;
+- Candidate Service Registry automation with unverified integration capability;
+- Candidate Finance Applications / Network Tools pilot;
+- non-binding one-business-day Target;
+- Deferred quarterly ownership recertification;
+- Unknown evidence-retention period;
+- conditional imported-update source traceability;
+- explicit service-governance / HR / application-lifecycle / Change-authority boundaries;
+- no established UI, validation, API, storage, queue, workflow or test mechanics.
 
 Queued NAS job:
 
-- `b008-g35-composite-v02-002`
+- `b009-g35-composite-v02-ab-001`
 - model: `gemini-3.5-flash`
-- mode: composite agent only
+- mode: baseline + Composite v0.2
 - temperature: `0.0`
 
-The existing baseline remains the comparison control, avoiding an unnecessary extra Gemini call.
+If v0.2 remains strong on B009 without material status drift or invention, treat the composite architecture as generalized enough to freeze before moving to the next capability layer.
 
-## Proposed specialist-agent architecture — conditional next step
+## Specialist pipeline infrastructure
 
-Only if composite v0.2 fixes the hard authority/traceability defects while retaining the structural gains will the lab proceed to a specialist comparison:
+Experimental specialist agents:
 
-- **Requirements Analyst** — requirements analysis;
-- **Delivery Refinement Analyst** — decomposition + acceptance criteria;
-- **Assurance Analyst** — test / assurance derivation.
+- `agents/requirements-analyst/AGENT.md`
+- `agents/delivery-refinement-analyst/AGENT.md`
+- `agents/assurance-analyst/AGENT.md`
 
-A true multi-call pipeline would require runner support for persisted stage outputs, stage-to-stage input handoffs, per-stage hashes/metadata, token usage and end-to-end scoring. That infrastructure remains intentionally deferred.
+Pipeline tooling:
 
-If composite v0.2 still violates authority/status controls, that will be evidence that single-call cognitive load/composition interference is the limiting factor; at that point a multi-call specialist pipeline becomes a justified architecture experiment rather than speculative complexity.
+- `tools/agent_pipeline_runner.py`
+- pipeline-aware `tools/benchmark_worker.py`
 
-## Automated benchmark runner
+The pipeline runner persists every stage output plus metadata/hash information and passes the prior artifact into the next model call. It is retained for future architecture experiments even though B008 currently favors the simpler composite.
 
-The NAS benchmark loop consists of:
+## Automated benchmark loop
 
-1. GitHub-controlled `custom/ba-agent/automation/jobs.json`;
-2. Synology DSM Task Scheduler periodically invoking `benchmark_worker.py --once`;
-3. the worker refreshing benchmark/skill/agent files from GitHub;
-4. `benchmark_runner.py` calling Gemini directly;
-5. raw result + metadata/manifest files being published back to the feature branch;
-6. evaluator scoring against the repo-held gold standard/rubric.
-
-The runner never loads evaluator-only gold-standard or scoring-rubric files into model context, stops on Gemini quota errors, and does not silently change models.
+1. GitHub queue: `custom/ba-agent/automation/jobs.json`;
+2. Synology DSM Task Scheduler invokes `benchmark_worker.py --once` through `run_worker_once.sh`;
+3. worker refreshes benchmark/skill/agent files from GitHub;
+4. runner calls Gemini directly;
+5. raw result, metadata and manifests publish back to this feature branch;
+6. evaluator-only gold standard/rubric are used after the run and are never sent to the model under test.
 
 ## Benchmark discipline
 
-- Use the same model/settings for paired baseline and Skill/Agent runs.
+- Same model/settings for paired comparisons.
 - Change one material variable at a time.
-- Keep evaluator-only gold/rubric files out of model context.
-- Record exact model, temperature, input/prompt/skill or agent hashes and provider status.
-- Treat model quality, capability quality and composition quality as separate variables.
-- Do not optimize indefinitely against one benchmark; use materially different benchmarks for generalization.
-- Do not assume multi-agent is better: require evidence that added calls, handoffs and complexity improve quality enough to justify their cost.
+- Gold/rubric never enter model context.
+- Record model, temperature, hashes, provider status and token usage.
+- Treat model quality, Skill quality and composition quality as separate variables.
+- Do not tune indefinitely against one benchmark; use materially different generalization tests.
+- Additional model calls/handoffs must earn their complexity through measurable quality or reliability gains.
 
-## Capability sequence
+## Current sequence
 
-Current sequence:
-
-1. `analyze-requirements` — **validated**
-2. `decompose-requirements` — **validated/generalized**
-3. `elaborate-acceptance-criteria` — **validated/generalized**
-4. `derive-test-cases` — **v0.3 retained**
-5. single composite BA Delivery Analyst — **v0.2 focused rerun queued**
-6. specialist-agent comparison — **conditional on v0.2 evidence**
-7. future capability — solution / change-readiness handoff
+1. requirements analysis — **validated**
+2. requirements decomposition — **validated/generalized**
+3. acceptance criteria — **validated/generalized**
+4. test/assurance derivation — **v0.3 retained**
+5. Composite BA Delivery Analyst — **v0.2 preferred, B009 generalization queued**
+6. specialist pipeline — **experimental; B008 not preferred**
+7. next after B009 — solution/change-readiness handoff capability
