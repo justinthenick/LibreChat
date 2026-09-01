@@ -1,0 +1,20 @@
+{
+  "benchmark": "Benchmark 008 — Contractor Site Access End-to-End BA Delivery",
+  "created_at": "2026-09-01T08:40:46Z",
+  "mode": "both",
+  "model": "gemini-3.5-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b008-g35-composite-v01-001-gemini-3.5-flash-baseline-01.md",
+      "metadata": "b008-g35-composite-v01-001-gemini-3.5-flash-baseline-01.json",
+      "status": "success"
+    },
+    {
+      "markdown": "b008-g35-composite-v01-001-gemini-3.5-flash-skill-01.md",
+      "metadata": "b008-g35-composite-v01-001-gemini-3.5-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}
