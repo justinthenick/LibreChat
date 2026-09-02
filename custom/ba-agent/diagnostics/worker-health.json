@@ -62,7 +62,7 @@
     {
       "type": "disk_usage",
       "label": "Lab filesystem usage",
-      "path": "/volume1/docker/librechat-ba-lab"
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent"
     },
     {
       "type": "tail",
