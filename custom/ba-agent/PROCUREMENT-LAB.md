@@ -54,13 +54,23 @@ Path: `custom/ba-agent/benchmarks/016-procurement-market-expansion`.
 
 This benchmark isolates `expand-procurement-market` v0.1. The supplied history is intentionally over-concentrated in eBay, Facebook Marketplace and Gumtree with declining novelty. The Skill must increase exploration beyond its default 20% when justified, add genuinely new source classes/geographies/solution classes, preserve hard buying constraints, define stop/refresh rules and avoid fabricating live listings.
 
+### B017 / P004 — Rental-kitchen dishwasher verification
+
+Status: **prepared, deliberately not queued until the earlier verification benchmarks establish the right Skill version**.
+
+Path: `custom/ba-agent/benchmarks/017-procurement-dishwasher-verification`.
+
+This is the appliance-domain generalization benchmark. It tests capacity, exact physical dimensions, electrical supply compatibility, included installation accessories as preferences, and another exact-model/family trap. Candidate B is the fully evidenced recommendable appliance; Candidate A is an ambiguous family Hold with both compliant and non-compliant family members; Candidate C has explicit width/depth/15 A failures; Candidate D relies on generic seller language such as `standard 60 cm` and `normal wall plug`.
+
+Purpose: test whether the same evidence and hard-gate discipline survives a second non-IT domain with installation constraints.
+
 ## Domain generalization
 
 The procurement spine is domain-general, but verification dimensions vary by category. The deliberate sequence is:
 
 1. **B014 / P001 — IT:** used workstation + GPU compatibility and exact-unit evidence.
 2. **B015 / P002 — furniture/home:** dimensions, access path, seating/configuration and exact-variant evidence.
-3. **Later verification benchmark — kitchen/appliance:** dimensions, utilities, ventilation/installation/capacity and commercial evidence.
+3. **B017 / P004 — kitchen/appliance:** dimensions, capacity, electrical/installation compatibility and exact-model evidence.
 4. **B016 / P003 — market expansion:** supplied stale search history; test whether the Skill expands source classes rather than merely rewriting queries.
 
 Only after isolated Skills show reusable value should they be composed into a Procurement Analyst agent.
