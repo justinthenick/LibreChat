@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "name": "Benchmark 018 — Mixed-History Compact Treadmill Market Expansion",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/expand-procurement-market/SKILL.md"
+}
