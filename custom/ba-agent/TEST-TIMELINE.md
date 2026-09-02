@@ -55,6 +55,8 @@ This ledger records the development and benchmark history for the BA Agent Lab.
 | 00:40:05–00:40:23 | B012 — `assess-itil-alignment` v0.2 focused rerun | NAS runner; Skill; 18s | **100/100**; 7,303 tokens | Gap-to-gate variant removed with zero penalties. Retain v0.2; ITIL track generalized enough for composition planning. |
 | 00:40:29 | B013 Vendor Export Handoff — baseline attempt | NAS runner; baseline; 0s | **quota_blocked**; no model output | Gemini free-tier daily request limit (20 requests/model/project) exhausted. B013 baseline and Skill comparison cannot proceed until provider quota becomes available. |
 | 01:32 | B012/B013 evaluator decision | ChatGPT evaluation + GitHub updates | B012 v0.2 retained; B013 blocked | ITIL isolated track is clean/generalized. Composition still waits on B013 handoff generalization. |
+| 15:27:27–15:27:42 | B013 retry `b013-g35-handoff-v02-ab-002` — baseline | NAS runner; baseline; 15s | **success**; 4,930 tokens | Baseline completed successfully, but comparison remains incomplete because the paired Skill call was quota-blocked. |
+| 15:27:42–15:27:43 | B013 retry `b013-g35-handoff-v02-ab-002` — `prepare-solution-change-readiness` v0.2 | NAS runner; Skill; 1s | **quota_blocked**; no model output | Gemini 3.5 Flash free-tier daily request limit (20 requests/project/model) was reached immediately after the baseline call. Do not evaluate or change the Skill from this incomplete pair. |
 
 ## Current architecture decision
 
@@ -64,12 +66,12 @@ This ledger records the development and benchmark history for the BA Agent Lab.
 - Test / assurance: `derive-test-cases` v0.3 — retained after focused correction.
 - Composite BA Delivery Analyst v0.2 — frozen / preferred architecture after B008 95/100 and B009 94/100 with zero penalties.
 - Three-specialist pipeline — retained as experimental infrastructure, not preferred after B008 53/100 at 23,748 tokens.
-- Solution / Change-Readiness: `prepare-solution-change-readiness` v0.2 retained after B010 **100/100**, zero penalties; B013 generalization is currently provider-quota blocked.
+- Solution / Change-Readiness: `prepare-solution-change-readiness` v0.2 retained after B010 **100/100**, zero penalties; B013 generalization remains provider-quota blocked because the latest retry produced a successful baseline but no Skill output.
 - ITIL 4 alignment/readiness: `assess-itil-alignment` v0.2 retained after B011 v0.1 **98/100** and B012 v0.2 **100/100**, zero penalties on the corrected rerun; isolated ITIL track is generalized enough for composition planning.
 - Composition of handoff + ITIL with the frozen BA agent remains deferred until B013 handoff generalization completes cleanly.
 
 ## Timing observations
 
-From the first runner-native B003 execution at 15:05:44 on 2026-09-01 through the B013 quota-blocked attempt at 00:40:29 on 2026-09-02, the lab advanced for about **9h 35m elapsed**. Successful Gemini calls remain generally **12–35 seconds**; most elapsed time is benchmark design, scoring, Skill correction, GitHub/NAS polling and evaluator cadence rather than model execution.
+From the first runner-native B003 execution at 15:05:44 on 2026-09-01 through the latest B013 retry at 15:27:43 on 2026-09-02, the lab has advanced for about **24h 22m elapsed**. Successful Gemini calls remain generally **12–35 seconds**; most elapsed time is benchmark design, scoring, Skill correction, GitHub/NAS polling and evaluator cadence rather than model execution.
 
 The NAS worker is the fast execution loop; the ChatGPT `BA Benchmark Cycle` is the slower evaluation/development loop. This ledger should be updated whenever a benchmark is evaluated or an architecture/version decision is made.
