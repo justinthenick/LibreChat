@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 013 — Vendor Export Solution / Change-Readiness Handoff",
+  "benchmark_dir": "013-vendor-export-change-readiness",
+  "ended_at": "2026-09-02T05:27:42Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "dc2a0c683ea9cbd2672ca679bf06922ffebed5bb6e7cf405963abefe74587906",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "baseline",
+  "model": "gemini-3.5-flash",
+  "prompt_sha256": "1ff5c6748ceb7c37be1a15ab7901b471f2dce18454131542d72fe8ba6fcbfa7c",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": null,
+  "skill_sha256": null,
+  "skill_version": null,
+  "started_at": "2026-09-02T05:27:27Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 2246,
+    "promptTokenCount": 1292,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1292
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 1392,
+    "totalTokenCount": 4930
+  }
+}
