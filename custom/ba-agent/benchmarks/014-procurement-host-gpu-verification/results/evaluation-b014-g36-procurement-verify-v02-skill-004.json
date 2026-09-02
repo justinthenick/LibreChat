@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "job_id": "b014-g36-procurement-verify-v02-skill-004",
+  "benchmark": "Benchmark 014 — Used Workstation + GPU Procurement Verification",
+  "model": "gemini-3.6-flash",
+  "mode": "skill",
+  "skill": "verify-procurement-options",
+  "skill_version": "0.2.0",
+  "score": 100,
+  "penalties": 0,
+  "decision": "retain",
+  "summary": "Focused v0.2 correction succeeded. Host C remains Reject on evidenced H-03/H-05 failures while H-06 is correctly Unknown/not evidenced; Host B Recommend, Host A Hold and Host D Hold are preserved. No applicable invention penalty."
+}
