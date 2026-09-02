@@ -5,7 +5,7 @@ description: Verify procurement candidates against evidence-backed requirements,
 
 # Verify Procurement Options
 
-Version: **0.1.0**
+Version: **0.2.0**
 
 ## Purpose
 
@@ -13,13 +13,13 @@ Turn a procurement request plus supplied product/listing evidence into a defensi
 
 ## Core principle
 
-**A product family being capable of a specification does not prove that the exact item being sold has that specification. A critical unknown is not a pass.**
+**A product family being capable of a specification does not prove that the exact item being sold has that specification. A critical unknown is not a pass. Each hard gate must also be evidenced independently: failure of one gate does not prove that another gate failed.**
 
 ## Required flow
 
 1. **Classify the procurement domain and objective.** State what is being bought, the intended use, geography/currency if supplied, and whether the task is a component, bundle/system, replacement, fit-out or general purchase.
 2. **Normalize requirements.** Separate Hard gates, Preferences, Targets and Unknowns. Do not silently promote a preference or target into a mandatory gate.
-3. **Build the compatibility/evidence graph.** For every candidate or candidate combination, map each hard gate to the evidence that supports, contradicts or fails to establish it.
+3. **Build the compatibility/evidence graph.** For every candidate or candidate combination, map each hard gate to the evidence that supports, contradicts or fails to establish it. Evaluate each gate independently. A candidate may already be rejected because one gate failed, but every other unevidenced gate must remain `Unknown` / `not evidenced`, not be converted to `Fail` by association.
 4. **Distinguish evidence level.** At minimum distinguish:
    - exact-item / exact-listing evidence;
    - exact model/configuration evidence;
@@ -51,6 +51,8 @@ Turn a procurement request plus supplied product/listing evidence into a defensi
 - Never assume used/refurbished condition implies a particular warranty, remaining life or defect state.
 - Never invent dimensions, connectors, ratings, standards, model suffixes, prices, shipping, stock or compatibility.
 - Never treat an Unknown hard gate as Passed because the candidate is cheap, common or from a reputable brand.
+- **Never use one failed or passed gate as evidence for a different gate.** For example, an undersized PSU does not itself prove that a GPU power connector is absent; a width failure does not prove an access-path failure; a voltage mismatch does not prove a plug type. Unless the second fact is independently evidenced, leave it `Unknown` / `not evidenced`.
+- A candidate can be `Reject` overall while some individual gates remain `Unknown`. Overall disposition and per-gate evidence status are separate concepts.
 - Preserve contradictory evidence rather than choosing the convenient source silently.
 - If two sources conflict, mark the gate `Conflicted` and identify what exact evidence would resolve it.
 - Keep `Target` performance/cost goals distinct from hard minimums unless the request explicitly makes them mandatory.
@@ -90,6 +92,8 @@ Before answering, check:
 
 - Did I accidentally use a family spec as exact-item proof?
 - Did I pass any critical Unknown?
+- Did I mark a gate Pass or Fail only because a different gate passed or failed?
+- For every per-gate status, can I point to evidence for that exact gate?
 - Did I confuse price/value with compatibility?
 - Did I invent a missing accessory, connector, dimension, rating, condition or warranty?
 - Did I preserve conflicting evidence?
