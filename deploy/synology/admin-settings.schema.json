@@ -1,0 +1,146 @@
+{
+  "schema": 1,
+  "title": "LibreChat Synology Admin Settings",
+  "settings": [
+    {
+      "key": "NAS_HOST",
+      "label": "NAS host",
+      "class": "editable",
+      "control": "text",
+      "validation": {"type": "host"},
+      "restart": "recreate",
+      "description": "Hostname or IP address used to construct the LibreChat browser/server URL."
+    },
+    {
+      "key": "LIBRECHAT_SCHEME",
+      "label": "LibreChat scheme",
+      "class": "editable",
+      "control": "select",
+      "options": ["http", "https"],
+      "restart": "recreate"
+    },
+    {
+      "key": "LIBRECHAT_PORT",
+      "label": "LibreChat host port",
+      "class": "editable",
+      "control": "number",
+      "validation": {"type": "integer", "minimum": 1, "maximum": 65535},
+      "restart": "recreate"
+    },
+    {
+      "key": "NO_INDEX",
+      "label": "Prevent search-engine indexing",
+      "class": "editable",
+      "control": "boolean",
+      "restart": "recreate"
+    },
+    {
+      "key": "SEARCH",
+      "label": "Enable LibreChat search integration",
+      "class": "editable",
+      "control": "boolean",
+      "restart": "recreate"
+    },
+    {
+      "key": "SESSION_COOKIE_SECURE",
+      "label": "Secure session cookie",
+      "class": "editable",
+      "control": "boolean",
+      "restart": "recreate",
+      "warning": "Enable when LibreChat is served over HTTPS."
+    },
+    {
+      "key": "ALLOW_EMAIL_LOGIN",
+      "label": "Allow email login",
+      "class": "editable",
+      "control": "boolean",
+      "restart": "recreate"
+    },
+    {
+      "key": "ALLOW_REGISTRATION",
+      "label": "Allow new registrations",
+      "class": "editable",
+      "control": "boolean",
+      "restart": "recreate",
+      "warning": "Normally disable after the intended accounts have been created."
+    },
+    {
+      "key": "ALLOW_SOCIAL_LOGIN",
+      "label": "Allow social login",
+      "class": "editable",
+      "control": "boolean",
+      "restart": "recreate"
+    },
+    {
+      "key": "ALLOW_SOCIAL_REGISTRATION",
+      "label": "Allow social registration",
+      "class": "editable",
+      "control": "boolean",
+      "restart": "recreate"
+    },
+    {
+      "key": "ALLOW_UNVERIFIED_EMAIL_LOGIN",
+      "label": "Allow unverified email login",
+      "class": "editable",
+      "control": "boolean",
+      "restart": "recreate"
+    },
+    {
+      "key": "ALLOW_PASSWORD_RESET",
+      "label": "Allow password reset",
+      "class": "editable",
+      "control": "boolean",
+      "restart": "recreate"
+    },
+    {
+      "key": "DOMAIN_CLIENT",
+      "label": "Client URL",
+      "class": "derived",
+      "derive": "${LIBRECHAT_SCHEME}://${NAS_HOST}:${LIBRECHAT_PORT}",
+      "restart": "recreate"
+    },
+    {
+      "key": "DOMAIN_SERVER",
+      "label": "Server URL",
+      "class": "derived",
+      "derive": "${LIBRECHAT_SCHEME}://${NAS_HOST}:${LIBRECHAT_PORT}",
+      "restart": "recreate"
+    },
+    {
+      "key": "OPENROUTER_KEY",
+      "label": "OpenRouter API key",
+      "class": "replace_only_secret",
+      "control": "secret",
+      "restart": "recreate"
+    },
+    {
+      "key": "GITHUB_DEPLOY_STATUS_TOKEN",
+      "label": "GitHub deployment status token",
+      "class": "replace_only_secret",
+      "control": "secret",
+      "restart": "none"
+    },
+    {
+      "key": "GITHUB_TELEMETRY_TOKEN",
+      "label": "GitHub telemetry token",
+      "class": "replace_only_secret",
+      "control": "secret",
+      "restart": "none"
+    },
+    {
+      "key": "CLOUDFLARE_TUNNEL_TOKEN",
+      "label": "Cloudflare tunnel token",
+      "class": "replace_only_secret",
+      "control": "secret",
+      "restart": "recreate"
+    },
+    {"key": "JWT_SECRET", "class": "locked_secret"},
+    {"key": "JWT_REFRESH_SECRET", "class": "locked_secret"},
+    {"key": "CREDS_KEY", "class": "locked_secret"},
+    {"key": "CREDS_IV", "class": "locked_secret"},
+    {"key": "COMPOSE_PROJECT_NAME", "class": "internal"},
+    {"key": "HOST", "class": "internal"},
+    {"key": "PORT", "class": "internal"},
+    {"key": "MONGO_URI", "class": "internal"}
+  ]
+}
