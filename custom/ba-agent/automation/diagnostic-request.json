@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "enabled": false,
-  "request_id": "worker-health-20260902-1555-01",
+  "enabled": true,
+  "request_id": "worker-health-autotimer-20260902-1649-02",
   "recipe": "custom/ba-agent/diagnostics/worker-health.json",
-  "note": "Completed successfully and disabled after first end-to-end remote NAS diagnostic proof. Use enabled=true with a new unique request_id for the next diagnostic."
+  "note": "Autonomous timer validation. Do not invoke the NAS worker manually; this request should be picked up by the systemd timer on its next five-minute cycle."
 }
