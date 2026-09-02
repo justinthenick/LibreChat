@@ -57,6 +57,11 @@ This ledger records the development and benchmark history for the BA Agent Lab.
 | 01:32 | B012/B013 evaluator decision | ChatGPT evaluation + GitHub updates | B012 v0.2 retained; B013 blocked | ITIL isolated track is clean/generalized. Composition still waits on B013 handoff generalization. |
 | 15:27:27–15:27:42 | B013 retry `b013-g35-handoff-v02-ab-002` — baseline | NAS runner; baseline; 15s | **success**; 4,930 tokens | Baseline completed successfully, but comparison remains incomplete because the paired Skill call was quota-blocked. |
 | 15:27:42–15:27:43 | B013 retry `b013-g35-handoff-v02-ab-002` — `prepare-solution-change-readiness` v0.2 | NAS runner; Skill; 1s | **quota_blocked**; no model output | Gemini 3.5 Flash free-tier daily request limit (20 requests/project/model) was reached immediately after the baseline call. Do not evaluate or change the Skill from this incomplete pair. |
+| 17:07:08–17:07:36 | B014 Procurement Host/GPU — `verify-procurement-options` v0.2 focused rerun | NAS runner; Skill; 28s | **100/100**; 8,579 tokens | Cross-gate H-06 invention removed; C H-06 remains Unknown while B Recommend / A Hold / D Hold / C Reject are preserved. Retain v0.2.0. |
+| 19:07:59–19:08:45 | B015 Apartment Dining Table — baseline | NAS runner; baseline; 46s | **82/100**; 6,142 tokens | Correct A/B/C, but incorrectly promotes approximate Candidate D access evidence into Reject; -10 critical access inference penalty. |
+| 19:08:45–19:09:43 | B015 — `verify-procurement-options` v0.2 | NAS runner; Skill; 58s | **95/100**; 8,116 tokens | Correct B Recommend, A/D Hold, C Reject. Cross-domain furniture/access generalization passed; minor unsupported preference-level material wording prevents perfect score. |
+| 20:49 | Procurement evaluator decision | ChatGPT evaluation + GitHub updates | B014 v0.2 retained; B015 82→95 | Treat verification Skill as cross-domain verified; no further tuning from isolated preference wording. Queue B016 market-expansion A/B. |
+| 20:49 | Queue update | GitHub-controlled NAS jobs | `b016-g36-market-expand-v01-ab-001` baseline + `expand-procurement-market` v0.1 | Next isolated procurement capability test; NAS five-minute worker will pick it up autonomously. |
 
 ## Current architecture decision
 
@@ -68,10 +73,13 @@ This ledger records the development and benchmark history for the BA Agent Lab.
 - Three-specialist pipeline — retained as experimental infrastructure, not preferred after B008 53/100 at 23,748 tokens.
 - Solution / Change-Readiness: `prepare-solution-change-readiness` v0.2 retained after B010 **100/100**, zero penalties; B013 generalization remains provider-quota blocked because the latest retry produced a successful baseline but no Skill output.
 - ITIL 4 alignment/readiness: `assess-itil-alignment` v0.2 retained after B011 v0.1 **98/100** and B012 v0.2 **100/100**, zero penalties on the corrected rerun; isolated ITIL track is generalized enough for composition planning.
+- Procurement verification: `verify-procurement-options` v0.2.0 retained after B014 **100/100** and B015 **95/100** versus baseline **82/100**; cross-domain IT + furniture evidence is sufficient for current composition planning.
+- Procurement market expansion: `expand-procurement-market` v0.1 is now under isolated B016 A/B test.
 - Composition of handoff + ITIL with the frozen BA agent remains deferred until B013 handoff generalization completes cleanly.
+- Procurement Analyst composition remains deferred until B016 establishes whether the market-expansion Skill adds reusable value.
 
 ## Timing observations
 
-From the first runner-native B003 execution at 15:05:44 on 2026-09-01 through the latest B013 retry at 15:27:43 on 2026-09-02, the lab has advanced for about **24h 22m elapsed**. Successful Gemini calls remain generally **12–35 seconds**; most elapsed time is benchmark design, scoring, Skill correction, GitHub/NAS polling and evaluator cadence rather than model execution.
+Successful Gemini calls are still typically tens of seconds; B015's two calls took 46s and 58s. Most elapsed time is benchmark design, scoring, Skill correction, GitHub/NAS polling and evaluator cadence rather than model execution.
 
-The NAS worker is the fast execution loop; the ChatGPT `BA Benchmark Cycle` is the slower evaluation/development loop. This ledger should be updated whenever a benchmark is evaluated or an architecture/version decision is made.
+The NAS worker is the fast execution loop; the ChatGPT benchmark cycles are the slower evaluation/development loop. This ledger should be updated whenever a benchmark is evaluated or an architecture/version decision is made.
