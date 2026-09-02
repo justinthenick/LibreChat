@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "enabled": true,
+  "enabled": false,
   "request_id": "worker-health-autotimer-20260902-1649-02",
   "recipe": "custom/ba-agent/diagnostics/worker-health.json",
-  "note": "Autonomous timer validation. Do not invoke the NAS worker manually; this request should be picked up by the systemd timer on its next five-minute cycle."
+  "note": "Autonomous systemd timer validation completed successfully. Diagnostic was picked up without manual NAS invocation and published back to GitHub. Use enabled=true with a new unique request_id for the next diagnostic."
 }
