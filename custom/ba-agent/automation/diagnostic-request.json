@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "enabled": true,
+  "enabled": false,
   "request_id": "worker-health-20260902-1555-01",
   "recipe": "custom/ba-agent/diagnostics/worker-health.json",
-  "note": "Triggered after first diagnostic-worker bootstrap install to verify remote NAS diagnostic execution and sanitized result publishing."
+  "note": "Completed successfully and disabled after first end-to-end remote NAS diagnostic proof. Use enabled=true with a new unique request_id for the next diagnostic."
 }
