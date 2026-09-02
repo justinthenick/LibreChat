@@ -27,6 +27,7 @@
     {"id":"b014-g36-procurement-verify-v02-skill-004","enabled":true,"benchmark":"custom/ba-agent/benchmarks/014-procurement-host-gpu-verification","model":"gemini-3.6-flash","mode":"skill","repeat":1,"temperature":0.0},
     {"id":"b015-g36-procurement-verify-v02-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/015-procurement-dining-table-verification","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0},
     {"id":"b016-g36-market-expand-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/016-procurement-market-expansion","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0},
-    {"id":"b018-g36-market-expand-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/018-procurement-market-expansion-mixed-history","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0}
+    {"id":"b018-g36-market-expand-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/018-procurement-market-expansion-mixed-history","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b019-g36-solution-design-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/019-synology-gpu-solution-design","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0}
   ]
 }
