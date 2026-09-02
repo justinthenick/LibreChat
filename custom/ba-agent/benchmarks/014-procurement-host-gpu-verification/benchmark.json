@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "name": "Benchmark 014 — Used Workstation + GPU Procurement Verification",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/verify-procurement-options/SKILL.md"
+}
