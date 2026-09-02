@@ -62,6 +62,10 @@ This ledger records the development and benchmark history for the BA Agent Lab.
 | 19:08:45–19:09:43 | B015 — `verify-procurement-options` v0.2 | NAS runner; Skill; 58s | **95/100**; 8,116 tokens | Correct B Recommend, A/D Hold, C Reject. Cross-domain furniture/access generalization passed; minor unsupported preference-level material wording prevents perfect score. |
 | 20:49 | Procurement evaluator decision | ChatGPT evaluation + GitHub updates | B014 v0.2 retained; B015 82→95 | Treat verification Skill as cross-domain verified; no further tuning from isolated preference wording. Queue B016 market-expansion A/B. |
 | 20:49 | Queue update | GitHub-controlled NAS jobs | `b016-g36-market-expand-v01-ab-001` baseline + `expand-procurement-market` v0.1 | Next isolated procurement capability test; NAS five-minute worker will pick it up autonomously. |
+| 20:53:37–20:54:10 | B016 Market Expansion from Stale History — baseline | NAS runner; baseline; 33s | **100/100**; 4,491 tokens | Excellent stale-source diagnosis, 30/70 exploit/explore, genuine channel expansion, stop/watch logic and no fabrication. |
+| 20:54:10–20:54:37 | B016 — `expand-procurement-market` v0.1 | NAS runner; Skill; 27s | **100/100**; 5,091 tokens | Equally excellent but no score gain; +600 tokens (~13%). Method works, but B016 does not demonstrate material Skill value. |
+| 21:17 | B016 evaluator / architecture decision | ChatGPT evaluation + GitHub updates | baseline 100; Skill 100 | Do not tune or freeze v0.1 from an easy control. Create a harder mixed-history cross-domain market-expansion test. |
+| 21:17 | B018 created + queued | GitHub-controlled NAS jobs | `b018-g36-market-expand-v01-ab-001` baseline + Skill v0.1 | Compact treadmill domain; tests calibrated exploitation of productive sources, retirement of stale sources, and rejection of overseas/110 V/no-incline/oversized novelty paths. |
 
 ## Current architecture decision
 
@@ -73,13 +77,13 @@ This ledger records the development and benchmark history for the BA Agent Lab.
 - Three-specialist pipeline — retained as experimental infrastructure, not preferred after B008 53/100 at 23,748 tokens.
 - Solution / Change-Readiness: `prepare-solution-change-readiness` v0.2 retained after B010 **100/100**, zero penalties; B013 generalization remains provider-quota blocked because the latest retry produced a successful baseline but no Skill output.
 - ITIL 4 alignment/readiness: `assess-itil-alignment` v0.2 retained after B011 v0.1 **98/100** and B012 v0.2 **100/100**, zero penalties on the corrected rerun; isolated ITIL track is generalized enough for composition planning.
-- Procurement verification: `verify-procurement-options` v0.2.0 retained after B014 **100/100** and B015 **95/100** versus baseline **82/100**; cross-domain IT + furniture evidence is sufficient for current composition planning.
-- Procurement market expansion: `expand-procurement-market` v0.1 is now under isolated B016 A/B test.
+- Procurement verification: `verify-procurement-options` v0.2.0 retained after B014 **100/100** and B015 **95/100** versus baseline **82/100**; cross-domain IT + furniture evidence is sufficient for composition planning.
+- Procurement market expansion: `expand-procurement-market` v0.1.0 produced **100/100** on B016 but did not beat the **100/100** baseline and used more tokens. B018 is the harder generalization/value test; do not freeze or tune v0.1 until that result.
 - Composition of handoff + ITIL with the frozen BA agent remains deferred until B013 handoff generalization completes cleanly.
-- Procurement Analyst composition remains deferred until B016 establishes whether the market-expansion Skill adds reusable value.
+- Procurement Analyst composition is the planned next architecture milestone after B018. B017 dishwasher remains reserve verification evidence, not a mandatory gate.
 
 ## Timing observations
 
-Successful Gemini calls are still typically tens of seconds; B015's two calls took 46s and 58s. Most elapsed time is benchmark design, scoring, Skill correction, GitHub/NAS polling and evaluator cadence rather than model execution.
+Successful Gemini calls are still typically tens of seconds. Most elapsed time is benchmark design, scoring, Skill correction, GitHub/NAS polling and evaluator cadence rather than model execution.
 
 The NAS worker is the fast execution loop; the ChatGPT benchmark cycles are the slower evaluation/development loop. This ledger should be updated whenever a benchmark is evaluated or an architecture/version decision is made.
