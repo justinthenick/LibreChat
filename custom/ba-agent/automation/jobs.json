@@ -22,6 +22,7 @@
     {"id":"b013-g35-handoff-v02-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/013-vendor-export-change-readiness","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
     {"id":"b013-g35-handoff-v02-ab-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/013-vendor-export-change-readiness","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
     {"id":"b014-g35-procurement-verify-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/014-procurement-host-gpu-verification","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
-    {"id":"b014-g35-procurement-verify-v01-ab-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/014-procurement-host-gpu-verification","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0}
+    {"id":"b014-g35-procurement-verify-v01-ab-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/014-procurement-host-gpu-verification","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b014-g36-procurement-verify-v01-ab-003","enabled":true,"benchmark":"custom/ba-agent/benchmarks/014-procurement-host-gpu-verification","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0}
   ]
 }
