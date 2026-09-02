@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "enabled": false,
+  "request_id": "idle",
+  "recipe": "custom/ba-agent/diagnostics/worker-health.json",
+  "note": "Set enabled=true and use a new unique request_id to trigger one diagnostic run. The NAS records request IDs locally so the same request cannot execute twice."
+}
