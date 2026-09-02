@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "job_id": "b015-g36-procurement-verify-v02-ab-001",
+  "benchmark": "Benchmark 015 — Apartment Dining Table Procurement Verification",
+  "model": "gemini-3.6-flash",
+  "baseline": {
+    "score": 82,
+    "penalties": 10,
+    "tokens": 6142,
+    "summary": "Correct on A/B/C, but incorrectly Rejects Candidate D by promoting approximate seller dimensions and removable-leg language into a hard access failure."
+  },
+  "skill": {
+    "name": "verify-procurement-options",
+    "version": "0.2.0",
+    "score": 95,
+    "penalties": 0,
+    "tokens": 8116,
+    "summary": "Correctly keeps Candidate D on Hold and preserves exact-variant/access evidence discipline across the furniture domain. Minor preference-level unsupported material wording for Candidate A prevents a perfect no-invention score but does not affect viability or ranking."
+  },
+  "decision": "retain_and_generalize",
+  "next": "Queue B016 market-expansion benchmark for expand-procurement-market v0.1."
+}
