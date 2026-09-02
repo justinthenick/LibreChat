@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 016 — Procurement Market Expansion from Stale Search History",
+  "benchmark_dir": "016-procurement-market-expansion",
+  "ended_at": "2026-09-02T10:54:10Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "a8c52516ab625c24d0efd6ad23b5b919ccae2bb77cf4e7151780cd0a5bf039b7",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "baseline",
+  "model": "gemini-3.6-flash",
+  "prompt_sha256": "3fe9d70c9b97d03bbdcfaa70b59e7b1cbe43ca6197fb48703bd9da6634deb783",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": null,
+  "skill_sha256": null,
+  "skill_version": null,
+  "started_at": "2026-09-02T10:53:37Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 1868,
+    "promptTokenCount": 1070,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1070
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 1553,
+    "totalTokenCount": 4491
+  }
+}
