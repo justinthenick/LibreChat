@@ -1,12 +1,13 @@
 #!/bin/sh
-# Robust one-shot BA benchmark worker wrapper for Synology Task Scheduler.
-# Runs at most one worker instance at a time and appends unbuffered output to scheduler.log.
+# Robust one-shot BA benchmark + diagnostic worker wrapper for Synology Task Scheduler.
+# Runs at most one wrapper instance at a time and appends unbuffered output to scheduler.log.
 
 set -u
 
 ROOT="/volume1/docker/librechat-ba-lab"
 ENV_FILE="/volume1/docker/librechat/deploy/synology/.env"
 WORKER="$ROOT/custom/ba-agent/tools/benchmark_worker.py"
+DIAG_WORKER="$ROOT/custom/ba-agent/tools/diagnostic_worker.py"
 LOG_DIR="$ROOT/custom/ba-agent/automation"
 LOG_FILE="$LOG_DIR/scheduler.log"
 LOCK_DIR="/tmp/librechat-ba-benchmark-worker.lock"
@@ -35,6 +36,21 @@ printf '%s worker poll start using %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$PYTHON
   --once \
   --env-file "$ENV_FILE" \
   >> "$LOG_FILE" 2>&1
-RC=$?
-printf '%s worker poll end rc=%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$RC" >> "$LOG_FILE"
+BENCH_RC=$?
+
+DIAG_RC=0
+if [ -f "$DIAG_WORKER" ]; then
+  "$PYTHON_BIN" "$DIAG_WORKER" \
+    --env-file "$ENV_FILE" \
+    >> "$LOG_FILE" 2>&1
+  DIAG_RC=$?
+else
+  printf '%s diagnostic worker not installed; benchmark polling only\n' "$(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
+fi
+
+RC=$BENCH_RC
+if [ "$RC" -eq 0 ] && [ "$DIAG_RC" -ne 0 ]; then
+  RC=$DIAG_RC
+fi
+printf '%s worker poll end benchmark_rc=%s diagnostic_rc=%s rc=%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$BENCH_RC" "$DIAG_RC" "$RC" >> "$LOG_FILE"
 exit "$RC"
