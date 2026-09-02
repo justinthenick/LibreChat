@@ -28,13 +28,25 @@ This Skill does not fabricate live findings when no search tool is available; it
 
 ### B014 / P001 — Used workstation + GPU verification
 
-Status: **queued; no result has published yet**.
+Status: **active on Gemini 3.6 Flash after Gemini 3.5 Flash quota blocks**.
 
-Job: `b014-g35-procurement-verify-v01-ab-001`, Gemini 3.5 Flash, temperature `0.0`, baseline + `verify-procurement-options` v0.1.
+Gemini 3.5 attempts:
+
+- `b014-g35-procurement-verify-v01-ab-001` — baseline call returned `quota_blocked`; remaining A/B calls stopped deliberately.
+- `b014-g35-procurement-verify-v01-ab-002` — baseline call returned `quota_blocked`; remaining A/B calls stopped deliberately.
+
+Both failures were provider quota outcomes, not procurement-Skill results, and are not scoreable.
+
+Current clean A/B job:
+
+- `b014-g36-procurement-verify-v01-ab-003`
+- model `gemini-3.6-flash`
+- temperature `0.0`
+- baseline + `verify-procurement-options` v0.1
+
+Baseline and Skill must be evaluated from the same Gemini 3.6 run; do not mix a 3.5 baseline with a 3.6 Skill result.
 
 Primary traps: family-level PSU option mistaken for exact-unit configuration, cheap-but-incompatible SFF host, unsupported seller claims, and the need to recommend a fully evidenced compatible host rather than becoming generically conservative.
-
-Because the result has not appeared after multiple expected DSM poll cycles, do not queue a duplicate retry until NAS worker state is known. The benchmark assets and queue entry remain valid in GitHub.
 
 ### B015 / P002 — Apartment dining-table verification
 
@@ -85,6 +97,8 @@ Only after isolated Skills show reusable value should they be composed into a Pr
 - Test across materially different procurement domains.
 - Test market discovery separately from candidate verification so search diversity and compatibility reasoning are not conflated.
 - Do not queue later benchmarks merely to fill the worker; each next run should answer a specific generalization or defect question.
+- A provider quota block is an infrastructure outcome, not a model-quality score.
+- When switching model because of quota, rerun both baseline and Skill on the replacement model rather than mixing models inside one A/B comparison.
 
 ## Runner
 
