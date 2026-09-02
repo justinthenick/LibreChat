@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "enabled": false,
-  "request_id": "worker-health-autotimer-20260902-1649-02",
+  "enabled": true,
+  "request_id": "worker-health-dsm-only-20260903-0858-01",
   "recipe": "custom/ba-agent/diagnostics/worker-health.json",
-  "note": "Autonomous systemd timer validation completed successfully. Diagnostic was picked up without manual NAS invocation and published back to GitHub. Use enabled=true with a new unique request_id for the next diagnostic."
+  "note": "DSM Task Scheduler isolation test: systemd timer was manually stopped first. If this request is picked up and published, the DSM scheduled task is independently driving the BA worker."
 }
