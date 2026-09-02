@@ -1,0 +1,20 @@
+{
+  "benchmark": "Benchmark 014 — Used Workstation + GPU Procurement Verification",
+  "created_at": "2026-09-02T05:40:28Z",
+  "mode": "both",
+  "model": "gemini-3.6-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b014-g36-procurement-verify-v01-ab-003-gemini-3.6-flash-baseline-01.md",
+      "metadata": "b014-g36-procurement-verify-v01-ab-003-gemini-3.6-flash-baseline-01.json",
+      "status": "success"
+    },
+    {
+      "markdown": "b014-g36-procurement-verify-v01-ab-003-gemini-3.6-flash-skill-01.md",
+      "metadata": "b014-g36-procurement-verify-v01-ab-003-gemini-3.6-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}
