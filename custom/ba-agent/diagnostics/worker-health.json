@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "name": "BA benchmark worker health",
+  "checks": [
+    {
+      "type": "python_info",
+      "label": "Python runtime"
+    },
+    {
+      "type": "path_exists",
+      "label": "Benchmark worker file",
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_worker.py"
+    },
+    {
+      "type": "path_exists",
+      "label": "Scheduler wrapper file",
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh"
+    },
+    {
+      "type": "path_exists",
+      "label": "Worker state file",
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json"
+    },
+    {
+      "type": "env_presence",
+      "label": "Required credential presence only",
+      "path": "/volume1/docker/librechat/deploy/synology/.env",
+      "names": [
+        "GOOGLE_KEY",
+        "GITHUB_TELEMETRY_TOKEN"
+      ]
+    },
+    {
+      "type": "lock_status",
+      "label": "Benchmark worker lock/process status",
+      "path": "/tmp/librechat-ba-benchmark-worker.lock",
+      "process_contains": "benchmark_worker.py"
+    },
+    {
+      "type": "queue_compare",
+      "label": "GitHub queue versus local state",
+      "jobs_path": "custom/ba-agent/automation/jobs.json",
+      "state_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json",
+      "job_ids": [
+        "b013-g35-handoff-v02-ab-002",
+        "b014-g35-procurement-verify-v01-ab-001",
+        "b014-g35-procurement-verify-v01-ab-002",
+        "b014-g36-procurement-verify-v01-ab-003"
+      ]
+    },
+    {
+      "type": "worker_state",
+      "label": "Selected benchmark worker records",
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json",
+      "job_ids": [
+        "b013-g35-handoff-v02-ab-002",
+        "b014-g35-procurement-verify-v01-ab-001",
+        "b014-g35-procurement-verify-v01-ab-002",
+        "b014-g36-procurement-verify-v01-ab-003"
+      ]
+    },
+    {
+      "type": "disk_usage",
+      "label": "Lab filesystem usage",
+      "path": "/volume1/docker/librechat-ba-lab"
+    },
+    {
+      "type": "tail",
+      "label": "Recent scheduler log",
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/scheduler.log",
+      "lines": 120
+    }
+  ]
+}
