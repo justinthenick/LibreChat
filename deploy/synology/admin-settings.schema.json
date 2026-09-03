@@ -44,6 +44,7 @@
       "group": "address",
       "class": "editable",
       "control": "text",
+      "required": false,
       "validation": {"type": "url", "schemes": ["http", "https"], "allow_empty": true},
       "restart": "recreate",
       "description": "Optional URL exposed through LibreChat's admin-only Admin panel link. Leave blank until the deployment admin service is enabled."
