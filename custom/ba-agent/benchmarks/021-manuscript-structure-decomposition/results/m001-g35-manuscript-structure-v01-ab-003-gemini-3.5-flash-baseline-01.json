@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Manuscript Engineering M001 — Mini-Novel Structure Reconstruction",
+  "benchmark_dir": "021-manuscript-structure-decomposition",
+  "ended_at": "2026-09-03T22:07:00Z",
+  "error": null,
+  "finish_reason": "MAX_TOKENS",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "32d6fa089d6585a67c81b26e37494ed964851dea630b59161d9fd6cac78dbd32",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "baseline",
+  "model": "gemini-3.5-flash",
+  "prompt_sha256": "30e1b95a1ab2e50d3f1f795281491559d19518739793793179e49dbdfb1e2fb8",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": null,
+  "skill_sha256": null,
+  "skill_version": null,
+  "started_at": "2026-09-03T22:05:53Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 2137,
+    "promptTokenCount": 2113,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 2113
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 6051,
+    "totalTokenCount": 10301
+  }
+}
