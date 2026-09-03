@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "name": "Benchmark 020 — Vendor SaaS Webhook-to-Polling Integration Architecture",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/design-technical-solution/SKILL.md"
+}
