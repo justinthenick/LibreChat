@@ -1,53 +1,69 @@
-# Synology Admin Settings — design and rollout
+# Synology Admin Settings — v0.1 design and operating contract
 
-Status: design locked for v0.1 implementation on `feature/synology-ui-settings-v0.1`.
+Status: **implemented on `feature/synology-ui-settings-v0.1`; awaiting controlled NAS rollout/verification.**
 
 ## Objective
 
-Add a safe, administrator-facing way to manage the small set of Synology deployment settings that currently live in `deploy/synology/.env`, without turning the LibreChat UI into an unrestricted environment-file editor and without exposing secret values.
+Provide an administrator-facing way to manage the small set of Synology deployment settings that live in `deploy/synology/.env` without exposing a raw environment editor, leaking secrets, or giving the browser-facing LibreChat container unrestricted host/Docker access.
 
-The first housekeeping change also removes the obsolete deployment milestone wording from the landing-page welcome message.
+## Deployment constraints
 
-## Current deployment constraints
-
-The Synology deployment currently runs the upstream LibreChat image:
+The Synology deployment continues to run the upstream LibreChat image:
 
 `registry.librechat.ai/danny-avila/librechat:latest`
 
-The private deployment environment file is mounted into the app container as read-only (`./.env:/app/.env:ro`). The compose file itself also consumes values from that same host-side `.env` before the container starts. As a result:
+The private `.env` remains host-side runtime state and is mounted read-only into LibreChat. Source changes under `client/` or `api/` therefore still do not alter the upstream application image. Deployment-level changes are handled outside that image.
 
-- source changes under `client/` or `api/` are not part of the live NAS image today;
-- the running LibreChat container should not be given unrestricted write access to the private host `.env`;
-- many environment changes require a controlled container recreate/restart before they take effect.
-
-LibreChat already has a useful integration point for this deployment. `ADMIN_PANEL_URL` is included in authenticated startup config only for a user with the `ACCESS_ADMIN` capability, and the existing Settings > General > Admin panel component renders a link when that value is present. This lets the Synology deployment add an administration surface without forking the main LibreChat UI in v0.1.
-
-LibreChat also already provides authenticated dynamic application-configuration routes under `/api/admin/config`. Those should remain the preferred mechanism for settings that belong in LibreChat's runtime/application configuration. The Synology panel is specifically for host/deployment settings that genuinely require `.env` or compose-level changes.
+LibreChat's existing `ADMIN_PANEL_URL` integration is used as the navigation point for authorised LibreChat admins. The Synology panel is independently authenticated; the LibreChat admin-only link is convenience/visibility, not the security boundary.
 
 ## v0.1 architecture
 
-Use the existing LibreChat **Admin panel** link to open a small Synology deployment administration service.
+The implemented split is:
 
-`LibreChat Settings -> General -> Admin panel -> Synology Admin Settings`
+`LibreChat admin link / browser -> non-privileged admin-settings panel -> Unix socket -> privileged host worker -> .env + docker-compose`
 
-The Synology service will use a strict allowlist defined in `admin-settings.schema.json`. It will never provide a raw `.env` editor or an arbitrary command field.
+### Browser-facing panel
 
-The service must provide four operations only:
+`admin-settings-panel.py`, deployed through `docker-compose.admin.yml`:
 
-1. read and display allowlisted non-secret values;
-2. report secret values as `Configured` / `Not configured`, never reveal the stored value;
-3. validate and stage explicit changes, showing a before/after preview with secrets redacted;
-4. apply an approved change atomically, recreate only the required LibreChat services, perform health checks, and roll back the `.env` change if deployment validation fails.
+- receives only `ADMIN_SETTINGS_ACCESS_TOKEN`, panel port and Unix-socket path;
+- has **no `.env` mount**;
+- has **no Docker socket**;
+- runs as UID/GID `1026:100`;
+- runs read-only, with `no-new-privileges` and all Linux capabilities dropped;
+- uses a same-origin API and Bearer token held only in browser session storage;
+- sets restrictive security/cache/frame/content headers;
+- never receives current secret values from the worker.
+
+### Privileged host worker
+
+`admin-settings-worker.py`, installed by `autodeploy.sh` as:
+
+`librechat-admin-settings-worker.service`
+
+The worker:
+
+- is reachable only through a group-restricted Unix-domain socket under `/volume1/docker/librechat/admin-settings-state`;
+- reads the private `.env` locally;
+- enforces `admin-settings.schema.json` server-side;
+- rejects raw/unallowlisted keys and hidden transport/security keys;
+- stages a redacted preview before apply;
+- creates a timestamped chmod-600 `.env` backup;
+- writes `.env` atomically while preserving unmanaged lines/comments;
+- runs `docker-compose config`;
+- recreates only services mapped to changed settings;
+- health-checks affected services;
+- restores the previous `.env` and recreates the previous runtime on failure;
+- writes a local audit log containing timestamps, changed key names and outcomes, but no setting values.
 
 ## Setting classes
 
-### Editable deployment values
-
-These are suitable for normal UI controls after validation:
+### Editable in the browser
 
 - `NAS_HOST`
 - `LIBRECHAT_SCHEME`
 - `LIBRECHAT_PORT`
+- `ADMIN_PANEL_URL`
 - `NO_INDEX`
 - `SEARCH`
 - `SESSION_COOKIE_SECURE`
@@ -58,90 +74,139 @@ These are suitable for normal UI controls after validation:
 - `ALLOW_UNVERIFIED_EMAIL_LOGIN`
 - `ALLOW_PASSWORD_RESET`
 
-`DOMAIN_CLIENT` and `DOMAIN_SERVER` are derived from scheme/host/port in the panel rather than edited independently, preventing inconsistent combinations.
+`DOMAIN_CLIENT` and `DOMAIN_SERVER` are derived from scheme/host/port and are not edited independently.
 
-### Replace-only secrets
+### Replace-only secrets in the browser
 
-These may eventually be set/replaced from a password input, but the current value is never returned to the browser:
+The current value is never returned. The UI shows only configured/not-configured state and can submit a non-empty replacement:
 
 - `OPENROUTER_KEY`
 - `GITHUB_DEPLOY_STATUS_TOKEN`
 - `GITHUB_TELEMETRY_TOKEN`
 - `CLOUDFLARE_TUNNEL_TOKEN`
 
-The UI reports only whether each is configured. Logs and change previews redact the supplied replacement.
+Intentional clearing remains a host-CLI operation so an empty browser field means "leave unchanged" rather than "delete secret".
+
+### Host-managed panel transport/authentication
+
+These are deliberately hidden from the web panel so it cannot disconnect or de-authenticate its own active request:
+
+- `ADMIN_SETTINGS_PORT`
+- `ADMIN_SETTINGS_ACCESS_TOKEN`
+
+Use `bootstrap-admin-settings.py` or the local `manage-env.py` CLI for these.
 
 ### Locked security material
 
-The following values are deliberately excluded from routine GUI editing because changing them can invalidate sessions or encrypted credentials:
+Routine GUI editing is prohibited:
 
 - `JWT_SECRET`
 - `JWT_REFRESH_SECRET`
 - `CREDS_KEY`
 - `CREDS_IV`
 
-Rotation can be added later as a separate, explicit maintenance workflow with backup/recovery guidance.
+Any future rotation must be a separate maintenance workflow with recovery guidance.
 
-### Internal / fixed values
+### Internal/fixed values
 
-These are not exposed as normal controls:
+Not exposed as normal controls:
 
 - `COMPOSE_PROJECT_NAME`
 - container `HOST`
 - container `PORT`
 - `MONGO_URI`
 
+## Authentication and CSRF model
+
+The panel uses an independent random Bearer token. The browser keeps it only in `sessionStorage` for the current tab and sends it explicitly in the `Authorization` header. The service sets no authentication cookie and permits no CORS access, so cross-site requests do not receive ambient credentials. This removes the normal cookie-based CSRF path while retaining independent service authentication.
+
+`bootstrap-admin-settings.py` generates the token locally when needed and never prints it. It writes a temporary chmod-600 local bootstrap-token file for one-time administrator retrieval; that copy should be deleted after login is confirmed.
+
+## Apply transaction
+
+A normal browser apply is:
+
+1. panel requests current sanitised state;
+2. administrator edits allowlisted controls;
+3. worker validates and returns a redacted preview plus derived values, warnings and affected services;
+4. administrator confirms Apply;
+5. worker re-reads current `.env` and re-validates the request;
+6. worker creates a local backup and atomically writes the proposed values;
+7. worker runs Compose validation;
+8. affected services are recreated only when required;
+9. health checks run;
+10. success is audited and returned;
+11. on any apply/health failure, the previous `.env` is restored and the prior services are recreated.
+
+Secret values are neither returned in state/preview nor written to audit output.
+
+## Autodeploy integration
+
+`autodeploy.sh` now treats the admin service similarly to the optional Cloudflare overlay:
+
+- if `ADMIN_SETTINGS_ACCESS_TOKEN` is absent, the admin integration remains disabled;
+- if configured, the admin compose overlay is loaded;
+- the host worker service is installed/enabled/restarted from the checked-out deployment code;
+- panel + worker health become part of steady-state/deployment validation;
+- diagnostics include panel logs and local worker service status without dumping `.env`.
+
+This means the normal DSM autodeploy task remains the deployment owner; no second deployment scheduler is introduced.
+
 ## Safety contract
 
-The administration service must meet all of these before deployment:
+v0.1 is designed to satisfy:
 
-- authenticated independently at the service boundary; the LibreChat admin-only link is convenience/visibility, not the sole access control;
-- no raw environment dump endpoint;
-- no arbitrary shell/command execution;
-- schema allowlist enforced server-side, not only in HTML/JavaScript;
-- secret values never returned after storage and never included in audit output;
-- CSRF protection for state-changing requests;
-- atomic `.env` writes with a timestamped local backup;
-- preserve unknown/unmanaged `.env` lines rather than rewriting from a template;
-- reject duplicate managed keys rather than silently choosing one;
-- validate booleans, ports, scheme and host values before staging;
-- show whether a change requires recreate/restart;
-- run `docker-compose config` before applying runtime changes;
-- health-check LibreChat after the recreate and restore the previous `.env` on failure;
-- maintain a sanitised local audit trail containing timestamp, actor/source, changed key names and outcome, but no secret values;
-- never expose GitHub, Cloudflare, provider, JWT or encryption secret contents.
+- independent authentication at the panel boundary;
+- no raw environment dump/editor endpoint;
+- no arbitrary shell/command endpoint;
+- server-side allowlist enforcement;
+- no browser exposure of stored secrets;
+- no secret values in audit records;
+- atomic `.env` writes and timestamped local backups;
+- unmanaged `.env` lines/comments preserved;
+- duplicate managed keys rejected;
+- typed validation for booleans, ports, schemes, hosts and URLs;
+- restart/recreate impact shown in preview;
+- Compose validation before runtime changes;
+- affected-service health checks;
+- automatic `.env` rollback on apply/health failure;
+- locked JWT/credential material excluded from routine UI changes;
+- browser-facing service has neither `.env` nor Docker access.
 
-## Rollout sequence
+## Bootstrap / rollout
 
-### Phase 1 — housekeeping
+After the code has reached the NAS:
 
-- Remove the obsolete `AutoDeploy Verified` landing-page milestone.
-- Add this design and the machine-readable settings allowlist.
-- Keep the live deployment unchanged until reviewed/merged.
+```bash
+cd /volume1/docker/librechat/deploy/synology
+sudo python3 bootstrap-admin-settings.py
+```
 
-### Phase 2 — Synology Admin Settings service
+Retrieve the generated token once:
 
-Implement the small admin service and its tests. The service should be deployment-specific and should not require modifying upstream LibreChat source.
+```bash
+sudo cat /volume1/docker/librechat/admin-settings-bootstrap-token.txt
+```
 
-Add `ADMIN_PANEL_URL` to the private NAS environment during installation so LibreChat's existing admin-only Settings entry links to the service.
+After the next successful autodeploy, open the configured `ADMIN_PANEL_URL`, verify login/state/preview/apply, then remove the temporary token copy:
 
-### Phase 3 — deployment integration
+```bash
+sudo rm -f /volume1/docker/librechat/admin-settings-bootstrap-token.txt
+```
 
-Add the service to the Synology deployment, with its own constrained configuration and authentication secret. Extend deployment health checks to cover the admin service without publishing secrets.
+## Acceptance criteria
 
-### Phase 4 — optional deeper integration
+Before declaring NAS rollout complete, verify on the actual Synology host:
 
-Only if the separate admin surface proves awkward should we introduce a custom LibreChat image and native Settings tab. That would require a reproducible image-build/publish pipeline; it should not be done merely to make the first version look more integrated.
+- ordinary LibreChat users are not shown the Admin panel link;
+- an authorised LibreChat admin can follow the link;
+- the panel rejects missing/incorrect Bearer tokens;
+- current provider/GitHub/Cloudflare secret values never appear in browser responses or logs;
+- invalid settings are rejected before `.env` mutation;
+- a safe non-secret change previews correctly, recreates only the expected service, and passes health checks;
+- a secret replacement shows only configured state before/after;
+- unmanaged `.env` lines survive a successful change;
+- worker/panel remain healthy across a normal autodeploy run;
+- a deliberately invalid deployment-level change in a controlled test exercises rollback without losing the prior healthy runtime.
 
-## Acceptance criteria for v0.1 service
-
-- An ordinary LibreChat user is not shown the Admin panel link.
-- An authorised LibreChat admin can open the configured Synology Admin Settings URL.
-- The admin service itself rejects unauthenticated access.
-- Safe boolean/port/host settings can be changed through typed controls.
-- Current secret values are never rendered or returned by an API call.
-- Replacing a secret does not disclose its old or new value in logs.
-- Invalid values are rejected before `.env` is changed.
-- A successful apply recreates the required service and passes health checks.
-- A failed apply restores the previous `.env` and attempts to restore the prior healthy runtime.
-- Existing unmanaged `.env` entries survive a successful change unchanged.
+Automated CI validates Python syntax, JSON, shell syntax and the non-Docker regression tests. Actual Docker/systemd/rollback behavior still requires this final NAS-host verification because GitHub Actions is not the Synology runtime.
