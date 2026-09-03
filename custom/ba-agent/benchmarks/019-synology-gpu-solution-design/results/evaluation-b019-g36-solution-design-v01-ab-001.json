@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "benchmark": "Benchmark 019 — Synology NAS GPU Outcome-to-Architecture Design",
+  "job_id": "b019-g36-solution-design-v01-ab-001",
+  "model": "gemini-3.6-flash",
+  "temperature": 0.0,
+  "baseline": {
+    "raw_score": 88,
+    "penalties": -10,
+    "score": 78,
+    "total_tokens": 4392,
+    "decision": "correct_architecture_but_overconfident_invention"
+  },
+  "skill": {
+    "name": "design-technical-solution",
+    "version": "0.1.0",
+    "raw_score": 88,
+    "penalties": 0,
+    "score": 88,
+    "total_tokens": 7778,
+    "decision": "material_gain_reusable_procurement_minimum_defect"
+  },
+  "comparison": {
+    "score_delta": 10,
+    "token_delta": 3386,
+    "token_delta_percent_approx": 77,
+    "material_skill_gain": true
+  },
+  "architecture_decision": "Make one focused v0.2.0 correction preventing unsupplied sizing targets from becoming hard procurement minimums, then rerun B019 Skill-only before cross-domain generalization."
+}
