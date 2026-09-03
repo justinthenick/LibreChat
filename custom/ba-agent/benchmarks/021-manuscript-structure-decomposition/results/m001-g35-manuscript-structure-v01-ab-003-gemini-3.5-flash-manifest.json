@@ -1,0 +1,20 @@
+{
+  "benchmark": "Manuscript Engineering M001 — Mini-Novel Structure Reconstruction",
+  "created_at": "2026-09-03T22:07:34Z",
+  "mode": "both",
+  "model": "gemini-3.5-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "m001-g35-manuscript-structure-v01-ab-003-gemini-3.5-flash-baseline-01.md",
+      "metadata": "m001-g35-manuscript-structure-v01-ab-003-gemini-3.5-flash-baseline-01.json",
+      "status": "success"
+    },
+    {
+      "markdown": "m001-g35-manuscript-structure-v01-ab-003-gemini-3.5-flash-skill-01.md",
+      "metadata": "m001-g35-manuscript-structure-v01-ab-003-gemini-3.5-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}
