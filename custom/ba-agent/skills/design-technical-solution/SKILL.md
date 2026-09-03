@@ -5,7 +5,7 @@ description: Turn an intended technical outcome and known environment into an ev
 
 # Design Technical Solution
 
-Version: **0.2.0**
+Version: **0.3.0**
 
 ## Purpose
 
@@ -43,6 +43,17 @@ The Skill must preserve the **outcome** while being willing to reject or reshape
 - Do not claim a performance threshold is sufficient merely because the interface exists. If adequacy depends on workload, keep it as an Unknown or validation task.
 - Do not add unsupported hazard, failure or support claims to strengthen an already-proven blocker. State only the risk supported by the evidence.
 
+## Blocker evidence gate
+
+Before calling something a hard blocker, ask: **is this blocker explicitly supplied by the evidence, or is it logically unavoidable from supplied facts?** If neither is true, it is not a blocker yet; classify it as an Unknown or omit it.
+
+Rules:
+
+- Once supplied evidence already proves the proposed mechanism infeasible, do not pile on plausible device-specific claims about PSU capacity, power delivery, thermal headroom, chassis clearance, internal wiring, firmware behavior or driver internals unless those facts are supplied.
+- General engineering knowledge is not permission to invent exact-unit facts. For example, knowing that desktop GPUs consume substantial power does not prove a particular appliance's PSU, adapter, wiring or cooling is inadequate unless the evidence establishes that.
+- Do not introduce derived numeric performance claims such as effective throughput, transfer times, wattage needs, latency or utilization limits unless the calculation is necessary to the decision and all inputs are supplied. If workload adequacy is unresolved, retain it as an Unknown and propose a validation action.
+- Do not turn a plausible implementation detail into a requirement simply because it is common. Standard patterns may be offered as options or preferences, not mandatory facts, unless the architecture truly requires them.
+
 ## Requirement-strength discipline
 
 Before putting any value into a procurement specification, classify it as one of:
@@ -54,11 +65,13 @@ Before putting any value into a procurement specification, classify it as one of
 
 Rules:
 
-- A target must not silently become a hard minimum.
-- Do not invent CPU generations/core counts, RAM quantities, SSD capacities, PCIe generations, PSU wattages/efficiency ratings, connector types, OS versions, network speeds or similar thresholds unless supplied or logically necessary from evidence.
+- A target must not silently become a hard minimum. Wording such as `around`, `desired`, `preferred`, `target` or similar remains a target unless the user explicitly makes it mandatory.
+- Do not invent CPU architectures/generations/core counts, RAM quantities, SSD technologies/capacities, PCIe generations, PSU wattages/efficiency ratings, connector types, OS versions, network speeds or similar thresholds unless supplied or logically necessary from evidence.
 - If CPU/RAM/SSD/network sizing is unresolved, write `sized to workload; verify` and name the sizing question.
+- If local SSD is merely allowed or useful, do not promote NVMe/M.2 or a capacity to a hard minimum.
 - Candidate-specific GPU clearance, PSU wattage/connectors and cooling remain candidate checks until the exact GPU/host combination is known.
 - If an interface is present but workload adequacy is unknown, say so explicitly rather than declaring it sufficient.
+- Do not add convenience features such as Wake-on-LAN, particular management software or a specific operating-system version unless supplied; keep them optional choices or Unknowns.
 
 ## Procurement handoff format
 
@@ -101,9 +114,12 @@ Use `Requirement | Strength | Evidence / rationale | Candidate verification` whe
 
 - Did I preserve the real outcome even if I rejected the proposed implementation?
 - Did I state exactly why something is infeasible rather than hand-waving?
+- Is every hard blocker supported by supplied evidence or unavoidable logic from supplied facts?
+- Did I avoid adding plausible but unevidenced device-specific blockers after feasibility was already proven?
 - Did I distinguish evidence from assumption?
 - Did I avoid unsupported hacks masquerading as a normal design?
 - Did I give a viable alternative when the original mechanism fails?
 - Did I keep product selection downstream of architecture?
 - Did every hard minimum come from evidence or unavoidable architectural necessity?
 - Did I keep targets, preferences and Unknowns from being silently promoted into mandatory procurement requirements?
+- Did I avoid unsupported numeric performance calculations and convenience features masquerading as requirements?
