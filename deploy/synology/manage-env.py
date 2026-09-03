@@ -276,7 +276,8 @@ def command_validate(schema, settings, env_path):
             continue
         key = item["key"]
         if key not in values:
-            errors.append("{} is missing".format(key))
+            if item.get("required", True):
+                errors.append("{} is missing".format(key))
             continue
         try:
             validate_value(item, values[key])
