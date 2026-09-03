@@ -5,7 +5,7 @@ description: Turn an intended technical outcome and known environment into an ev
 
 # Design Technical Solution
 
-Version: **0.1.0**
+Version: **0.2.0**
 
 ## Purpose
 
@@ -23,12 +23,12 @@ The Skill must preserve the **outcome** while being willing to reject or reshape
 2. **Build an evidence/state map.** Distinguish supplied facts, known constraints, assumptions, preferences and Unknowns. Do not silently fill hardware, software, licensing, network or supportability gaps.
 3. **Assess the proposed implementation.** Classify it as `Feasible`, `Conditionally feasible`, `Infeasible`, or `Unknown / needs verification`, and explain the specific evidence behind that classification.
 4. **Create a constraint register.** Consider only relevant dimensions, such as physical interfaces/clearance, power, thermal limits, CPU/GPU architecture, OS/driver support, storage, networking, security, identity, integration, lifecycle/supportability, operability, licensing and budget.
-5. **Distinguish hard blockers from soft trade-offs.** A missing physical interface or unsupported runtime is different from a performance concern or preference.
+5. **Distinguish hard blockers from soft trade-offs.** A missing physical interface or unsupported runtime is different from a performance concern, target or preference.
 6. **Design alternatives around the blocker.** If the proposed implementation is infeasible, present one or more architectures that preserve the outcome. Prefer simple, supportable patterns over hacks unless the user explicitly accepts experimental risk.
 7. **Select a preferred architecture.** Explain why it is the smallest/lowest-risk design that meets the outcome. State important rejected alternatives and why they lost.
 8. **Describe boundaries and integration.** Show which component owns compute, storage, networking, orchestration, user access and security where relevant. Make remote/offloaded components explicit rather than pretending they are part of the original device.
 9. **Identify Unknowns and verification actions.** Ask only for information that can materially change architecture or sizing. Convert unresolved facts into verification tasks rather than guesses.
-10. **Produce a procurement handoff only after the architecture is defensible.** Specify required capabilities, interfaces, minimums and acceptable alternatives. Do not jump directly to product listings or make/model recommendations unless a procurement/search capability is deliberately invoked next.
+10. **Produce a procurement handoff only after the architecture is defensible.** Specify evidence-supported capabilities, interfaces, hard minimums, targets, preferences and candidate-verification tasks. Do not jump directly to product listings or make/model recommendations unless a procurement/search capability is deliberately invoked next.
 11. **Keep architecture and procurement separate.** Architecture determines what must be bought; procurement determines which exact candidate satisfies it.
 
 ## Feasibility discipline
@@ -40,17 +40,37 @@ The Skill must preserve the **outcome** while being willing to reject or reshape
 - A workaround that requires undocumented adapters, firmware changes, unsupported kernels or invasive modification must be labelled experimental, not presented as a normal production design.
 - Existing components may be retained in a new role. A device that cannot perform the new compute function may still remain valuable as storage, orchestration, backup, monitoring or network infrastructure.
 - Do not manufacture implementation requirements that the outcome does not need.
+- Do not claim a performance threshold is sufficient merely because the interface exists. If adequacy depends on workload, keep it as an Unknown or validation task.
+- Do not add unsupported hazard, failure or support claims to strengthen an already-proven blocker. State only the risk supported by the evidence.
+
+## Requirement-strength discipline
+
+Before putting any value into a procurement specification, classify it as one of:
+
+- **Hard minimum** — explicitly supplied by the user/evidence, or logically necessary to make the chosen architecture function.
+- **Target** — desired sizing/performance level that should guide procurement but may be negotiable.
+- **Preference** — value, form-factor, operational or supportability choice that should influence ranking but does not define feasibility.
+- **Unknown / verify** — unresolved sizing, compatibility or candidate-specific fact that must not be guessed.
+
+Rules:
+
+- A target must not silently become a hard minimum.
+- Do not invent CPU generations/core counts, RAM quantities, SSD capacities, PCIe generations, PSU wattages/efficiency ratings, connector types, OS versions, network speeds or similar thresholds unless supplied or logically necessary from evidence.
+- If CPU/RAM/SSD/network sizing is unresolved, write `sized to workload; verify` and name the sizing question.
+- Candidate-specific GPU clearance, PSU wattage/connectors and cooling remain candidate checks until the exact GPU/host combination is known.
+- If an interface is present but workload adequacy is unknown, say so explicitly rather than declaring it sufficient.
 
 ## Procurement handoff format
 
 When the design is ready for procurement, produce a short specification containing:
 
 - component role;
-- hard minimum capabilities;
+- evidence-supported hard minimum capabilities;
+- targets separately labelled from hard minimums;
 - required interfaces/connectivity;
-- power/physical constraints where relevant;
+- power/physical constraints only where evidence supports them;
 - software/driver/platform compatibility;
-- storage/network requirements;
+- storage/network requirements at the strength actually supported by evidence;
 - preferences and value criteria;
 - exact Unknowns that procurement must verify on each candidate.
 
@@ -75,7 +95,7 @@ Include a compact component/data-flow description.
 ### 6. Unknowns and validation actions
 
 ### 7. Procurement-ready specification
-Only if architecture is sufficiently resolved.
+Use `Requirement | Strength | Evidence / rationale | Candidate verification` where useful. Only include it if architecture is sufficiently resolved.
 
 ## Final audit
 
@@ -85,3 +105,5 @@ Only if architecture is sufficiently resolved.
 - Did I avoid unsupported hacks masquerading as a normal design?
 - Did I give a viable alternative when the original mechanism fails?
 - Did I keep product selection downstream of architecture?
+- Did every hard minimum come from evidence or unavoidable architectural necessity?
+- Did I keep targets, preferences and Unknowns from being silently promoted into mandatory procurement requirements?
