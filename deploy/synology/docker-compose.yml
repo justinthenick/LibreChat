@@ -21,16 +21,16 @@ services:
       # Public URLs are derived from the three editable deployment values.
       # Stale DOMAIN_* entries in an existing .env therefore cannot disagree
       # with NAS_HOST/LIBRECHAT_SCHEME/LIBRECHAT_PORT.
-      DOMAIN_CLIENT: ${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${LIBRECHAT_PORT:-3200}
-      DOMAIN_SERVER: ${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${LIBRECHAT_PORT:-3200}
+      DOMAIN_CLIENT: "${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${LIBRECHAT_PORT:-3200}"
+      DOMAIN_SERVER: "${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${LIBRECHAT_PORT:-3200}"
 
       # These used to be hard-coded in compose, which meant changing .env had
       # no effect. Keep defaults for a first LAN boot but allow .env to own them.
-      NO_INDEX: ${NO_INDEX:-true}
-      SEARCH: ${SEARCH:-false}
-      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
-      ADMIN_PANEL_URL: ${ADMIN_PANEL_URL:-}
-      OPENROUTER_KEY: ${OPENROUTER_KEY:-}
+      NO_INDEX: "${NO_INDEX:-true}"
+      SEARCH: "${SEARCH:-false}"
+      SESSION_COOKIE_SECURE: "${SESSION_COOKIE_SECURE:-false}"
+      ADMIN_PANEL_URL: "${ADMIN_PANEL_URL:-}"
+      OPENROUTER_KEY: "${OPENROUTER_KEY:-}"
     group_add:
       - "100"
     volumes:
