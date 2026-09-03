@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "timestamp": "2026-09-01T08:53:28+1000",
-  "result": "success",
-  "stage": "complete",
-  "commit": "5a5424ea8fe7666fd031e7bcc11ae2f6cd5a9a2c",
+  "timestamp": "2026-09-04T06:34:47+1000",
+  "result": "failure",
+  "stage": "compose_up",
+  "commit": "87667303a68fedcf6a2cd80049a8934f2a1baca1",
   "runtime": {
     "librechat_container": "running",
     "librechat_exit_code": "0",
@@ -15,12 +15,12 @@
     "volume1_used_percent": "15"
   },
   "last_failure": {
-    "timestamp": "",
-    "commit": "",
-    "stage": "",
-    "librechat_container": "",
-    "librechat_exit_code": "",
-    "cloudflare_tunnel": "",
-    "volume1_used_percent": ""
+    "timestamp": "2026-09-04T06:34:47+1000",
+    "commit": "87667303a68fedcf6a2cd80049a8934f2a1baca1",
+    "stage": "compose_up",
+    "librechat_container": "running",
+    "librechat_exit_code": "0",
+    "cloudflare_tunnel": "connected",
+    "volume1_used_percent": "15"
   }
 }
