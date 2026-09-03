@@ -1,19 +1,29 @@
 {
-  "schema": 1,
+  "schema": 2,
   "title": "LibreChat Synology Admin Settings",
+  "groups": [
+    {"id": "address", "label": "Address and access"},
+    {"id": "application", "label": "Application behaviour"},
+    {"id": "authentication", "label": "Authentication"},
+    {"id": "providers", "label": "Providers and integrations"},
+    {"id": "security", "label": "Locked security material"},
+    {"id": "internal", "label": "Internal values"}
+  ],
   "settings": [
     {
       "key": "NAS_HOST",
-      "label": "NAS host",
+      "label": "LibreChat host",
+      "group": "address",
       "class": "editable",
       "control": "text",
       "validation": {"type": "host"},
       "restart": "recreate",
-      "description": "Hostname or IP address used to construct the LibreChat browser/server URL."
+      "description": "Browser-visible hostname or IP address used to construct LibreChat URLs."
     },
     {
       "key": "LIBRECHAT_SCHEME",
       "label": "LibreChat scheme",
+      "group": "address",
       "class": "editable",
       "control": "select",
       "options": ["http", "https"],
@@ -22,14 +32,42 @@
     {
       "key": "LIBRECHAT_PORT",
       "label": "LibreChat host port",
+      "group": "address",
       "class": "editable",
       "control": "number",
       "validation": {"type": "integer", "minimum": 1, "maximum": 65535},
       "restart": "recreate"
     },
     {
+      "key": "ADMIN_PANEL_URL",
+      "label": "Synology admin panel URL",
+      "group": "address",
+      "class": "editable",
+      "control": "text",
+      "validation": {"type": "url", "schemes": ["http", "https"], "allow_empty": true},
+      "restart": "recreate",
+      "description": "Optional URL exposed through LibreChat's admin-only Admin panel link. Leave blank until the deployment admin service is enabled."
+    },
+    {
+      "key": "DOMAIN_CLIENT",
+      "label": "Client URL",
+      "group": "address",
+      "class": "derived",
+      "derive": "${LIBRECHAT_SCHEME}://${NAS_HOST}:${LIBRECHAT_PORT}",
+      "restart": "recreate"
+    },
+    {
+      "key": "DOMAIN_SERVER",
+      "label": "Server URL",
+      "group": "address",
+      "class": "derived",
+      "derive": "${LIBRECHAT_SCHEME}://${NAS_HOST}:${LIBRECHAT_PORT}",
+      "restart": "recreate"
+    },
+    {
       "key": "NO_INDEX",
       "label": "Prevent search-engine indexing",
+      "group": "application",
       "class": "editable",
       "control": "boolean",
       "restart": "recreate"
@@ -37,6 +75,7 @@
     {
       "key": "SEARCH",
       "label": "Enable LibreChat search integration",
+      "group": "application",
       "class": "editable",
       "control": "boolean",
       "restart": "recreate"
@@ -44,14 +83,16 @@
     {
       "key": "SESSION_COOKIE_SECURE",
       "label": "Secure session cookie",
+      "group": "application",
       "class": "editable",
       "control": "boolean",
       "restart": "recreate",
-      "warning": "Enable when LibreChat is served over HTTPS."
+      "warning": "Enable when the browser reaches LibreChat over HTTPS."
     },
     {
       "key": "ALLOW_EMAIL_LOGIN",
       "label": "Allow email login",
+      "group": "authentication",
       "class": "editable",
       "control": "boolean",
       "restart": "recreate"
@@ -59,6 +100,7 @@
     {
       "key": "ALLOW_REGISTRATION",
       "label": "Allow new registrations",
+      "group": "authentication",
       "class": "editable",
       "control": "boolean",
       "restart": "recreate",
@@ -67,6 +109,7 @@
     {
       "key": "ALLOW_SOCIAL_LOGIN",
       "label": "Allow social login",
+      "group": "authentication",
       "class": "editable",
       "control": "boolean",
       "restart": "recreate"
@@ -74,6 +117,7 @@
     {
       "key": "ALLOW_SOCIAL_REGISTRATION",
       "label": "Allow social registration",
+      "group": "authentication",
       "class": "editable",
       "control": "boolean",
       "restart": "recreate"
@@ -81,6 +125,7 @@
     {
       "key": "ALLOW_UNVERIFIED_EMAIL_LOGIN",
       "label": "Allow unverified email login",
+      "group": "authentication",
       "class": "editable",
       "control": "boolean",
       "restart": "recreate"
@@ -88,27 +133,15 @@
     {
       "key": "ALLOW_PASSWORD_RESET",
       "label": "Allow password reset",
+      "group": "authentication",
       "class": "editable",
       "control": "boolean",
       "restart": "recreate"
     },
     {
-      "key": "DOMAIN_CLIENT",
-      "label": "Client URL",
-      "class": "derived",
-      "derive": "${LIBRECHAT_SCHEME}://${NAS_HOST}:${LIBRECHAT_PORT}",
-      "restart": "recreate"
-    },
-    {
-      "key": "DOMAIN_SERVER",
-      "label": "Server URL",
-      "class": "derived",
-      "derive": "${LIBRECHAT_SCHEME}://${NAS_HOST}:${LIBRECHAT_PORT}",
-      "restart": "recreate"
-    },
-    {
       "key": "OPENROUTER_KEY",
       "label": "OpenRouter API key",
+      "group": "providers",
       "class": "replace_only_secret",
       "control": "secret",
       "restart": "recreate"
@@ -116,6 +149,7 @@
     {
       "key": "GITHUB_DEPLOY_STATUS_TOKEN",
       "label": "GitHub deployment status token",
+      "group": "providers",
       "class": "replace_only_secret",
       "control": "secret",
       "restart": "none"
@@ -123,6 +157,7 @@
     {
       "key": "GITHUB_TELEMETRY_TOKEN",
       "label": "GitHub telemetry token",
+      "group": "providers",
       "class": "replace_only_secret",
       "control": "secret",
       "restart": "none"
@@ -130,17 +165,18 @@
     {
       "key": "CLOUDFLARE_TUNNEL_TOKEN",
       "label": "Cloudflare tunnel token",
+      "group": "providers",
       "class": "replace_only_secret",
       "control": "secret",
       "restart": "recreate"
     },
-    {"key": "JWT_SECRET", "class": "locked_secret"},
-    {"key": "JWT_REFRESH_SECRET", "class": "locked_secret"},
-    {"key": "CREDS_KEY", "class": "locked_secret"},
-    {"key": "CREDS_IV", "class": "locked_secret"},
-    {"key": "COMPOSE_PROJECT_NAME", "class": "internal"},
-    {"key": "HOST", "class": "internal"},
-    {"key": "PORT", "class": "internal"},
-    {"key": "MONGO_URI", "class": "internal"}
+    {"key": "JWT_SECRET", "label": "JWT secret", "group": "security", "class": "locked_secret"},
+    {"key": "JWT_REFRESH_SECRET", "label": "JWT refresh secret", "group": "security", "class": "locked_secret"},
+    {"key": "CREDS_KEY", "label": "Credential encryption key", "group": "security", "class": "locked_secret"},
+    {"key": "CREDS_IV", "label": "Credential encryption IV", "group": "security", "class": "locked_secret"},
+    {"key": "COMPOSE_PROJECT_NAME", "group": "internal", "class": "internal"},
+    {"key": "HOST", "group": "internal", "class": "internal"},
+    {"key": "PORT", "group": "internal", "class": "internal"},
+    {"key": "MONGO_URI", "group": "internal", "class": "internal"}
   ]
 }
