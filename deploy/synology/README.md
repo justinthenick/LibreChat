@@ -10,7 +10,7 @@ The first milestone runs only:
 - MongoDB `4.4.18`
 - OpenRouter using `deepseek/deepseek-v3.2`
 
-Meilisearch, the Admin Panel, RAG/pgvector, code execution, MCP tools, and browser automation are intentionally left out of the first boot. They can be added after measuring baseline RAM, swap, and responsiveness.
+Meilisearch, RAG/pgvector, code execution, extra MCP tools, and browser automation are intentionally left out of the first boot. They can be added after measuring baseline RAM, swap, and responsiveness.
 
 MongoDB `4.4.18` is used because LibreChat's own Docker override example identifies it as the compatibility option for older CPUs without AVX support.
 
@@ -45,6 +45,52 @@ chmod 600 .env
 
 The `.env` file is private runtime state and must not be committed.
 
+The Synology deployment now treats `.env` as the single source for normal host/application toggles. `DOMAIN_CLIENT` and `DOMAIN_SERVER` are derived by Compose from `LIBRECHAT_SCHEME`, `NAS_HOST`, and `LIBRECHAT_PORT`, so they do not need to be maintained separately. `SEARCH` and `SESSION_COOKIE_SECURE` are also taken from `.env`; they are no longer hard-coded by Compose.
+
+### Safer settings helper
+
+`manage-env.py` provides a schema-driven alternative to hand-editing routine values. It has no raw-edit command, does not reveal configured secret values, preserves unmanaged lines/comments, rejects duplicate managed keys, and makes a chmod-600 local backup before each write.
+
+Show the current managed settings:
+
+```bash
+python3 manage-env.py show
+```
+
+Validate values:
+
+```bash
+python3 manage-env.py validate
+```
+
+Change a normal setting:
+
+```bash
+python3 manage-env.py set SEARCH true
+```
+
+Replace a secret without echoing it:
+
+```bash
+python3 manage-env.py set-secret OPENROUTER_KEY
+```
+
+Validate the resulting Compose configuration:
+
+```bash
+sudo python3 manage-env.py compose-check
+```
+
+The helper deliberately does **not** rotate `JWT_SECRET`, `JWT_REFRESH_SECRET`, `CREDS_KEY`, or `CREDS_IV`. Those are locked security material and need a separate maintenance workflow because changing them can invalidate sessions or stored credentials.
+
+For an existing `.env` created before the managed-settings work, add the optional admin-panel placeholder once if it is absent:
+
+```bash
+python3 manage-env.py set ADMIN_PANEL_URL ''
+```
+
+This does not enable an admin service; it simply makes the existing file match the current managed template.
+
 If the existing AgenticSeek deployment already has the current OpenRouter key, it can be copied without printing the secret to the terminal:
 
 ```bash
@@ -52,7 +98,7 @@ OR_KEY=$(sed -n 's/^OPENROUTER_API_KEY=//p' /volume1/docker/agenticseek/deploy/s
 ```
 
 ```bash
-sed -i "s|^OPENROUTER_KEY=.*|OPENROUTER_KEY=$OR_KEY|" .env
+printf '%s' "$OR_KEY" | python3 manage-env.py set-secret OPENROUTER_KEY --stdin --yes
 ```
 
 ```bash
@@ -62,10 +108,10 @@ unset OR_KEY
 Verify presence without displaying the value:
 
 ```bash
-grep -q '^OPENROUTER_KEY=..' .env && echo 'OPENROUTER_KEY: PRESENT' || echo 'OPENROUTER_KEY: MISSING'
+python3 manage-env.py show | grep OPENROUTER_KEY
 ```
 
-LibreChat can generate temporary JWT/credential secrets into the persistent `/app/data/.env.temp` volume when the corresponding values in `.env` are blank. Before any Internet-facing or long-term production deployment, replace them with unique persistent values in the private `.env` file.
+LibreChat can generate temporary JWT/credential secrets into the persistent `/app/data/.env.temp` volume when the corresponding values in `.env` are blank. Before any Internet-facing or long-term production deployment, replace them with unique persistent values in the private `.env` file using a separate controlled rotation process.
 
 ## Validate and pull images
 
@@ -119,6 +165,10 @@ free -h
 ```
 
 The goal of this initial deployment is to compare LibreChat and AgenticSeek under the same NAS, provider, and model before enabling additional LibreChat services.
+
+## Admin settings direction
+
+`ADMIN_PANEL_URL` is now an optional managed setting and is passed through to LibreChat. It remains blank until the separate Synology Admin Settings service is implemented and authenticated. The intended design is documented in `ADMIN-SETTINGS.md`; the command-line manager is the first reusable backend/safety layer for that future UI.
 
 ## Security
 
