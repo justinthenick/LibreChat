@@ -30,6 +30,7 @@
     {"id":"b018-g36-market-expand-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/018-procurement-market-expansion-mixed-history","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0},
     {"id":"b019-g36-solution-design-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/019-synology-gpu-solution-design","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0},
     {"id":"b019-g36-solution-design-v02-skill-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/019-synology-gpu-solution-design","model":"gemini-3.6-flash","mode":"skill","repeat":1,"temperature":0.0},
-    {"id":"b019-g36-solution-design-v03-skill-003","enabled":true,"benchmark":"custom/ba-agent/benchmarks/019-synology-gpu-solution-design","model":"gemini-3.6-flash","mode":"skill","repeat":1,"temperature":0.0}
+    {"id":"b019-g36-solution-design-v03-skill-003","enabled":true,"benchmark":"custom/ba-agent/benchmarks/019-synology-gpu-solution-design","model":"gemini-3.6-flash","mode":"skill","repeat":1,"temperature":0.0},
+    {"id":"b020-g36-solution-design-v03-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/020-vendor-webhook-integration-architecture","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0}
   ]
 }
