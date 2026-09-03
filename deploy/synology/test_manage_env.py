@@ -23,6 +23,7 @@ class ManageEnvTests(unittest.TestCase):
             "NAS_HOST=192.168.1.5\n"
             "LIBRECHAT_SCHEME=http\n"
             "LIBRECHAT_PORT=3200\n"
+            "ADMIN_PANEL_URL=\n"
             "NO_INDEX=true\n"
             "SEARCH=false\n"
             "SESSION_COOKIE_SECURE=false\n"
@@ -41,7 +42,7 @@ class ManageEnvTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def test_optional_admin_panel_url_can_be_missing(self):
+    def test_well_formed_env_validates(self):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
             rc = manage_env.command_validate(self.schema, self.settings, self.env)
