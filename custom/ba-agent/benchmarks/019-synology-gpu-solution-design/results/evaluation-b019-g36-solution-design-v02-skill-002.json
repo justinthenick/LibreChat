@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "benchmark": "Benchmark 019 — Synology NAS GPU Outcome-to-Architecture Design",
+  "job_id": "b019-g36-solution-design-v02-skill-002",
+  "model": "gemini-3.6-flash",
+  "temperature": 0.0,
+  "skill": {
+    "name": "design-technical-solution",
+    "version": "0.2.0",
+    "raw_score": 89,
+    "penalties": -10,
+    "final_score": 79,
+    "total_tokens": 6973,
+    "decision": "focused_correction_incomplete"
+  },
+  "defects": [
+    "unsupported DS918+-specific power/thermal blocker",
+    "unsupported derived network throughput and transfer-time claims",
+    "x86-64 and NVMe promoted to hard minimums without evidence",
+    "12 GB target inconsistently described as a minimum",
+    "Wake-on-LAN added despite not being supplied"
+  ],
+  "architecture_decision": "Do not generalize v0.2.0. Apply a tighter blocker-evidence and requirement-strength correction in v0.3.0, then run one unique Skill-only B019 rerun."
+}
