@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Safely inspect and edit the managed Synology LibreChat .env settings.
+"""Safely inspect and edit managed Synology LibreChat .env settings.
 
-Python 3.8+ standard library only. The tool intentionally does not provide a
-raw .env editor. It enforces deploy/synology/admin-settings.schema.json,
-redacts secrets, preserves unmanaged lines/comments, rejects duplicate managed
-keys, and creates a local chmod-600 backup before every write.
+Python 3.8+ standard library only. There is intentionally no raw .env editor.
+The tool enforces admin-settings.schema.json, redacts secrets, preserves
+unmanaged lines/comments, rejects duplicate managed keys, creates chmod-600
+backups before writes, and can validate the active Compose overlay set.
 """
 
 import argparse
@@ -20,7 +20,6 @@ import subprocess
 import sys
 import tempfile
 from urllib.parse import urlparse
-
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_ENV = ROOT / ".env"
@@ -78,16 +77,13 @@ def encode_dotenv_value(value):
 
 def read_env(path, managed_keys):
     if not path.exists():
-        raise SettingsError(
-            "Private environment file not found at {}. Create it from .env.example first.".format(path)
-        )
+        raise SettingsError("Private environment file not found at {}. Create it from .env.example first.".format(path))
     lines = path.read_text(encoding="utf-8").splitlines(True)
     values = {}
     positions = {}
     duplicates = []
     for index, line in enumerate(lines):
-        stripped = line.rstrip("\r\n")
-        match = ENV_LINE.match(stripped)
+        match = ENV_LINE.match(line.rstrip("\r\n"))
         if not match:
             continue
         key, raw = match.groups()
@@ -98,20 +94,14 @@ def read_env(path, managed_keys):
         positions[key] = index
         values[key] = parse_dotenv_value(raw)
     if duplicates:
-        raise SettingsError(
-            "Duplicate managed .env key(s) found: {}. Resolve duplicates manually before using this tool.".format(
-                ", ".join(sorted(set(duplicates)))
-            )
-        )
+        raise SettingsError("Duplicate managed .env key(s) found: {}. Resolve duplicates manually before using this tool.".format(", ".join(sorted(set(duplicates)))))
     return lines, values, positions
 
 
 def validate_host(value):
     if not value or any(ch.isspace() for ch in value) or "/" in value or "://" in value:
         raise SettingsError("Host must be a hostname or IP address without scheme, path, or whitespace")
-    candidate = value
-    if candidate.startswith("[") and candidate.endswith("]"):
-        candidate = candidate[1:-1]
+    candidate = value[1:-1] if value.startswith("[") and value.endswith("]") else value
     try:
         ipaddress.ip_address(candidate)
         return value
@@ -143,19 +133,16 @@ def validate_value(spec, value):
     control = spec.get("control")
     rules = spec.get("validation") or {}
     kind = rules.get("type")
-
     if control == "boolean":
         lowered = value.lower()
         if lowered not in ("true", "false"):
             raise SettingsError("{} must be true or false".format(spec["key"]))
         return lowered
-
     if control == "select":
         options = [str(v) for v in spec.get("options") or []]
         if value not in options:
             raise SettingsError("{} must be one of: {}".format(spec["key"], ", ".join(options)))
         return value
-
     if kind == "integer" or control == "number":
         try:
             number = int(value)
@@ -166,13 +153,10 @@ def validate_value(spec, value):
         if "maximum" in rules and number > int(rules["maximum"]):
             raise SettingsError("{} must be at most {}".format(spec["key"], rules["maximum"]))
         return str(number)
-
     if kind == "host":
         return validate_host(value)
-
     if kind == "url":
         return validate_url(value, spec)
-
     if "\n" in value or "\r" in value:
         raise SettingsError("{} cannot contain a newline".format(spec["key"]))
     return value
@@ -221,7 +205,7 @@ def replace_key(lines, positions, key, value):
         lines[positions[key]] = rendered.rstrip("\n") + newline
     else:
         if lines and not lines[-1].endswith(("\n", "\r\n")):
-            lines[-1] = lines[-1] + "\n"
+            lines[-1] += "\n"
         if lines and lines[-1].strip():
             lines.append("\n")
         lines.append(rendered)
@@ -231,8 +215,7 @@ def replace_key(lines, positions, key, value):
 def confirm(message, assume_yes=False):
     if assume_yes:
         return True
-    answer = input("{} [y/N]: ".format(message)).strip().lower()
-    return answer in ("y", "yes")
+    return input("{} [y/N]: ".format(message)).strip().lower() in ("y", "yes")
 
 
 def configured(value):
@@ -261,15 +244,12 @@ def command_show(schema, settings, env_path):
         if group != current_group:
             current_group = group
             print("\n[{}]".format(group_labels.get(group, group or "Settings")))
-        key = item["key"]
-        value = display_value(item, values, derived)
-        print("{:<32} {:<18} {}".format(key, item.get("class", ""), value))
+        print("{:<32} {:<18} {}".format(item["key"], item.get("class", ""), display_value(item, values, derived)))
     print("")
     return 0
 
 
-def command_validate(schema, settings, env_path):
-    _, values, _ = read_env(env_path, set(settings))
+def validate_current(schema, settings, values):
     errors = []
     for item in schema["settings"]:
         if item.get("class") != "editable":
@@ -283,14 +263,17 @@ def command_validate(schema, settings, env_path):
             validate_value(item, values[key])
         except SettingsError as exc:
             errors.append(str(exc))
-
-    # Helpful cross-setting checks. These are warnings, not invented hard gates.
     warnings = []
     if values.get("LIBRECHAT_SCHEME") == "https" and values.get("SESSION_COOKIE_SECURE", "").lower() != "true":
         warnings.append("LIBRECHAT_SCHEME=https but SESSION_COOKIE_SECURE is not true")
     if values.get("LIBRECHAT_SCHEME") == "http" and values.get("SESSION_COOKIE_SECURE", "").lower() == "true":
         warnings.append("SESSION_COOKIE_SECURE=true while LIBRECHAT_SCHEME=http may prevent browser sessions on plain HTTP")
+    return errors, warnings
 
+
+def command_validate(schema, settings, env_path):
+    _, values, _ = read_env(env_path, set(settings))
+    errors, warnings = validate_current(schema, settings, values)
     if errors:
         print("Validation FAILED:")
         for error in errors:
@@ -324,8 +307,6 @@ def command_set(settings, env_path, key, value, assume_yes):
     atomic_write(env_path, lines)
     print("Updated {}".format(env_path))
     print("Backup: {}".format(backup))
-    if spec.get("restart") == "recreate":
-        print("Runtime note: recreate the LibreChat api service after compose validation for this change to take effect.")
     return 0
 
 
@@ -367,19 +348,20 @@ def command_set_secret(settings, env_path, key, assume_yes, from_stdin, clear):
     atomic_write(env_path, lines)
     print("Updated {} (secret not displayed)".format(env_path))
     print("Backup: {}".format(backup))
-    if spec.get("restart") == "recreate":
-        print("Runtime note: recreate the LibreChat api service after compose validation for this change to take effect.")
     return 0
 
 
 def compose_command(env_path, args):
     deploy_dir = env_path.resolve().parent
     base = deploy_dir / "docker-compose.yml"
-    overlay = deploy_dir / "docker-compose.cloudflare.yml"
+    cloudflare = deploy_dir / "docker-compose.cloudflare.yml"
+    admin = deploy_dir / "docker-compose.admin.yml"
     _, values, _ = read_env(env_path, set())
     cmd = ["docker-compose", "-f", str(base)]
-    if configured(values.get("CLOUDFLARE_TUNNEL_TOKEN")) and overlay.exists():
-        cmd.extend(["-f", str(overlay)])
+    if configured(values.get("CLOUDFLARE_TUNNEL_TOKEN")) and cloudflare.exists():
+        cmd.extend(["-f", str(cloudflare)])
+    if configured(values.get("ADMIN_SETTINGS_ACCESS_TOKEN")) and admin.exists():
+        cmd.extend(["-f", str(admin)])
     cmd.extend(args)
     return cmd
 
@@ -391,8 +373,7 @@ def command_compose_check(env_path):
     except FileNotFoundError:
         raise SettingsError("docker-compose was not found. Run this command on the Synology host where standalone Compose is installed.")
     if proc.returncode != 0:
-        message = (proc.stderr or "Compose validation failed").strip()
-        raise SettingsError(message)
+        raise SettingsError((proc.stderr or "Compose validation failed").strip())
     print("Compose config OK")
     return 0
 
@@ -402,16 +383,13 @@ def parse_args(argv=None):
     parser.add_argument("--env-file", type=Path, default=DEFAULT_ENV)
     parser.add_argument("--schema", type=Path, default=DEFAULT_SCHEMA)
     sub = parser.add_subparsers(dest="command", required=True)
-
     sub.add_parser("show", help="Show managed values with secrets redacted")
     sub.add_parser("validate", help="Validate current managed values")
-    sub.add_parser("compose-check", help="Run docker-compose config against the current environment")
-
+    sub.add_parser("compose-check", help="Run docker-compose config using active optional overlays")
     p_set = sub.add_parser("set", help="Change one allowlisted non-secret setting")
     p_set.add_argument("key")
     p_set.add_argument("value")
     p_set.add_argument("--yes", action="store_true", help="Skip confirmation prompt")
-
     p_secret = sub.add_parser("set-secret", help="Replace one allowlisted secret without displaying it")
     p_secret.add_argument("key")
     p_secret.add_argument("--stdin", action="store_true", help="Read replacement secret from stdin")
@@ -423,9 +401,7 @@ def parse_args(argv=None):
 def main(argv=None):
     args = parse_args(argv)
     env_path = args.env_file.resolve()
-    schema_path = args.schema.resolve()
-    schema, settings = load_schema(schema_path)
-
+    schema, settings = load_schema(args.schema.resolve())
     if args.command == "show":
         return command_show(schema, settings, env_path)
     if args.command == "validate":
