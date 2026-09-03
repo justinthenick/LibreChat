@@ -14,6 +14,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import shutil
 import socket
 import socketserver
 import subprocess
@@ -26,6 +27,7 @@ ROOT = Path(__file__).resolve().parent
 DEFAULT_ENV = ROOT / ".env"
 DEFAULT_SCHEMA = ROOT / "admin-settings.schema.json"
 DEFAULT_STATE = Path("/volume1/docker/librechat/admin-settings-state")
+DEPLOY_LOCK = Path("/tmp/librechat-autodeploy.lock")
 MAX_REQUEST = 128 * 1024
 
 SPEC = importlib.util.spec_from_file_location("manage_env", ROOT / "manage-env.py")
@@ -41,7 +43,7 @@ def utc_now():
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def audit(state_dir, action, keys, outcome, detail=None):
+def audit(state_dir, action, keys, outcome, stage=None):
     state_dir.mkdir(parents=True, exist_ok=True)
     entry = {
         "time": utc_now(),
@@ -49,8 +51,8 @@ def audit(state_dir, action, keys, outcome, detail=None):
         "keys": sorted(set(keys or [])),
         "outcome": outcome,
     }
-    if detail:
-        entry["detail"] = str(detail)[:500]
+    if stage:
+        entry["stage"] = str(stage)[:80]
     path = state_dir / "audit.log"
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(entry, ensure_ascii=False, sort_keys=True) + "\n")
@@ -68,7 +70,6 @@ def load_context(env_path, schema_path):
 
 def sanitize_state(schema, settings, values):
     derived = manage_env.derive_values(values)
-    groups = schema.get("groups") or []
     items = []
     for item in schema.get("settings") or []:
         if item.get("ui_hidden") or item.get("class") == "internal":
@@ -96,7 +97,7 @@ def sanitize_state(schema, settings, values):
     return {
         "schema": schema.get("schema"),
         "title": schema.get("title"),
-        "groups": groups,
+        "groups": schema.get("groups") or [],
         "settings": items,
         "derived": derived,
     }
@@ -126,7 +127,8 @@ def build_plan(schema, settings, values, payload):
     impacts = set()
 
     for key, raw in updates.items():
-        spec = settings.get(str(key))
+        key = str(key)
+        spec = settings.get(key)
         if not spec or spec.get("class") != "editable" or spec.get("ui_hidden"):
             raise WorkerError("{} is not editable from the web panel".format(key))
         value = manage_env.validate_value(spec, raw)
@@ -138,7 +140,8 @@ def build_plan(schema, settings, values, payload):
         services.update(spec.get("services") or [])
 
     for key, raw in secrets.items():
-        spec = settings.get(str(key))
+        key = str(key)
+        spec = settings.get(key)
         if not spec or spec.get("class") != "replace_only_secret" or spec.get("ui_hidden"):
             raise WorkerError("{} is not replaceable from the web panel".format(key))
         value = str(raw)
@@ -154,7 +157,6 @@ def build_plan(schema, settings, values, payload):
 
     proposed = dict(values)
     proposed.update(normalized)
-    derived = manage_env.derive_values(proposed)
     preview = []
     for key in changed_keys:
         spec = settings[key]
@@ -183,7 +185,7 @@ def build_plan(schema, settings, values, payload):
         "restart_required": "recreate" in impacts,
         "preview": preview,
         "warnings": validation_warnings(proposed),
-        "derived": derived,
+        "derived": manage_env.derive_values(proposed),
     }
 
 
@@ -200,7 +202,7 @@ def replace_many(lines, positions, normalized):
     return out
 
 
-def compose_cmd(env_path, values, args):
+def compose_cmd(values, args):
     cmd = ["docker-compose", "-f", str(ROOT / "docker-compose.yml")]
     if manage_env.configured(values.get("CLOUDFLARE_TUNNEL_TOKEN")) and (ROOT / "docker-compose.cloudflare.yml").exists():
         cmd.extend(["-f", str(ROOT / "docker-compose.cloudflare.yml")])
@@ -214,24 +216,37 @@ def run(cmd, timeout=180):
     try:
         return subprocess.run(cmd, cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout)
     except FileNotFoundError as exc:
-        raise WorkerError("Required command not found: {}".format(cmd[0])) from exc
+        raise WorkerError("Required host command is unavailable") from exc
     except subprocess.TimeoutExpired as exc:
-        raise WorkerError("Command timed out: {}".format(cmd[0])) from exc
+        raise WorkerError("Host command timed out") from exc
 
 
-def compose_validate(env_path, values):
-    proc = run(compose_cmd(env_path, values, ["config"]), timeout=60)
+def compose_validate(values):
+    proc = run(compose_cmd(values, ["config"]), timeout=60)
     if proc.returncode != 0:
-        raise WorkerError((proc.stderr or "docker-compose config failed").strip()[:1000])
+        raise WorkerError("Compose validation failed; inspect local deployment diagnostics")
 
 
-def recreate_services(env_path, values, services):
-    services = [s for s in services if s]
-    if not services:
+def remove_container(name):
+    proc = run(["docker", "rm", "-f", name], timeout=30)
+    if proc.returncode not in (0, 1):
+        raise WorkerError("Could not remove disabled optional service")
+
+
+def recreate_services(values, services):
+    enabled = []
+    for service in [s for s in services if s]:
+        if service == "cloudflared" and not manage_env.configured(values.get("CLOUDFLARE_TUNNEL_TOKEN")):
+            remove_container("librechat-cloudflared")
+        elif service == "admin-settings" and not manage_env.configured(values.get("ADMIN_SETTINGS_ACCESS_TOKEN")):
+            remove_container("librechat-admin-settings")
+        else:
+            enabled.append(service)
+    if not enabled:
         return
-    proc = run(compose_cmd(env_path, values, ["up", "-d", "--no-deps", "--force-recreate"] + services), timeout=240)
+    proc = run(compose_cmd(values, ["up", "-d", "--no-deps", "--force-recreate"] + enabled), timeout=240)
     if proc.returncode != 0:
-        raise WorkerError((proc.stderr or proc.stdout or "service recreate failed").strip()[:1000])
+        raise WorkerError("Service recreate failed; inspect local deployment diagnostics")
 
 
 def health_api():
@@ -250,6 +265,10 @@ def health_admin(port):
         return False
 
 
+def container_absent(name):
+    return run(["docker", "inspect", name], timeout=10).returncode != 0
+
+
 def health_cloudflare():
     inspect = run(["docker", "inspect", "-f", "{{.State.Running}}", "librechat-cloudflared"], timeout=10)
     if inspect.returncode != 0 or inspect.stdout.strip() != "true":
@@ -258,18 +277,25 @@ def health_cloudflare():
     return "Registered tunnel connection" in (logs.stdout + logs.stderr)
 
 
+def service_healthy(service, values):
+    if service == "api":
+        return health_api()
+    if service == "admin-settings":
+        if not manage_env.configured(values.get("ADMIN_SETTINGS_ACCESS_TOKEN")):
+            return container_absent("librechat-admin-settings")
+        return health_admin(values.get("ADMIN_SETTINGS_PORT", "3210"))
+    if service == "cloudflared":
+        if not manage_env.configured(values.get("CLOUDFLARE_TUNNEL_TOKEN")):
+            return container_absent("librechat-cloudflared")
+        return health_cloudflare()
+    return True
+
+
 def wait_health(services, values, timeout=75):
     deadline = time.time() + timeout
     pending = set(services)
     while time.time() < deadline:
-        failed = set()
-        for service in pending:
-            if service == "api" and not health_api():
-                failed.add(service)
-            elif service == "admin-settings" and not health_admin(values.get("ADMIN_SETTINGS_PORT", "3210")):
-                failed.add(service)
-            elif service == "cloudflared" and not health_cloudflare():
-                failed.add(service)
+        failed = {service for service in pending if not service_healthy(service, values)}
         if not failed:
             return True
         pending = failed
@@ -278,11 +304,48 @@ def wait_health(services, values, timeout=75):
 
 
 def restore_backup(backup, env_path):
-    data = backup.read_bytes()
     temp = env_path.with_name(".env.rollback-{}".format(os.getpid()))
-    temp.write_bytes(data)
+    shutil.copyfile(str(backup), str(temp))
     os.chmod(str(temp), 0o600)
     os.replace(str(temp), str(env_path))
+
+
+def read_lock_pid(lock_dir):
+    try:
+        return int((lock_dir / "pid").read_text(encoding="utf-8").strip())
+    except Exception:
+        return None
+
+
+def pid_alive(pid):
+    if not pid:
+        return False
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
+def acquire_deploy_lock():
+    try:
+        DEPLOY_LOCK.mkdir()
+    except FileExistsError:
+        pid = read_lock_pid(DEPLOY_LOCK)
+        if pid_alive(pid):
+            raise WorkerError("A deployment or settings apply is already running; retry shortly")
+        shutil.rmtree(str(DEPLOY_LOCK), ignore_errors=True)
+        try:
+            DEPLOY_LOCK.mkdir()
+        except FileExistsError as exc:
+            raise WorkerError("Could not acquire deployment lock; retry shortly") from exc
+    (DEPLOY_LOCK / "pid").write_text(str(os.getpid()) + "\n", encoding="utf-8")
+
+
+def release_deploy_lock():
+    pid = read_lock_pid(DEPLOY_LOCK)
+    if pid == os.getpid():
+        shutil.rmtree(str(DEPLOY_LOCK), ignore_errors=True)
 
 
 class WorkerCore:
@@ -312,45 +375,63 @@ class WorkerCore:
 
     def apply(self, payload):
         with self.lock:
-            schema, settings, lines, values, positions = load_context(self.env_path, self.schema_path)
-            plan = build_plan(schema, settings, values, payload)
-            keys = plan["changed_keys"]
-            if not keys:
-                return {"ok": True, "changed": [], "message": "No changes required", "state": self.state()}
-
-            backup = manage_env.backup_env(self.env_path)
+            acquire_deploy_lock()
             try:
-                new_lines = replace_many(lines, positions, plan["normalized"])
-                manage_env.atomic_write(self.env_path, new_lines)
-                _, new_values, _ = manage_env.read_env(self.env_path, set(settings))
-                compose_validate(self.env_path, new_values)
+                return self._apply_locked(payload)
+            finally:
+                release_deploy_lock()
+
+    def _apply_locked(self, payload):
+        schema, settings, lines, values, positions = load_context(self.env_path, self.schema_path)
+        plan = build_plan(schema, settings, values, payload)
+        keys = plan["changed_keys"]
+        if not keys:
+            return {"ok": True, "changed": [], "message": "No changes required", "state": self.state()}
+
+        backup = manage_env.backup_env(self.env_path)
+        stage = "write"
+        try:
+            manage_env.atomic_write(self.env_path, replace_many(lines, positions, plan["normalized"]))
+            _, new_values, _ = manage_env.read_env(self.env_path, set(settings))
+            stage = "compose_validation"
+            compose_validate(new_values)
+            if plan["services"]:
+                stage = "service_recreate"
+                recreate_services(new_values, plan["services"])
+                stage = "health_check"
+                if not wait_health(plan["services"], new_values):
+                    raise WorkerError("Health check failed after applying settings")
+            audit(self.state_dir, "apply", keys, "success")
+            return {
+                "ok": True,
+                "changed": keys,
+                "services": plan["services"],
+                "warnings": plan["warnings"],
+                "backup": backup.name,
+                "message": "Settings applied and health checks passed",
+                "state": self.state(),
+            }
+        except Exception as exc:
+            audit(self.state_dir, "apply", keys, "failed", stage)
+            rollback_stage = "restore_env"
+            try:
+                restore_backup(backup, self.env_path)
+                _, old_values, _ = manage_env.read_env(self.env_path, set(settings))
+                rollback_stage = "rollback_compose_validation"
+                compose_validate(old_values)
                 if plan["services"]:
-                    recreate_services(self.env_path, new_values, plan["services"])
-                    if not wait_health(plan["services"], new_values):
-                        raise WorkerError("Health check failed after applying settings")
-                audit(self.state_dir, "apply", keys, "success")
-                return {
-                    "ok": True,
-                    "changed": keys,
-                    "services": plan["services"],
-                    "warnings": plan["warnings"],
-                    "backup": backup.name,
-                    "message": "Settings applied and health checks passed",
-                    "state": self.state(),
-                }
-            except Exception as exc:
-                try:
-                    restore_backup(backup, self.env_path)
-                    _, old_values, _ = manage_env.read_env(self.env_path, set(settings))
-                    compose_validate(self.env_path, old_values)
-                    if plan["services"]:
-                        recreate_services(self.env_path, old_values, plan["services"])
-                        wait_health(plan["services"], old_values, timeout=75)
-                    audit(self.state_dir, "apply", keys, "rolled_back", str(exc))
-                except Exception as rollback_exc:
-                    audit(self.state_dir, "apply", keys, "rollback_failed", "{}; rollback: {}".format(exc, rollback_exc))
-                    raise WorkerError("Apply failed and rollback also failed: {}; rollback: {}".format(exc, rollback_exc))
-                raise WorkerError("Apply failed; previous .env restored: {}".format(exc))
+                    rollback_stage = "rollback_service_recreate"
+                    recreate_services(old_values, plan["services"])
+                    rollback_stage = "rollback_health_check"
+                    if not wait_health(plan["services"], old_values, timeout=75):
+                        raise WorkerError("Rollback health check failed")
+                audit(self.state_dir, "apply", keys, "rolled_back", stage)
+            except Exception:
+                audit(self.state_dir, "apply", keys, "rollback_failed", rollback_stage)
+                raise WorkerError("Settings apply failed and automatic rollback did not restore a healthy runtime; inspect local deployment diagnostics")
+            if isinstance(exc, WorkerError):
+                raise WorkerError("Settings apply failed; previous configuration restored: {}".format(str(exc)))
+            raise WorkerError("Settings apply failed; previous configuration restored; inspect local deployment diagnostics")
 
     def handle(self, request):
         action = request.get("action") if isinstance(request, dict) else None
@@ -374,8 +455,10 @@ class Handler(socketserver.StreamRequestHandler):
             try:
                 request = json.loads(raw.decode("utf-8"))
                 response = self.server.core.handle(request)
-            except Exception as exc:
+            except WorkerError as exc:
                 response = {"ok": False, "error": str(exc)}
+            except Exception:
+                response = {"ok": False, "error": "Worker request failed; inspect local deployment diagnostics"}
         self.wfile.write((json.dumps(response, ensure_ascii=False) + "\n").encode("utf-8"))
 
 
