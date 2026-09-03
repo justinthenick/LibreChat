@@ -1,0 +1,43 @@
+{
+  "schema": 3,
+  "title": "LibreChat Synology Admin Settings",
+  "groups": [
+    {"id": "address", "label": "Address and access"},
+    {"id": "application", "label": "Application behaviour"},
+    {"id": "authentication", "label": "Authentication"},
+    {"id": "providers", "label": "Providers and integrations"},
+    {"id": "security", "label": "Locked security material"},
+    {"id": "internal", "label": "Internal values"}
+  ],
+  "settings": [
+    {"key":"NAS_HOST","label":"LibreChat host","group":"address","class":"editable","control":"text","validation":{"type":"host"},"restart":"recreate","services":["api"],"description":"Browser-visible hostname or IP address used to construct LibreChat URLs."},
+    {"key":"LIBRECHAT_SCHEME","label":"LibreChat scheme","group":"address","class":"editable","control":"select","options":["http","https"],"restart":"recreate","services":["api"]},
+    {"key":"LIBRECHAT_PORT","label":"LibreChat host port","group":"address","class":"editable","control":"number","validation":{"type":"integer","minimum":1,"maximum":65535},"restart":"recreate","services":["api"]},
+    {"key":"ADMIN_SETTINGS_PORT","label":"Admin settings port","group":"address","class":"editable","control":"number","required":false,"ui_hidden":true,"validation":{"type":"integer","minimum":1,"maximum":65535},"restart":"recreate","services":["admin-settings"],"description":"LAN port used by the Synology Admin Settings panel. Change with the host CLI because changing it from the panel would interrupt the active session."},
+    {"key":"ADMIN_PANEL_URL","label":"Synology admin panel URL","group":"address","class":"editable","control":"text","required":false,"validation":{"type":"url","schemes":["http","https"],"allow_empty":true},"restart":"recreate","services":["api"],"description":"URL exposed through LibreChat's admin-only Admin panel link. Bootstrap fills the LAN URL automatically when blank."},
+    {"key":"DOMAIN_CLIENT","label":"Client URL","group":"address","class":"derived","derive":"${LIBRECHAT_SCHEME}://${NAS_HOST}:${LIBRECHAT_PORT}","restart":"recreate","services":["api"]},
+    {"key":"DOMAIN_SERVER","label":"Server URL","group":"address","class":"derived","derive":"${LIBRECHAT_SCHEME}://${NAS_HOST}:${LIBRECHAT_PORT}","restart":"recreate","services":["api"]},
+    {"key":"NO_INDEX","label":"Prevent search-engine indexing","group":"application","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
+    {"key":"SEARCH","label":"Enable LibreChat search integration","group":"application","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
+    {"key":"SESSION_COOKIE_SECURE","label":"Secure session cookie","group":"application","class":"editable","control":"boolean","restart":"recreate","services":["api"],"warning":"Enable when the browser reaches LibreChat over HTTPS."},
+    {"key":"ALLOW_EMAIL_LOGIN","label":"Allow email login","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
+    {"key":"ALLOW_REGISTRATION","label":"Allow new registrations","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"],"warning":"Normally disable after the intended accounts have been created."},
+    {"key":"ALLOW_SOCIAL_LOGIN","label":"Allow social login","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
+    {"key":"ALLOW_SOCIAL_REGISTRATION","label":"Allow social registration","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
+    {"key":"ALLOW_UNVERIFIED_EMAIL_LOGIN","label":"Allow unverified email login","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
+    {"key":"ALLOW_PASSWORD_RESET","label":"Allow password reset","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
+    {"key":"OPENROUTER_KEY","label":"OpenRouter API key","group":"providers","class":"replace_only_secret","control":"secret","restart":"recreate","services":["api"]},
+    {"key":"GITHUB_DEPLOY_STATUS_TOKEN","label":"GitHub deployment status token","group":"providers","class":"replace_only_secret","control":"secret","restart":"none","services":[]},
+    {"key":"GITHUB_TELEMETRY_TOKEN","label":"GitHub telemetry token","group":"providers","class":"replace_only_secret","control":"secret","restart":"none","services":[]},
+    {"key":"CLOUDFLARE_TUNNEL_TOKEN","label":"Cloudflare tunnel token","group":"providers","class":"replace_only_secret","control":"secret","restart":"recreate","services":["cloudflared"]},
+    {"key":"ADMIN_SETTINGS_ACCESS_TOKEN","label":"Admin settings access token","group":"security","class":"replace_only_secret","control":"secret","required":false,"ui_hidden":true,"restart":"recreate","services":["admin-settings"],"description":"Independent bearer token for the Synology Admin Settings panel. Managed by bootstrap/CLI and never displayed by the web panel."},
+    {"key":"JWT_SECRET","label":"JWT secret","group":"security","class":"locked_secret","ui_hidden":true},
+    {"key":"JWT_REFRESH_SECRET","label":"JWT refresh secret","group":"security","class":"locked_secret","ui_hidden":true},
+    {"key":"CREDS_KEY","label":"Credential encryption key","group":"security","class":"locked_secret","ui_hidden":true},
+    {"key":"CREDS_IV","label":"Credential encryption IV","group":"security","class":"locked_secret","ui_hidden":true},
+    {"key":"COMPOSE_PROJECT_NAME","group":"internal","class":"internal","ui_hidden":true},
+    {"key":"HOST","group":"internal","class":"internal","ui_hidden":true},
+    {"key":"PORT","group":"internal","class":"internal","ui_hidden":true},
+    {"key":"MONGO_URI","group":"internal","class":"internal","ui_hidden":true}
+  ]
+}

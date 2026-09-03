@@ -1,0 +1,33 @@
+version: "3.7"
+
+# Optional Synology Admin Settings panel. autodeploy.sh loads this overlay only
+# when ADMIN_SETTINGS_ACCESS_TOKEN is configured in the private NAS .env.
+#
+# The panel deliberately has NO .env mount and NO Docker socket. It receives
+# only its own access token and communicates with the privileged host worker via
+# a Unix-domain socket under /state.
+services:
+  admin-settings:
+    image: python:3.12-alpine
+    container_name: librechat-admin-settings
+    restart: unless-stopped
+    user: "1026:100"
+    command: python3 /app/admin-settings-panel.py
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp
+    environment:
+      ADMIN_SETTINGS_ACCESS_TOKEN: "${ADMIN_SETTINGS_ACCESS_TOKEN}"
+      ADMIN_SETTINGS_PORT: "3210"
+      ADMIN_SETTINGS_SOCKET: /state/worker.sock
+    ports:
+      - "${ADMIN_SETTINGS_PORT:-3210}:3210"
+    volumes:
+      - ./admin-settings-panel.py:/app/admin-settings-panel.py:ro
+      - /volume1/docker/librechat/admin-settings-state:/state
+    networks:
+      - librechat

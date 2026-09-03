@@ -1,0 +1,38 @@
+name: Synology Admin Settings
+
+on:
+  pull_request:
+    paths:
+      - 'deploy/synology/**'
+      - '.github/workflows/synology-admin-settings.yml'
+  push:
+    branches:
+      - 'feature/synology-ui-settings-v0.1'
+    paths:
+      - 'deploy/synology/**'
+      - '.github/workflows/synology-admin-settings.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+      - name: Validate Python syntax
+        run: |
+          python -m py_compile \
+            deploy/synology/manage-env.py \
+            deploy/synology/bootstrap-admin-settings.py \
+            deploy/synology/admin-settings-worker.py \
+            deploy/synology/admin-settings-panel.py
+      - name: Validate JSON schema document
+        run: python -m json.tool deploy/synology/admin-settings.schema.json >/dev/null
+      - name: Run settings regression tests
+        run: |
+          python -m unittest -v \
+            deploy/synology/test_manage_env.py \
+            deploy/synology/test_admin_settings_worker.py
+      - name: Validate shell syntax
+        run: sh -n deploy/synology/autodeploy.sh
