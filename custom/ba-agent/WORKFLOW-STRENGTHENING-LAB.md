@@ -47,6 +47,14 @@ A Skill is eligible for release when it:
 - improves or materially stabilizes the simpler baseline enough to justify the extra instruction surface;
 - has no known defect that would corrupt downstream evidence state.
 
+## Current benchmark state — 2026-09-05
+
+- **B024 `audit-artifact-traceability` v0.1:** Gemini 3.6 baseline succeeded; Skill call was `provider_busy`. A fresh same-model Skill-only retry is queued.
+- **B025 `prepare-procurement-specification` v0.1:** Gemini 3.6 baseline succeeded; Skill call was `provider_busy`. A fresh same-model Skill-only retry is queued.
+- **B026 `analyze-nonfunctional-requirements` v0.1:** Gemini 3.6 baseline succeeded; Skill call was `provider_busy`. A fresh same-model Skill-only retry is queued.
+- **B027 `assess-change-impact` v0.1:** complete Gemini 3.6 A/B scored baseline **98/100** vs Skill **97/100**, zero critical penalties. v0.1 was not retained because it treated unreferenced domains as non-impacts and promoted an unapproved planning Target into an approval task. v0.2 is a focused generic correction and a same-model Skill-only retry is queued.
+- **B028–B031:** original Gemini 3.7 A/B jobs were provider-busy on both sides. Replacement same-model pairs are queued on Gemini 3.5/3.6 rather than waiting for 3.7 capacity.
+
 ## Planned Agent use
 
 Once validated:
