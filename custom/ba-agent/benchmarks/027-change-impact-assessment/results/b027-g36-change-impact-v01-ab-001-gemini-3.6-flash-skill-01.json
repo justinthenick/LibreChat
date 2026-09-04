@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 027 — Change Impact Assessment",
+  "benchmark_dir": "027-change-impact-assessment",
+  "ended_at": "2026-09-04T14:57:08Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "5ae8190d2d8434a75568fe86082acb4cef608afdc8bf53c6f45e8b5370fc1b9b",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "skill",
+  "model": "gemini-3.6-flash",
+  "prompt_sha256": "e22ef8e9c21c6ce7ff22f1b2a31b6d7512a55ca6189bcede1e3c3693932b27d3",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/assess-change-impact/SKILL.md",
+  "skill_sha256": "8d47c45f6f015fb0b9f925c9e0f6f7b0d7df2d232f82845590321a1ab067d800",
+  "skill_version": "0.1.0",
+  "started_at": "2026-09-04T14:55:22Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 1837,
+    "promptTokenCount": 1437,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1437
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 3150,
+    "totalTokenCount": 6424
+  }
+}
