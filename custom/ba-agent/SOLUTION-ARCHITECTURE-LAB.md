@@ -52,13 +52,15 @@ The Skill safely generalized to software/integration, but did not improve on a s
 
 ### B022 — Campus building network link
 
-Status: **active — baseline 88/100; v0.3 83/100; v0.4 88/100; zero penalties**.
+Status: **complete with waiver — baseline 88/100; v0.3 83/100; v0.4 88/100; zero penalties**.
 
 Both runs selected the correct passive optical topology. v0.3 nevertheless promoted preferences and plausible implementation details into hard constraints and Procurement requirements, including electrical-isolation/cable-construction strength and an unresolved Layer-2 boundary.
 
 v0.4 fixed the electrical-isolation and logical-boundary strength defects but still promoted the midpoint-cabinet preference to a hard zero-equipment requirement and invented validation methods. It tied rather than beat the baseline.
 
-Decision: **v0.4 is not ready for composition.** v0.5 adds one final generic mandatory-word/source-strength sweep and evidence-condition-only validation format. `b022-g37-solution-design-v05-skill-004` is queued as a Skill-only rerun against the existing Gemini 3.7 baseline. No network-specific rule was added. If v0.5 misses, stop tuning this benchmark and redesign the output contract.
+The v0.5 focused rerun returned `provider_busy` and produced no model output. To preserve standalone-before-composition discipline, the untested v0.5 Skill revision is excluded from the release.
+
+Decision: **retain tested v0.4 for repository integration under an explicit user waiver.** The 88-point result has zero critical penalties; its preference-strength and validation-method deficit remains recorded technical debt rather than being represented as fixed.
 
 After the corrected Skill clears the third-domain gate, consider composing a Solution Architect agent around the Skill plus requirements analysis and, downstream, the procurement Skills.
 

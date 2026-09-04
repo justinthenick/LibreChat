@@ -34,3 +34,9 @@ The generic requirement-strength defect is not closed. The evidence map converts
 Create one final generic correction rather than adding network-specific rules. Require a mandatory-word strength sweep across the architecture and Procurement handoff, make source status explicit in Procurement rows, and constrain validation actions to the missing evidence and affected decision rather than an unevidenced method. Run one focused Skill-only B022 rerun against the preserved Gemini 3.7 baseline.
 
 If that correction does not clear the standalone gate, stop tuning B022 and redesign the Skill/output contract before any Solution Architect composition.
+
+## Release waiver
+
+On 2026-09-04 the user accepted the documented 88-point deficit for the current release. The subsequent v0.5 validation attempt returned `provider_busy` with no model output, so the untested v0.5 Skill revision is not included in the release.
+
+Release `design-technical-solution` v0.4.0 with zero rubric penalties and the residual preference-to-hard-requirement/validation-method weakness recorded as technical debt. This waiver permits repository integration; it does not erase the deficit or constitute evidence that the untested v0.5 correction works.

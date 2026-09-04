@@ -84,6 +84,8 @@ This ledger records the development and benchmark history for the BA Agent Lab.
 | 2026-09-04 14:20:05–14:20:25 | B022 — `design-technical-solution` v0.4 | NAS runner; Gemini 3.7 Flash; 20s | **88/100**; 6,036 tokens | Zero penalties and five-point improvement over v0.3, but midpoint preference still became a hard zero-equipment requirement and validation methods were invented. |
 | 2026-09-04 | B022 v0.4 evaluator decision | Codex evaluation + repository update | baseline 88; v0.4 88 | Reject v0.4 for composition; it ties baseline and remains below the 90-point standalone gate. |
 | 2026-09-04 | Solution Architecture v0.5 created + queued | Final focused generic Skill correction | `b022-g37-solution-design-v05-skill-004` | Adds mandatory-word/source-strength sweep and evidence-condition-only validation format. Stop B022 tuning and redesign if this run misses. |
+| 2026-09-04 14:35:04–14:35:32 | B022 — `design-technical-solution` v0.5 attempt | NAS runner; Gemini 3.7 Flash; 28s | `provider_busy`; no model output | Provider-capacity event; v0.5 cannot be scored or released as tested. |
+| 2026-09-04 | B022 release waiver | User decision + repository update | release tested v0.4 at 88/100; zero penalties | Accept current deficit for repository integration. Exclude untested v0.5; retain preference-strength and validation-method weakness as technical debt. |
 
 ## Current architecture decision
 
@@ -97,7 +99,7 @@ This ledger records the development and benchmark history for the BA Agent Lab.
 - ITIL 4 alignment/readiness: `assess-itil-alignment` v0.2 retained after B011 v0.1 **98/100** and B012 v0.2 **100/100**, zero penalties on the corrected rerun; isolated ITIL track is generalized enough for composition planning.
 - Procurement verification: `verify-procurement-options` v0.2.0 retained after B014 **100/100** and B015 **95/100** versus baseline **82/100**; cross-domain IT + furniture evidence is sufficient for composition planning.
 - Procurement market expansion: `expand-procurement-market` v0.1.0 produced **100/100** on B016 but did not beat the **100/100** baseline and used more tokens. B018 is the harder generalization/value test; do not freeze or tune v0.1 until that result.
-- Technical Solution Architecture: v0.4.0 is **not ready for composition** after B019 **82/100**, B020 baseline **94/100** vs Skill v0.3 **93/100**, and B022 baseline **88/100** vs v0.3 **83/100** vs v0.4 **88/100**. v0.5.0 applies the final focused generic strength-sweep correction and is queued for a B022 Skill-only rerun.
+- Technical Solution Architecture: tested v0.4.0 is **accepted for repository integration under a documented waiver** after B019 **82/100**, B020 baseline **94/100** vs Skill v0.3 **93/100**, and B022 baseline **88/100** vs v0.3 **83/100** vs v0.4 **88/100**, with zero B022 penalties. The v0.5 attempt was provider-busy and is excluded from the release; the remaining v0.4 deficit is technical debt.
 - Composition of handoff + ITIL with the frozen BA agent remains deferred until B013 handoff generalization completes cleanly.
 - Procurement Analyst composition is the planned next architecture milestone after B018. B017 dishwasher remains reserve verification evidence, not a mandatory gate.
 
