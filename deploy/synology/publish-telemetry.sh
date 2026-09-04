@@ -7,12 +7,27 @@ LAST_FAILURE_FILE="/volume1/docker/librechat-deploy.last-failure"
 TELEMETRY_MARKER="/volume1/docker/librechat-telemetry.last-publish"
 STATUS_IMAGE="curlimages/curl:8.10.1"
 STATUS_REPO="justinthenick/LibreChat"
+STATUS_CONTEXT="nas/librechat"
 TELEMETRY_BRANCH="nas-status"
 TMP_DIR="/tmp/librechat-telemetry.$$"
 
 RESULT="${1:-check}"
 STAGE="${2:-unknown}"
 SHA="${3:-unknown}"
+
+# A healthy steady-state poll after a failed reconciliation is a real recovery.
+# Publish it as success so telemetry and the commit status do not remain stale
+# red after the runtime has healed. Failure deliberately clears the marker so
+# the next healthy poll runs this recovery path exactly once.
+PUBLIC_RESULT="$RESULT"
+PUBLIC_STAGE="$STAGE"
+if [ "$RESULT" = "check" ] && [ "$STAGE" = "steady_state" ]; then
+  PUBLIC_RESULT="success"
+  PUBLIC_STAGE="steady_state_recovered"
+fi
+if [ "$RESULT" = "failure" ]; then
+  rm -f "$TELEMETRY_MARKER" 2>/dev/null || true
+fi
 
 env_value() {
   sed -n "s/^$1=//p" "$DEPLOY_DIR/.env" | head -n 1
@@ -147,6 +162,27 @@ put_file() {
   github_api PUT "$API_URL" payload.json >/dev/null
 }
 
+post_recovery_status() {
+  STATUS_TOKEN="$(env_value GITHUB_DEPLOY_STATUS_TOKEN)"
+  if [ -z "$STATUS_TOKEN" ]; then
+    return 0
+  fi
+  docker run --rm \
+    -e GH_TOKEN="$STATUS_TOKEN" \
+    -e GH_SHA="$SHA" \
+    -e GH_REPO="$STATUS_REPO" \
+    -e GH_CONTEXT="$STATUS_CONTEXT" \
+    --entrypoint sh "$STATUS_IMAGE" -c '
+      payload=$(printf "{\"state\":\"success\",\"description\":\"Synology deployment healthy after recovery\",\"context\":\"%s\"}" "$GH_CONTEXT")
+      curl -fsS -X POST \
+        -H "Accept: application/vnd.github+json" \
+        -H "Authorization: Bearer $GH_TOKEN" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        "https://api.github.com/repos/$GH_REPO/statuses/$GH_SHA" \
+        -d "$payload" >/dev/null
+    '
+}
+
 NOW="$(timestamp)"
 API_STATUS="$(container_field librechat '{{.State.Status}}')"
 API_EXIT="$(container_field librechat '{{.State.ExitCode}}')"
@@ -180,8 +216,8 @@ cat > "$TMP_DIR/latest.json" <<EOF
 {
   "schema": 1,
   "timestamp": "$NOW",
-  "result": "$RESULT",
-  "stage": "$STAGE",
+  "result": "$PUBLIC_RESULT",
+  "stage": "$PUBLIC_STAGE",
   "commit": "$SHA",
   "runtime": {
     "librechat_container": "$API_STATUS",
@@ -214,12 +250,18 @@ fi
 put_file "telemetry/latest.json" "$TMP_DIR/latest.json" "Update NAS telemetry snapshot"
 put_file "telemetry/latest.log" "$TMP_DIR/latest.log" "Update NAS telemetry event log"
 
-if [ "$RESULT" = "failure" ] || [ "$RESULT" = "success" ]; then
+if [ "$PUBLIC_RESULT" = "failure" ] || [ "$PUBLIC_RESULT" = "success" ]; then
   SAFE_TIME="$(date -u '+%Y%m%dT%H%M%SZ')"
   SAFE_SHA="$(printf '%s' "$SHA" | cut -c1-12)"
-  HISTORY_PATH="telemetry/history/${SAFE_TIME}-${SAFE_SHA}-${RESULT}.json"
-  put_file "$HISTORY_PATH" "$TMP_DIR/latest.json" "Record NAS telemetry $RESULT"
+  HISTORY_PATH="telemetry/history/${SAFE_TIME}-${SAFE_SHA}-${PUBLIC_RESULT}.json"
+  put_file "$HISTORY_PATH" "$TMP_DIR/latest.json" "Record NAS telemetry $PUBLIC_RESULT"
 fi
 
-printf '%s\n' "$NOW" > "$TELEMETRY_MARKER"
-chmod 600 "$TELEMETRY_MARKER" 2>/dev/null || true
+if [ "$RESULT" = "check" ] && [ "$STAGE" = "steady_state" ]; then
+  post_recovery_status || true
+fi
+
+if [ "$RESULT" != "failure" ]; then
+  printf '%s\n' "$NOW" > "$TELEMETRY_MARKER"
+  chmod 600 "$TELEMETRY_MARKER" 2>/dev/null || true
+fi
