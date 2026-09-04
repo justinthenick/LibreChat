@@ -1,0 +1,51 @@
+{
+  "combined_markdown": "b023-g36-ba-change-control-005-gemini-3.6-flash-pipeline-01.md",
+  "combined_metadata": "b023-g36-ba-change-control-005-gemini-3.6-flash-pipeline-01.json",
+  "run_id": "b023-g36-ba-change-control-005",
+  "schema": 1,
+  "stages": [
+    {
+      "markdown": "b023-g36-ba-change-control-005-gemini-3.6-flash-pipeline-01-stage-01-ba-delivery.md",
+      "metadata": "b023-g36-ba-change-control-005-gemini-3.6-flash-pipeline-01-stage-01-ba-delivery.json",
+      "output_sha256": "153300d8c5d1451350b9be63678f399532e65ca14c84ad9d590fbae5633b5dee",
+      "stage_id": "ba-delivery",
+      "stage_name": "Composite BA Delivery Analyst v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 327,
+        "promptTokenCount": 2752,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2752
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 7861,
+        "totalTokenCount": 10940
+      }
+    },
+    {
+      "markdown": "b023-g36-ba-change-control-005-gemini-3.6-flash-pipeline-01-stage-02-change-readiness.md",
+      "metadata": "b023-g36-ba-change-control-005-gemini-3.6-flash-pipeline-01-stage-02-change-readiness.json",
+      "output_sha256": "e65203b595823e46e49e094b7751f28b5fad95ef81e61e2b7b18f2accccb0296",
+      "stage_id": "change-readiness",
+      "stage_name": "Prepare Solution / Change Readiness v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 1504,
+        "promptTokenCount": 1897,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1897
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 2137,
+        "totalTokenCount": 5538
+      }
+    }
+  ],
+  "status": "success"
+}
