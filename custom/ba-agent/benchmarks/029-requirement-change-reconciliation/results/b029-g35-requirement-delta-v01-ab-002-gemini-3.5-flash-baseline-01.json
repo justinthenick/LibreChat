@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 029 — Requirement Change Reconciliation",
+  "benchmark_dir": "029-requirement-change-reconciliation",
+  "ended_at": "2026-09-04T21:28:54Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "d4dfe199c48e44475d63b151755abb7a2a8cedc58b8d227d1c0fa09cd3a1b072",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "baseline",
+  "model": "gemini-3.5-flash",
+  "prompt_sha256": "7500fe2770b3fbb2f84ce6bc4eccacdafc6f975e01bcacd374263aa48b9b05f6",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": null,
+  "skill_sha256": null,
+  "skill_version": null,
+  "started_at": "2026-09-04T21:28:41Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 1137,
+    "promptTokenCount": 645,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 645
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 2437,
+    "totalTokenCount": 4219
+  }
+}
