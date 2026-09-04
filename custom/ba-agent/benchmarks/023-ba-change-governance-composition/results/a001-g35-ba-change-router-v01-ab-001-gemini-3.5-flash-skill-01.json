@@ -1,0 +1,30 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 023 — BA Change Delivery Agent Routing",
+  "benchmark_dir": "023-ba-change-governance-composition",
+  "ended_at": "2026-09-04T14:05:33Z",
+  "error": "{\"message\": \"This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\", \"status\": \"UNAVAILABLE\"}",
+  "finish_reason": null,
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 503,
+  "input_sha256": "46226a8f175179daadd26281a187d44d9f155aca710aeb03b82e74f504df3f3c",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "skill",
+  "model": "gemini-3.5-flash",
+  "prompt_sha256": "8a1bc134b18a42137bd06a16abda4b51078ba0a1d90e82d3af14799be255716b",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/agents/ba-change-delivery-orchestrator/AGENT.md",
+  "skill_sha256": "556dca2da842b8df92bad6b85e9b25841559e62846eb2b47f9d2e365a403cb16",
+  "skill_version": "0.1.0",
+  "started_at": "2026-09-04T14:05:11Z",
+  "status": "provider_busy",
+  "temperature": 0.0,
+  "usage": null
+}
