@@ -17,6 +17,12 @@ Agent work follows four gates:
 
 Do not jump directly to dynamic multi-agent autonomy. Extra calls, routers and handoffs must earn their complexity through measured quality or reliability.
 
+## Provider substitution rule
+
+Provider/model availability is operational, not quality evidence. A `provider_busy` or `quota_blocked` run is preserved but receives no quality score. Re-run with a fresh job ID on another model, including an older model if necessary. Keep baseline and candidate on the same substitute model; never silently mix model versions inside one comparison.
+
+Do not switch models merely because a result is weak. Semantic failure remains experimental evidence.
+
 ## Cross-agent controls
 
 Every Agent must:
@@ -65,13 +71,60 @@ Initial validation uses Benchmark 023:
 - control composition: frozen Composite BA Delivery Analyst v0.2 -> Change Readiness v0.2;
 - candidate composition: frozen Composite BA Delivery Analyst v0.2 -> Change Readiness v0.2 -> ITIL Alignment v0.2.
 
+The initial Gemini 3.5 Flash routing/control/candidate jobs all returned `provider_busy` before useful execution. They are preserved as operational evidence only. Replacement jobs are queued on Gemini 3.6 Flash:
+
+- `a001-g36-ba-change-router-v01-ab-004`
+- `b023-g36-ba-change-control-005`
+- `b023-g36-ba-change-itil-006`
+
 This deliberately separates **Agent routing quality** from **composition quality**.
 
-### Planned after A001
+### A002 — Solution Architecture / Procurement Orchestrator — planned, gated
 
-- **Solution Architecture / Procurement Agent** — `design-technical-solution` plus procurement expansion/verification Skills.
-- **Procurement Agent** — market expansion plus evidence/compatibility verification, with domain classification.
+Do not construct the executable Agent until its new seam Skills have standalone evidence.
+
+Expected capability family:
+
+- `analyze-requirements` when source is still messy;
+- `analyze-nonfunctional-requirements`;
+- `design-technical-solution`;
+- `record-architecture-decisions` where decision evidence exists;
+- `prepare-procurement-specification`;
+- `expand-procurement-market`;
+- `verify-procurement-options`.
+
+The Agent must stop before procurement if architecture-changing Unknowns make the specification unstable. It must never shop against an unresolved design by pretending preferences/targets are hard requirements.
+
+### A003 — Delivery Assurance Orchestrator — planned, gated
+
+Do not construct the executable Agent until B024/B027/B028/B031 establish the assurance Skills independently.
+
+Expected capability family:
+
+- `audit-artifact-traceability`;
+- `assess-change-impact`;
+- `validate-release-evidence`;
+- `assess-operational-readiness`;
+- `prepare-solution-change-readiness` where appropriate;
+- `assess-itil-alignment`.
+
+This must remain independent of the producer Agent where possible. Its job is to report what is traceable, evidenced, ready, failed, unknown or not evidenced — not to make the original delivery look complete.
+
+### A004 — Requirement Delta / Selective Update Orchestrator — planned, gated
+
+Expected capability family:
+
+- `reconcile-requirement-changes`;
+- `analyze-requirements` for genuinely new/ambiguous material;
+- only the downstream Skills affected by supported deltas.
+
+The key experiment is whether selective re-evaluation preserves more provenance and costs less than regenerating an entire delivery chain after every meeting/email change.
+
+### Other planned tracks
+
+- **Procurement Agent** — market expansion plus evidence/compatibility verification, with domain classification; may be merged into A002 if experiments show a separate Agent adds no value.
 - **Manuscript Engineering Agent** — structure analysis first; editing capabilities only after decomposition/reconstruction is validated.
+- **Incident / Problem Orchestrator** — only after incident-timeline / causal-evidence / corrective-action Skills are built and independently tested.
 
 ## Release rule
 
