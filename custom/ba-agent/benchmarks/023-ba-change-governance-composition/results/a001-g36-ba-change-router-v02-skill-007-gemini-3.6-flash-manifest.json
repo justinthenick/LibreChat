@@ -1,0 +1,15 @@
+{
+  "benchmark": "Benchmark 023 — BA Change Delivery Agent Routing",
+  "created_at": "2026-09-04T21:25:18Z",
+  "mode": "skill",
+  "model": "gemini-3.6-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "a001-g36-ba-change-router-v02-skill-007-gemini-3.6-flash-skill-01.md",
+      "metadata": "a001-g36-ba-change-router-v02-skill-007-gemini-3.6-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}
