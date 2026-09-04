@@ -12,6 +12,12 @@
       "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/design-technical-solution/SKILL.md"
     },
     {
+      "type": "tail",
+      "label": "Solution Architecture local skill content",
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/design-technical-solution/SKILL.md",
+      "lines": 200
+    },
+    {
       "type": "path_exists",
       "label": "B022 benchmark local copy",
       "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/022-campus-building-network-link/benchmark.json"
