@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 024 — Artifact Traceability Audit",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/audit-artifact-traceability/SKILL.md",
+  "results_dir": "results"
+}
