@@ -159,8 +159,8 @@ Do not modify the frozen Composite BA Delivery Analyst merely to add ITIL wordin
 Skill:
 
 - `skills/design-technical-solution/SKILL.md`
-- current version: **0.4.0**
-- status: **focused generic correction queued for B022 validation**
+- current version: **0.5.0**
+- status: **final focused standalone correction queued for B022 validation**
 
 Purpose: preserve the intended technical outcome while challenging an impossible or unsupported implementation, expose architecture-changing Unknowns, and create a capability-level Procurement handoff only after the design is defensible.
 
@@ -184,7 +184,11 @@ Decision: **do not retain v0.3 for composition.** v0.4 adds one generic evidence
 
 Focused rerun: `b022-g37-solution-design-v04-skill-003`, Gemini 3.7 Flash, Skill-only at temperature `0.0`, against the preserved B022 baseline.
 
-Do not compose Solution Architecture with BA or Procurement until v0.4 clears the B022 gate.
+v0.4 improved to **88/100** with zero penalties, tying the preserved baseline but not clearing the 90-point standalone gate. It correctly retained electrical isolation as a Preference and returned the logical service boundary to BA, but still turned avoidance of midpoint cabinets into `Hard minimum (Zero)` and prescribed unevidenced validation methods.
+
+Decision: **do not retain v0.4 for composition.** v0.5 adds a generic mandatory-word strength sweep, explicit source status in Procurement rows, and an evidence-condition-only validation format. Final focused rerun: `b022-g37-solution-design-v05-skill-004`, Gemini 3.7 Flash, Skill-only at temperature `0.0`.
+
+Do not compose Solution Architecture with BA or Procurement until v0.5 clears the B022 gate. If it does not, stop B022 tuning and redesign the Skill/output contract.
 
 ## Test timeline
 

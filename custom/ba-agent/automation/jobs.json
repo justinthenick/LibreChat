@@ -42,6 +42,7 @@
     {"id":"m001-g35-manuscript-structure-v01-ab-003","enabled":true,"benchmark":"custom/ba-agent/benchmarks/021-manuscript-structure-decomposition","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
     {"id":"b022-g35-solution-design-v03-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/022-campus-building-network-link","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
     {"id":"b022-g37-solution-design-v03-ab-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/022-campus-building-network-link","model":"gemini-3.7-flash","mode":"both","repeat":1,"temperature":0.0},
-    {"id":"b022-g37-solution-design-v04-skill-003","enabled":true,"benchmark":"custom/ba-agent/benchmarks/022-campus-building-network-link","model":"gemini-3.7-flash","mode":"skill","repeat":1,"temperature":0.0}
+    {"id":"b022-g37-solution-design-v04-skill-003","enabled":true,"benchmark":"custom/ba-agent/benchmarks/022-campus-building-network-link","model":"gemini-3.7-flash","mode":"skill","repeat":1,"temperature":0.0},
+    {"id":"b022-g37-solution-design-v05-skill-004","enabled":true,"benchmark":"custom/ba-agent/benchmarks/022-campus-building-network-link","model":"gemini-3.7-flash","mode":"skill","repeat":1,"temperature":0.0}
   ]
 }

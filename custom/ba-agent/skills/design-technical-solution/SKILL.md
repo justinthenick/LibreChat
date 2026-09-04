@@ -5,7 +5,7 @@ description: Turn an intended technical outcome and known environment into an ev
 
 # Design Technical Solution
 
-Version: **0.4.0**
+Version: **0.5.0**
 
 ## Purpose
 
@@ -87,6 +87,21 @@ Before finalizing the preferred architecture or Procurement handoff, audit every
 
 If an architecture is preferred partly because it best satisfies preferences, say that explicitly. Do not rewrite those preferences as feasibility blockers.
 
+### Mandatory strength sweep
+
+Immediately before returning the answer, inspect every use of `must`, `required`, `hard minimum`, `only`, `zero`, `cannot`, `needs`, or equivalent mandatory wording in the architecture, validation plan and Procurement handoff.
+
+For each mandatory statement, identify its source status from the evidence map:
+
+- **Fact / unavoidable function:** mandatory wording is allowed only to the extent the fact or chosen architecture makes it necessary.
+- **Target:** keep it labelled `Target`; do not rewrite it as mandatory.
+- **Preference:** use comparative wording such as `preferred`, `favours`, or `rank higher`; do not express it as `zero`, `must not`, `only`, or a hard minimum.
+- **Unknown:** state the evidence condition or decision still needed; do not resolve it through a default pattern.
+
+If no evidence-map row supports the mandatory statement at the same strength, downgrade it or remove it. A preferred architecture may be selected because it satisfies preferences, but the Procurement handoff must still preserve those preferences as preferences.
+
+For validation items, name the missing evidence and the decision it affects. Do not prescribe a survey technique, inspection tool, test instrument, installation method, configuration mechanism or operating procedure unless the evidence establishes that method or it is logically indispensable.
+
 ## Procurement handoff format
 
 When the design is ready for procurement, produce a short specification containing:
@@ -121,8 +136,11 @@ Include a compact component/data-flow description.
 
 ### 6. Unknowns and validation actions
 
+Use `Unknown | Decision affected | Evidence needed | Owner` where useful. Name the evidence condition, not an unevidenced collection or test method.
+
 ### 7. Procurement-ready specification
-Use `Requirement | Strength | Evidence / rationale | Candidate verification` where useful. Only include it if architecture is sufficiently resolved.
+
+Use `Requirement | Strength | Source status | Evidence / rationale | Candidate verification` where useful. Only include it if architecture is sufficiently resolved. A `Preference` or `Unknown` source row cannot produce a `Hard minimum` requirement.
 
 ## Final audit
 
@@ -140,3 +158,4 @@ Use `Requirement | Strength | Evidence / rationale | Candidate verification` whe
 - Can every constraint and Procurement row be traced to evidence at the same requirement strength?
 - Did I keep unresolved architecture layers unresolved rather than completing them with a common implementation pattern?
 - Did I ask for the evidence condition needed without inventing the validation method?
+- Did I sweep every mandatory word and remove or downgrade any statement whose source is only a Target, Preference or Unknown?
