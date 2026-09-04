@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "benchmark": "Benchmark 016 — Procurement Market Expansion from Stale Search History",
+  "job_id": "b016-g36-market-expand-v01-ab-001",
+  "model": "gemini-3.6-flash",
+  "temperature": 0.0,
+  "baseline": {
+    "score": 100,
+    "penalties": 0,
+    "total_tokens": 4491,
+    "decision": "excellent_baseline"
+  },
+  "skill": {
+    "name": "expand-procurement-market",
+    "version": "0.1.0",
+    "score": 100,
+    "penalties": 0,
+    "total_tokens": 5091,
+    "decision": "excellent_no_measurable_gain"
+  },
+  "comparison": {
+    "score_delta": 0,
+    "token_delta": 600,
+    "token_delta_percent_approx": 13,
+    "material_skill_gain": false
+  },
+  "architecture_decision": "Do not tune or freeze from B016 alone; run a harder mixed-history cross-domain market-expansion benchmark before composition."
+}

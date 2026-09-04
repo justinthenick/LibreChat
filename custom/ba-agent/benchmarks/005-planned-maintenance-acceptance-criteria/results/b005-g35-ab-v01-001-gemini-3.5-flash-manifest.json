@@ -1,0 +1,20 @@
+{
+  "benchmark": "Benchmark 005 — Planned Maintenance Notification Acceptance Criteria",
+  "created_at": "2026-09-01T06:20:29Z",
+  "mode": "both",
+  "model": "gemini-3.5-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b005-g35-ab-v01-001-gemini-3.5-flash-baseline-01.md",
+      "metadata": "b005-g35-ab-v01-001-gemini-3.5-flash-baseline-01.json",
+      "status": "success"
+    },
+    {
+      "markdown": "b005-g35-ab-v01-001-gemini-3.5-flash-skill-01.md",
+      "metadata": "b005-g35-ab-v01-001-gemini-3.5-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}

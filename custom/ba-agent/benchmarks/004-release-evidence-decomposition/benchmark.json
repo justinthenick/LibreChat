@@ -1,0 +1,6 @@
+{
+  "name": "Benchmark 004 — Release Evidence and Deployment Validation Decomposition",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/decompose-requirements/SKILL.md"
+}

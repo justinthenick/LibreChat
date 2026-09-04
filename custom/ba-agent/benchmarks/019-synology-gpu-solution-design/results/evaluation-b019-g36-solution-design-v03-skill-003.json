@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "benchmark": "Benchmark 019 — Synology NAS GPU Outcome-to-Architecture Design",
+  "job_id": "b019-g36-solution-design-v03-skill-003",
+  "model": "gemini-3.6-flash",
+  "temperature": 0.0,
+  "skill": {
+    "name": "design-technical-solution",
+    "version": "0.3.0",
+    "raw_score": 92,
+    "penalties": -10,
+    "final_score": 82,
+    "total_tokens": 7596
+  },
+  "decision": "retain_current_candidate_and_generalize_before_more_tuning",
+  "open_issue": "residual evidence invention in unsupported workaround mechanics and derived network performance",
+  "next": "run a materially different software/integration architecture benchmark using v0.3.0"
+}

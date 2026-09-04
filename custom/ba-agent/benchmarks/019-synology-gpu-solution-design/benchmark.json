@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "name": "Benchmark 019 — Synology NAS GPU Outcome-to-Architecture Design",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/design-technical-solution/SKILL.md"
+}

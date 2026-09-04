@@ -1,0 +1,30 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 022 — Campus Building Network Link Architecture",
+  "benchmark_dir": "022-campus-building-network-link",
+  "ended_at": "2026-09-04T04:35:32Z",
+  "error": "{\"message\": \"This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\", \"status\": \"UNAVAILABLE\"}",
+  "finish_reason": null,
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 503,
+  "input_sha256": "9def950028ac0d6b323a47fb5a96d72ad28977bb4ad30975250271166f688ee6",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "skill",
+  "model": "gemini-3.7-flash",
+  "prompt_sha256": "4c94b75972a6cf03434bee07c33fd3200ab0a101233be605cad713d5fa61d477",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/design-technical-solution/SKILL.md",
+  "skill_sha256": "ccebe72f3071eed392dc01b66df328e65700fb60c1a81fff7cb812c2a46ec9cb",
+  "skill_version": "0.5.0",
+  "started_at": "2026-09-04T04:35:04Z",
+  "status": "provider_busy",
+  "temperature": 0.0,
+  "usage": null
+}

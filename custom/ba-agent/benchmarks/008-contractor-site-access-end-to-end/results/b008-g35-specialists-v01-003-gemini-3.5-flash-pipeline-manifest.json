@@ -1,0 +1,72 @@
+{
+  "combined_markdown": "b008-g35-specialists-v01-003-gemini-3.5-flash-pipeline-01.md",
+  "combined_metadata": "b008-g35-specialists-v01-003-gemini-3.5-flash-pipeline-01.json",
+  "run_id": "b008-g35-specialists-v01-003",
+  "schema": 1,
+  "stages": [
+    {
+      "markdown": "b008-g35-specialists-v01-003-gemini-3.5-flash-pipeline-01-stage-01-requirements.md",
+      "metadata": "b008-g35-specialists-v01-003-gemini-3.5-flash-pipeline-01-stage-01-requirements.json",
+      "output_sha256": "b93ab78cae6bdc86cf704b3dcc5356f0e188e59931456985034ad99453f021d6",
+      "stage_id": "requirements",
+      "stage_name": "Requirements Analyst",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 1282,
+        "promptTokenCount": 1284,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1284
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 3001,
+        "totalTokenCount": 5567
+      }
+    },
+    {
+      "markdown": "b008-g35-specialists-v01-003-gemini-3.5-flash-pipeline-01-stage-02-refinement.md",
+      "metadata": "b008-g35-specialists-v01-003-gemini-3.5-flash-pipeline-01-stage-02-refinement.json",
+      "output_sha256": "e7550eb501dc86dafb19820bb28bffc7e8b819ea6edc1af5ca052e5be6101e5e",
+      "stage_id": "refinement",
+      "stage_name": "Delivery Refinement Analyst",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2696,
+        "promptTokenCount": 2075,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2075
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 2896,
+        "totalTokenCount": 7667
+      }
+    },
+    {
+      "markdown": "b008-g35-specialists-v01-003-gemini-3.5-flash-pipeline-01-stage-03-assurance.md",
+      "metadata": "b008-g35-specialists-v01-003-gemini-3.5-flash-pipeline-01-stage-03-assurance.json",
+      "output_sha256": "3165cdb51f856cf0de65a1ae7cf63df0feb3197fe569368f185265e7be089c28",
+      "stage_id": "assurance",
+      "stage_name": "Assurance Analyst",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2551,
+        "promptTokenCount": 3287,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3287
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 4676,
+        "totalTokenCount": 10514
+      }
+    }
+  ],
+  "status": "success"
+}

@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "name": "Benchmark 016 — Procurement Market Expansion from Stale Search History",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/expand-procurement-market/SKILL.md"
+}

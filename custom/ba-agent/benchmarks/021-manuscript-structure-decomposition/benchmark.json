@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "name": "Manuscript Engineering M001 — Mini-Novel Structure Reconstruction",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/analyze-manuscript-structure/SKILL.md"
+}

@@ -1,0 +1,20 @@
+{
+  "benchmark": "Benchmark 016 — Procurement Market Expansion from Stale Search History",
+  "created_at": "2026-09-02T10:54:37Z",
+  "mode": "both",
+  "model": "gemini-3.6-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b016-g36-market-expand-v01-ab-001-gemini-3.6-flash-baseline-01.md",
+      "metadata": "b016-g36-market-expand-v01-ab-001-gemini-3.6-flash-baseline-01.json",
+      "status": "success"
+    },
+    {
+      "markdown": "b016-g36-market-expand-v01-ab-001-gemini-3.6-flash-skill-01.md",
+      "metadata": "b016-g36-market-expand-v01-ab-001-gemini-3.6-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}

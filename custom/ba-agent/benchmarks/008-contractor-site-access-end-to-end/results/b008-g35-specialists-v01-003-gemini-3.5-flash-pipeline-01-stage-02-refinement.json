@@ -1,0 +1,33 @@
+{
+  "agent_path": "custom/ba-agent/agents/delivery-refinement-analyst/AGENT.md",
+  "agent_sha256": "179f7feee4435b0346cedb59a21dbb5c86808c971a27be458dcc3cd35474b4f7",
+  "agent_version": "0.1.0",
+  "ended_at": "2026-09-01T09:59:08Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "max_output_tokens": 8192,
+  "model": "gemini-3.5-flash",
+  "pipeline": "Benchmark 008 \u2014 Three-Specialist BA Pipeline",
+  "run_id": "b008-g35-specialists-v01-003",
+  "stage_id": "refinement",
+  "stage_index": 2,
+  "stage_input_sha256": "ce824ab822289146bd062e80d8b2a597eed40e1168487efd3b687031090b7b31",
+  "stage_name": "Delivery Refinement Analyst",
+  "started_at": "2026-09-01T09:58:48Z",
+  "status": "success",
+  "temperature": 0.0,
+  "upstream_output_sha256": "b93ab78cae6bdc86cf704b3dcc5356f0e188e59931456985034ad99453f021d6",
+  "usage": {
+    "candidatesTokenCount": 2696,
+    "promptTokenCount": 2075,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 2075
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 2896,
+    "totalTokenCount": 7667
+  }
+}

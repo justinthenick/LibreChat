@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 018 — Mixed-History Compact Treadmill Market Expansion",
+  "benchmark_dir": "018-procurement-market-expansion-mixed-history",
+  "ended_at": "2026-09-02T11:19:11Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "7e09718f5ffb0999f206b51550467ba7961449845cd3866625e4a793318855aa",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "baseline",
+  "model": "gemini-3.6-flash",
+  "prompt_sha256": "8ffa43146fa3b1454cabbb29b0f4e56176ce18d4905aeaf4fc047bfe084847d4",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": null,
+  "skill_sha256": null,
+  "skill_version": null,
+  "started_at": "2026-09-02T11:18:37Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 1639,
+    "promptTokenCount": 1376,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1376
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 2132,
+    "totalTokenCount": 5147
+  }
+}

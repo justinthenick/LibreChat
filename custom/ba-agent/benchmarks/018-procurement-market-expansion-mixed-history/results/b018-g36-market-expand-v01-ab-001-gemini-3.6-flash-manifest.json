@@ -1,0 +1,20 @@
+{
+  "benchmark": "Benchmark 018 — Mixed-History Compact Treadmill Market Expansion",
+  "created_at": "2026-09-02T11:19:40Z",
+  "mode": "both",
+  "model": "gemini-3.6-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b018-g36-market-expand-v01-ab-001-gemini-3.6-flash-baseline-01.md",
+      "metadata": "b018-g36-market-expand-v01-ab-001-gemini-3.6-flash-baseline-01.json",
+      "status": "success"
+    },
+    {
+      "markdown": "b018-g36-market-expand-v01-ab-001-gemini-3.6-flash-skill-01.md",
+      "metadata": "b018-g36-market-expand-v01-ab-001-gemini-3.6-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}

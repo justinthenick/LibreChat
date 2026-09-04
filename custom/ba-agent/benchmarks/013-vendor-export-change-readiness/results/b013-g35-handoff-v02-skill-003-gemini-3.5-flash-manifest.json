@@ -1,0 +1,15 @@
+{
+  "benchmark": "Benchmark 013 — Vendor Export Solution / Change-Readiness Handoff",
+  "created_at": "2026-09-03T08:25:33Z",
+  "mode": "skill",
+  "model": "gemini-3.5-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b013-g35-handoff-v02-skill-003-gemini-3.5-flash-skill-01.md",
+      "metadata": "b013-g35-handoff-v02-skill-003-gemini-3.5-flash-skill-01.json",
+      "status": "provider_busy"
+    }
+  ],
+  "schema": 2
+}

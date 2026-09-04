@@ -1,0 +1,15 @@
+{
+  "benchmark": "Benchmark 014 — Used Workstation + GPU Procurement Verification",
+  "created_at": "2026-09-02T05:27:52Z",
+  "mode": "both",
+  "model": "gemini-3.5-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b014-g35-procurement-verify-v01-ab-001-gemini-3.5-flash-baseline-01.md",
+      "metadata": "b014-g35-procurement-verify-v01-ab-001-gemini-3.5-flash-baseline-01.json",
+      "status": "quota_blocked"
+    }
+  ],
+  "schema": 2
+}

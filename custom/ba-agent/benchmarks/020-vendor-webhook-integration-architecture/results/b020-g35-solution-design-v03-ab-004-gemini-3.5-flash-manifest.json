@@ -1,0 +1,20 @@
+{
+  "benchmark": "Benchmark 020 — Vendor SaaS Webhook-to-Polling Integration Architecture",
+  "created_at": "2026-09-03T22:05:44Z",
+  "mode": "both",
+  "model": "gemini-3.5-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b020-g35-solution-design-v03-ab-004-gemini-3.5-flash-baseline-01.md",
+      "metadata": "b020-g35-solution-design-v03-ab-004-gemini-3.5-flash-baseline-01.json",
+      "status": "success"
+    },
+    {
+      "markdown": "b020-g35-solution-design-v03-ab-004-gemini-3.5-flash-skill-01.md",
+      "metadata": "b020-g35-solution-design-v03-ab-004-gemini-3.5-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}

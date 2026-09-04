@@ -1,0 +1,30 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 013 — Vendor Export Solution / Change-Readiness Handoff",
+  "benchmark_dir": "013-vendor-export-change-readiness",
+  "ended_at": "2026-09-01T14:40:29Z",
+  "error": "{\"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.5-flash\\nPlease retry in 14.587000228s.\", \"status\": \"RESOURCE_EXHAUSTED\", \"details\": [{\"@type\": \"type.googleapis.com/google.rpc.Help\", \"links\": [{\"description\": \"Learn more about Gemini API quotas\", \"url\": \"https://ai.google.dev/gemini-api/docs/rate-limits\"}]}, {\"@type\": \"type.googleapis.com/google.rpc.QuotaFailure\", \"violations\": [{\"quotaMetric\": \"generativelanguage.googleapis.com/generate_content_free_tier_requests\", \"quotaId\": \"GenerateRequestsPerDayPerProjectPerModel-FreeTier\", \"quotaDimensions\": {\"model\": \"gemini-3.5-flash\", \"location\": \"global\"}, \"quotaValue\": \"20\"}]}, {\"@type\": \"type.googleapis.com/google.rpc.RetryInfo\", \"retryDelay\": \"14s\"}]}",
+  "finish_reason": null,
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 429,
+  "input_sha256": "dc2a0c683ea9cbd2672ca679bf06922ffebed5bb6e7cf405963abefe74587906",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "baseline",
+  "model": "gemini-3.5-flash",
+  "prompt_sha256": "1ff5c6748ceb7c37be1a15ab7901b471f2dce18454131542d72fe8ba6fcbfa7c",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": null,
+  "skill_sha256": null,
+  "skill_version": null,
+  "started_at": "2026-09-01T14:40:29Z",
+  "status": "quota_blocked",
+  "temperature": 0.0,
+  "usage": null
+}
