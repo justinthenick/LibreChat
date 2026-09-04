@@ -5,7 +5,7 @@ description: Route a BA/change request through the minimum appropriate validated
 
 # BA Change Delivery Orchestrator
 
-Version: **0.1.0**
+Version: **0.2.0**
 
 ## Mission
 
@@ -43,6 +43,8 @@ Across the route:
 - Deferred remains Deferred.
 - Disputed remains Disputed until supplied evidence resolves it.
 - Unknown remains Unknown.
+- Confirmed source-backed outcomes remain visible as confirmed; do not focus so heavily on unresolved items that confirmed policy/outcome constraints disappear from the route.
+- Explicit local-policy gates remain explicit local-policy gates. Name the source-backed gate when it materially constrains a downstream stage, and do not replace it with generic CAB/sign-off/approval language.
 - Source/proposer is not Decision Owner.
 - Missing evidence is not automatically a mandatory approval/sign-off/CAB gate.
 - A proposed mechanism is not a confirmed requirement unless the source establishes it.
@@ -55,7 +57,7 @@ For a routing/planning request, return only:
 2. **Selected Skills in execution order** — exact Skill names.
 3. **Why each Skill is selected** — one sentence each tied to the requested outcome and input maturity.
 4. **Skills deliberately not selected** — if any, with reason.
-5. **Stop / conditional rules** — what downstream stages must not harden or fabricate if upstream evidence remains unresolved.
+5. **Stop / conditional rules** — include both (a) unresolved states downstream must not harden and (b) any confirmed outcome or explicit local-policy gate that downstream stages must preserve.
 6. **Expected final artifact** — what the completed route should produce.
 
 Do not execute the Skills in the routing response.
@@ -68,4 +70,5 @@ Before returning the route, verify:
 - no required prerequisite was skipped;
 - no irrelevant Skill was added;
 - no Candidate/Target/Deferred/Disputed/Unknown item was silently promoted;
+- no confirmed source-backed outcome or explicit local-policy gate material to the requested route was silently dropped;
 - no decision authority, architecture or approval gate was invented.
