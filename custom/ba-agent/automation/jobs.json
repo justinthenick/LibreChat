@@ -58,6 +58,15 @@
     {"id":"b028-g37-release-evidence-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/028-release-evidence-validation","model":"gemini-3.7-flash","mode":"both","repeat":1,"temperature":0.0},
     {"id":"b029-g37-requirement-delta-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/029-requirement-change-reconciliation","model":"gemini-3.7-flash","mode":"both","repeat":1,"temperature":0.0},
     {"id":"b030-g37-adr-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/030-architecture-decision-recording","model":"gemini-3.7-flash","mode":"both","repeat":1,"temperature":0.0},
-    {"id":"b031-g37-operational-readiness-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/031-operational-readiness-assessment","model":"gemini-3.7-flash","mode":"both","repeat":1,"temperature":0.0}
+    {"id":"b031-g37-operational-readiness-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/031-operational-readiness-assessment","model":"gemini-3.7-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"a001-g36-ba-change-router-v02-skill-007","enabled":true,"benchmark":"custom/ba-agent/benchmarks/023-ba-change-governance-composition","model":"gemini-3.6-flash","mode":"skill","repeat":1,"temperature":0.0},
+    {"id":"b024-g36-traceability-v01-skill-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/024-artifact-traceability-audit","model":"gemini-3.6-flash","mode":"skill","repeat":1,"temperature":0.0},
+    {"id":"b025-g36-procurement-spec-v01-skill-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/025-procurement-specification","model":"gemini-3.6-flash","mode":"skill","repeat":1,"temperature":0.0},
+    {"id":"b026-g36-nfr-v01-skill-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis","model":"gemini-3.6-flash","mode":"skill","repeat":1,"temperature":0.0},
+    {"id":"b027-g36-change-impact-v02-skill-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/027-change-impact-assessment","model":"gemini-3.6-flash","mode":"skill","repeat":1,"temperature":0.0},
+    {"id":"b028-g35-release-evidence-v01-ab-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/028-release-evidence-validation","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b029-g35-requirement-delta-v01-ab-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/029-requirement-change-reconciliation","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b030-g35-adr-v01-ab-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/030-architecture-decision-recording","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b031-g36-operational-readiness-v01-ab-002","enabled":true,"benchmark":"custom/ba-agent/benchmarks/031-operational-readiness-assessment","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0}
   ]
 }
