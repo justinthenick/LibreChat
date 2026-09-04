@@ -1,15 +1,3 @@
-2026-09-04 19:10:02 LibreChat deployment check started
-2026-09-04 19:10:02 Cloudflare tunnel integration enabled
-2026-09-04 19:10:02 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
-2026-09-04 19:11:17 No deployment change; healthy deployment already recorded at 5890332a
-2026-09-04 19:15:02 LibreChat deployment check started
-2026-09-04 19:15:02 Cloudflare tunnel integration enabled
-2026-09-04 19:15:02 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
-2026-09-04 19:16:28 No deployment change; healthy deployment already recorded at 5890332a
-2026-09-04 19:20:10 LibreChat deployment check started
-2026-09-04 19:20:10 Cloudflare tunnel integration enabled
-2026-09-04 19:20:10 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
-2026-09-04 19:21:26 No deployment change; healthy deployment already recorded at 5890332a
 2026-09-04 19:25:02 LibreChat deployment check started
 2026-09-04 19:25:02 Cloudflare tunnel integration enabled
 2026-09-04 19:25:02 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
@@ -38,3 +26,15 @@
 2026-09-04 19:52:58 Image pull completed
 2026-09-04 19:54:21 ERROR: Compose update failed
 2026-09-04 19:54:21 Collecting deployment diagnostics for stage compose_up
+2026-09-04 19:56:13 Sanitised GitHub telemetry published
+2026-09-04 19:56:25 LibreChat deployment check started
+2026-09-04 19:56:25 Cloudflare tunnel integration enabled
+2026-09-04 19:56:25 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
+2026-09-04 19:57:11 Retrying deployment at e2e5bb5d; last successful deployment was 5890332a
+2026-09-04 19:57:37 Compose validation passed
+2026-09-04 19:57:48 Image pull completed
+2026-09-04 19:57:49 Compose update completed
+2026-09-04 19:57:49 LibreChat health check passed
+2026-09-04 19:57:49 MCP workspace mount passed write/read/delete check
+2026-09-04 19:57:49 Cloudflare tunnel connector registered
+2026-09-04 19:57:49 Synology Admin Settings not configured
