@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 028 — Release Evidence Validation",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/validate-release-evidence/SKILL.md",
+  "results_dir": "results"
+}
