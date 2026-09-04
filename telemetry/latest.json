@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "timestamp": "2026-09-04T19:54:28+1000",
-  "result": "failure",
-  "stage": "compose_up",
+  "timestamp": "2026-09-04T19:58:02+1000",
+  "result": "success",
+  "stage": "complete",
   "commit": "e2e5bb5de8272b3eae0cd71c7582411463d9236e",
   "runtime": {
     "librechat_container": "running",
