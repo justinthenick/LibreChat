@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "workflow-strengthening-health-20260905-001",
+  "request_id": "workflow-strengthening-health-20260905-002",
   "recipe": "custom/ba-agent/diagnostics/workflow-strengthening-health.json",
-  "note": "Track alternate-model B023 retries plus B024-B031 standalone Skill runs. Use worker state and scheduler log to distinguish queued, completed, provider-blocked and infrastructure failures without exposing secrets."
+  "note": "Track A001 v0.2, B024-B031 retries and guarded B023 compositions. Distinguish provider capacity from worker/infrastructure failure without exposing secrets."
 }
