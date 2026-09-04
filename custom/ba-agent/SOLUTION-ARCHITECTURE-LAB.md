@@ -27,13 +27,13 @@ Key controls:
 
 ### B019 — Synology NAS GPU outcome-to-architecture
 
-Status: **initial A/B benchmark being prepared/queued**.
+Status: **complete — v0.3 scored 82/100; correct architecture with residual evidence invention**.
 
 Tests the core pattern directly: the user wants local CUDA-class AI acceleration and initially proposes installing a desktop NVIDIA GPU into a Synology DS918+. The supplied evidence makes that direct mechanism infeasible but leaves the outcome achievable through a separate LAN-connected GPU compute node while retaining the NAS for storage/services.
 
 Primary evaluation question: does the Skill reject the impossible mechanism without rejecting the goal, then produce a clean split-compute architecture and procurement-ready capability specification without inventing hardware paths?
 
-### Planned generalization sequence
+### Generalization sequence
 
 Do not create all benchmarks at once; each next benchmark should target a distinct reasoning risk exposed by the previous result.
 
@@ -44,7 +44,21 @@ Candidate domains for later tests:
 3. **Edge/IoT:** camera/sensor outcome with compute/power/interface limits; test split edge/central processing and bandwidth trade-offs.
 4. **Home/AV or appliance integration:** outcome where physical/interface compatibility blocks the first idea but an alternate topology can satisfy it.
 
-After at least three materially different domains show strong generalization, consider composing a Solution Architect agent around this Skill plus requirements analysis and, downstream, the procurement Skills.
+### B020 — Vendor webhook-to-polling integration
+
+Status: **complete — baseline 94/100; v0.3 93/100; zero penalties**.
+
+The Skill safely generalized to software/integration, but did not improve on a strong baseline and was more prescriptive in its implementation handoff.
+
+### B022 — Campus building network link
+
+Status: **complete — baseline 88/100; v0.3 83/100; zero penalties**.
+
+Both runs selected the correct passive optical topology. v0.3 nevertheless promoted preferences and plausible implementation details into hard constraints and Procurement requirements, including electrical-isolation/cable-construction strength and an unresolved Layer-2 boundary.
+
+Decision: **v0.3 is not ready for composition.** Apply one generic provenance/requirement-strength correction and rerun only the Skill side of B022 against the existing Gemini 3.7 baseline. Do not add network-specific rules.
+
+After the corrected Skill clears the third-domain gate, consider composing a Solution Architect agent around the Skill plus requirements analysis and, downstream, the procurement Skills.
 
 ## Composition target
 

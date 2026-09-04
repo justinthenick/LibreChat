@@ -160,7 +160,7 @@ Skill:
 
 - `skills/design-technical-solution/SKILL.md`
 - current version: **0.3.0**
-- status: **current candidate; third standalone domain queued before composition**
+- status: **v0.3 rejected for composition after B022; generic correction required**
 
 Purpose: preserve the intended technical outcome while challenging an impossible or unsupported implementation, expose architecture-changing Unknowns, and create a capability-level Procurement handoff only after the design is defensible.
 
@@ -176,9 +176,13 @@ The clean Gemini 3.5 Flash A/B pair closed at **baseline 94/100 vs Skill v0.3 93
 
 B022 is the exact next standalone gate and the third materially different domain. It tests whether v0.3 rejects a 900 metre direct copper-Ethernet mechanism, preserves the campus-connectivity outcome, avoids invented optical/transceiver compatibility, keeps 1 Gbit/s as a Target, and separates BA/service questions from Procurement candidate verification.
 
-The first job, `b022-g35-solution-design-v03-ab-001`, returned `provider_busy` for both sides. Replacement job `b022-g37-solution-design-v03-ab-002` uses Gemini 3.7 Flash at temperature `0.0`, baseline + v0.3. This is a fresh same-model pair; no cross-model comparison will be used.
+The first job, `b022-g35-solution-design-v03-ab-001`, returned `provider_busy` for both sides. Replacement job `b022-g37-solution-design-v03-ab-002` completed a fresh Gemini 3.7 Flash pair at temperature `0.0`.
 
-Do not compose Solution Architecture with BA or Procurement until B022 is evaluated. A strong zero-penalty result supports retaining v0.3 for composition planning; a repeated generic compatibility/evidence defect requires a generic Skill redesign rather than domain-specific patching.
+The baseline scored **88/100** and Skill v0.3 scored **83/100**, both with zero penalties. Both selected the correct passive optical topology, but v0.3 more strongly promoted preferences and plausible implementation details into hard architecture/Procurement requirements. It converted preferred electrical isolation and avoidance of midpoint cabinets into hard constraints, prescribed cable construction/testing details, and described a Layer-2 trunk while the L2/L3 boundary remained Unknown.
+
+Decision: **do not retain v0.3 for composition.** Correct the generic provenance/requirement-strength gate, then run a focused Skill-only B022 rerun against the preserved Gemini 3.7 baseline.
+
+Do not compose Solution Architecture with BA or Procurement until the corrected Skill clears the B022 gate.
 
 ## Test timeline
 
