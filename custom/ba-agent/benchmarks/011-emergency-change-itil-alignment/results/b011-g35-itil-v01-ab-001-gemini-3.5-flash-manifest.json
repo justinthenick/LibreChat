@@ -1,0 +1,20 @@
+{
+  "benchmark": "Benchmark 011 — Emergency Payment Change ITIL Alignment",
+  "created_at": "2026-09-01T10:41:33Z",
+  "mode": "both",
+  "model": "gemini-3.5-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b011-g35-itil-v01-ab-001-gemini-3.5-flash-baseline-01.md",
+      "metadata": "b011-g35-itil-v01-ab-001-gemini-3.5-flash-baseline-01.json",
+      "status": "success"
+    },
+    {
+      "markdown": "b011-g35-itil-v01-ab-001-gemini-3.5-flash-skill-01.md",
+      "metadata": "b011-g35-itil-v01-ab-001-gemini-3.5-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}

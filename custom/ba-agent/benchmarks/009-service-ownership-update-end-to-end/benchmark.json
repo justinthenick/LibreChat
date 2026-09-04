@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "name": "Benchmark 009 — Service Ownership Update End-to-End BA Delivery",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../agents/ba-delivery-analyst/AGENT.md"
+}

@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "benchmark": "Benchmark 018 — Mixed-History Compact Treadmill Market Expansion",
+  "job_id": "b018-g36-market-expand-v01-ab-001",
+  "model": "gemini-3.6-flash",
+  "temperature": 0.0,
+  "baseline": {
+    "score": 95,
+    "penalties": 0,
+    "total_tokens": 5147,
+    "decision": "strong_but_overexplores"
+  },
+  "skill": {
+    "name": "expand-procurement-market",
+    "version": "0.1.0",
+    "score": 99,
+    "penalties": 0,
+    "total_tokens": 5424,
+    "decision": "retain_for_composition"
+  },
+  "comparison": {
+    "score_delta": 4,
+    "token_delta": 277,
+    "material_skill_gain": true
+  },
+  "architecture_decision": "Retain expand-procurement-market v0.1.0 and proceed to Procurement Analyst composition testing that selects verification, expansion, or both based on the request state."
+}

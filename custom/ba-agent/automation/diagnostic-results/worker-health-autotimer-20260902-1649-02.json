@@ -1,0 +1,198 @@
+{
+  "checks": [
+    {
+      "data": {
+        "executable": "/usr/bin/python3",
+        "version": "3.8.12"
+      },
+      "index": 1,
+      "label": "Python runtime",
+      "status": "ok",
+      "type": "python_info"
+    },
+    {
+      "data": {
+        "exists": true,
+        "is_dir": false,
+        "is_file": true,
+        "mtime_epoch": 1788256586,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_worker.py",
+        "size": 10016
+      },
+      "index": 2,
+      "label": "Benchmark worker file",
+      "status": "ok",
+      "type": "path_exists"
+    },
+    {
+      "data": {
+        "exists": true,
+        "is_dir": false,
+        "is_file": true,
+        "mtime_epoch": 1788328502,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh",
+        "size": 1871
+      },
+      "index": 3,
+      "label": "Scheduler wrapper file",
+      "status": "ok",
+      "type": "path_exists"
+    },
+    {
+      "data": {
+        "exists": true,
+        "is_dir": false,
+        "is_file": true,
+        "mtime_epoch": 1788327636,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json",
+        "size": 16794
+      },
+      "index": 4,
+      "label": "Worker state file",
+      "status": "ok",
+      "type": "path_exists"
+    },
+    {
+      "data": {
+        "path": "/volume1/docker/librechat/deploy/synology/.env",
+        "present": {
+          "GITHUB_TELEMETRY_TOKEN": true,
+          "GOOGLE_KEY": true
+        }
+      },
+      "index": 5,
+      "label": "Required credential presence only",
+      "status": "ok",
+      "type": "env_presence"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-ba-benchmark-worker.lock",
+        "matching_processes": []
+      },
+      "index": 6,
+      "label": "Benchmark worker lock/process status",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "enabled_remote_jobs": 22,
+        "known_local_jobs": 22,
+        "pending_job_count": 0,
+        "pending_job_ids": [],
+        "targets": {
+          "b013-g35-handoff-v02-ab-002": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b014-g35-procurement-verify-v01-ab-001": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b014-g35-procurement-verify-v01-ab-002": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b014-g36-procurement-verify-v01-ab-003": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          }
+        }
+      },
+      "index": 7,
+      "label": "GitHub queue versus local state",
+      "status": "ok",
+      "type": "queue_compare"
+    },
+    {
+      "data": {
+        "jobs": {
+          "b013-g35-handoff-v02-ab-002": {
+            "attempted_at_epoch": 1788326846,
+            "benchmark": "custom/ba-agent/benchmarks/013-vendor-export-change-readiness",
+            "mode": "both",
+            "model": "gemini-3.5-flash",
+            "output_tail": "[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/013-vendor-export-change-readiness/results/b013-g35-handoff-v02-ab-002-gemini-3.5-flash-baseline-01.md\n[quota_blocked] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/013-vendor-export-change-readiness/results/b013-g35-handoff-v02-ab-002-gemini-3.5-flash-skill-01.md\nQuota blocked; stopping remaining calls to avoid contaminating the experiment.\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: f6a6c21653a82fd8067457496432aa3c76ec26b4\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b014-g35-procurement-verify-v01-ab-001": {
+            "attempted_at_epoch": 1788326871,
+            "benchmark": "custom/ba-agent/benchmarks/014-procurement-host-gpu-verification",
+            "mode": "both",
+            "model": "gemini-3.5-flash",
+            "output_tail": "[quota_blocked] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/014-procurement-host-gpu-verification/results/b014-g35-procurement-verify-v01-ab-001-gemini-3.5-flash-baseline-01.md\nQuota blocked; stopping remaining calls to avoid contaminating the experiment.\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: ee19c5c22922bc39016c71fd51ac402acc8d19fa\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b014-g35-procurement-verify-v01-ab-002": {
+            "attempted_at_epoch": 1788326877,
+            "benchmark": "custom/ba-agent/benchmarks/014-procurement-host-gpu-verification",
+            "mode": "both",
+            "model": "gemini-3.5-flash",
+            "output_tail": "[quota_blocked] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/014-procurement-host-gpu-verification/results/b014-g35-procurement-verify-v01-ab-002-gemini-3.5-flash-baseline-01.md\nQuota blocked; stopping remaining calls to avoid contaminating the experiment.\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: da29254293072d12e03ccbfe0f2bb5d9d0d4ed1f\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b014-g36-procurement-verify-v01-ab-003": {
+            "attempted_at_epoch": 1788327553,
+            "benchmark": "custom/ba-agent/benchmarks/014-procurement-host-gpu-verification",
+            "mode": "both",
+            "model": "gemini-3.6-flash",
+            "output_tail": "[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/014-procurement-host-gpu-verification/results/b014-g36-procurement-verify-v01-ab-003-gemini-3.6-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/014-procurement-host-gpu-verification/results/b014-g36-procurement-verify-v01-ab-003-gemini-3.6-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: f7f94ad2ee5c8550bdd05caf12f2c48e88930994\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          }
+        },
+        "known_job_count": 22,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json"
+      },
+      "index": 8,
+      "label": "Selected benchmark worker records",
+      "status": "ok",
+      "type": "worker_state"
+    },
+    {
+      "data": {
+        "free_bytes": 4897674833920,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent",
+        "total_bytes": 5729142775808,
+        "used_bytes": 831467941888,
+        "used_percent": 14.51
+      },
+      "index": 9,
+      "label": "Lab filesystem usage",
+      "status": "ok",
+      "type": "disk_usage"
+    },
+    {
+      "data": {
+        "lines": 120,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/scheduler.log",
+        "text": "[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n2026-09-02 00:15:03 worker poll end rc=0\n2026-09-02 00:20:02 worker poll start\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n2026-09-02 00:20:03 worker poll end rc=0\n2026-09-02 00:25:03 worker poll start\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n2026-09-02 00:25:04 worker poll end rc=0\n2026-09-02 00:30:02 worker poll start\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n2026-09-02 00:30:03 worker poll end rc=0\n2026-09-02 00:35:02 worker poll start\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n2026-09-02 00:35:02 worker poll end rc=0\n2026-09-02 00:40:03 worker poll start\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] 2 new job(s)\n[worker] starting b012-g35-itil-v02-002: gemini-3.5-flash skill custom/ba-agent/benchmarks/012-planned-certificate-change-itil-alignment\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/012-planned-certificate-change-itil-alignment/results/b012-g35-itil-v02-002-gemini-3.5-flash-skill-01.md\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 4e46c560adaaf22a591ee9c4b842ff970d552160\n[worker] finished b012-g35-itil-v02-002 rc=0\n[worker] starting b013-g35-handoff-v02-ab-001: gemini-3.5-flash both custom/ba-agent/benchmarks/013-vendor-export-change-readiness\n[quota_blocked] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/013-vendor-export-change-readiness/results/b013-g35-handoff-v02-ab-001-gemini-3.5-flash-baseline-01.md\nQuota blocked; stopping remaining calls to avoid contaminating the experiment.\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: f0886af610b1833606188ca57976363d1a2dff16\n[worker] finished b013-g35-handoff-v02-ab-001 rc=0\n2026-09-02 00:40:35 worker poll end rc=0\n2026-09-02 00:45:03 worker poll start\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n2026-09-02 00:45:04 worker poll end rc=0\n2026-09-02 00:50:02 worker poll start\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n2026-09-02 00:50:02 worker poll end rc=0\n2026-09-02 00:55:02 worker poll start\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n2026-09-02 00:55:02 worker poll end rc=0\n2026-09-02 15:27:26 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] 3 new job(s)\n[worker] starting b013-g35-handoff-v02-ab-002: gemini-3.5-flash both custom/ba-agent/benchmarks/013-vendor-export-change-readiness\n[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/013-vendor-export-change-readiness/results/b013-g35-handoff-v02-ab-002-gemini-3.5-flash-baseline-01.md\n[quota_blocked] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/013-vendor-export-change-readiness/results/b013-g35-handoff-v02-ab-002-gemini-3.5-flash-skill-01.md\nQuota blocked; stopping remaining calls to avoid contaminating the experiment.\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: f6a6c21653a82fd8067457496432aa3c76ec26b4\n[worker] finished b013-g35-handoff-v02-ab-002 rc=0\n[worker] starting b014-g35-procurement-verify-v01-ab-001: gemini-3.5-flash both custom/ba-agent/benchmarks/014-procurement-host-gpu-verification\n[quota_blocked] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/014-procurement-host-gpu-verification/results/b014-g35-procurement-verify-v01-ab-001-gemini-3.5-flash-baseline-01.md\nQuota blocked; stopping remaining calls to avoid contaminating the experiment.\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: ee19c5c22922bc39016c71fd51ac402acc8d19fa\n[worker] finished b014-g35-procurement-verify-v01-ab-001 rc=0\n[worker] starting b014-g35-procurement-verify-v01-ab-002: gemini-3.5-flash both custom/ba-agent/benchmarks/014-procurement-host-gpu-verification\n[quota_blocked] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/014-procurement-host-gpu-verification/results/b014-g35-procurement-verify-v01-ab-002-gemini-3.5-flash-baseline-01.md\nQuota blocked; stopping remaining calls to avoid contaminating the experiment.\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: da29254293072d12e03ccbfe0f2bb5d9d0d4ed1f\n[worker] finished b014-g35-procurement-verify-v01-ab-002 rc=0\n2026-09-02 15:28:02 worker poll end rc=0\n2026-09-02 15:39:13 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] 1 new job(s)\n[worker] starting b014-g36-procurement-verify-v01-ab-003: gemini-3.6-flash both custom/ba-agent/benchmarks/014-procurement-host-gpu-verification\n[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/014-procurement-host-gpu-verification/results/b014-g36-procurement-verify-v01-ab-003-gemini-3.6-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/014-procurement-host-gpu-verification/results/b014-g36-procurement-verify-v01-ab-003-gemini-3.6-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: f7f94ad2ee5c8550bdd05caf12f2c48e88930994\n[worker] finished b014-g36-procurement-verify-v01-ab-003 rc=0\n2026-09-02 15:40:36 worker poll end rc=0\n2026-09-02 16:29:55 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] completed worker-health-20260902-1555-01 overall=partial and published custom/ba-agent/automation/diagnostic-results/worker-health-20260902-1555-01.json\n2026-09-02 16:29:58 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-02 16:46:34 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] no enabled request\n2026-09-02 16:46:35 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-02 16:51:36 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs"
+      },
+      "index": 10,
+      "label": "Recent scheduler log",
+      "status": "ok",
+      "type": "tail"
+    }
+  ],
+  "ended_at": "2026-09-02T06:51:38Z",
+  "hostname": "NAS",
+  "overall": "ok",
+  "recipe": "custom/ba-agent/diagnostics/worker-health.json",
+  "recipe_name": "BA benchmark worker health",
+  "request_id": "worker-health-autotimer-20260902-1649-02",
+  "schema": 1,
+  "started_at": "2026-09-02T06:51:38Z"
+}

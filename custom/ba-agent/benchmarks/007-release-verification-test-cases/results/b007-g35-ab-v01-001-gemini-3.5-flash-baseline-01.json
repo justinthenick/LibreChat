@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 007 — Release Verification Test Cases",
+  "benchmark_dir": "007-release-verification-test-cases",
+  "ended_at": "2026-09-01T07:00:25Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "9e3fc4d92cefc0b4517b77c01da9cd8aa8eb696a2c6a3217c39a64635bb2358f",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "baseline",
+  "model": "gemini-3.5-flash",
+  "prompt_sha256": "a9a7caf25ab346f2437ade0e3225c8f674399046786d450f2f0cd61d8fc1bbf3",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": null,
+  "skill_sha256": null,
+  "skill_version": null,
+  "started_at": "2026-09-01T07:00:04Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 1285,
+    "promptTokenCount": 1827,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1827
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 3127,
+    "totalTokenCount": 6239
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 020 — Vendor SaaS Webhook-to-Polling Integration Architecture",
+  "benchmark_dir": "020-vendor-webhook-integration-architecture",
+  "ended_at": "2026-09-03T08:25:09Z",
+  "error": "{\"message\": \"This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\", \"status\": \"UNAVAILABLE\"}",
+  "finish_reason": null,
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 503,
+  "input_sha256": "cc3b0231e4ab0ef492f200792ba81bc4ecbfe360cb8afe1147dc11f71db7c734",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "baseline",
+  "model": "gemini-3.6-flash",
+  "prompt_sha256": "46c11e461176be11fc83db7a6746aa4e530b6b3d0de2ed06763247d66b34e24b",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": null,
+  "skill_sha256": null,
+  "skill_version": null,
+  "started_at": "2026-09-03T08:25:04Z",
+  "status": "provider_busy",
+  "temperature": 0.0,
+  "usage": null
+}

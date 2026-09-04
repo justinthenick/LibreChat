@@ -1,0 +1,6 @@
+{
+  "name": "Benchmark 003 — Application Access Request Delivery Decomposition",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/decompose-requirements/SKILL.md"
+}

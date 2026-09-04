@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "name": "Benchmark 008 — Three-Specialist BA Pipeline",
+  "input": "input.md",
+  "prompt": "pipeline-prompt.md",
+  "results_dir": "results",
+  "stages": [
+    {
+      "id": "requirements",
+      "name": "Requirements Analyst",
+      "agent": "../../agents/requirements-analyst/AGENT.md",
+      "instruction": "Analyze the original source packet and produce only the Stage 1 requirements-analysis handoff defined by your agent contract."
+    },
+    {
+      "id": "refinement",
+      "name": "Delivery Refinement Analyst",
+      "agent": "../../agents/delivery-refinement-analyst/AGENT.md",
+      "instruction": "Consume only the supplied Stage 1 handoff. Produce delivery decomposition, acceptance criteria and the assurance handoff defined by your agent contract. Do not consult or reconstruct the original source packet."
+    },
+    {
+      "id": "assurance",
+      "name": "Assurance Analyst",
+      "agent": "../../agents/assurance-analyst/AGENT.md",
+      "instruction": "Consume only the supplied refinement/acceptance-criteria handoff. Produce behavioural test and assurance coverage defined by your agent contract. Do not consult or reconstruct earlier source material."
+    }
+  ]
+}

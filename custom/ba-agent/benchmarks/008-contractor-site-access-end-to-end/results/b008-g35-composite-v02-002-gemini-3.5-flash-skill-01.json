@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 008 — Contractor Site Access End-to-End BA Delivery",
+  "benchmark_dir": "008-contractor-site-access-end-to-end",
+  "ended_at": "2026-09-01T09:40:32Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "315ae4b978a01def671ad79e2b3926b528dc97329fa2cd62833909c79c5e1be7",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "skill",
+  "model": "gemini-3.5-flash",
+  "prompt_sha256": "8e7e3cca3d71883887af562f58dd64152604aaad8ef4f311ff3110cf944ef05c",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/agents/ba-delivery-analyst/AGENT.md",
+  "skill_sha256": "7c0db327b629991e7c929a1cb4628931525d6dd978182e427ab228e3f631ab72",
+  "skill_version": "0.2.0",
+  "started_at": "2026-09-01T09:40:04Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 4072,
+    "promptTokenCount": 2715,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 2715
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 3652,
+    "totalTokenCount": 10439
+  }
+}

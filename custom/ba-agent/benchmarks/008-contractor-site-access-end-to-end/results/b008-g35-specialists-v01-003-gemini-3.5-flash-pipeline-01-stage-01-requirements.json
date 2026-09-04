@@ -1,0 +1,33 @@
+{
+  "agent_path": "custom/ba-agent/agents/requirements-analyst/AGENT.md",
+  "agent_sha256": "96b64c60b1c864bb9072debb7606777d261dae7937e25d989a2206cb2569cf70",
+  "agent_version": "0.1.0",
+  "ended_at": "2026-09-01T09:58:48Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "max_output_tokens": 8192,
+  "model": "gemini-3.5-flash",
+  "pipeline": "Benchmark 008 \u2014 Three-Specialist BA Pipeline",
+  "run_id": "b008-g35-specialists-v01-003",
+  "stage_id": "requirements",
+  "stage_index": 1,
+  "stage_input_sha256": "88efcba61d353bc37055484de3e80e2d47bbfe6a7afc40719980a385f4afab6a",
+  "stage_name": "Requirements Analyst",
+  "started_at": "2026-09-01T09:58:33Z",
+  "status": "success",
+  "temperature": 0.0,
+  "upstream_output_sha256": null,
+  "usage": {
+    "candidatesTokenCount": 1282,
+    "promptTokenCount": 1284,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1284
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 3001,
+    "totalTokenCount": 5567
+  }
+}

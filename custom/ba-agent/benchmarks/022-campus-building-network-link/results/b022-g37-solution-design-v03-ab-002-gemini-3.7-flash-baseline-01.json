@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 022 — Campus Building Network Link Architecture",
+  "benchmark_dir": "022-campus-building-network-link",
+  "ended_at": "2026-09-04T03:50:29Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "9def950028ac0d6b323a47fb5a96d72ad28977bb4ad30975250271166f688ee6",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "baseline",
+  "model": "gemini-3.7-flash",
+  "prompt_sha256": "4c94b75972a6cf03434bee07c33fd3200ab0a101233be605cad713d5fa61d477",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": null,
+  "skill_sha256": null,
+  "skill_version": null,
+  "started_at": "2026-09-04T03:50:03Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 2204,
+    "promptTokenCount": 971,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 971
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 2486,
+    "totalTokenCount": 5661
+  }
+}

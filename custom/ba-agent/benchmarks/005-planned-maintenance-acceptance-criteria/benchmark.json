@@ -1,0 +1,6 @@
+{
+  "name": "Benchmark 005 — Planned Maintenance Notification Acceptance Criteria",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/elaborate-acceptance-criteria/SKILL.md"
+}

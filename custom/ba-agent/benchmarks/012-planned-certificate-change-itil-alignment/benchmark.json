@@ -1,0 +1,6 @@
+{
+  "name": "Benchmark 012 — Planned Certificate Change ITIL Alignment",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/assess-itil-alignment/SKILL.md"
+}

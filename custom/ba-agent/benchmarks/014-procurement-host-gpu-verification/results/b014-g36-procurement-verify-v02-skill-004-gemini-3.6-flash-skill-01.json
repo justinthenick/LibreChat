@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 014 — Used Workstation + GPU Procurement Verification",
+  "benchmark_dir": "014-procurement-host-gpu-verification",
+  "ended_at": "2026-09-02T07:07:36Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "3569d28b7ecad746ea36e538e07fe844707ba0366b5b02f1198e96d19a652a9c",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "skill",
+  "model": "gemini-3.6-flash",
+  "prompt_sha256": "d553770d37fced3604f9e33a041795fe835e40b09aa0ec3a57de49d23704e6cb",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/verify-procurement-options/SKILL.md",
+  "skill_sha256": "cc1c97060337fca48bd08df7e23900f2883e457b65b948c85acb6379819c36e1",
+  "skill_version": "0.2.0",
+  "started_at": "2026-09-02T07:07:08Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 2903,
+    "promptTokenCount": 2899,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 2899
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 2777,
+    "totalTokenCount": 8579
+  }
+}

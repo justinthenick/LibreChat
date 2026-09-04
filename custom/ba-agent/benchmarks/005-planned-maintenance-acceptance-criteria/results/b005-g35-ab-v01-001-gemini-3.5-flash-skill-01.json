@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 005 — Planned Maintenance Notification Acceptance Criteria",
+  "benchmark_dir": "005-planned-maintenance-acceptance-criteria",
+  "ended_at": "2026-09-01T06:20:29Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "91a3c9b679aeff0c13fa137d39fc1a4854d48754de25670ab5a9a4730b3962f6",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "skill",
+  "model": "gemini-3.5-flash",
+  "prompt_sha256": "7874ac7394dab41114ba2911a30583368fd11749de3e9915c5ba904a06335cb6",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/elaborate-acceptance-criteria/SKILL.md",
+  "skill_sha256": "852acfee189a2b88418f3f2fd948ff96ddaee23f9e6a620563bf06a94c380d0d",
+  "skill_version": "0.1.0",
+  "started_at": "2026-09-01T06:20:16Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 2125,
+    "promptTokenCount": 3882,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 3882
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 1795,
+    "totalTokenCount": 7802
+  }
+}

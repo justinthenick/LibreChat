@@ -1,0 +1,20 @@
+{
+  "benchmark": "Benchmark 019 — Synology NAS GPU Outcome-to-Architecture Design",
+  "created_at": "2026-09-02T23:05:06Z",
+  "mode": "both",
+  "model": "gemini-3.6-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b019-g36-solution-design-v01-ab-001-gemini-3.6-flash-baseline-01.md",
+      "metadata": "b019-g36-solution-design-v01-ab-001-gemini-3.6-flash-baseline-01.json",
+      "status": "success"
+    },
+    {
+      "markdown": "b019-g36-solution-design-v01-ab-001-gemini-3.6-flash-skill-01.md",
+      "metadata": "b019-g36-solution-design-v01-ab-001-gemini-3.6-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}
