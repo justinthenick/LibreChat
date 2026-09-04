@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "name": "Workflow strengthening and Agent benchmark health",
+  "checks": [
+    {
+      "type": "queue_compare",
+      "label": "Queued Agent and Skill jobs vs NAS worker state",
+      "state_path": "custom/ba-agent/automation/worker-state.json",
+      "jobs_path": "custom/ba-agent/automation/jobs.json",
+      "job_ids": [
+        "a001-g36-ba-change-router-v01-ab-004",
+        "b023-g36-ba-change-control-005",
+        "b023-g36-ba-change-itil-006",
+        "b024-g36-traceability-v01-ab-001",
+        "b025-g36-procurement-spec-v01-ab-001",
+        "b026-g36-nfr-v01-ab-001",
+        "b027-g36-change-impact-v01-ab-001",
+        "b028-g37-release-evidence-v01-ab-001",
+        "b029-g37-requirement-delta-v01-ab-001",
+        "b030-g37-adr-v01-ab-001",
+        "b031-g37-operational-readiness-v01-ab-001"
+      ]
+    },
+    {
+      "type": "worker_state",
+      "label": "Worker records for Agent and Skill jobs",
+      "path": "custom/ba-agent/automation/worker-state.json",
+      "job_ids": [
+        "a001-g36-ba-change-router-v01-ab-004",
+        "b023-g36-ba-change-control-005",
+        "b023-g36-ba-change-itil-006",
+        "b024-g36-traceability-v01-ab-001",
+        "b025-g36-procurement-spec-v01-ab-001",
+        "b026-g36-nfr-v01-ab-001",
+        "b027-g36-change-impact-v01-ab-001",
+        "b028-g37-release-evidence-v01-ab-001",
+        "b029-g37-requirement-delta-v01-ab-001",
+        "b030-g37-adr-v01-ab-001",
+        "b031-g37-operational-readiness-v01-ab-001"
+      ]
+    },
+    {
+      "type": "tail",
+      "label": "Recent benchmark scheduler log",
+      "path": "custom/ba-agent/automation/scheduler.log",
+      "lines": 120
+    },
+    {
+      "type": "lock_status",
+      "label": "Benchmark worker lock/process state",
+      "path": "/tmp/librechat-ba-benchmark-worker.lock",
+      "process_contains": "benchmark_worker.py"
+    },
+    {
+      "type": "env_presence",
+      "label": "Required key/token presence",
+      "path": "/volume1/docker/librechat/deploy/synology/.env",
+      "names": ["GOOGLE_KEY", "GITHUB_TELEMETRY_TOKEN", "GITHUB_BA_BENCHMARK_TOKEN"]
+    }
+  ]
+}
