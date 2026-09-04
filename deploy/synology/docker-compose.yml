@@ -18,6 +18,12 @@ services:
       CONFIG_PATH: /app/librechat.yaml
       LIBRECHAT_TEMP_CREDENTIALS_PATH: /app/data/.env.temp
 
+      # LibreChat loads deployment skills at server startup. Keep them outside
+      # the image's own /app/skill directory so this bind mount cannot mask any
+      # first-party content shipped by the image. The host tree is the released
+      # skill snapshot already carried by server/synology from main.
+      DEPLOYMENT_SKILLS_DIR: /app/deployment-skills
+
       # Public URLs are derived from the three editable deployment values.
       # Stale DOMAIN_* entries in an existing .env therefore cannot disagree
       # with NAS_HOST/LIBRECHAT_SCHEME/LIBRECHAT_PORT.
@@ -36,6 +42,7 @@ services:
     volumes:
       - ./.env:/app/.env:ro
       - ./librechat.yaml:/app/librechat.yaml:ro
+      - /volume1/docker/librechat/custom/ba-agent/skills:/app/deployment-skills:ro
       - /volume1/docker/librechat/workspace:/workspace
       - librechat-data:/app/data
       - librechat-images:/app/client/public/images
