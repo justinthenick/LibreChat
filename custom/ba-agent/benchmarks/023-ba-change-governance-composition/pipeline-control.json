@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "name": "Benchmark 023 — Control: Composite BA + Change Readiness",
+  "input": "input.md",
+  "prompt": "pipeline-prompt.md",
+  "results_dir": "results",
+  "stages": [
+    {
+      "id": "ba-delivery",
+      "name": "Composite BA Delivery Analyst v0.2",
+      "agent": "../../agents/ba-delivery-analyst/AGENT.md",
+      "instruction": "Consume the original source packet and produce the complete four-stage BA delivery artifact defined by your agent contract."
+    },
+    {
+      "id": "change-readiness",
+      "name": "Prepare Solution / Change Readiness v0.2",
+      "agent": "../../skills/prepare-solution-change-readiness/SKILL.md",
+      "instruction": "Consume only the supplied BA delivery artifact. Produce the solution/design and Change Enablement readiness handoff defined by the Skill. Preserve all unresolved status and authority states; do not consult or reconstruct the original packet."
+    }
+  ]
+}
