@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "enabled": false,
-  "request_id": "solution-architecture-health-20260904-postrefresh-02",
-  "recipe": "custom/ba-agent/diagnostics/solution-architecture-health.json",
-  "note": "Completed successfully after maintenance refresh. NAS local design-technical-solution cache is back on released v0.4.0; queue and worker state converged with zero pending jobs. Re-enable only with a new unique request_id for a future diagnostic."
+  "enabled": true,
+  "request_id": "workflow-strengthening-health-20260905-001",
+  "recipe": "custom/ba-agent/diagnostics/workflow-strengthening-health.json",
+  "note": "Track alternate-model B023 retries plus B024-B031 standalone Skill runs. Use worker state and scheduler log to distinguish queued, completed, provider-blocked and infrastructure failures without exposing secrets."
 }
