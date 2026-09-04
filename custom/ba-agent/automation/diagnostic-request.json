@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "enabled": true,
+  "enabled": false,
   "request_id": "solution-architecture-health-20260904-postrefresh-02",
   "recipe": "custom/ba-agent/diagnostics/solution-architecture-health.json",
-  "note": "Verify the maintenance refresh reset the NAS local Solution Architecture cache from the unreleased v0.5 candidate back to released v0.4.0, and confirm queue/worker/scheduler health after the refresh job."
+  "note": "Completed successfully after maintenance refresh. NAS local design-technical-solution cache is back on released v0.4.0; queue and worker state converged with zero pending jobs. Re-enable only with a new unique request_id for a future diagnostic."
 }
