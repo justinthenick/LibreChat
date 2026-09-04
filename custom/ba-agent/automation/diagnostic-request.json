@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "enabled": false,
-  "request_id": "worker-health-dsm-single-scheduler-20260903-postcleanup-01",
-  "recipe": "custom/ba-agent/diagnostics/worker-health.json",
-  "note": "Post-cleanup scheduler validation completed successfully. Systemd timer remained stopped, the legacy DSM benchmark-only task was disabled, and the remaining DSM Task Scheduler path invoked run_worker_once.sh on a single five-minute cadence. Re-enable only with a new unique request_id for a future diagnostic."
+  "enabled": true,
+  "request_id": "solution-architecture-health-20260904-postmerge-01",
+  "recipe": "custom/ba-agent/diagnostics/solution-architecture-health.json",
+  "note": "Post-merge validation of the NAS benchmark lab after Solution Architecture v0.4.0 was released to main and main was reconciled into server/synology. Verify local skill/benchmark presence, B022 worker state, queue convergence, credential presence and scheduler health."
 }
