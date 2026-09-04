@@ -47,6 +47,17 @@
     {"id":"maintenance-refresh-b022-v04-cache-005","enabled":true,"benchmark":"custom/ba-agent/benchmarks/022-campus-building-network-link","model":"gemini-3.7-flash","mode":"baseline","repeat":1,"temperature":0.0},
     {"id":"a001-g35-ba-change-router-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/023-ba-change-governance-composition","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0},
     {"id":"b023-g35-ba-change-control-002","enabled":true,"runner":"pipeline","benchmark":"custom/ba-agent/benchmarks/023-ba-change-governance-composition","pipeline_config":"pipeline-control.json","model":"gemini-3.5-flash","repeat":1,"temperature":0.0},
-    {"id":"b023-g35-ba-change-itil-003","enabled":true,"runner":"pipeline","benchmark":"custom/ba-agent/benchmarks/023-ba-change-governance-composition","pipeline_config":"pipeline-itil.json","model":"gemini-3.5-flash","repeat":1,"temperature":0.0}
+    {"id":"b023-g35-ba-change-itil-003","enabled":true,"runner":"pipeline","benchmark":"custom/ba-agent/benchmarks/023-ba-change-governance-composition","pipeline_config":"pipeline-itil.json","model":"gemini-3.5-flash","repeat":1,"temperature":0.0},
+    {"id":"a001-g36-ba-change-router-v01-ab-004","enabled":true,"benchmark":"custom/ba-agent/benchmarks/023-ba-change-governance-composition","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b023-g36-ba-change-control-005","enabled":true,"runner":"pipeline","benchmark":"custom/ba-agent/benchmarks/023-ba-change-governance-composition","pipeline_config":"pipeline-control.json","model":"gemini-3.6-flash","repeat":1,"temperature":0.0},
+    {"id":"b023-g36-ba-change-itil-006","enabled":true,"runner":"pipeline","benchmark":"custom/ba-agent/benchmarks/023-ba-change-governance-composition","pipeline_config":"pipeline-itil.json","model":"gemini-3.6-flash","repeat":1,"temperature":0.0},
+    {"id":"b024-g36-traceability-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/024-artifact-traceability-audit","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b025-g36-procurement-spec-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/025-procurement-specification","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b026-g36-nfr-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b027-g36-change-impact-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/027-change-impact-assessment","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b028-g37-release-evidence-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/028-release-evidence-validation","model":"gemini-3.7-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b029-g37-requirement-delta-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/029-requirement-change-reconciliation","model":"gemini-3.7-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b030-g37-adr-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/030-architecture-decision-recording","model":"gemini-3.7-flash","mode":"both","repeat":1,"temperature":0.0},
+    {"id":"b031-g37-operational-readiness-v01-ab-001","enabled":true,"benchmark":"custom/ba-agent/benchmarks/031-operational-readiness-assessment","model":"gemini-3.7-flash","mode":"both","repeat":1,"temperature":0.0}
   ]
 }
