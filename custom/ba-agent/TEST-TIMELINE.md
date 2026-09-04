@@ -67,6 +67,15 @@ This ledger records the development and benchmark history for the BA Agent Lab.
 | 21:17 | B016 evaluator / architecture decision | ChatGPT evaluation + GitHub updates | baseline 100; Skill 100 | Do not tune or freeze v0.1 from an easy control. Create a harder mixed-history cross-domain market-expansion test. |
 | 21:17 | B018 created + queued | GitHub-controlled NAS jobs | `b018-g36-market-expand-v01-ab-001` baseline + Skill v0.1 | Compact treadmill domain; tests calibrated exploitation of productive sources, retirement of stale sources, and rejection of overseas/110 V/no-incline/oversized novelty paths. |
 
+## 2026-09-03/04
+
+| Local time | Benchmark / event | Execution | Score / result | Decision / note |
+|---|---|---|---|---|
+| 2026-09-04 08:05:05–08:05:23 | B020 Vendor Webhook Integration — baseline | NAS runner; Gemini 3.5 Flash; 18s | **94/100**; 5,113 tokens | Strong polling-adapter control; zero penalties. |
+| 2026-09-04 08:05:23–08:05:44 | B020 — `design-technical-solution` v0.3 | NAS runner; Gemini 3.5 Flash; 21s | **93/100**; 7,354 tokens | Safe cross-domain result with zero penalties, but no incremental value over baseline. |
+| 2026-09-04 | B020 evaluator decision | Codex evaluation + repository update | baseline 94; Skill 93 | Close same-model A/B. Retain v0.3 as candidate; do not tune B020 and do not compose yet. |
+| 2026-09-04 | B022 created + queued | GitHub-controlled NAS jobs | `b022-g35-solution-design-v03-ab-001` baseline + Skill v0.3 | Third standalone domain: inter-building network topology, exact compatibility Unknowns, BA/service and Procurement handoff boundaries. |
+
 ## Current architecture decision
 
 - Requirements analysis: `analyze-requirements` v0.4 — validated.
@@ -79,6 +88,7 @@ This ledger records the development and benchmark history for the BA Agent Lab.
 - ITIL 4 alignment/readiness: `assess-itil-alignment` v0.2 retained after B011 v0.1 **98/100** and B012 v0.2 **100/100**, zero penalties on the corrected rerun; isolated ITIL track is generalized enough for composition planning.
 - Procurement verification: `verify-procurement-options` v0.2.0 retained after B014 **100/100** and B015 **95/100** versus baseline **82/100**; cross-domain IT + furniture evidence is sufficient for composition planning.
 - Procurement market expansion: `expand-procurement-market` v0.1.0 produced **100/100** on B016 but did not beat the **100/100** baseline and used more tokens. B018 is the harder generalization/value test; do not freeze or tune v0.1 until that result.
+- Technical Solution Architecture: `design-technical-solution` v0.3.0 remains the current candidate. B019 closed at **82/100** after a hardware evidence-invention penalty; B020 closed at baseline **94/100** vs Skill **93/100**, both zero-penalty. B022 is queued as the required third standalone domain before any BA/Procurement composition.
 - Composition of handoff + ITIL with the frozen BA agent remains deferred until B013 handoff generalization completes cleanly.
 - Procurement Analyst composition is the planned next architecture milestone after B018. B017 dishwasher remains reserve verification evidence, not a mandatory gate.
 

@@ -154,6 +154,32 @@ Decision: **retain `assess-itil-alignment` v0.2.0.** B011 plus corrected B012 pr
 
 Do not modify the frozen Composite BA Delivery Analyst merely to add ITIL wording. Composition remains deferred until the B013 solution/change-readiness generalization completes cleanly.
 
+## Capability 7 — Technical Solution Architecture
+
+Skill:
+
+- `skills/design-technical-solution/SKILL.md`
+- current version: **0.3.0**
+- status: **current candidate; third standalone domain queued before composition**
+
+Purpose: preserve the intended technical outcome while challenging an impossible or unsupported implementation, expose architecture-changing Unknowns, and create a capability-level Procurement handoff only after the design is defensible.
+
+### Benchmark 019 — Synology GPU Solution Design
+
+The hardware-domain sequence established that the Skill can reject direct GPU attachment while preserving the AI-workload outcome and selecting split compute. v0.3 scored **82/100** after a critical evidence-invention penalty. The preferred architecture remained correct, but the output invented M.2 modification mechanics and derived throughput effects. Decision: do not tune the Synology case further; retain v0.3 as a candidate and test elsewhere.
+
+### Benchmark 020 — Vendor Webhook Integration Architecture
+
+The clean Gemini 3.5 Flash A/B pair closed at **baseline 94/100 vs Skill v0.3 93/100**, both with zero penalties. v0.3 safely rejected the nonexistent webhook while preserving the automation objective and designing the expected polling adapter. The B019 invention did not recur as a material failure, but the strong baseline was marginally cleaner and cheaper. Decision: no B020 tuning and no composition yet.
+
+### Benchmark 022 — Campus Building Network Link Architecture
+
+B022 is the exact next standalone gate and the third materially different domain. It tests whether v0.3 rejects a 900 metre direct copper-Ethernet mechanism, preserves the campus-connectivity outcome, avoids invented optical/transceiver compatibility, keeps 1 Gbit/s as a Target, and separates BA/service questions from Procurement candidate verification.
+
+Job: `b022-g35-solution-design-v03-ab-001`, Gemini 3.5 Flash, temperature `0.0`, baseline + v0.3.
+
+Do not compose Solution Architecture with BA or Procurement until B022 is evaluated. A strong zero-penalty result supports retaining v0.3 for composition planning; a repeated generic compatibility/evidence defect requires a generic Skill redesign rather than domain-specific patching.
+
 ## Test timeline
 
 `custom/ba-agent/TEST-TIMELINE.md` is the permanent experiment ledger. From runner-native B003 onward it records exact start/end times, duration, scores, token usage where relevant and resulting decisions. Pre-runner B001/B002 entries use GitHub result-recording timestamps and are labelled accordingly.

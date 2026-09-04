@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "name": "Benchmark 022 — Campus Building Network Link Architecture",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/design-technical-solution/SKILL.md"
+}
