@@ -1,0 +1,15 @@
+{
+  "benchmark": "Benchmark 026 — Non-Functional Requirements Analysis",
+  "created_at": "2026-09-04T21:27:11Z",
+  "mode": "skill",
+  "model": "gemini-3.6-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b026-g36-nfr-v01-skill-002-gemini-3.6-flash-skill-01.md",
+      "metadata": "b026-g36-nfr-v01-skill-002-gemini-3.6-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}
