@@ -159,8 +159,8 @@ Do not modify the frozen Composite BA Delivery Analyst merely to add ITIL wordin
 Skill:
 
 - `skills/design-technical-solution/SKILL.md`
-- current version: **0.3.0**
-- status: **v0.3 rejected for composition after B022; generic correction required**
+- current version: **0.4.0**
+- status: **focused generic correction queued for B022 validation**
 
 Purpose: preserve the intended technical outcome while challenging an impossible or unsupported implementation, expose architecture-changing Unknowns, and create a capability-level Procurement handoff only after the design is defensible.
 
@@ -180,9 +180,11 @@ The first job, `b022-g35-solution-design-v03-ab-001`, returned `provider_busy` f
 
 The baseline scored **88/100** and Skill v0.3 scored **83/100**, both with zero penalties. Both selected the correct passive optical topology, but v0.3 more strongly promoted preferences and plausible implementation details into hard architecture/Procurement requirements. It converted preferred electrical isolation and avoidance of midpoint cabinets into hard constraints, prescribed cable construction/testing details, and described a Layer-2 trunk while the L2/L3 boundary remained Unknown.
 
-Decision: **do not retain v0.3 for composition.** Correct the generic provenance/requirement-strength gate, then run a focused Skill-only B022 rerun against the preserved Gemini 3.7 baseline.
+Decision: **do not retain v0.3 for composition.** v0.4 adds one generic evidence-to-requirement provenance gate: preferences cannot become blockers/hard minimums, Unknowns cannot silently resolve architecture layers, validation conditions must not invent methods, and every Procurement row must preserve its source strength.
 
-Do not compose Solution Architecture with BA or Procurement until the corrected Skill clears the B022 gate.
+Focused rerun: `b022-g37-solution-design-v04-skill-003`, Gemini 3.7 Flash, Skill-only at temperature `0.0`, against the preserved B022 baseline.
+
+Do not compose Solution Architecture with BA or Procurement until v0.4 clears the B022 gate.
 
 ## Test timeline
 

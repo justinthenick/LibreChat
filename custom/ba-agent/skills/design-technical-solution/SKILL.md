@@ -5,7 +5,7 @@ description: Turn an intended technical outcome and known environment into an ev
 
 # Design Technical Solution
 
-Version: **0.3.0**
+Version: **0.4.0**
 
 ## Purpose
 
@@ -73,6 +73,20 @@ Rules:
 - If an interface is present but workload adequacy is unknown, say so explicitly rather than declaring it sufficient.
 - Do not add convenience features such as Wake-on-LAN, particular management software or a specific operating-system version unless supplied; keep them optional choices or Unknowns.
 
+## Evidence-to-requirement provenance gate
+
+Before finalizing the preferred architecture or Procurement handoff, audit every constraint and requirement back to the evidence map.
+
+- A supplied `Preference` remains a preference. It may explain why one feasible option is preferred, but it must not be described as the only feasible design or as a hard Procurement minimum unless the user explicitly promotes it.
+- An `Unknown` may create a decision question, sizing question or candidate-verification condition. It must not be silently resolved into a topology, implementation choice, compatibility claim or mandatory requirement.
+- Keep independently unresolved architecture layers separate. A defensible physical or integration path does not establish the logical network boundary, security model, orchestration choice, deployment mechanism or operating process.
+- State **what evidence must be established**, not a particular inspection tool, test method, construction technique or operating product, unless that method is supplied or logically indispensable.
+- Do not turn a plausible implementation convention into a candidate requirement. Exact materials, connector types, packaging, protocols, validation tools and management mechanisms remain downstream choices when the outcome does not require them.
+- If a calculation is necessary, show only conclusions supported by supplied inputs and verify the arithmetic. Otherwise state the comparison directly without invented percentages, effective-performance figures or component counts.
+- In each Procurement row, ensure the declared strength matches its source: fact or unavoidable function may support a hard minimum; target supports Target; preference supports Preference; unresolved compatibility supports Unknown / verify.
+
+If an architecture is preferred partly because it best satisfies preferences, say that explicitly. Do not rewrite those preferences as feasibility blockers.
+
 ## Procurement handoff format
 
 When the design is ready for procurement, produce a short specification containing:
@@ -123,3 +137,6 @@ Use `Requirement | Strength | Evidence / rationale | Candidate verification` whe
 - Did every hard minimum come from evidence or unavoidable architectural necessity?
 - Did I keep targets, preferences and Unknowns from being silently promoted into mandatory procurement requirements?
 - Did I avoid unsupported numeric performance calculations and convenience features masquerading as requirements?
+- Can every constraint and Procurement row be traced to evidence at the same requirement strength?
+- Did I keep unresolved architecture layers unresolved rather than completing them with a common implementation pattern?
+- Did I ask for the evidence condition needed without inventing the validation method?

@@ -56,7 +56,7 @@ Status: **complete — baseline 88/100; v0.3 83/100; zero penalties**.
 
 Both runs selected the correct passive optical topology. v0.3 nevertheless promoted preferences and plausible implementation details into hard constraints and Procurement requirements, including electrical-isolation/cable-construction strength and an unresolved Layer-2 boundary.
 
-Decision: **v0.3 is not ready for composition.** Apply one generic provenance/requirement-strength correction and rerun only the Skill side of B022 against the existing Gemini 3.7 baseline. Do not add network-specific rules.
+Decision: **v0.3 is not ready for composition.** v0.4 adds one generic provenance/requirement-strength gate and is queued as `b022-g37-solution-design-v04-skill-003`, a Skill-only rerun against the existing Gemini 3.7 baseline. No network-specific rule was added.
 
 After the corrected Skill clears the third-domain gate, consider composing a Solution Architect agent around the Skill plus requirements analysis and, downstream, the procurement Skills.
 
