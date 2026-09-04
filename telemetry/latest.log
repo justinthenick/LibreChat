@@ -1,40 +1,40 @@
-2026-09-04 19:25:02 LibreChat deployment check started
-2026-09-04 19:25:02 Cloudflare tunnel integration enabled
-2026-09-04 19:25:02 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
-2026-09-04 19:26:02 No deployment change; healthy deployment already recorded at 5890332a
-2026-09-04 19:30:02 LibreChat deployment check started
-2026-09-04 19:30:02 Cloudflare tunnel integration enabled
-2026-09-04 19:30:02 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
-2026-09-04 19:31:03 No deployment change; healthy deployment already recorded at 5890332a
-2026-09-04 19:35:03 LibreChat deployment check started
-2026-09-04 19:35:03 Cloudflare tunnel integration enabled
-2026-09-04 19:35:03 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
-2026-09-04 19:36:20 No deployment change; healthy deployment already recorded at 5890332a
-2026-09-04 19:40:03 LibreChat deployment check started
-2026-09-04 19:40:03 Cloudflare tunnel integration enabled
-2026-09-04 19:40:03 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
-2026-09-04 19:41:14 No deployment change; healthy deployment already recorded at 5890332a
-2026-09-04 19:45:04 LibreChat deployment check started
-2026-09-04 19:45:04 Cloudflare tunnel integration enabled
-2026-09-04 19:45:04 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
-2026-09-04 19:45:58 No deployment change; healthy deployment already recorded at 5890332a
-2026-09-04 19:50:03 LibreChat deployment check started
-2026-09-04 19:50:03 Cloudflare tunnel integration enabled
-2026-09-04 19:50:03 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
-2026-09-04 19:51:16 Change detected: 5890332a -> e2e5bb5d
-2026-09-04 19:52:43 Compose validation passed
-2026-09-04 19:52:58 Image pull completed
-2026-09-04 19:54:21 ERROR: Compose update failed
-2026-09-04 19:54:21 Collecting deployment diagnostics for stage compose_up
-2026-09-04 19:56:13 Sanitised GitHub telemetry published
-2026-09-04 19:56:25 LibreChat deployment check started
-2026-09-04 19:56:25 Cloudflare tunnel integration enabled
-2026-09-04 19:56:25 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
-2026-09-04 19:57:11 Retrying deployment at e2e5bb5d; last successful deployment was 5890332a
-2026-09-04 19:57:37 Compose validation passed
-2026-09-04 19:57:48 Image pull completed
-2026-09-04 19:57:49 Compose update completed
-2026-09-04 19:57:49 LibreChat health check passed
-2026-09-04 19:57:49 MCP workspace mount passed write/read/delete check
-2026-09-04 19:57:49 Cloudflare tunnel connector registered
-2026-09-04 19:57:49 Synology Admin Settings not configured
+2026-09-04 21:55:03 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
+2026-09-04 21:55:56 No deployment change; healthy deployment already recorded at e2e5bb5d
+2026-09-04 22:00:02 LibreChat deployment check started
+2026-09-04 22:00:02 Cloudflare tunnel integration enabled
+2026-09-04 22:00:02 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
+2026-09-04 22:00:55 No deployment change; healthy deployment already recorded at e2e5bb5d
+2026-09-04 22:05:01 LibreChat deployment check started
+2026-09-04 22:05:02 Cloudflare tunnel integration enabled
+2026-09-04 22:05:02 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
+2026-09-04 22:06:01 No deployment change; healthy deployment already recorded at e2e5bb5d
+2026-09-04 22:10:03 LibreChat deployment check started
+2026-09-04 22:10:03 Cloudflare tunnel integration enabled
+2026-09-04 22:10:03 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
+2026-09-04 22:11:11 No deployment change; healthy deployment already recorded at e2e5bb5d
+2026-09-04 22:15:03 LibreChat deployment check started
+2026-09-04 22:15:04 Cloudflare tunnel integration enabled
+2026-09-04 22:15:04 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
+2026-09-04 22:15:58 No deployment change; healthy deployment already recorded at e2e5bb5d
+2026-09-04 22:20:02 LibreChat deployment check started
+2026-09-04 22:20:02 Cloudflare tunnel integration enabled
+2026-09-04 22:20:02 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
+2026-09-04 22:20:56 No deployment change; healthy deployment already recorded at e2e5bb5d
+2026-09-04 22:25:04 LibreChat deployment check started
+2026-09-04 22:25:04 Cloudflare tunnel integration enabled
+2026-09-04 22:25:04 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
+2026-09-04 22:26:00 No deployment change; healthy deployment already recorded at e2e5bb5d
+2026-09-04 22:30:04 LibreChat deployment check started
+2026-09-04 22:30:04 Cloudflare tunnel integration enabled
+2026-09-04 22:30:04 Synology Admin Settings integration disabled; run bootstrap-admin-settings.py to enable it
+2026-09-04 22:31:32 No deployment change; healthy deployment already recorded at e2e5bb5d
+2026-09-04 22:35:02 LibreChat deployment check started
+2026-09-04 22:35:02 Cloudflare tunnel integration enabled
+2026-09-04 22:35:02 Synology Admin Settings integration enabled
+2026-09-04 22:36:19 Recorded deployment at e2e5bb5d is not healthy; reconciling runtime state
+2026-09-04 22:36:19 Reconciling unhealthy deployment at e2e5bb5d
+2026-09-04 22:36:56 Synology Admin Settings privileged worker ready
+2026-09-04 22:36:57 Compose validation passed
+2026-09-04 22:37:38 Image pull completed
+2026-09-04 22:39:10 ERROR: Compose update failed
+2026-09-04 22:39:10 Collecting deployment diagnostics for stage compose_up
