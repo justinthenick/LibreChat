@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "name": "Solution Architecture NAS lab health",
+  "checks": [
+    {
+      "type": "python_info",
+      "label": "Python runtime"
+    },
+    {
+      "type": "path_exists",
+      "label": "Solution Architecture skill local copy",
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/design-technical-solution/SKILL.md"
+    },
+    {
+      "type": "path_exists",
+      "label": "B022 benchmark local copy",
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/022-campus-building-network-link/benchmark.json"
+    },
+    {
+      "type": "path_exists",
+      "label": "Benchmark worker",
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_worker.py"
+    },
+    {
+      "type": "path_exists",
+      "label": "Diagnostic worker",
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/tools/diagnostic_worker.py"
+    },
+    {
+      "type": "env_presence",
+      "label": "Required credential presence only",
+      "path": "/volume1/docker/librechat/deploy/synology/.env",
+      "names": [
+        "GOOGLE_KEY",
+        "GITHUB_TELEMETRY_TOKEN",
+        "GITHUB_BA_BENCHMARK_TOKEN"
+      ]
+    },
+    {
+      "type": "lock_status",
+      "label": "Benchmark worker lock/process status",
+      "path": "/tmp/librechat-ba-benchmark-worker.lock",
+      "process_contains": "benchmark_worker.py"
+    },
+    {
+      "type": "queue_compare",
+      "label": "B022 queue versus NAS worker state",
+      "jobs_path": "custom/ba-agent/automation/jobs.json",
+      "state_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json",
+      "job_ids": [
+        "b022-g35-solution-design-v03-ab-001",
+        "b022-g37-solution-design-v03-ab-002",
+        "b022-g37-solution-design-v04-skill-003",
+        "b022-g37-solution-design-v05-skill-004"
+      ]
+    },
+    {
+      "type": "worker_state",
+      "label": "B022 worker records",
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json",
+      "job_ids": [
+        "b022-g35-solution-design-v03-ab-001",
+        "b022-g37-solution-design-v03-ab-002",
+        "b022-g37-solution-design-v04-skill-003",
+        "b022-g37-solution-design-v05-skill-004"
+      ]
+    },
+    {
+      "type": "tail",
+      "label": "Recent scheduler log",
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/scheduler.log",
+      "lines": 200
+    },
+    {
+      "type": "disk_usage",
+      "label": "Lab filesystem usage",
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent"
+    }
+  ]
+}
