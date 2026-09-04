@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "solution-architecture-health-20260904-postmerge-01",
+  "request_id": "solution-architecture-health-20260904-postrefresh-02",
   "recipe": "custom/ba-agent/diagnostics/solution-architecture-health.json",
-  "note": "Post-merge validation of the NAS benchmark lab after Solution Architecture v0.4.0 was released to main and main was reconciled into server/synology. Verify local skill/benchmark presence, B022 worker state, queue convergence, credential presence and scheduler health."
+  "note": "Verify the maintenance refresh reset the NAS local Solution Architecture cache from the unreleased v0.5 candidate back to released v0.4.0, and confirm queue/worker/scheduler health after the refresh job."
 }
