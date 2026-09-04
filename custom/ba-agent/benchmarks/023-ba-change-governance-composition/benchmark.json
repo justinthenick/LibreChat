@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 023 — BA Change Delivery Agent Routing",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../agents/ba-change-delivery-orchestrator/AGENT.md",
+  "results_dir": "results"
+}
