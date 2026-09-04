@@ -176,7 +176,7 @@ The clean Gemini 3.5 Flash A/B pair closed at **baseline 94/100 vs Skill v0.3 93
 
 B022 is the exact next standalone gate and the third materially different domain. It tests whether v0.3 rejects a 900 metre direct copper-Ethernet mechanism, preserves the campus-connectivity outcome, avoids invented optical/transceiver compatibility, keeps 1 Gbit/s as a Target, and separates BA/service questions from Procurement candidate verification.
 
-Job: `b022-g35-solution-design-v03-ab-001`, Gemini 3.5 Flash, temperature `0.0`, baseline + v0.3.
+The first job, `b022-g35-solution-design-v03-ab-001`, returned `provider_busy` for both sides. Replacement job `b022-g37-solution-design-v03-ab-002` uses Gemini 3.7 Flash at temperature `0.0`, baseline + v0.3. This is a fresh same-model pair; no cross-model comparison will be used.
 
 Do not compose Solution Architecture with BA or Procurement until B022 is evaluated. A strong zero-penalty result supports retaining v0.3 for composition planning; a repeated generic compatibility/evidence defect requires a generic Skill redesign rather than domain-specific patching.
 

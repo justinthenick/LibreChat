@@ -75,6 +75,8 @@ This ledger records the development and benchmark history for the BA Agent Lab.
 | 2026-09-04 08:05:23–08:05:44 | B020 — `design-technical-solution` v0.3 | NAS runner; Gemini 3.5 Flash; 21s | **93/100**; 7,354 tokens | Safe cross-domain result with zero penalties, but no incremental value over baseline. |
 | 2026-09-04 | B020 evaluator decision | Codex evaluation + repository update | baseline 94; Skill 93 | Close same-model A/B. Retain v0.3 as candidate; do not tune B020 and do not compose yet. |
 | 2026-09-04 | B022 created + queued | GitHub-controlled NAS jobs | `b022-g35-solution-design-v03-ab-001` baseline + Skill v0.3 | Third standalone domain: inter-building network topology, exact compatibility Unknowns, BA/service and Procurement handoff boundaries. |
+| 2026-09-04 | B022 Gemini 3.5 attempt | NAS runner; baseline + Skill | both `provider_busy`; no usable model output | Provider-capacity event only; do not score. |
+| 2026-09-04 | B022 replacement queued | GitHub-controlled NAS jobs | `b022-g37-solution-design-v03-ab-002` baseline + Skill v0.3 | Fresh same-model Gemini 3.7 pair; unchanged benchmark and temperature `0.0`. |
 
 ## Current architecture decision
 
