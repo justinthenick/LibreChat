@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "burst-retry-health-20260905-007",
+  "request_id": "burst-lineage-health-20260905-008",
   "recipe": "custom/ba-agent/diagnostics/workflow-strengthening-health.json",
-  "note": "Verify NAS self-refresh picks up the burst-cycle wrapper and autonomy_controller v1.1, authenticated GitHub reads remain healthy, up to four execution/controller/semantic-evaluator/semantic-reviser cycles run within one scheduler invocation, same-model retry state does not duplicate already-completed job IDs, scheduler return codes remain clean, and secrets are not exposed."
+  "note": "Verify NAS self-refresh picks up the burst-cycle wrapper and autonomy_controller v1.2, authenticated GitHub reads remain healthy, up to four execution/controller/semantic-evaluator/semantic-reviser cycles run within one scheduler invocation, same-model retries preserve unique job IDs, semantic jobs automatically follow retry/fallback result lineage without duplicate evaluation, scheduler return codes remain clean, and secrets are not exposed."
 }
