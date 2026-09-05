@@ -4,46 +4,42 @@
   "checks": [
     {
       "type": "queue_compare",
-      "label": "Current retry wave vs NAS worker state",
+      "label": "Post-bootstrap validation wave vs NAS worker state",
       "state_path": "custom/ba-agent/automation/worker-state.json",
       "jobs_path": "custom/ba-agent/automation/jobs.json",
       "job_ids": [
-        "a001-g36-ba-change-router-v02-skill-007",
-        "b024-g36-traceability-v01-skill-002",
-        "b025-g36-procurement-spec-v01-skill-002",
-        "b026-g36-nfr-v01-skill-002",
-        "b027-g36-change-impact-v02-skill-002",
-        "b028-g35-release-evidence-v01-ab-002",
-        "b029-g35-requirement-delta-v01-ab-002",
-        "b030-g35-adr-v01-ab-002",
-        "b031-g36-operational-readiness-v01-ab-002",
-        "b023-g36-ba-change-control-guarded-008",
-        "b023-g36-ba-change-itil-guarded-009"
+        "b023-g36-ba-change-control-guarded-010",
+        "b023-g36-ba-change-itil-guarded-011",
+        "b024-g36-traceability-v02-ab-003",
+        "b025-g36-procurement-spec-v02-ab-003",
+        "b026-g36-nfr-v02-ab-003",
+        "b028-g35-release-evidence-v02-ab-003",
+        "b029-g35-requirement-delta-v02-ab-003",
+        "b030-g35-adr-v02-ab-003",
+        "b031-g36-operational-readiness-v02-ab-003"
       ]
     },
     {
       "type": "worker_state",
-      "label": "Worker records for current retry wave",
+      "label": "Worker records for post-bootstrap validation wave",
       "path": "custom/ba-agent/automation/worker-state.json",
       "job_ids": [
-        "a001-g36-ba-change-router-v02-skill-007",
-        "b024-g36-traceability-v01-skill-002",
-        "b025-g36-procurement-spec-v01-skill-002",
-        "b026-g36-nfr-v01-skill-002",
-        "b027-g36-change-impact-v02-skill-002",
-        "b028-g35-release-evidence-v01-ab-002",
-        "b029-g35-requirement-delta-v01-ab-002",
-        "b030-g35-adr-v01-ab-002",
-        "b031-g36-operational-readiness-v01-ab-002",
-        "b023-g36-ba-change-control-guarded-008",
-        "b023-g36-ba-change-itil-guarded-009"
+        "b023-g36-ba-change-control-guarded-010",
+        "b023-g36-ba-change-itil-guarded-011",
+        "b024-g36-traceability-v02-ab-003",
+        "b025-g36-procurement-spec-v02-ab-003",
+        "b026-g36-nfr-v02-ab-003",
+        "b028-g35-release-evidence-v02-ab-003",
+        "b029-g35-requirement-delta-v02-ab-003",
+        "b030-g35-adr-v02-ab-003",
+        "b031-g36-operational-readiness-v02-ab-003"
       ]
     },
     {
       "type": "tail",
-      "label": "Recent benchmark scheduler log",
+      "label": "Recent autonomy scheduler log",
       "path": "custom/ba-agent/automation/scheduler.log",
-      "lines": 160
+      "lines": 200
     },
     {
       "type": "lock_status",
