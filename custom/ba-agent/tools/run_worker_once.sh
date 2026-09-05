@@ -61,9 +61,10 @@ if [ -f "$DIAG_WORKER" ]; then
   DIAG_RC=$?
 fi
 
+# Diagnostics are observability-only. A diagnostic GitHub/read failure must not
+# turn a successful benchmark/controller cycle into an execution failure.
 RC=$BENCH_RC
 if [ "$RC" -eq 0 ] && [ "$CTRL_RC" -ne 0 ]; then RC=$CTRL_RC; fi
-if [ "$RC" -eq 0 ] && [ "$DIAG_RC" -ne 0 ]; then RC=$DIAG_RC; fi
 printf '%s autonomy poll end sync_rc=%s benchmark_rc=%s controller_rc=%s diagnostic_rc=%s rc=%s\n' \
   "$(date '+%Y-%m-%d %H:%M:%S')" "$SYNC_RC" "$BENCH_RC" "$CTRL_RC" "$DIAG_RC" "$RC" >> "$LOG_FILE"
 exit "$RC"
