@@ -1,0 +1,20 @@
+{
+  "benchmark": "Benchmark 026 — Non-Functional Requirements Analysis",
+  "created_at": "2026-09-05T11:35:37Z",
+  "mode": "both",
+  "model": "gemini-3.7-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b026-g37-nfr-v02-ab-006-gemini-3.7-flash-baseline-01.md",
+      "metadata": "b026-g37-nfr-v02-ab-006-gemini-3.7-flash-baseline-01.json",
+      "status": "success"
+    },
+    {
+      "markdown": "b026-g37-nfr-v02-ab-006-gemini-3.7-flash-skill-01.md",
+      "metadata": "b026-g37-nfr-v02-ab-006-gemini-3.7-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}
