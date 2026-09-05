@@ -1,0 +1,124 @@
+{
+  "schema": 1,
+  "job_id": "sem-b023-composition-g35-001",
+  "benchmark": "Benchmark 023 — BA Change Delivery Agent Routing",
+  "benchmark_path": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-05T10:50:20Z",
+  "baseline_result": "results/b023-g35-ba-change-control-guarded-014-gemini-3.5-flash-pipeline-01.md",
+  "skill_result": "results/b023-g35-ba-change-itil-guarded-015-gemini-3.5-flash-pipeline-01.md",
+  "skill_path": "custom/ba-agent/agents/ba-change-delivery-orchestrator/AGENT.md",
+  "skill_sha256": "24f976c2b56efacd7528c5aeb302422335f61f7736bb46f2cd4300768ebf38a5",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 93,
+      "critical_penalties": [],
+      "final_score": 93,
+      "criteria": [
+        {
+          "criterion": "A. Agent routing",
+          "score": 20,
+          "max": 25,
+          "rationale": "Executed requirements analysis, decomposition, criteria elaboration, test derivation, and change readiness, but omitted the standalone assess-itil-alignment skill from the catalog, providing only an abbreviated inline section."
+        },
+        {
+          "criterion": "B. Evidence/status preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "Faithfully preserves confirmed outcomes, targets, candidate status for SAML/Entra, disputed contractor identity, and deferred Phase 2 scope."
+        },
+        {
+          "criterion": "C. Delivery/readiness discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Maintains strict discipline by generating criteria/tests only for ready portions, keeping unverified items conditional, and distinguishing local policy gates from missing evidence."
+        },
+        {
+          "criterion": "D. ITIL alignment quality",
+          "score": 13,
+          "max": 15,
+          "rationale": "Accurately references ITIL concepts without making compliance claims, but lacks the detailed practice mapping across Release, Deployment, and Service Configuration Management."
+        },
+        {
+          "criterion": "E. Authority / invention discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "No invented Change Authority, CAB, rollback mechanics, or implementation architecture."
+        },
+        {
+          "criterion": "F. Traceability / usability",
+          "score": 5,
+          "max": 5,
+          "rationale": "Maintains clear traceability across IDs and handoff blocks."
+        }
+      ],
+      "summary": "Strong baseline output that strictly maintains evidence boundaries and governance requirements, though lacking a fully expanded standalone ITIL practice assessment."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "A. Agent routing",
+          "score": 25,
+          "max": 25,
+          "rationale": "Correctly executes all six catalog skills in proper sequence with clear prerequisite discipline and handoffs."
+        },
+        {
+          "criterion": "B. Evidence/status preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "All states (Target date, Target recovery, Candidate SAML/Entra, Disputed contractor model, Deferred SCIM) are preserved exactly as defined."
+        },
+        {
+          "criterion": "C. Delivery/readiness discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Strict boundary controls are maintained; criteria and tests are strictly bounded to ready scope, and missing evidence is clearly demarcated."
+        },
+        {
+          "criterion": "D. ITIL alignment quality",
+          "score": 15,
+          "max": 15,
+          "rationale": "Comprehensive ITIL 4 alignment assessment covering Change Enablement, Release Management, Deployment Management, Service Configuration Management, and Information Security Management, cleanly distinguishing ITIL guidance from explicit local policy."
+        },
+        {
+          "criterion": "E. Authority / invention discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Zero hallucinated CAB roles, Change Authorities, rollback mechanics, or technical details."
+        },
+        {
+          "criterion": "F. Traceability / usability",
+          "score": 5,
+          "max": 5,
+          "rationale": "End-to-end traceability matrix and ASCII maps provide complete visibility from source constraints down to ITIL practice findings."
+        }
+      ],
+      "summary": "Flawless execution of the full six-skill routing pipeline, providing complete BA delivery artifacts, solution/change-readiness handoff, and an ITIL 4 alignment assessment without inventing authority or architecture."
+    },
+    "defects": [],
+    "summary": "The candidate skill pipeline correctly executed all six required skills, adding structured ITIL 4 practice interpretation across Change Enablement, Release Management, Deployment Management, and Configuration Management while strictly preserving uncertainty and local policy boundaries."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 20252,
+    "candidatesTokenCount": 1033,
+    "totalTokenCount": 22410,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 20252
+      }
+    ],
+    "thoughtsTokenCount": 1125,
+    "serviceTier": "standard"
+  }
+}
