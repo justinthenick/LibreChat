@@ -1,0 +1,124 @@
+{
+  "schema": 1,
+  "job_id": "sem-a001-dynamic-g37-001",
+  "benchmark": "Benchmark 023 — BA Change Delivery Agent Routing",
+  "benchmark_path": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-05T13:11:02Z",
+  "baseline_result": "results/b023-g37-ba-change-control-dynamic-016-gemini-3.7-flash-pipeline-01.md",
+  "skill_result": "results/a001-g37-dynamic-invocation-016-gemini-3-7-flash-dynamic-01.md",
+  "skill_path": "custom/ba-agent/agents/ba-change-delivery-orchestrator/AGENT.md",
+  "skill_sha256": "24f976c2b56efacd7528c5aeb302422335f61f7736bb46f2cd4300768ebf38a5",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 99,
+      "critical_penalties": [],
+      "final_score": 99,
+      "criteria": [
+        {
+          "criterion": "A. Agent routing",
+          "score": 24,
+          "max": 25,
+          "rationale": "Pipeline executes all 6 required stages in exact order with strict prerequisite/stop discipline across the composite stages, though delivered as a composite pipeline execution without an explicit dynamic routing declaration block."
+        },
+        {
+          "criterion": "B. Evidence/status preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "Preserves corporate identity/MFA as confirmed, 30 November as a target date, 45-minute backout as a target duration, Saturday 22:00 as unapproved, contractor access as disputed with unknown authority, and SCIM as deferred Phase 2."
+        },
+        {
+          "criterion": "C. Delivery/readiness discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Acceptance criteria and test cases are strictly bounded to ready, confirmed scope (603 matched accounts, baseline MFA, change record constraint) while keeping unverified technical mechanisms, 17 unmatched accounts, and gaps open."
+        },
+        {
+          "criterion": "D. ITIL alignment quality",
+          "score": 15,
+          "max": 15,
+          "rationale": "Accurately separates ITIL guidance from local policy, maps the 5 relevant ITIL practices cleanly, and treats gaps as clarifications/readiness dependencies rather than non-compliance."
+        },
+        {
+          "criterion": "E. Authority / invention discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Zero invented CAB requirements, Change Authority names, rollback mechanics, or implementation architectures."
+        },
+        {
+          "criterion": "F. Traceability / usability",
+          "score": 5,
+          "max": 5,
+          "rationale": "Consistent upstream-to-downstream ID tracking across all artifacts."
+        }
+      ],
+      "summary": "Baseline delivered an exceptionally strong, disciplined end-to-end delivery package, maintaining all uncertain states, constraints, and ITIL alignment boundaries without hallucinations."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "A. Agent routing",
+          "score": 25,
+          "max": 25,
+          "rationale": "Dynamic routing block explicitly selects all 6 catalog skills in exact sequence, articulates precise stop rules and prerequisite boundaries, and identifies the expected final artifact."
+        },
+        {
+          "criterion": "B. Evidence/status preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "Preserves corporate identity/MFA policy as confirmed without hardening SAML/Entra, keeps 30 November and 45-minute backout as non-binding targets, keeps Saturday 22:00 unapproved, preserves contractor dispute with unknown decision owner, and defers SCIM."
+        },
+        {
+          "criterion": "C. Delivery/readiness discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Strictly gates criteria and test derivation to confirmed items (603 mapped records, MFA policy, change approval gate), explicitly treating missing evidence as downstream information needs rather than invented approval gates."
+        },
+        {
+          "criterion": "D. ITIL alignment quality",
+          "score": 15,
+          "max": 15,
+          "rationale": "Maintains a dedicated distinction table between local policy and ITIL guidance, uses relevant practice concepts (Change Enablement, InfoSec, Release, Deployment, Service Config), and treats gaps as unevidenced clarifications."
+        },
+        {
+          "criterion": "E. Authority / invention discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "No invented authority, CAB requirement, architecture, or backout mechanism."
+        },
+        {
+          "criterion": "F. Traceability / usability",
+          "score": 5,
+          "max": 5,
+          "rationale": "Flawless end-to-end traceability matrix and structured handoffs across all 6 stages."
+        }
+      ],
+      "summary": "Skill executed the complete 6-stage workflow perfectly, starting with a comprehensive dynamic routing decision and maintaining rigorous epistemic control, governance discipline, and ITIL practice alignment across all stages."
+    },
+    "defects": [],
+    "summary": "Both models demonstrated exceptional discipline on Benchmark 023. The Skill execution achieved full marks (100/100) by combining flawless agent routing with comprehensive requirements analysis, delivery decomposition, acceptance criteria, test derivation, change readiness handoff, and ITIL practice alignment without a single critical penalty or unsupported invention."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 32873,
+    "candidatesTokenCount": 1173,
+    "totalTokenCount": 36233,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 32873
+      }
+    ],
+    "thoughtsTokenCount": 2187,
+    "serviceTier": "standard"
+  }
+}
