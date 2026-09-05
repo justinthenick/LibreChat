@@ -1,12 +1,19 @@
 {
   "schema": 1,
   "enabled": true,
-  "note": "A001 true dynamic invocation gate. The Agent routes first, then the NAS invokes only the selected allowlisted Skills in returned order. This is intentionally separate from fixed pipeline execution so dynamic behavior is measured rather than simulated.",
+  "note": "A001 true dynamic invocation gates. The Agent routes first, then the NAS invokes only the selected allowlisted Skills in returned order. Benchmark 032 is a materially different selective-routing generalization where the correct route should skip already-complete BA stages.",
   "jobs": [
     {
       "id": "a001-g37-dynamic-invocation-016",
       "enabled": true,
       "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+      "dynamic_config": "dynamic-a001.json",
+      "model": "gemini-3.7-flash"
+    },
+    {
+      "id": "a001-g37-generalization-017",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/032-a001-selective-readiness-generalization",
       "dynamic_config": "dynamic-a001.json",
       "model": "gemini-3.7-flash"
     }

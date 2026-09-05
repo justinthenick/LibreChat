@@ -1,0 +1,21 @@
+{
+  "schema": 2,
+  "name": "Benchmark 032 — Optimal fixed readiness + ITIL control",
+  "input": "input.md",
+  "prompt": "pipeline-prompt.md",
+  "results_dir": "results",
+  "stages": [
+    {
+      "id": "change-readiness",
+      "name": "Prepare Solution / Change Readiness v0.2",
+      "agent": "../../skills/prepare-solution-change-readiness/SKILL.md",
+      "instruction": "Consume the supplied normalized BA baseline directly. Do not redo requirements analysis, decomposition, acceptance-criteria design or test-case design. Produce the solution/design and Change Enablement readiness handoff defined by the Skill, preserving all evidence/status/authority distinctions. Only after the complete readiness artifact is produced, append the exact final line `PIPELINE_HANDOFF_COMPLETE: CHANGE_READINESS`."
+    },
+    {
+      "id": "itil-alignment",
+      "name": "Assess ITIL Alignment v0.2",
+      "agent": "../../skills/assess-itil-alignment/SKILL.md",
+      "instruction": "Consume only the supplied change-readiness handoff. Before substantive work, require the exact upstream marker `PIPELINE_HANDOFF_COMPLETE: CHANGE_READINESS`. If it is absent, return only `UPSTREAM_INCOMPLETE: CHANGE_READINESS` and stop. If present, assess relevant ITIL 4 practice alignment without inventing local policy, formal compliance, approval authority or missing evidence. Preserve upstream readiness/status distinctions. Only after the complete ITIL alignment artifact is produced, append the exact final line `PIPELINE_HANDOFF_COMPLETE: ITIL_ALIGNMENT`."
+    }
+  ]
+}
