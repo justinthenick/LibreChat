@@ -1,7 +1,8 @@
 #!/bin/sh
 # One-shot BA lab wrapper for Synology Task Scheduler.
-# Self-refreshes authenticated lab tools, executes new jobs, advances safe
-# deterministic fallback transitions, then runs diagnostics.
+# Self-refreshes authenticated lab tools, executes benchmark jobs, advances safe
+# deterministic fallbacks, evaluates completed experiments, applies bounded
+# evidence-backed Skill revisions when explicitly enabled, then runs diagnostics.
 
 set -u
 
@@ -10,6 +11,8 @@ ENV_FILE="/volume1/docker/librechat/deploy/synology/.env"
 BOOTSTRAP="$ROOT/custom/ba-agent/tools/bootstrap_nas.py"
 WORKER="$ROOT/custom/ba-agent/tools/benchmark_worker.py"
 CONTROLLER="$ROOT/custom/ba-agent/tools/autonomy_controller.py"
+SEM_EVAL="$ROOT/custom/ba-agent/tools/semantic_evaluator.py"
+SEM_REVISE="$ROOT/custom/ba-agent/tools/semantic_reviser.py"
 DIAG_WORKER="$ROOT/custom/ba-agent/tools/diagnostic_worker.py"
 LOG_DIR="$ROOT/custom/ba-agent/automation"
 LOG_FILE="$LOG_DIR/scheduler.log"
@@ -55,16 +58,30 @@ else
   printf '%s autonomy controller not installed; execution-only mode\n' "$(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
 fi
 
+SEM_EVAL_RC=0
+if [ -f "$SEM_EVAL" ]; then
+  "$PYTHON_BIN" "$SEM_EVAL" --env-file "$ENV_FILE" >> "$LOG_FILE" 2>&1
+  SEM_EVAL_RC=$?
+fi
+
+SEM_REVISE_RC=0
+if [ -f "$SEM_REVISE" ]; then
+  "$PYTHON_BIN" "$SEM_REVISE" --env-file "$ENV_FILE" >> "$LOG_FILE" 2>&1
+  SEM_REVISE_RC=$?
+fi
+
 DIAG_RC=0
 if [ -f "$DIAG_WORKER" ]; then
   "$PYTHON_BIN" "$DIAG_WORKER" --env-file "$ENV_FILE" >> "$LOG_FILE" 2>&1
   DIAG_RC=$?
 fi
 
-# Diagnostics are observability-only. A diagnostic GitHub/read failure must not
-# turn a successful benchmark/controller cycle into an execution failure.
+# Diagnostics are observability-only. Semantic evaluation/revision failures are
+# real engineering-cycle failures and should surface in the scheduler return code.
 RC=$BENCH_RC
 if [ "$RC" -eq 0 ] && [ "$CTRL_RC" -ne 0 ]; then RC=$CTRL_RC; fi
-printf '%s autonomy poll end sync_rc=%s benchmark_rc=%s controller_rc=%s diagnostic_rc=%s rc=%s\n' \
-  "$(date '+%Y-%m-%d %H:%M:%S')" "$SYNC_RC" "$BENCH_RC" "$CTRL_RC" "$DIAG_RC" "$RC" >> "$LOG_FILE"
+if [ "$RC" -eq 0 ] && [ "$SEM_EVAL_RC" -ne 0 ]; then RC=$SEM_EVAL_RC; fi
+if [ "$RC" -eq 0 ] && [ "$SEM_REVISE_RC" -ne 0 ]; then RC=$SEM_REVISE_RC; fi
+printf '%s autonomy poll end sync_rc=%s benchmark_rc=%s controller_rc=%s semantic_eval_rc=%s semantic_revise_rc=%s diagnostic_rc=%s rc=%s\n' \
+  "$(date '+%Y-%m-%d %H:%M:%S')" "$SYNC_RC" "$BENCH_RC" "$CTRL_RC" "$SEM_EVAL_RC" "$SEM_REVISE_RC" "$DIAG_RC" "$RC" >> "$LOG_FILE"
 exit "$RC"
