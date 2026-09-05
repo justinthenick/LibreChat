@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-b033-a002-routing-g37-001",
+  "benchmark": "Benchmark 033 — A002 Architecture Stop Routing",
+  "benchmark_path": "custom/ba-agent/benchmarks/033-a002-architecture-stop-routing",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-05T13:43:54Z",
+  "baseline_result": "results/b033-g37-a002-routing-v01-ab-001-gemini-3.7-flash-baseline-01.md",
+  "skill_result": "results/b033-g37-a002-routing-v01-ab-001-gemini-3.7-flash-skill-01.md",
+  "skill_path": "custom/ba-agent/agents/solution-procurement-orchestrator/AGENT.md",
+  "skill_sha256": "20ffaa07d7c6118bb2a17f0ca0af1995fbbe65a45a7b200543221f8a70d35dab",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 83,
+      "critical_penalties": [],
+      "final_score": 83,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 20,
+          "max": 30,
+          "rationale": "Used generic skill names and bundled ADR recording into the architecture phase instead of using the exact skill sequence and omitting unrequested ADR."
+        },
+        {
+          "criterion": "Architecture stop discipline",
+          "score": 23,
+          "max": 25,
+          "rationale": "Clearly identified architecture-changing unknowns and enforced a stop prior to procurement specification and market search."
+        },
+        {
+          "criterion": "Evidence/status preservation",
+          "score": 19,
+          "max": 20,
+          "rationale": "Preserved RH-7, footprint dimensions, budget target, and workload estimate accurately."
+        },
+        {
+          "criterion": "Outcome-vs-mechanism / feasibility discipline",
+          "score": 14,
+          "max": 15,
+          "rationale": "Correctly identified that USB 3.2 Gen 1 lacks PCIe/Thunderbolt support for external GPU attachment."
+        },
+        {
+          "criterion": "Authority / procurement boundary discipline",
+          "score": 7,
+          "max": 10,
+          "rationale": "Included an Architecture Decision Record (ADR) deliverable despite no formal decision acceptance or authority approval having occurred."
+        }
+      ],
+      "summary": "Baseline correctly identified the need to halt before hardware procurement and correctly evaluated the eGPU feasibility, but used generic routing names and included an ADR stage prematurely."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 30,
+          "max": 30,
+          "rationale": "Selected the exact full-credit 3-stage sequence (`analyze-requirements`, `analyze-nonfunctional-requirements`, `design-technical-solution`) and explicitly halted before procurement."
+        },
+        {
+          "criterion": "Architecture stop discipline",
+          "score": 25,
+          "max": 25,
+          "rationale": "Identified all core architecture-changing unknowns (OCR edition, acceleration compatibility, compute bottleneck) and defined the precise minimum criteria needed to resume."
+        },
+        {
+          "criterion": "Evidence/status preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Preserved all factual statuses exactly: RH-7 Confirmed, A$2,500 Target, 120k pages/year workload estimate, GPU requirement Unknown, and confirmed physical footprint."
+        },
+        {
+          "criterion": "Outcome-vs-mechanism / feasibility discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Challenged the proposed mini-PC external GPU mechanism against port specifications without fabricating unsupported interface or thermal claims."
+        },
+        {
+          "criterion": "Authority / procurement boundary discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Explicitly excluded `record-architecture-decisions` and downstream procurement skills, avoiding any premature shortlisting or invented approvals."
+        }
+      ],
+      "summary": "Skill executed the routing benchmark flawlessly: selected exact skill sequence, correctly omitted ADR and procurement stages, preserved all evidence tags/unknowns, and clearly articulated the stop gate."
+    },
+    "defects": [],
+    "summary": "Skill achieved full marks (100/100) by adhering strictly to the required skill sequence, properly halting prior to procurement, accurately classifying evidence strengths, and explicitly excluding unrequested ADR generation."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 5609,
+    "candidatesTokenCount": 898,
+    "totalTokenCount": 7686,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 5609
+      }
+    ],
+    "thoughtsTokenCount": 1179,
+    "serviceTier": "standard"
+  }
+}
