@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "post-bootstrap-autonomy-health-20260905-003",
+  "request_id": "semantic-autonomy-health-20260905-004",
   "recipe": "custom/ba-agent/diagnostics/workflow-strengthening-health.json",
-  "note": "Verify authenticated 5-minute autonomy loop, fresh B023 guarded composition pair, corrected v0.2 validation wave, scheduler/controller execution and required token presence without exposing secrets."
+  "note": "Verify the post-PR15 NAS loop self-refreshes semantic workers, runs semantic evaluator/reviser without syntax/runtime errors, preserves authenticated GitHub access, and reports scheduler return codes without exposing secrets."
 }
