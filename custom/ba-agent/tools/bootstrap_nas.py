@@ -102,6 +102,7 @@ def main():
     tool_paths = (
         "custom/ba-agent/tools/benchmark_runner.py",
         "custom/ba-agent/tools/agent_pipeline_runner.py",
+        "custom/ba-agent/tools/dynamic_agent_worker.py",
         "custom/ba-agent/tools/benchmark_worker.py",
         "custom/ba-agent/tools/autonomy_controller.py",
         "custom/ba-agent/tools/lab_common.py",
