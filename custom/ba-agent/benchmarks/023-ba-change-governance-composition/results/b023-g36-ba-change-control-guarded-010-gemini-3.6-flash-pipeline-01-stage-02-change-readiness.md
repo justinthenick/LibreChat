@@ -1,0 +1,33 @@
+# BA Specialist Pipeline Stage
+
+## Metadata
+
+```json
+{
+  "agent_path": "custom/ba-agent/skills/prepare-solution-change-readiness/SKILL.md",
+  "agent_sha256": "b18b5fc6db55de3c58c5af8af867352f37e8cb63998b33d4b464e88cf3cb8e5e",
+  "agent_version": "0.2.0",
+  "ended_at": "2026-09-05T06:35:50Z",
+  "error": "{\"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash\\nPlease retry in 48.668821308s.\", \"status\": \"RESOURCE_EXHAUSTED\"}",
+  "finish_reason": null,
+  "max_output_tokens": 8192,
+  "model": "gemini-3.6-flash",
+  "pipeline": "Benchmark 023 \u2014 Control: Composite BA + Change Readiness",
+  "run_id": "b023-g36-ba-change-control-guarded-010",
+  "stage_id": "change-readiness",
+  "stage_index": 2,
+  "stage_input_sha256": "ccc92151e7534b029cd1547c7d37e43eea3c540f19c12f671c5ec34715d8d246",
+  "stage_name": "Prepare Solution / Change Readiness v0.2",
+  "started_at": "2026-09-05T06:35:50Z",
+  "status": "quota_blocked",
+  "temperature": 0.0,
+  "upstream_output_sha256": "1d07106cde05fa45ea6d625655bb2b1146397a690734c1f340d29111ae442ac7",
+  "usage": {}
+}
+```
+
+---
+
+## Stage output
+
+_No model output._
