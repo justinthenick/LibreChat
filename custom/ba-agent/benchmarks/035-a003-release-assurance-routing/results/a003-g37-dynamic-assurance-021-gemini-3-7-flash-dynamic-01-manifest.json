@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "run_id": "a003-g37-dynamic-assurance-021",
+  "benchmark": "custom/ba-agent/benchmarks/035-a003-release-assurance-routing",
+  "model": "gemini-3.7-flash",
+  "status": "success",
+  "operational_status": null,
+  "created_at": "2026-09-05T21:45:20Z",
+  "agent_path": "custom/ba-agent/agents/release-assurance-orchestrator/AGENT.md",
+  "agent_sha256": "79a630ce3b946c545426468ac9fa3af03bc6516315c9e668e68ec5a2b6871168",
+  "route": {
+    "objective": "Plan the minimum validated release-assurance routing to evaluate artifact traceability, release evidence, operational readiness, and produce a consolidated go/no-go readiness handoff for FieldOps Mobile 4.8 without re-assessing change impact or evaluating ITIL alignment.",
+    "selected_skills": [
+      "audit-artifact-traceability",
+      "validate-release-evidence",
+      "assess-operational-readiness",
+      "prepare-solution-change-readiness"
+    ],
+    "not_selected": [
+      {
+        "skill": "assess-change-impact",
+        "reason": "The current impact register was reviewed on 3 September 2026 and explicitly supplied as complete for this decision point, with explicit user instructions not to redo impact analysis."
+      },
+      {
+        "skill": "assess-itil-alignment",
+        "reason": "ITIL practice alignment was not requested, is not materially required for this release decision, and was explicitly excluded by the user."
+      }
+    ],
+    "stop_rules": [
+      "Preserve T-04 as NOT RUN and maintain rollback execution timing and fleet recovery as unevidenced/Unknown; do not treat a draft procedure as a validated rollback.",
+      "Preserve high-severity defect DEF-17 as OPEN; do not interpret the Product Owner's statement as defect closure, technical mitigation, or authorized risk acceptance.",
+      "Preserve the proposed sync failure alert threshold (>20 failures/5 min) and deployment window (Saturday 22:00–23:30) as Candidate states, not approved production configurations.",
+      "Preserve change record CHG-9481 as Draft; do not invent Change Authority approval or bypass the local policy requiring an approved record prior to implementation.",
+      "Preserve pilot testing (40 devices / 2 depots) as test-environment verification without overgeneralizing it to full-fleet production deployment verification.",
+      "Ensure prepare-solution-change-readiness reflects accurate conditional or not-ready statuses based on missing/failed upstream evidence without manufacturing a green go-decision."
+    ],
+    "expected_final_artifact": "A consolidated solution and change-readiness handoff report synthesizing traceability coverage, verified release and test evidence, operational gaps (untested rollback, draft runbook, candidate thresholds), and unresolved blockers (open DEF-17, draft CHG-9481) to support a defensible go/no-go release decision."
+  },
+  "route_status": "success",
+  "route_usage": {
+    "promptTokenCount": 3196,
+    "candidatesTokenCount": 548,
+    "totalTokenCount": 4441,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 3196
+      }
+    ],
+    "thoughtsTokenCount": 697,
+    "serviceTier": "standard"
+  },
+  "stages": [
+    {
+      "index": 1,
+      "skill": "audit-artifact-traceability",
+      "skill_path": "custom/ba-agent/skills/audit-artifact-traceability/SKILL.md",
+      "skill_sha256": "4de0982c2d2cff24c3f8f6412bf4313a8d2a233300a2f558997166dee0ca2e46",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 3690,
+        "candidatesTokenCount": 2350,
+        "totalTokenCount": 7337,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3690
+          }
+        ],
+        "thoughtsTokenCount": 1297,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "57b7270cc0dc246f5c97ebe055b07560a8ed7ab254b205bcc2b5182b15366869",
+      "error": null
+    },
+    {
+      "index": 2,
+      "skill": "validate-release-evidence",
+      "skill_path": "custom/ba-agent/skills/validate-release-evidence/SKILL.md",
+      "skill_sha256": "51901682cb58fc57442ad7876c2bbd6b2a7fb4cb881bcfac2d00349245564906",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 5643,
+        "candidatesTokenCount": 2636,
+        "totalTokenCount": 10541,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 5643
+          }
+        ],
+        "thoughtsTokenCount": 2262,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "09bc5c92c9cc16f1edc92f9cfce19b647b7970b6029d575ca530550456db1650",
+      "error": null
+    },
+    {
+      "index": 3,
+      "skill": "assess-operational-readiness",
+      "skill_path": "custom/ba-agent/skills/assess-operational-readiness/SKILL.md",
+      "skill_sha256": "df6bd0e785eff2b6e24c02137a68d4fd000f7fd8c4e41c0d84e5b020907a1127",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 6046,
+        "candidatesTokenCount": 1753,
+        "totalTokenCount": 8926,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 6046
+          }
+        ],
+        "thoughtsTokenCount": 1127,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "257626f61c55cd302c9a45ed72340320e3c8332b04fd7030a34cc585a36ccbfa",
+      "error": null
+    },
+    {
+      "index": 4,
+      "skill": "prepare-solution-change-readiness",
+      "skill_path": "custom/ba-agent/skills/prepare-solution-change-readiness/SKILL.md",
+      "skill_sha256": "b18b5fc6db55de3c58c5af8af867352f37e8cb63998b33d4b464e88cf3cb8e5e",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 5258,
+        "candidatesTokenCount": 2614,
+        "totalTokenCount": 9027,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 5258
+          }
+        ],
+        "thoughtsTokenCount": 1155,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "5e7b9487cd1e99cab3721e1f7d8efd3b35096435260687fb174bed7c0b96749b",
+      "error": null
+    }
+  ],
+  "usage_totals": {
+    "prompt": 23833,
+    "candidate": 9901,
+    "thoughts": 6538,
+    "total": 40272
+  },
+  "result_markdown": "a003-g37-dynamic-assurance-021-gemini-3-7-flash-dynamic-01.md"
+}
