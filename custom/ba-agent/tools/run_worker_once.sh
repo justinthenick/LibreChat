@@ -1,7 +1,8 @@
 #!/bin/sh
 # One-shot BA lab wrapper for Synology Task Scheduler.
 # Self-refreshes authenticated lab tools, then runs a bounded burst of execution,
-# deterministic fallback, semantic evaluation, and evidence-backed revision phases.
+# dynamic Agent invocation, deterministic fallback, semantic evaluation, and
+# evidence-backed revision phases.
 # The burst removes the old five-minute phase-to-phase wait: a fallback or rerun
 # queued in one phase can be consumed immediately by the next burst cycle.
 
@@ -11,6 +12,7 @@ ROOT="/volume1/docker/librechat-ba-lab"
 ENV_FILE="/volume1/docker/librechat/deploy/synology/.env"
 BOOTSTRAP="$ROOT/custom/ba-agent/tools/bootstrap_nas.py"
 WORKER="$ROOT/custom/ba-agent/tools/benchmark_worker.py"
+DYNAMIC_WORKER="$ROOT/custom/ba-agent/tools/dynamic_agent_worker.py"
 CONTROLLER="$ROOT/custom/ba-agent/tools/autonomy_controller.py"
 SEM_EVAL="$ROOT/custom/ba-agent/tools/semantic_evaluator.py"
 SEM_REVISE="$ROOT/custom/ba-agent/tools/semantic_reviser.py"
@@ -57,6 +59,7 @@ fi
 
 RC=0
 LAST_BENCH_RC=0
+LAST_DYNAMIC_RC=0
 LAST_CTRL_RC=0
 LAST_SEM_EVAL_RC=0
 LAST_SEM_REVISE_RC=0
@@ -67,6 +70,13 @@ while [ "$cycle" -le "$MAX_BURST_CYCLES" ]; do
   "$PYTHON_BIN" "$WORKER" --once --env-file "$ENV_FILE" >> "$LOG_FILE" 2>&1
   LAST_BENCH_RC=$?
   if [ "$RC" -eq 0 ] && [ "$LAST_BENCH_RC" -ne 0 ]; then RC=$LAST_BENCH_RC; fi
+
+  LAST_DYNAMIC_RC=0
+  if [ -f "$DYNAMIC_WORKER" ]; then
+    "$PYTHON_BIN" "$DYNAMIC_WORKER" --env-file "$ENV_FILE" >> "$LOG_FILE" 2>&1
+    LAST_DYNAMIC_RC=$?
+    if [ "$RC" -eq 0 ] && [ "$LAST_DYNAMIC_RC" -ne 0 ]; then RC=$LAST_DYNAMIC_RC; fi
+  fi
 
   LAST_CTRL_RC=0
   if [ -f "$CONTROLLER" ]; then
@@ -91,8 +101,8 @@ while [ "$cycle" -le "$MAX_BURST_CYCLES" ]; do
     if [ "$RC" -eq 0 ] && [ "$LAST_SEM_REVISE_RC" -ne 0 ]; then RC=$LAST_SEM_REVISE_RC; fi
   fi
 
-  printf '%s autonomy burst cycle %s/%s end benchmark_rc=%s controller_rc=%s semantic_eval_rc=%s semantic_revise_rc=%s\n' \
-    "$(date '+%Y-%m-%d %H:%M:%S')" "$cycle" "$MAX_BURST_CYCLES" "$LAST_BENCH_RC" "$LAST_CTRL_RC" "$LAST_SEM_EVAL_RC" "$LAST_SEM_REVISE_RC" >> "$LOG_FILE"
+  printf '%s autonomy burst cycle %s/%s end benchmark_rc=%s dynamic_rc=%s controller_rc=%s semantic_eval_rc=%s semantic_revise_rc=%s\n' \
+    "$(date '+%Y-%m-%d %H:%M:%S')" "$cycle" "$MAX_BURST_CYCLES" "$LAST_BENCH_RC" "$LAST_DYNAMIC_RC" "$LAST_CTRL_RC" "$LAST_SEM_EVAL_RC" "$LAST_SEM_REVISE_RC" >> "$LOG_FILE"
   cycle=$((cycle + 1))
 done
 
@@ -104,6 +114,6 @@ fi
 
 # Diagnostics are observability-only. Semantic evaluation/revision failures are
 # real engineering-cycle failures and should surface in the scheduler return code.
-printf '%s autonomy poll end sync_rc=%s benchmark_rc=%s controller_rc=%s semantic_eval_rc=%s semantic_revise_rc=%s diagnostic_rc=%s rc=%s\n' \
-  "$(date '+%Y-%m-%d %H:%M:%S')" "$SYNC_RC" "$LAST_BENCH_RC" "$LAST_CTRL_RC" "$LAST_SEM_EVAL_RC" "$LAST_SEM_REVISE_RC" "$DIAG_RC" "$RC" >> "$LOG_FILE"
+printf '%s autonomy poll end sync_rc=%s benchmark_rc=%s dynamic_rc=%s controller_rc=%s semantic_eval_rc=%s semantic_revise_rc=%s diagnostic_rc=%s rc=%s\n' \
+  "$(date '+%Y-%m-%d %H:%M:%S')" "$SYNC_RC" "$LAST_BENCH_RC" "$LAST_DYNAMIC_RC" "$LAST_CTRL_RC" "$LAST_SEM_EVAL_RC" "$LAST_SEM_REVISE_RC" "$DIAG_RC" "$RC" >> "$LOG_FILE"
 exit "$RC"
