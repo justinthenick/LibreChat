@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-b024-v02-paid-001",
+  "benchmark": "Benchmark 024 — Artifact Traceability Audit",
+  "benchmark_path": "custom/ba-agent/benchmarks/024-artifact-traceability-audit",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-05T10:55:20Z",
+  "baseline_result": "results/b024-g35-traceability-v02-ab-005-gemini-3.5-flash-baseline-01.md",
+  "skill_result": "results/b024-g35-traceability-v02-ab-005-gemini-3.5-flash-skill-01.md",
+  "skill_path": "custom/ba-agent/skills/audit-artifact-traceability/SKILL.md",
+  "skill_sha256": "4de0982c2d2cff24c3f8f6412bf4313a8d2a233300a2f558997166dee0ca2e46",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 98,
+      "critical_penalties": [],
+      "final_score": 98,
+      "criteria": [
+        {
+          "criterion": "A. Reference integrity",
+          "score": 18,
+          "max": 20,
+          "rationale": "Correctly identified phantom reference T-03 -> AC-99 and acknowledged legitimate deferral of REQ-04, though slightly conflated REQ-01's valid T-01 lineage with T-04 in the coverage table summary."
+        },
+        {
+          "criterion": "B. Status and requirement-strength integrity",
+          "score": 25,
+          "max": 25,
+          "rationale": "Identified REQ-02 Candidate-to-Confirmed promotion, REQ-03 Target-to-SLA hardening, and REQ-04 deferred status."
+        },
+        {
+          "criterion": "C. Authority and governance integrity",
+          "score": 20,
+          "max": 20,
+          "rationale": "Correctly identified DEC-01 ownership assignment to Maya as unsupported and caught the invented CAB gate."
+        },
+        {
+          "criterion": "D. Constraint / semantic coverage",
+          "score": 15,
+          "max": 15,
+          "rationale": "Found loss of CON-01 manual fallback and identified T-04 as invented audit-logging scope."
+        },
+        {
+          "criterion": "E. Audit quality and discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Clear verdict, evidence-backed findings, separate unresolvable questions, and no unauthorized rewriting."
+        }
+      ],
+      "summary": "Baseline produced an excellent audit covering all major drift, phantom references, invented governance, and constraint loss."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "A. Reference integrity",
+          "score": 20,
+          "max": 20,
+          "rationale": "Identified T-03 -> AC-99 phantom reference, explicitly verified valid REQ-01 -> T-01 lineage, and properly handled deferred/blocked items without false defect claims."
+        },
+        {
+          "criterion": "B. Status and requirement-strength integrity",
+          "score": 25,
+          "max": 25,
+          "rationale": "Full identification of REQ-02 candidate hardening, REQ-03 target-to-gate drift, and REQ-04 deferred visibility expectations."
+        },
+        {
+          "criterion": "C. Authority and governance integrity",
+          "score": 20,
+          "max": 20,
+          "rationale": "Thoroughly analyzed DEC-01 stakeholder preference vs decision authority and isolated invented CAB approval gate."
+        },
+        {
+          "criterion": "D. Constraint / semantic coverage",
+          "score": 15,
+          "max": 15,
+          "rationale": "Identified drop of confirmed constraint CON-01 and categorized T-04 immutable logging as unevidenced assurance scope."
+        },
+        {
+          "criterion": "E. Audit quality and discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Strictly adhered to audit structure with Needs correction verdict, granular evidence citations, cleanly separated open questions, and no invented remediation."
+        }
+      ],
+      "summary": "Skill delivered a rigorous, structured audit perfectly matching all gold standard findings and rubric criteria."
+    },
+    "defects": [],
+    "summary": "Both models demonstrated near-flawless audit capability against the traceability chain, correctly identifying all 8 expected gold standard findings without incurring any critical penalties."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 8322,
+    "candidatesTokenCount": 792,
+    "totalTokenCount": 10485,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 8322
+      }
+    ],
+    "thoughtsTokenCount": 1371,
+    "serviceTier": "standard"
+  }
+}
