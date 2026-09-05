@@ -6,10 +6,16 @@ made without semantic judgement. It may enqueue one fresh same-model retry for
 provider/quota/network failures, then enqueue a cross-model fallback when the
 source job explicitly opts in via `auto_fallback` and provides
 `fallback_models`. Same-model retries preserve failed artifacts and use fresh
-job IDs, so experiments remain auditable. It never edits Skills, scores
-semantic quality, promotes releases, or deploys production.
+job IDs, so experiments remain auditable.
 
-Python 3.8+ standard library only.
+When an execution retry/fallback changes the deterministic result filenames,
+the controller also clones any waiting semantic job that references those
+filenames and rewrites it to follow the new execution lineage. This removes the
+manual execution-to-assessment relinking delay while preserving the original
+semantic job and evidence in history.
+
+It never edits Skills, scores semantic quality, promotes releases, or deploys
+production. Python 3.8+ standard library only.
 """
 
 import argparse
@@ -29,6 +35,7 @@ DEFAULT_ROOT = "/volume1/docker/librechat-ba-lab"
 DEFAULT_ENV_FILE = "/volume1/docker/librechat/deploy/synology/.env"
 DEFAULT_TOKEN_ENV = "GITHUB_TELEMETRY_TOKEN"
 DEFAULT_JOBS_PATH = "custom/ba-agent/automation/jobs.json"
+DEFAULT_SEMANTIC_JOBS_PATH = "custom/ba-agent/automation/semantic-jobs.json"
 DEFAULT_SAME_MODEL_RETRIES = 1
 
 
@@ -63,7 +70,7 @@ def merged_environment(env_file):
 def github_request(url, token, method="GET", payload=None):
     headers = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "ba-agent-autonomy-controller/1.1",
+        "User-Agent": "ba-agent-autonomy-controller/1.2",
         "X-GitHub-Api-Version": "2022-11-28",
         "Authorization": "Bearer {}".format(token),
     }
@@ -219,12 +226,99 @@ def choose_group(queue_jobs, trigger_job):
     return members or [trigger_job]
 
 
+def lineage_rewrite(old_job, new_job):
+    return {
+        "old_id": str(old_job.get("id") or ""),
+        "new_id": str(new_job.get("id") or ""),
+        "old_model": str(old_job.get("model") or ""),
+        "new_model": str(new_job.get("model") or ""),
+        "reason": str(new_job.get("autonomy_reason") or "operational_lineage"),
+    }
+
+
+def rewrite_result_path(value, rewrites):
+    if not isinstance(value, str) or not value:
+        return value, False
+    updated = value
+    changed = False
+    for item in rewrites:
+        old_prefix = "{}-{}".format(item["old_id"], slug(item["old_model"]))
+        new_prefix = "{}-{}".format(item["new_id"], slug(item["new_model"]))
+        if old_prefix and old_prefix in updated:
+            updated = updated.replace(old_prefix, new_prefix)
+            changed = True
+    return updated, changed
+
+
+def clone_semantic_followups(queue, rewrites):
+    jobs = queue.get("jobs") or []
+    if not isinstance(jobs, list):
+        raise ControllerError("semantic-jobs.json must contain a jobs array")
+    existing_ids = {str(job.get("id")) for job in jobs if isinstance(job, dict) and job.get("id")}
+    additions = []
+    for job in list(jobs):
+        if not isinstance(job, dict) or not job.get("id") or not bool(job.get("enabled", True)):
+            continue
+        clone = dict(job)
+        changed = False
+        for field in ("baseline_result", "skill_result", "skill_metadata"):
+            rewritten, field_changed = rewrite_result_path(clone.get(field), rewrites)
+            if field_changed:
+                clone[field] = rewritten
+                changed = True
+        if not changed:
+            continue
+
+        affected = []
+        for item in rewrites:
+            old_prefix = "{}-{}".format(item["old_id"], slug(item["old_model"]))
+            for field in ("baseline_result", "skill_result", "skill_metadata"):
+                original = str(job.get(field) or "")
+                if old_prefix and old_prefix in original:
+                    affected.append(item)
+                    break
+        new_models = {item["new_model"] for item in affected if item.get("new_model")}
+        if len(new_models) == 1:
+            new_model = next(iter(new_models))
+            clone["generation_model"] = new_model
+            if clone.get("rerun_model") is not None:
+                clone["rerun_model"] = new_model
+            if clone.get("generation_fallback_models") is not None:
+                clone["generation_fallback_models"] = [new_model]
+
+        base = str(job.get("id") or "semantic")
+        model_tag = slug(next(iter(new_models))) if len(new_models) == 1 else "lineage"
+        clone["id"] = unique_id(base, "auto-follow-{}".format(model_tag), existing_ids)
+        existing_ids.add(clone["id"])
+        clone["enabled"] = True
+        clone["autonomy_parent"] = base
+        clone["autonomy_reason"] = "execution_operational_lineage_follow"
+        additions.append(clone)
+    return additions
+
+
+def publish_semantic_followups(repo, branch, semantic_path, token, rewrites):
+    if not rewrites:
+        return 0, None
+    queue, sha = github_get_json_file(repo, branch, semantic_path, token)
+    additions = clone_semantic_followups(queue, rewrites)
+    if not additions:
+        return 0, None
+    queue["jobs"].extend(additions)
+    commit = github_put_json_file(
+        repo, branch, semantic_path, queue, sha, token,
+        "automation: follow execution retry lineage in semantic queue",
+    )
+    return len(additions), commit
+
+
 def main():
     parser = argparse.ArgumentParser(description="Advance deterministic BA lab operational state.")
     parser.add_argument("--repo", default=DEFAULT_REPO)
     parser.add_argument("--branch", default=DEFAULT_BRANCH)
     parser.add_argument("--root", default=DEFAULT_ROOT)
     parser.add_argument("--jobs-path", default=DEFAULT_JOBS_PATH)
+    parser.add_argument("--semantic-jobs-path", default=DEFAULT_SEMANTIC_JOBS_PATH)
     parser.add_argument("--env-file", default=DEFAULT_ENV_FILE)
     parser.add_argument("--github-token-env", default=DEFAULT_TOKEN_ENV)
     parser.add_argument("--worker-state")
@@ -253,6 +347,7 @@ def main():
     by_id = {str(job.get("id")): job for job in jobs if isinstance(job, dict) and job.get("id")}
     existing_ids = set(by_id)
     additions = []
+    rewrites = []
 
     for job_id, job in list(by_id.items()):
         if not bool(job.get("auto_fallback", False)):
@@ -278,6 +373,7 @@ def main():
                 clone = clone_for_same_model_retry(member, existing_ids)
                 existing_ids.add(clone["id"])
                 additions.append(clone)
+                rewrites.append(lineage_rewrite(member, clone))
                 created.append(clone["id"])
                 handled[member_id] = {
                     "at": dt.datetime.now(dt.timezone.utc).isoformat(),
@@ -310,6 +406,7 @@ def main():
             clone = clone_for_model(member, new_model, existing_ids)
             existing_ids.add(clone["id"])
             additions.append(clone)
+            rewrites.append(lineage_rewrite(member, clone))
             created.append(clone["id"])
             handled[member_id] = {
                 "at": dt.datetime.now(dt.timezone.utc).isoformat(),
@@ -328,10 +425,20 @@ def main():
             "automation: queue operational retry/fallback jobs",
         )
         print("[controller] queued {} operational job(s); commit={}".format(len(additions), commit or "unknown"))
+        try:
+            semantic_count, semantic_commit = publish_semantic_followups(
+                args.repo, args.branch, args.semantic_jobs_path, token, rewrites,
+            )
+            if semantic_count:
+                print("[controller] queued {} semantic lineage follow-up(s); commit={}".format(
+                    semantic_count, semantic_commit or "unknown"
+                ))
+        except ControllerError as exc:
+            print("[controller] WARNING semantic lineage follow-up failed: {}".format(exc))
     else:
         print("[controller] no deterministic transition required")
 
-    state["schema"] = 2
+    state["schema"] = 3
     state["last_checked_at"] = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     write_json(controller_state_path, state)
     return 0
