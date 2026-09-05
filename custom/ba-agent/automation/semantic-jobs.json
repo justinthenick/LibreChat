@@ -12,11 +12,21 @@
       "skill_metadata": "results/b028-g35-release-evidence-v02-ab-003-gemini-3.5-flash-skill-01.json",
       "generation_model": "gemini-3.5-flash",
       "evaluator_model": "gemini-3.7-flash",
-      "fallback_models": ["gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.6-flash"],
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.5-flash",
+        "gemini-3.6-flash"
+      ],
       "revision_model": "gemini-3.7-flash",
-      "revision_fallback_models": ["gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.6-flash"],
+      "revision_fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.5-flash",
+        "gemini-3.6-flash"
+      ],
       "rerun_model": "gemini-3.5-flash",
-      "generation_fallback_models": ["gemini-3.5-flash"],
+      "generation_fallback_models": [
+        "gemini-3.5-flash"
+      ],
       "rerun_id_prefix": "b028-g35-release-evidence-semantic",
       "min_score": 90,
       "max_baseline_gap": 10,
@@ -34,11 +44,21 @@
       "skill_metadata": "results/b029-g35-requirement-delta-v02-ab-003-gemini-3.5-flash-skill-01.json",
       "generation_model": "gemini-3.5-flash",
       "evaluator_model": "gemini-3.7-flash",
-      "fallback_models": ["gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.6-flash"],
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.5-flash",
+        "gemini-3.6-flash"
+      ],
       "revision_model": "gemini-3.7-flash",
-      "revision_fallback_models": ["gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.6-flash"],
+      "revision_fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.5-flash",
+        "gemini-3.6-flash"
+      ],
       "rerun_model": "gemini-3.5-flash",
-      "generation_fallback_models": ["gemini-3.5-flash"],
+      "generation_fallback_models": [
+        "gemini-3.5-flash"
+      ],
       "rerun_id_prefix": "b029-g35-requirement-delta-semantic",
       "min_score": 90,
       "max_baseline_gap": 10,
@@ -56,11 +76,21 @@
       "skill_metadata": "results/b030-g35-adr-v02-ab-003-gemini-3.5-flash-skill-01.json",
       "generation_model": "gemini-3.5-flash",
       "evaluator_model": "gemini-3.7-flash",
-      "fallback_models": ["gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.6-flash"],
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.5-flash",
+        "gemini-3.6-flash"
+      ],
       "revision_model": "gemini-3.7-flash",
-      "revision_fallback_models": ["gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.6-flash"],
+      "revision_fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.5-flash",
+        "gemini-3.6-flash"
+      ],
       "rerun_model": "gemini-3.5-flash",
-      "generation_fallback_models": ["gemini-3.5-flash"],
+      "generation_fallback_models": [
+        "gemini-3.5-flash"
+      ],
       "rerun_id_prefix": "b030-g35-adr-semantic",
       "min_score": 90,
       "max_baseline_gap": 10,
@@ -68,6 +98,40 @@
       "allow_auto_revision": true,
       "max_revisions": 1,
       "revision_count": 0
+    },
+    {
+      "id": "sem-b028-v02-001-auto-gemini-3-5-flash",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/028-release-evidence-validation",
+      "baseline_result": "results/b028-g35-release-evidence-v02-ab-003-gemini-3.5-flash-baseline-01.md",
+      "skill_result": "results/b028-g35-release-evidence-v02-ab-003-gemini-3.5-flash-skill-01.md",
+      "skill_metadata": "results/b028-g35-release-evidence-v02-ab-003-gemini-3.5-flash-skill-01.json",
+      "generation_model": "gemini-3.5-flash",
+      "evaluator_model": "gemini-3.5-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.5-flash",
+        "gemini-3.6-flash"
+      ],
+      "revision_model": "gemini-3.7-flash",
+      "revision_fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.5-flash",
+        "gemini-3.6-flash"
+      ],
+      "rerun_model": "gemini-3.5-flash",
+      "generation_fallback_models": [
+        "gemini-3.5-flash"
+      ],
+      "rerun_id_prefix": "b028-g35-release-evidence-semantic",
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": true,
+      "max_revisions": 1,
+      "revision_count": 0,
+      "autonomy_parent": "sem-b028-v02-001",
+      "autonomy_reason": "semantic_evaluator_operational_fallback"
     }
   ]
 }
