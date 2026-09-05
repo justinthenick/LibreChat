@@ -1,124 +1,15 @@
 {
   "schema": 2,
   "enabled": true,
-  "note": "Fresh autonomous retry wave after semantic B028/B029/B030 gates passed. Historical queue definitions and all raw evidence remain preserved in Git history/results.",
+  "note": "Fresh autonomous retry wave after semantic B028/B029/B030 gates passed. Historical queue definitions and all raw evidence remain preserved in Git history/results. Added fresh paid-tier B026 retry after the first 3.6 fallback was recorded locally without publishing a complete manifest.",
   "jobs": [
-    {
-      "id": "b023-g35-ba-change-control-guarded-014",
-      "enabled": true,
-      "runner": "pipeline",
-      "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
-      "pipeline_config": "pipeline-control.json",
-      "model": "gemini-3.5-flash",
-      "repeat": 1,
-      "temperature": 0.0,
-      "auto_fallback": true,
-      "comparison_group": "b023-guarded-composition-014",
-      "fallback_models": [
-        "gemini-3.5-flash",
-        "gemini-3.6-flash",
-        "gemini-3.7-flash"
-      ],
-      "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
-    },
-    {
-      "id": "b023-g35-ba-change-itil-guarded-015",
-      "enabled": true,
-      "runner": "pipeline",
-      "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
-      "pipeline_config": "pipeline-itil.json",
-      "model": "gemini-3.5-flash",
-      "repeat": 1,
-      "temperature": 0.0,
-      "auto_fallback": true,
-      "comparison_group": "b023-guarded-composition-014",
-      "fallback_models": [
-        "gemini-3.5-flash",
-        "gemini-3.6-flash",
-        "gemini-3.7-flash"
-      ],
-      "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
-    },
-    {
-      "id": "b024-g35-traceability-v02-ab-005",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/024-artifact-traceability-audit",
-      "model": "gemini-3.5-flash",
-      "mode": "both",
-      "repeat": 1,
-      "temperature": 0.0,
-      "auto_fallback": true,
-      "fallback_models": [
-        "gemini-3.5-flash",
-        "gemini-3.6-flash",
-        "gemini-3.7-flash"
-      ],
-      "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
-    },
-    {
-      "id": "b025-g35-procurement-spec-v02-ab-005",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/025-procurement-specification",
-      "model": "gemini-3.5-flash",
-      "mode": "both",
-      "repeat": 1,
-      "temperature": 0.0,
-      "auto_fallback": true,
-      "fallback_models": [
-        "gemini-3.5-flash",
-        "gemini-3.6-flash",
-        "gemini-3.7-flash"
-      ],
-      "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
-    },
-    {
-      "id": "b026-g35-nfr-v02-ab-005",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis",
-      "model": "gemini-3.5-flash",
-      "mode": "both",
-      "repeat": 1,
-      "temperature": 0.0,
-      "auto_fallback": true,
-      "fallback_models": [
-        "gemini-3.5-flash",
-        "gemini-3.6-flash",
-        "gemini-3.7-flash"
-      ],
-      "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
-    },
-    {
-      "id": "b031-g35-operational-readiness-v02-ab-005",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/031-operational-readiness-assessment",
-      "model": "gemini-3.5-flash",
-      "mode": "both",
-      "repeat": 1,
-      "temperature": 0.0,
-      "auto_fallback": true,
-      "fallback_models": [
-        "gemini-3.5-flash",
-        "gemini-3.6-flash",
-        "gemini-3.7-flash"
-      ],
-      "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
-    },
-    {
-      "id": "b026-g35-nfr-v02-ab-005-auto-gemini-3-6-flash",
-      "enabled": true,
-      "benchmark": "custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis",
-      "model": "gemini-3.6-flash",
-      "mode": "both",
-      "repeat": 1,
-      "temperature": 0.0,
-      "auto_fallback": true,
-      "fallback_models": [
-        "gemini-3.5-flash",
-        "gemini-3.6-flash",
-        "gemini-3.7-flash"
-      ],
-      "autonomy_reason": "operational_fallback",
-      "autonomy_parent": "b026-g35-nfr-v02-ab-005"
-    }
+    {"id":"b023-g35-ba-change-control-guarded-014","enabled":true,"runner":"pipeline","benchmark":"custom/ba-agent/benchmarks/023-ba-change-governance-composition","pipeline_config":"pipeline-control.json","model":"gemini-3.5-flash","repeat":1,"temperature":0.0,"auto_fallback":true,"comparison_group":"b023-guarded-composition-014","fallback_models":["gemini-3.5-flash","gemini-3.6-flash","gemini-3.7-flash"],"autonomy_reason":"fresh_capacity_retry_after_semantic_gate_wave"},
+    {"id":"b023-g35-ba-change-itil-guarded-015","enabled":true,"runner":"pipeline","benchmark":"custom/ba-agent/benchmarks/023-ba-change-governance-composition","pipeline_config":"pipeline-itil.json","model":"gemini-3.5-flash","repeat":1,"temperature":0.0,"auto_fallback":true,"comparison_group":"b023-guarded-composition-014","fallback_models":["gemini-3.5-flash","gemini-3.6-flash","gemini-3.7-flash"],"autonomy_reason":"fresh_capacity_retry_after_semantic_gate_wave"},
+    {"id":"b024-g35-traceability-v02-ab-005","enabled":true,"benchmark":"custom/ba-agent/benchmarks/024-artifact-traceability-audit","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0,"auto_fallback":true,"fallback_models":["gemini-3.5-flash","gemini-3.6-flash","gemini-3.7-flash"],"autonomy_reason":"fresh_capacity_retry_after_semantic_gate_wave"},
+    {"id":"b025-g35-procurement-spec-v02-ab-005","enabled":true,"benchmark":"custom/ba-agent/benchmarks/025-procurement-specification","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0,"auto_fallback":true,"fallback_models":["gemini-3.5-flash","gemini-3.6-flash","gemini-3.7-flash"],"autonomy_reason":"fresh_capacity_retry_after_semantic_gate_wave"},
+    {"id":"b026-g35-nfr-v02-ab-005","enabled":true,"benchmark":"custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0,"auto_fallback":true,"fallback_models":["gemini-3.5-flash","gemini-3.6-flash","gemini-3.7-flash"],"autonomy_reason":"fresh_capacity_retry_after_semantic_gate_wave"},
+    {"id":"b031-g35-operational-readiness-v02-ab-005","enabled":true,"benchmark":"custom/ba-agent/benchmarks/031-operational-readiness-assessment","model":"gemini-3.5-flash","mode":"both","repeat":1,"temperature":0.0,"auto_fallback":true,"fallback_models":["gemini-3.5-flash","gemini-3.6-flash","gemini-3.7-flash"],"autonomy_reason":"fresh_capacity_retry_after_semantic_gate_wave"},
+    {"id":"b026-g35-nfr-v02-ab-005-auto-gemini-3-6-flash","enabled":true,"benchmark":"custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis","model":"gemini-3.6-flash","mode":"both","repeat":1,"temperature":0.0,"auto_fallback":true,"fallback_models":["gemini-3.5-flash","gemini-3.6-flash","gemini-3.7-flash"],"autonomy_reason":"operational_fallback","autonomy_parent":"b026-g35-nfr-v02-ab-005"},
+    {"id":"b026-g37-nfr-v02-ab-006","enabled":true,"benchmark":"custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis","model":"gemini-3.7-flash","mode":"both","repeat":1,"temperature":0.0,"auto_fallback":false,"fallback_models":[],"autonomy_reason":"fresh_paid_tier_retry_after_unpublished_g36_attempt"}
   ]
 }
