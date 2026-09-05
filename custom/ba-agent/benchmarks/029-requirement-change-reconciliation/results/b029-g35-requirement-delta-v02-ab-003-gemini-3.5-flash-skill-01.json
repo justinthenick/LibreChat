@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 029 — Requirement Change Reconciliation",
+  "benchmark_dir": "029-requirement-change-reconciliation",
+  "ended_at": "2026-09-05T06:38:30Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": false,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "d4dfe199c48e44475d63b151755abb7a2a8cedc58b8d227d1c0fa09cd3a1b072",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "skill",
+  "model": "gemini-3.5-flash",
+  "prompt_sha256": "7500fe2770b3fbb2f84ce6bc4eccacdafc6f975e01bcacd374263aa48b9b05f6",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/reconcile-requirement-changes/SKILL.md",
+  "skill_sha256": "957088617ba326d82d9f25c3d268fb6983a1268afcb85701d56a4cbd2d78d9e9",
+  "skill_version": "0.2.0",
+  "started_at": "2026-09-05T06:38:03Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 1439,
+    "promptTokenCount": 1734,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1734
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 3059,
+    "totalTokenCount": 6232
+  }
+}
