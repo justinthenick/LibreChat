@@ -14,7 +14,10 @@
       "temperature": 0.0,
       "auto_fallback": true,
       "comparison_group": "b023-guarded-composition-010",
-      "fallback_models": ["gemini-3.6-flash", "gemini-3.5-flash"]
+      "fallback_models": [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ]
     },
     {
       "id": "b023-g36-ba-change-itil-guarded-011",
@@ -27,7 +30,10 @@
       "temperature": 0.0,
       "auto_fallback": true,
       "comparison_group": "b023-guarded-composition-010",
-      "fallback_models": ["gemini-3.6-flash", "gemini-3.5-flash"]
+      "fallback_models": [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ]
     },
     {
       "id": "b024-g36-traceability-v02-ab-003",
@@ -38,7 +44,10 @@
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "fallback_models": ["gemini-3.6-flash", "gemini-3.5-flash"]
+      "fallback_models": [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ]
     },
     {
       "id": "b025-g36-procurement-spec-v02-ab-003",
@@ -49,7 +58,10 @@
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "fallback_models": ["gemini-3.6-flash", "gemini-3.5-flash"]
+      "fallback_models": [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ]
     },
     {
       "id": "b026-g36-nfr-v02-ab-003",
@@ -60,7 +72,10 @@
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "fallback_models": ["gemini-3.6-flash", "gemini-3.5-flash"]
+      "fallback_models": [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ]
     },
     {
       "id": "b028-g35-release-evidence-v02-ab-003",
@@ -71,7 +86,10 @@
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "fallback_models": ["gemini-3.5-flash", "gemini-3.6-flash"]
+      "fallback_models": [
+        "gemini-3.5-flash",
+        "gemini-3.6-flash"
+      ]
     },
     {
       "id": "b029-g35-requirement-delta-v02-ab-003",
@@ -82,7 +100,10 @@
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "fallback_models": ["gemini-3.5-flash", "gemini-3.6-flash"]
+      "fallback_models": [
+        "gemini-3.5-flash",
+        "gemini-3.6-flash"
+      ]
     },
     {
       "id": "b030-g35-adr-v02-ab-003",
@@ -93,7 +114,10 @@
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "fallback_models": ["gemini-3.5-flash", "gemini-3.6-flash"]
+      "fallback_models": [
+        "gemini-3.5-flash",
+        "gemini-3.6-flash"
+      ]
     },
     {
       "id": "b031-g36-operational-readiness-v02-ab-003",
@@ -104,7 +128,110 @@
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "fallback_models": ["gemini-3.6-flash", "gemini-3.5-flash"]
+      "fallback_models": [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ]
+    },
+    {
+      "id": "b023-g36-ba-change-control-guarded-010-auto-gemini-3-5-flash",
+      "enabled": true,
+      "runner": "pipeline",
+      "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+      "pipeline_config": "pipeline-control.json",
+      "model": "gemini-3.5-flash",
+      "repeat": 1,
+      "temperature": 0.0,
+      "auto_fallback": true,
+      "comparison_group": "b023-guarded-composition-010",
+      "fallback_models": [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "autonomy_parent": "b023-g36-ba-change-control-guarded-010",
+      "autonomy_reason": "operational_fallback"
+    },
+    {
+      "id": "b023-g36-ba-change-itil-guarded-011-auto-gemini-3-5-flash",
+      "enabled": true,
+      "runner": "pipeline",
+      "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+      "pipeline_config": "pipeline-itil.json",
+      "model": "gemini-3.5-flash",
+      "repeat": 1,
+      "temperature": 0.0,
+      "auto_fallback": true,
+      "comparison_group": "b023-guarded-composition-010",
+      "fallback_models": [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "autonomy_parent": "b023-g36-ba-change-itil-guarded-011",
+      "autonomy_reason": "operational_fallback"
+    },
+    {
+      "id": "b024-g36-traceability-v02-ab-003-auto-gemini-3-5-flash",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/024-artifact-traceability-audit",
+      "model": "gemini-3.5-flash",
+      "mode": "both",
+      "repeat": 1,
+      "temperature": 0.0,
+      "auto_fallback": true,
+      "fallback_models": [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "autonomy_parent": "b024-g36-traceability-v02-ab-003",
+      "autonomy_reason": "operational_fallback"
+    },
+    {
+      "id": "b025-g36-procurement-spec-v02-ab-003-auto-gemini-3-5-flash",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/025-procurement-specification",
+      "model": "gemini-3.5-flash",
+      "mode": "both",
+      "repeat": 1,
+      "temperature": 0.0,
+      "auto_fallback": true,
+      "fallback_models": [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "autonomy_parent": "b025-g36-procurement-spec-v02-ab-003",
+      "autonomy_reason": "operational_fallback"
+    },
+    {
+      "id": "b026-g36-nfr-v02-ab-003-auto-gemini-3-5-flash",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis",
+      "model": "gemini-3.5-flash",
+      "mode": "both",
+      "repeat": 1,
+      "temperature": 0.0,
+      "auto_fallback": true,
+      "fallback_models": [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "autonomy_parent": "b026-g36-nfr-v02-ab-003",
+      "autonomy_reason": "operational_fallback"
+    },
+    {
+      "id": "b031-g36-operational-readiness-v02-ab-003-auto-gemini-3-5-flash",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/031-operational-readiness-assessment",
+      "model": "gemini-3.5-flash",
+      "mode": "both",
+      "repeat": 1,
+      "temperature": 0.0,
+      "auto_fallback": true,
+      "fallback_models": [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "autonomy_parent": "b031-g36-operational-readiness-v02-ab-003",
+      "autonomy_reason": "operational_fallback"
     }
   ]
 }
