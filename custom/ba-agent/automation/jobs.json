@@ -1,95 +1,83 @@
 {
   "schema": 2,
   "enabled": true,
-  "note": "Active queue compacted to the next operational retry wave after Gemini 3.6 and 3.5 capacity failures. Historical definitions and failed manifests remain preserved in Git history and benchmark results.",
+  "note": "Fresh autonomous retry wave after semantic B028/B029/B030 gates passed. Historical queue definitions and all raw evidence remain preserved in Git history/results.",
   "jobs": [
     {
-      "id": "b023-g37-ba-change-control-guarded-012",
+      "id": "b023-g35-ba-change-control-guarded-014",
       "enabled": true,
       "runner": "pipeline",
       "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
       "pipeline_config": "pipeline-control.json",
-      "model": "gemini-3.7-flash",
+      "model": "gemini-3.5-flash",
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "comparison_group": "b023-guarded-composition-012",
-      "fallback_models": [
-        "gemini-3.7-flash"
-      ],
-      "autonomy_reason": "operational_retry_after_g36_g35_capacity"
+      "comparison_group": "b023-guarded-composition-014",
+      "fallback_models": ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"],
+      "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
     },
     {
-      "id": "b023-g37-ba-change-itil-guarded-013",
+      "id": "b023-g35-ba-change-itil-guarded-015",
       "enabled": true,
       "runner": "pipeline",
       "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
       "pipeline_config": "pipeline-itil.json",
-      "model": "gemini-3.7-flash",
+      "model": "gemini-3.5-flash",
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "comparison_group": "b023-guarded-composition-012",
-      "fallback_models": [
-        "gemini-3.7-flash"
-      ],
-      "autonomy_reason": "operational_retry_after_g36_g35_capacity"
+      "comparison_group": "b023-guarded-composition-014",
+      "fallback_models": ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"],
+      "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
     },
     {
-      "id": "b024-g37-traceability-v02-ab-004",
+      "id": "b024-g35-traceability-v02-ab-005",
       "enabled": true,
       "benchmark": "custom/ba-agent/benchmarks/024-artifact-traceability-audit",
-      "model": "gemini-3.7-flash",
+      "model": "gemini-3.5-flash",
       "mode": "both",
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "fallback_models": [
-        "gemini-3.7-flash"
-      ],
-      "autonomy_reason": "operational_retry_after_g36_g35_capacity"
+      "fallback_models": ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"],
+      "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
     },
     {
-      "id": "b025-g37-procurement-spec-v02-ab-004",
+      "id": "b025-g35-procurement-spec-v02-ab-005",
       "enabled": true,
       "benchmark": "custom/ba-agent/benchmarks/025-procurement-specification",
-      "model": "gemini-3.7-flash",
+      "model": "gemini-3.5-flash",
       "mode": "both",
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "fallback_models": [
-        "gemini-3.7-flash"
-      ],
-      "autonomy_reason": "operational_retry_after_g36_g35_capacity"
+      "fallback_models": ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"],
+      "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
     },
     {
-      "id": "b026-g37-nfr-v02-ab-004",
+      "id": "b026-g35-nfr-v02-ab-005",
       "enabled": true,
       "benchmark": "custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis",
-      "model": "gemini-3.7-flash",
+      "model": "gemini-3.5-flash",
       "mode": "both",
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "fallback_models": [
-        "gemini-3.7-flash"
-      ],
-      "autonomy_reason": "operational_retry_after_g36_g35_capacity"
+      "fallback_models": ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"],
+      "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
     },
     {
-      "id": "b031-g37-operational-readiness-v02-ab-004",
+      "id": "b031-g35-operational-readiness-v02-ab-005",
       "enabled": true,
       "benchmark": "custom/ba-agent/benchmarks/031-operational-readiness-assessment",
-      "model": "gemini-3.7-flash",
+      "model": "gemini-3.5-flash",
       "mode": "both",
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "fallback_models": [
-        "gemini-3.7-flash"
-      ],
-      "autonomy_reason": "operational_retry_after_g36_g35_capacity"
+      "fallback_models": ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"],
+      "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
     }
   ]
 }
