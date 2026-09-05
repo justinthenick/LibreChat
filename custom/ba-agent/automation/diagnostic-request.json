@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "burst-lineage-health-20260905-008",
+  "request_id": "one-minute-scheduler-health-20260905-009",
   "recipe": "custom/ba-agent/diagnostics/workflow-strengthening-health.json",
-  "note": "Verify NAS self-refresh picks up the burst-cycle wrapper and autonomy_controller v1.2, authenticated GitHub reads remain healthy, up to four execution/controller/semantic-evaluator/semantic-reviser cycles run within one scheduler invocation, same-model retries preserve unique job IDs, semantic jobs automatically follow retry/fallback result lineage without duplicate evaluation, scheduler return codes remain clean, and secrets are not exposed."
+  "note": "Verify the Synology BA lab scheduler is now invoking run_worker_once.sh on an approximately one-minute cadence, authenticated self-refresh remains healthy, the lock prevents overlapping active workers, burst cycles still complete cleanly, scheduler return codes remain clean, and no duplicate execution or semantic evaluation is introduced by the tighter trigger interval. Do not expose secrets."
 }
