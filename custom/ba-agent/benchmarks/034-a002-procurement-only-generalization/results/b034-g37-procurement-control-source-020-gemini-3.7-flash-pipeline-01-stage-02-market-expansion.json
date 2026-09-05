@@ -1,0 +1,33 @@
+{
+  "agent_path": "custom/ba-agent/skills/expand-procurement-market/SKILL.md",
+  "agent_sha256": "b31412c2b92a9757df4cb2597ef4509fedbd0067518833ec55e57efaf1c562a2",
+  "agent_version": "0.1.0",
+  "ended_at": "2026-09-05T21:32:45Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "max_output_tokens": 8192,
+  "model": "gemini-3.7-flash",
+  "pipeline": "Benchmark 034 \u2014 Evidence-preserving fixed procurement control",
+  "run_id": "b034-g37-procurement-control-source-020",
+  "stage_id": "market-expansion",
+  "stage_index": 2,
+  "stage_input_sha256": "3a31c294d46d0ab134220334afce4a07cfeaae3ccc47f1b5dffc74985658295f",
+  "stage_name": "Expand Procurement Market",
+  "started_at": "2026-09-05T21:32:37Z",
+  "status": "success",
+  "temperature": 0.0,
+  "upstream_output_sha256": "ffb466b940298954f4b359f86ffad86d2922b1f1fbe8b0b05b986c26577c2e1a",
+  "usage": {
+    "candidatesTokenCount": 1731,
+    "promptTokenCount": 3211,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 3211
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 499,
+    "totalTokenCount": 5441
+  }
+}
