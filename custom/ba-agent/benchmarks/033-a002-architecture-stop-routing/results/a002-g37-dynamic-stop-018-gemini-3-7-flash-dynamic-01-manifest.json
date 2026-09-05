@@ -1,0 +1,132 @@
+{
+  "schema": 1,
+  "run_id": "a002-g37-dynamic-stop-018",
+  "benchmark": "custom/ba-agent/benchmarks/033-a002-architecture-stop-routing",
+  "model": "gemini-3.7-flash",
+  "status": "success",
+  "operational_status": null,
+  "created_at": "2026-09-05T16:33:13Z",
+  "agent_path": "custom/ba-agent/agents/solution-procurement-orchestrator/AGENT.md",
+  "agent_sha256": "20ffaa07d7c6118bb2a17f0ca0af1995fbbe65a45a7b200543221f8a70d35dab",
+  "route": {
+    "objective": "Establish a defensible workstation architecture and evaluate the feasibility of the proposed mini-PC upgrade versus replacement for Northbridge Archive's local OCR workflow, stopping before procurement due to unresolved software runtime and hardware-acceleration dependencies.",
+    "selected_skills": [
+      "analyze-requirements",
+      "analyze-nonfunctional-requirements",
+      "design-technical-solution"
+    ],
+    "not_selected": [
+      {
+        "skill": "record-architecture-decisions",
+        "reason": "No formal ADRs were requested and no architecture decision has reached an accepted state in the source packet."
+      },
+      {
+        "skill": "prepare-procurement-specification",
+        "reason": "Procurement specification is premature because core platform class, GPU necessity, and sizing dimensions depend on unselected OCR software runtime requirements."
+      },
+      {
+        "skill": "expand-procurement-market",
+        "reason": "Market discovery cannot proceed without a stable architecture boundary and procurement specification."
+      },
+      {
+        "skill": "verify-procurement-options",
+        "reason": "Candidate verification cannot be performed without a completed procurement specification and verified candidate evidence."
+      }
+    ],
+    "stop_rules": [
+      "Stop execution after design-technical-solution at the architecture stop gate.",
+      "Do not proceed to prepare-procurement-specification, expand-procurement-market, or verify-procurement-options until the OCR engine edition/licence and its associated hardware, OS, and GPU acceleration support matrix are confirmed.",
+      "Do not assume GPU acceleration is required or that USB external-GPU expansion is feasible on the existing mini-PC without verified PCIe/Thunderbolt interface evidence."
+    ],
+    "expected_final_artifact": "A structured solution design document establishing normalized functional and non-functional requirements, technical feasibility analysis of the mini-PC plus external GPU proposal, and an architecture stop-gate assessment detailing the specific software selection evidence required before procurement specifications and market verification can begin."
+  },
+  "route_status": "success",
+  "route_usage": {
+    "promptTokenCount": 2758,
+    "candidatesTokenCount": 446,
+    "totalTokenCount": 4050,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 2758
+      }
+    ],
+    "thoughtsTokenCount": 846,
+    "serviceTier": "standard"
+  },
+  "stages": [
+    {
+      "index": 1,
+      "skill": "analyze-requirements",
+      "skill_path": "custom/ba-agent/skills/analyze-requirements/SKILL.md",
+      "skill_sha256": "9b3033fb72fff244c170fa49e5719db5bbb10b9f0b5694d151f2445b3a844130",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 5348,
+        "candidatesTokenCount": 3644,
+        "totalTokenCount": 9905,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 5348
+          }
+        ],
+        "thoughtsTokenCount": 913,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "75e62fe257fc2dddf1f5c24f810a0737112ac1cf798f4633c9b55cd5c48179d6",
+      "error": null
+    },
+    {
+      "index": 2,
+      "skill": "analyze-nonfunctional-requirements",
+      "skill_path": "custom/ba-agent/skills/analyze-nonfunctional-requirements/SKILL.md",
+      "skill_sha256": "46e1300f2bac96ee7d9df95d9f326dd2a24521c4776cde7859efe9903c70ce04",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 6656,
+        "candidatesTokenCount": 2707,
+        "totalTokenCount": 10464,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 6656
+          }
+        ],
+        "thoughtsTokenCount": 1101,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "7e736ad6aef3e77953fe8172adb49d22a2fe13225a83a7d1f1d77fcd38b77f94",
+      "error": null
+    },
+    {
+      "index": 3,
+      "skill": "design-technical-solution",
+      "skill_path": "custom/ba-agent/skills/design-technical-solution/SKILL.md",
+      "skill_sha256": "89bbcf3b465e7536e486f02192cabcabcb00759e3c68a3722d5e4ddc4c2c685e",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 6692,
+        "candidatesTokenCount": 4032,
+        "totalTokenCount": 11551,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 6692
+          }
+        ],
+        "thoughtsTokenCount": 827,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "004ac68ed69c53310f07a8842f7551bfc6af835b6b7300251965d804318a27c8",
+      "error": null
+    }
+  ],
+  "usage_totals": {
+    "prompt": 21454,
+    "candidate": 10829,
+    "thoughts": 3687,
+    "total": 35970
+  },
+  "result_markdown": "a002-g37-dynamic-stop-018-gemini-3-7-flash-dynamic-01.md"
+}
