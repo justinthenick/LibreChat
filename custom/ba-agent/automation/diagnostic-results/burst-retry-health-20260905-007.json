@@ -1,0 +1,281 @@
+{
+  "checks": [
+    {
+      "data": {
+        "enabled_remote_jobs": 8,
+        "known_local_jobs": 97,
+        "pending_job_count": 0,
+        "pending_job_ids": [],
+        "targets": {
+          "b023-g36-ba-change-control-guarded-010": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": false
+          },
+          "b023-g36-ba-change-itil-guarded-011": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": false
+          },
+          "b024-g36-traceability-v02-ab-003": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": false
+          },
+          "b025-g36-procurement-spec-v02-ab-003": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": false
+          },
+          "b026-g36-nfr-v02-ab-003": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": false
+          },
+          "b028-g35-release-evidence-v02-ab-003": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": false
+          },
+          "b029-g35-requirement-delta-v02-ab-003": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": false
+          },
+          "b030-g35-adr-v02-ab-003": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": false
+          },
+          "b031-g36-operational-readiness-v02-ab-003": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": false
+          }
+        }
+      },
+      "index": 1,
+      "label": "Post-bootstrap validation wave vs NAS worker state",
+      "status": "ok",
+      "type": "queue_compare"
+    },
+    {
+      "data": {
+        "jobs": {
+          "b023-g36-ba-change-control-guarded-010": {
+            "attempted_at_epoch": 1788590105,
+            "auto_fallback": true,
+            "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+            "comparison_group": "b023-guarded-composition-010",
+            "fallback_models": [
+              "gemini-3.6-flash",
+              "gemini-3.5-flash"
+            ],
+            "model": "gemini-3.6-flash",
+            "operational_status": "quota_blocked",
+            "output_tail": "[pipeline] stage 1 ba-delivery -> success\n[pipeline] stage 2 change-readiness -> quota_blocked\nPublished 7 pipeline files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: e12c25d2b6c8f475b6fd0ce9ca73850081ccc3ba\n[pipeline] b023-g36-ba-change-control-guarded-010 -> incomplete\n[pipeline] combined result: /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/023-ba-change-governance-composition/results/b023-g36-ba-change-control-guarded-010-gemini-3.6-flash-pipeline-01.md\n",
+            "pipeline_config": "pipeline-control.json",
+            "return_code": 3,
+            "runner": "pipeline",
+            "source_refresh": "authenticated",
+            "status": "failed"
+          },
+          "b023-g36-ba-change-itil-guarded-011": {
+            "attempted_at_epoch": 1788590160,
+            "auto_fallback": true,
+            "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+            "comparison_group": "b023-guarded-composition-010",
+            "fallback_models": [
+              "gemini-3.6-flash",
+              "gemini-3.5-flash"
+            ],
+            "model": "gemini-3.6-flash",
+            "operational_status": "quota_blocked",
+            "output_tail": "[pipeline] stage 1 ba-delivery -> quota_blocked\nPublished 5 pipeline files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: d8a998457bd00cec6de96c8f708ea0a4d2485669\n[pipeline] b023-g36-ba-change-itil-guarded-011 -> incomplete\n[pipeline] combined result: /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/023-ba-change-governance-composition/results/b023-g36-ba-change-itil-guarded-011-gemini-3.6-flash-pipeline-01.md\n",
+            "pipeline_config": "pipeline-itil.json",
+            "return_code": 3,
+            "runner": "pipeline",
+            "source_refresh": "authenticated",
+            "status": "failed"
+          },
+          "b024-g36-traceability-v02-ab-003": {
+            "attempted_at_epoch": 1788590170,
+            "auto_fallback": true,
+            "benchmark": "custom/ba-agent/benchmarks/024-artifact-traceability-audit",
+            "comparison_group": null,
+            "fallback_models": [
+              "gemini-3.6-flash",
+              "gemini-3.5-flash"
+            ],
+            "mode": "both",
+            "model": "gemini-3.6-flash",
+            "operational_status": "quota_blocked",
+            "output_tail": "[quota_blocked] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/024-artifact-traceability-audit/results/b024-g36-traceability-v02-ab-003-gemini-3.6-flash-baseline-01.md\nQuota blocked; stopping remaining calls to avoid contaminating the experiment.\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 4465505d3d88bc0dabecfc731b74e486e5df870a\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "source_refresh": "authenticated",
+            "status": "completed"
+          },
+          "b025-g36-procurement-spec-v02-ab-003": {
+            "attempted_at_epoch": 1788590178,
+            "auto_fallback": true,
+            "benchmark": "custom/ba-agent/benchmarks/025-procurement-specification",
+            "comparison_group": null,
+            "fallback_models": [
+              "gemini-3.6-flash",
+              "gemini-3.5-flash"
+            ],
+            "mode": "both",
+            "model": "gemini-3.6-flash",
+            "operational_status": "quota_blocked",
+            "output_tail": "[quota_blocked] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/025-procurement-specification/results/b025-g36-procurement-spec-v02-ab-003-gemini-3.6-flash-baseline-01.md\nQuota blocked; stopping remaining calls to avoid contaminating the experiment.\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 808b3e4c37a2e5e6f7f6f9310b3ee4f2662f56c3\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "source_refresh": "authenticated",
+            "status": "completed"
+          },
+          "b026-g36-nfr-v02-ab-003": {
+            "attempted_at_epoch": 1788590186,
+            "auto_fallback": true,
+            "benchmark": "custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis",
+            "comparison_group": null,
+            "fallback_models": [
+              "gemini-3.6-flash",
+              "gemini-3.5-flash"
+            ],
+            "mode": "both",
+            "model": "gemini-3.6-flash",
+            "operational_status": "quota_blocked",
+            "output_tail": "[quota_blocked] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis/results/b026-g36-nfr-v02-ab-003-gemini-3.6-flash-baseline-01.md\nQuota blocked; stopping remaining calls to avoid contaminating the experiment.\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: f287f02d4f2c75d881cd840ec800e359a682c4af\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "source_refresh": "authenticated",
+            "status": "completed"
+          },
+          "b028-g35-release-evidence-v02-ab-003": {
+            "attempted_at_epoch": 1788590192,
+            "auto_fallback": true,
+            "benchmark": "custom/ba-agent/benchmarks/028-release-evidence-validation",
+            "comparison_group": null,
+            "fallback_models": [
+              "gemini-3.5-flash",
+              "gemini-3.6-flash"
+            ],
+            "mode": "both",
+            "model": "gemini-3.5-flash",
+            "operational_status": null,
+            "output_tail": "[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/028-release-evidence-validation/results/b028-g35-release-evidence-v02-ab-003-gemini-3.5-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/028-release-evidence-validation/results/b028-g35-release-evidence-v02-ab-003-gemini-3.5-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 0ab9eed5e01e841999fa13874597dac1ee762ea2\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "source_refresh": "authenticated",
+            "status": "completed"
+          },
+          "b029-g35-requirement-delta-v02-ab-003": {
+            "attempted_at_epoch": 1788590258,
+            "auto_fallback": true,
+            "benchmark": "custom/ba-agent/benchmarks/029-requirement-change-reconciliation",
+            "comparison_group": null,
+            "fallback_models": [
+              "gemini-3.5-flash",
+              "gemini-3.6-flash"
+            ],
+            "mode": "both",
+            "model": "gemini-3.5-flash",
+            "operational_status": null,
+            "output_tail": "[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/029-requirement-change-reconciliation/results/b029-g35-requirement-delta-v02-ab-003-gemini-3.5-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/029-requirement-change-reconciliation/results/b029-g35-requirement-delta-v02-ab-003-gemini-3.5-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: c5fa33672f801644957c80aaf685288982d920e3\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "source_refresh": "authenticated",
+            "status": "completed"
+          },
+          "b030-g35-adr-v02-ab-003": {
+            "attempted_at_epoch": 1788590317,
+            "auto_fallback": true,
+            "benchmark": "custom/ba-agent/benchmarks/030-architecture-decision-recording",
+            "comparison_group": null,
+            "fallback_models": [
+              "gemini-3.5-flash",
+              "gemini-3.6-flash"
+            ],
+            "mode": "both",
+            "model": "gemini-3.5-flash",
+            "operational_status": null,
+            "output_tail": "[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/030-architecture-decision-recording/results/b030-g35-adr-v02-ab-003-gemini-3.5-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/030-architecture-decision-recording/results/b030-g35-adr-v02-ab-003-gemini-3.5-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 71f88d3e19a2aacb2c6b5b1de459fae6866c420d\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "source_refresh": "authenticated",
+            "status": "completed"
+          },
+          "b031-g36-operational-readiness-v02-ab-003": {
+            "attempted_at_epoch": 1788590355,
+            "auto_fallback": true,
+            "benchmark": "custom/ba-agent/benchmarks/031-operational-readiness-assessment",
+            "comparison_group": null,
+            "fallback_models": [
+              "gemini-3.6-flash",
+              "gemini-3.5-flash"
+            ],
+            "mode": "both",
+            "model": "gemini-3.6-flash",
+            "operational_status": "quota_blocked",
+            "output_tail": "[quota_blocked] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/031-operational-readiness-assessment/results/b031-g36-operational-readiness-v02-ab-003-gemini-3.6-flash-baseline-01.md\nQuota blocked; stopping remaining calls to avoid contaminating the experiment.\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: f7f58f741ef716bd9d79182cb60389eb2572a95c\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "source_refresh": "authenticated",
+            "status": "completed"
+          }
+        },
+        "known_job_count": 97,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json"
+      },
+      "index": 2,
+      "label": "Worker records for post-bootstrap validation wave",
+      "status": "ok",
+      "type": "worker_state"
+    },
+    {
+      "data": {
+        "lines": 200,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/scheduler.log",
+        "text": "Authenticated tool sync complete.\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] no new jobs\n[controller] no deterministic transition required\n[semantic-evaluator] sem-b026-v02-paid-g36-001 -> waiting\n[semantic-evaluator] no semantic transition required\n[semantic-reviser] no semantic transition required\n[diagnostic] completed paid-tier-progress-health-20260905-005 overall=ok and published custom/ba-agent/automation/diagnostic-results/paid-tier-progress-health-20260905-005.json\n2026-09-05 21:25:14 autonomy poll end sync_rc=0 benchmark_rc=0 controller_rc=0 semantic_eval_rc=0 semantic_revise_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 21:30:01 autonomy poll start using /usr/bin/python3\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/agent_pipeline_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/autonomy_controller.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/lab_common.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_evaluator.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_reviser.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/diagnostic_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/bootstrap_nas.py\nAuthenticated tool sync complete.\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] no new jobs\n[controller] no deterministic transition required\n[semantic-evaluator] sem-b026-v02-paid-g36-001 -> waiting\n[semantic-evaluator] no semantic transition required\n[semantic-reviser] no semantic transition required\n[diagnostic] request paid-tier-progress-health-20260905-005 already published\n2026-09-05 21:30:10 autonomy poll end sync_rc=0 benchmark_rc=0 controller_rc=0 semantic_eval_rc=0 semantic_revise_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 21:35:09 autonomy poll start using /usr/bin/python3\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/agent_pipeline_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/autonomy_controller.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/lab_common.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_evaluator.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_reviser.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/diagnostic_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/bootstrap_nas.py\nAuthenticated tool sync complete.\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] 1 new job(s)\n[worker] starting b026-g37-nfr-v02-ab-006: gemini-3.7-flash both custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis\n[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis/results/b026-g37-nfr-v02-ab-006-gemini-3.7-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis/results/b026-g37-nfr-v02-ab-006-gemini-3.7-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 8c1c20d89bf7dc983227a7e9db008f5c737c4cb2\n[worker] finished b026-g37-nfr-v02-ab-006 rc=0\n[controller] no deterministic transition required\n[semantic-evaluator] sem-b026-v02-paid-g36-001 -> waiting\n[semantic-evaluator] sem-b026-v02-paid-g37-002 -> passed\n[semantic-reviser] no semantic transition required\n[diagnostic] request paid-tier-progress-health-20260905-005 already published\n2026-09-05 21:36:01 autonomy poll end sync_rc=0 benchmark_rc=0 controller_rc=0 semantic_eval_rc=0 semantic_revise_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 21:40:02 autonomy poll start using /usr/bin/python3\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/agent_pipeline_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/autonomy_controller.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/lab_common.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_evaluator.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_reviser.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/diagnostic_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/bootstrap_nas.py\nAuthenticated tool sync complete.\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] no new jobs\n[controller] no deterministic transition required\n[semantic-evaluator] sem-b026-v02-paid-g36-001 -> waiting\n[semantic-evaluator] no semantic transition required\n[semantic-reviser] no semantic transition required\n[diagnostic] request paid-tier-progress-health-20260905-005 already published\n2026-09-05 21:40:10 autonomy poll end sync_rc=0 benchmark_rc=0 controller_rc=0 semantic_eval_rc=0 semantic_revise_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 21:45:02 autonomy poll start using /usr/bin/python3\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/agent_pipeline_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/autonomy_controller.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/lab_common.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_evaluator.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_reviser.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/diagnostic_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/bootstrap_nas.py\nAuthenticated tool sync complete.\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] no new jobs\n[controller] no deterministic transition required\n[semantic-evaluator] sem-b026-v02-paid-g36-001 -> waiting\n[semantic-evaluator] no semantic transition required\n[semantic-reviser] no semantic transition required\n[diagnostic] request paid-tier-progress-health-20260905-005 already published\n2026-09-05 21:45:10 autonomy poll end sync_rc=0 benchmark_rc=0 controller_rc=0 semantic_eval_rc=0 semantic_revise_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 21:50:04 autonomy poll start using /usr/bin/python3\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/agent_pipeline_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/autonomy_controller.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/lab_common.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_evaluator.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_reviser.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/diagnostic_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/bootstrap_nas.py\nAuthenticated tool sync complete.\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] no new jobs\n[controller] no deterministic transition required\n[semantic-evaluator] sem-b026-v02-paid-g36-001 -> waiting\n[semantic-evaluator] no semantic transition required\n[semantic-reviser] no semantic transition required\n[diagnostic] request paid-tier-progress-health-20260905-005 already published\n2026-09-05 21:50:13 autonomy poll end sync_rc=0 benchmark_rc=0 controller_rc=0 semantic_eval_rc=0 semantic_revise_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 21:55:02 autonomy poll start using /usr/bin/python3\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/agent_pipeline_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/autonomy_controller.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/lab_common.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_evaluator.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_reviser.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/diagnostic_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/bootstrap_nas.py\nAuthenticated tool sync complete.\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] no new jobs\n[controller] no deterministic transition required\n[semantic-evaluator] sem-b026-v02-paid-g36-001 -> waiting\n[semantic-evaluator] no semantic transition required\n[semantic-reviser] no semantic transition required\n[diagnostic] request paid-tier-progress-health-20260905-005 already published\n2026-09-05 21:55:11 autonomy poll end sync_rc=0 benchmark_rc=0 controller_rc=0 semantic_eval_rc=0 semantic_revise_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 22:00:03 autonomy poll start using /usr/bin/python3\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/agent_pipeline_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/autonomy_controller.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/lab_common.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_evaluator.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_reviser.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/diagnostic_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/bootstrap_nas.py\nAuthenticated tool sync complete.\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] no new jobs\n[controller] no deterministic transition required\n[semantic-evaluator] sem-b026-v02-paid-g36-001 -> waiting\n[semantic-evaluator] no semantic transition required\n[semantic-reviser] no semantic transition required\n[diagnostic] request paid-tier-progress-health-20260905-005 already published\n2026-09-05 22:00:11 autonomy poll end sync_rc=0 benchmark_rc=0 controller_rc=0 semantic_eval_rc=0 semantic_revise_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 22:05:01 autonomy poll start using /usr/bin/python3\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/agent_pipeline_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/autonomy_controller.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/lab_common.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_evaluator.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_reviser.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/diagnostic_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/bootstrap_nas.py\nAuthenticated tool sync complete.\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] no new jobs\n[controller] no deterministic transition required\n[semantic-evaluator] sem-b026-v02-paid-g36-001 -> waiting\n[semantic-evaluator] no semantic transition required\n[semantic-reviser] no semantic transition required"
+      },
+      "index": 3,
+      "label": "Recent autonomy scheduler log",
+      "status": "ok",
+      "type": "tail"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-ba-benchmark-worker.lock",
+        "matching_processes": []
+      },
+      "index": 4,
+      "label": "Benchmark worker lock/process state",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "path": "/volume1/docker/librechat/deploy/synology/.env",
+        "present": {
+          "GITHUB_BA_BENCHMARK_TOKEN": false,
+          "GITHUB_TELEMETRY_TOKEN": true,
+          "GOOGLE_KEY": true
+        }
+      },
+      "index": 5,
+      "label": "Required key/token presence",
+      "status": "ok",
+      "type": "env_presence"
+    }
+  ],
+  "ended_at": "2026-09-05T12:05:11Z",
+  "hostname": "NAS",
+  "overall": "ok",
+  "recipe": "custom/ba-agent/diagnostics/workflow-strengthening-health.json",
+  "recipe_name": "Workflow strengthening and Agent benchmark health",
+  "request_id": "burst-retry-health-20260905-007",
+  "schema": 1,
+  "started_at": "2026-09-05T12:05:11Z"
+}
