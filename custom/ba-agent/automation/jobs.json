@@ -14,7 +14,11 @@
       "temperature": 0.0,
       "auto_fallback": true,
       "comparison_group": "b023-guarded-composition-014",
-      "fallback_models": ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"],
+      "fallback_models": [
+        "gemini-3.5-flash",
+        "gemini-3.6-flash",
+        "gemini-3.7-flash"
+      ],
       "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
     },
     {
@@ -28,7 +32,11 @@
       "temperature": 0.0,
       "auto_fallback": true,
       "comparison_group": "b023-guarded-composition-014",
-      "fallback_models": ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"],
+      "fallback_models": [
+        "gemini-3.5-flash",
+        "gemini-3.6-flash",
+        "gemini-3.7-flash"
+      ],
       "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
     },
     {
@@ -40,7 +48,11 @@
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "fallback_models": ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"],
+      "fallback_models": [
+        "gemini-3.5-flash",
+        "gemini-3.6-flash",
+        "gemini-3.7-flash"
+      ],
       "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
     },
     {
@@ -52,7 +64,11 @@
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "fallback_models": ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"],
+      "fallback_models": [
+        "gemini-3.5-flash",
+        "gemini-3.6-flash",
+        "gemini-3.7-flash"
+      ],
       "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
     },
     {
@@ -64,7 +80,11 @@
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "fallback_models": ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"],
+      "fallback_models": [
+        "gemini-3.5-flash",
+        "gemini-3.6-flash",
+        "gemini-3.7-flash"
+      ],
       "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
     },
     {
@@ -76,8 +96,29 @@
       "repeat": 1,
       "temperature": 0.0,
       "auto_fallback": true,
-      "fallback_models": ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash"],
+      "fallback_models": [
+        "gemini-3.5-flash",
+        "gemini-3.6-flash",
+        "gemini-3.7-flash"
+      ],
       "autonomy_reason": "fresh_capacity_retry_after_semantic_gate_wave"
+    },
+    {
+      "id": "b026-g35-nfr-v02-ab-005-auto-gemini-3-6-flash",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis",
+      "model": "gemini-3.6-flash",
+      "mode": "both",
+      "repeat": 1,
+      "temperature": 0.0,
+      "auto_fallback": true,
+      "fallback_models": [
+        "gemini-3.5-flash",
+        "gemini-3.6-flash",
+        "gemini-3.7-flash"
+      ],
+      "autonomy_reason": "operational_fallback",
+      "autonomy_parent": "b026-g35-nfr-v02-ab-005"
     }
   ]
 }
