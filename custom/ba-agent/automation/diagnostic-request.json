@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "one-minute-scheduler-health-20260905-009",
+  "request_id": "one-minute-scheduler-followup-20260905-010",
   "recipe": "custom/ba-agent/diagnostics/workflow-strengthening-health.json",
-  "note": "Verify the Synology BA lab scheduler is now invoking run_worker_once.sh on an approximately one-minute cadence, authenticated self-refresh remains healthy, the lock prevents overlapping active workers, burst cycles still complete cleanly, scheduler return codes remain clean, and no duplicate execution or semantic evaluation is introduced by the tighter trigger interval. Do not expose secrets."
+  "note": "Follow-up after correcting the Synology schedule window to 00:00-23:59. Verify the scheduler log now shows approximately one-minute recurring invocations after the manual trigger, authenticated self-refresh remains healthy, the lock prevents overlap, burst cycles complete cleanly, scheduler return codes remain clean, and there are no duplicate executions or semantic evaluations. Do not expose secrets."
 }
