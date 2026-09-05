@@ -2,9 +2,11 @@
 """Deterministic autonomy controller for the BA/Skill benchmark lab.
 
 This controller deliberately handles only operational transitions that can be
-made without semantic judgement. It may enqueue fresh fallback jobs after
-provider/quota/network failures when the source job explicitly opts in via
-`auto_fallback` and provides `fallback_models`. It never edits Skills, scores
+made without semantic judgement. It may enqueue one fresh same-model retry for
+provider/quota/network failures, then enqueue a cross-model fallback when the
+source job explicitly opts in via `auto_fallback` and provides
+`fallback_models`. Same-model retries preserve failed artifacts and use fresh
+job IDs, so experiments remain auditable. It never edits Skills, scores
 semantic quality, promotes releases, or deploys production.
 
 Python 3.8+ standard library only.
@@ -27,6 +29,7 @@ DEFAULT_ROOT = "/volume1/docker/librechat-ba-lab"
 DEFAULT_ENV_FILE = "/volume1/docker/librechat/deploy/synology/.env"
 DEFAULT_TOKEN_ENV = "GITHUB_TELEMETRY_TOKEN"
 DEFAULT_JOBS_PATH = "custom/ba-agent/automation/jobs.json"
+DEFAULT_SAME_MODEL_RETRIES = 1
 
 
 class ControllerError(RuntimeError):
@@ -60,7 +63,7 @@ def merged_environment(env_file):
 def github_request(url, token, method="GET", payload=None):
     headers = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "ba-agent-autonomy-controller/1.0",
+        "User-Agent": "ba-agent-autonomy-controller/1.1",
         "X-GitHub-Api-Version": "2022-11-28",
         "Authorization": "Bearer {}".format(token),
     }
@@ -135,6 +138,22 @@ def slug(value):
     return value or "model"
 
 
+def int_value(value, default=0):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return int(default)
+
+
+def same_model_retry_limit(job):
+    limit = int_value(job.get("same_model_retries", DEFAULT_SAME_MODEL_RETRIES), DEFAULT_SAME_MODEL_RETRIES)
+    return max(0, min(limit, 3))
+
+
+def same_model_retry_count(job):
+    return max(0, int_value(job.get("same_model_retry_count", 0), 0))
+
+
 def next_fallback_model(job):
     chain = [str(x).strip() for x in (job.get("fallback_models") or []) if str(x).strip()]
     current = str(job.get("model") or "").strip()
@@ -151,18 +170,35 @@ def operational_failure(record):
     return status if status in ("provider_busy", "quota_blocked", "network_error") else None
 
 
-def clone_for_model(job, new_model, existing_ids):
-    clone = dict(job)
-    clone["model"] = new_model
-    base = str(job.get("id") or "job")
-    suffix = "auto-{}".format(slug(new_model))
+def unique_id(base, suffix, existing_ids):
     candidate = base + "-" + suffix
     counter = 2
     while candidate in existing_ids:
         candidate = base + "-{}-{}".format(suffix, counter)
         counter += 1
-    clone["id"] = candidate
+    return candidate
+
+
+def clone_for_same_model_retry(job, existing_ids):
+    clone = dict(job)
+    base = str(job.get("id") or "job")
+    next_count = same_model_retry_count(job) + 1
+    clone["id"] = unique_id(base, "retry-same-model-{}".format(next_count), existing_ids)
     clone["enabled"] = True
+    clone["same_model_retry_count"] = next_count
+    clone["autonomy_parent"] = base
+    clone["autonomy_reason"] = "operational_same_model_retry"
+    return clone
+
+
+def clone_for_model(job, new_model, existing_ids):
+    clone = dict(job)
+    clone["model"] = new_model
+    base = str(job.get("id") or "job")
+    suffix = "auto-{}".format(slug(new_model))
+    clone["id"] = unique_id(base, suffix, existing_ids)
+    clone["enabled"] = True
+    clone["same_model_retry_count"] = 0
     clone["autonomy_parent"] = base
     clone["autonomy_reason"] = "operational_fallback"
     return clone
@@ -229,6 +265,32 @@ def main():
             continue
         if handled.get(job_id):
             continue
+
+        retry_limit = same_model_retry_limit(job)
+        retry_count = same_model_retry_count(job)
+        if retry_count < retry_limit:
+            members = choose_group(jobs, job)
+            created = []
+            for member in members:
+                member_id = str(member.get("id") or "")
+                if handled.get(member_id):
+                    continue
+                clone = clone_for_same_model_retry(member, existing_ids)
+                existing_ids.add(clone["id"])
+                additions.append(clone)
+                created.append(clone["id"])
+                handled[member_id] = {
+                    "at": dt.datetime.now(dt.timezone.utc).isoformat(),
+                    "action": "same_model_retry_queued",
+                    "reason": failure,
+                    "model": str(member.get("model") or ""),
+                    "job_id": clone["id"],
+                    "retry_count": clone["same_model_retry_count"],
+                }
+            if created:
+                print("[controller] {} -> {} same-model retry after {}".format(job_id, ", ".join(created), failure))
+                continue
+
         new_model = next_fallback_model(job)
         if not new_model:
             handled[job_id] = {
@@ -263,13 +325,13 @@ def main():
         queue["jobs"].extend(additions)
         commit = github_put_json_file(
             args.repo, args.branch, args.jobs_path, queue, queue_sha, token,
-            "automation: queue operational fallback jobs",
+            "automation: queue operational retry/fallback jobs",
         )
-        print("[controller] queued {} fallback job(s); commit={}".format(len(additions), commit or "unknown"))
+        print("[controller] queued {} operational job(s); commit={}".format(len(additions), commit or "unknown"))
     else:
         print("[controller] no deterministic transition required")
 
-    state["schema"] = 1
+    state["schema"] = 2
     state["last_checked_at"] = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     write_json(controller_state_path, state)
     return 0
