@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "semantic-autonomy-health-20260905-004",
+  "request_id": "paid-tier-progress-health-20260905-005",
   "recipe": "custom/ba-agent/diagnostics/workflow-strengthening-health.json",
-  "note": "Verify the post-PR15 NAS loop self-refreshes semantic workers, runs semantic evaluator/reviser without syntax/runtime errors, preserves authenticated GitHub access, and reports scheduler return codes without exposing secrets."
+  "note": "Verify the paid-tier NAS loop is still polling every five minutes, authenticated GitHub reads and tool self-refresh remain healthy, the pending B026 Gemini 3.6 fallback is visible to the worker, semantic evaluation remains healthy, and scheduler return codes are clean without exposing secrets."
 }
