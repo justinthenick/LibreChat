@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 033 — A002 Architecture Stop Routing",
+  "benchmark_dir": "033-a002-architecture-stop-routing",
+  "ended_at": "2026-09-05T13:43:34Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": false,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "e50eb681a74cf2c083e748d814a896734c834707a02361e34a2a135036f29197",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "skill",
+  "model": "gemini-3.7-flash",
+  "prompt_sha256": "3f880d4818f21aa7d6044271339a94d47c31b4c103adda17a4e686ab6985aec6",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/agents/solution-procurement-orchestrator/AGENT.md",
+  "skill_sha256": "20ffaa07d7c6118bb2a17f0ca0af1995fbbe65a45a7b200543221f8a70d35dab",
+  "skill_version": "0.1.0",
+  "started_at": "2026-09-05T13:43:26Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 779,
+    "promptTokenCount": 2533,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 2533
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 1548,
+    "totalTokenCount": 4860
+  }
+}
