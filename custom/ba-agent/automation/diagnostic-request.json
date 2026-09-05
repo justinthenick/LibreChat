@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "workflow-strengthening-health-20260905-002",
+  "request_id": "post-bootstrap-autonomy-health-20260905-003",
   "recipe": "custom/ba-agent/diagnostics/workflow-strengthening-health.json",
-  "note": "Track A001 v0.2, B024-B031 retries and guarded B023 compositions. Distinguish provider capacity from worker/infrastructure failure without exposing secrets."
+  "note": "Verify authenticated 5-minute autonomy loop, fresh B023 guarded composition pair, corrected v0.2 validation wave, scheduler/controller execution and required token presence without exposing secrets."
 }
