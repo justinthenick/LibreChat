@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "enabled": true,
-  "note": "True dynamic Agent invocation gates. A001 covers full-route and selective-route behavior. A002 adds an architecture-stop execution gate: the Agent must choose only the required solution Skills and stop before procurement when architecture-changing Unknowns remain.",
+  "note": "True dynamic Agent invocation gates. A001 covers full-route and selective-route behavior. A002 covers architecture-stop execution plus a materially different procurement-only generalization where mature requirements must skip solution work and proceed through specification, market expansion, and evidence verification.",
   "jobs": [
     {
       "id": "a001-g37-dynamic-invocation-016",
@@ -21,6 +21,13 @@
       "id": "a002-g37-dynamic-stop-018",
       "enabled": true,
       "benchmark": "custom/ba-agent/benchmarks/033-a002-architecture-stop-routing",
+      "dynamic_config": "dynamic-a002.json",
+      "model": "gemini-3.7-flash"
+    },
+    {
+      "id": "a002-g37-procurement-generalization-019",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/034-a002-procurement-only-generalization",
       "dynamic_config": "dynamic-a002.json",
       "model": "gemini-3.7-flash"
     }
