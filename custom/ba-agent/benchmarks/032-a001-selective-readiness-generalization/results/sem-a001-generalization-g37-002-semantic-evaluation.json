@@ -1,0 +1,124 @@
+{
+  "schema": 1,
+  "job_id": "sem-a001-generalization-g37-002",
+  "benchmark": "Benchmark 032 — A001 Selective Readiness Generalization",
+  "benchmark_path": "custom/ba-agent/benchmarks/032-a001-selective-readiness-generalization",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-05T13:39:47Z",
+  "baseline_result": "results/b032-g37-readiness-control-017-gemini-3.7-flash-pipeline-01.md",
+  "skill_result": "results/a001-g37-generalization-017-gemini-3-7-flash-dynamic-01.md",
+  "skill_path": "custom/ba-agent/agents/ba-change-delivery-orchestrator/AGENT.md",
+  "skill_sha256": "24f976c2b56efacd7528c5aeb302422335f61f7736bb46f2cd4300768ebf38a5",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Routing correctness and minimum-route discipline",
+          "score": 25,
+          "max": 25,
+          "rationale": "Executed exactly the two-Skill route in correct sequence with no extraneous upstream Skills."
+        },
+        {
+          "criterion": "Evidence/status preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Preserved all Candidate, Target, and Unknown states accurately without silent hardening (10 Oct target, Sunday window candidate, alert threshold candidate, Change Authority unknown)."
+        },
+        {
+          "criterion": "Solution/change-readiness quality",
+          "score": 20,
+          "max": 20,
+          "rationale": "Delivered a comprehensive handoff distinguishing pilot test passes from open operational and governance gaps."
+        },
+        {
+          "criterion": "ITIL alignment quality",
+          "score": 15,
+          "max": 15,
+          "rationale": "Clearly articulated practice-level guidance and maintained strict distinctions between ITIL concepts and local organisational policy CHG-04."
+        },
+        {
+          "criterion": "Traceability and handoff integrity",
+          "score": 10,
+          "max": 10,
+          "rationale": "Maintained end-to-end requirement, delivery item, AC, and test traceability matrices."
+        },
+        {
+          "criterion": "Stop discipline and efficiency",
+          "score": 10,
+          "max": 10,
+          "rationale": "Avoided re-running upstream analysis, decomposition, or test derivation."
+        }
+      ],
+      "summary": "Baseline executed the minimum required two-Skill path cleanly, preserving all uncertain states, governance boundaries, and traceability linkages."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Routing correctness and minimum-route discipline",
+          "score": 25,
+          "max": 25,
+          "rationale": "Demonstrated flawless dynamic routing selectivity, explicitly bypassing upstream analysis and derivation skills with detailed rationale and executing only the two requested skills."
+        },
+        {
+          "criterion": "Evidence/status preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Meticulously preserved all status distinctions: R-02 as Target, R-03/R-05/R-06 as Candidate, T-06 as NOT RUN, and Change Authority as Unknown."
+        },
+        {
+          "criterion": "Solution/change-readiness quality",
+          "score": 20,
+          "max": 20,
+          "rationale": "Produced a well-structured readiness handoff highlighting pilot test successes alongside critical operational timing gaps and CHG-04 policy gates."
+        },
+        {
+          "criterion": "ITIL alignment quality",
+          "score": 15,
+          "max": 15,
+          "rationale": "Accurately mapped evidence across relevant ITIL 4 practices, strictly distinguishing practice guidance from local policy mandates and avoiding invented CAB requirements."
+        },
+        {
+          "criterion": "Traceability and handoff integrity",
+          "score": 10,
+          "max": 10,
+          "rationale": "Provided clear ASCII and tabular traceability maps linking requirements, delivery items, acceptance criteria, test results, and alignment findings."
+        },
+        {
+          "criterion": "Stop discipline and efficiency",
+          "score": 10,
+          "max": 10,
+          "rationale": "Exercised strict stop discipline, terminating after the requested readiness handoff and ITIL assessment without expanding scope."
+        }
+      ],
+      "summary": "The skill orchestrator passed the selective routing gate perfectly, explaining why upstream skills were unneeded and delivering pristine readiness and ITIL artifacts with zero evidence distortion."
+    },
+    "defects": [],
+    "summary": "Both the baseline and dynamic skill orchestration runs achieved perfect scores. The dynamic orchestrator correctly selected the minimum two-Skill route (prepare-solution-change-readiness -> assess-itil-alignment) and preserved all evidence states, policy gates, and uncertainties without hallucination or scope creep."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 16258,
+    "candidatesTokenCount": 890,
+    "totalTokenCount": 18049,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 16258
+      }
+    ],
+    "thoughtsTokenCount": 901,
+    "serviceTier": "standard"
+  }
+}
