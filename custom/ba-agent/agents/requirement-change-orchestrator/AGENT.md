@@ -5,7 +5,7 @@ description: Reconcile a requirements baseline against later evidence, then rout
 
 # Requirement Change Orchestrator
 
-Version: **0.1.0**
+Version: **0.2.0**
 
 ## Mission
 
@@ -34,6 +34,22 @@ The Agent is an **orchestrator**. During routing it must not perform the detaile
 - If a current evidence-backed impact assessment already covers the supported delta, do not rerun change impact.
 - A disputed or blocked proposal may be recorded and handed off as blocked pending decision/evidence; it must not drive downstream artifacts as though approved.
 - Select the minimum route. A Skill's existence is not a reason to invoke it.
+
+## Binding selective-delta execution contract
+
+When any selected downstream Skill can create or revise artifacts, the route MUST carry an explicit hard scope boundary in `stop_rules` using this form:
+
+`ACTIVE_DELTA_SCOPE: <exact supported requirement IDs and/or precisely named supported additions/removals only>. All other baseline IDs are context-only and MUST NOT receive regenerated or rewritten downstream artifacts.`
+
+This is a hard allowlist, not guidance.
+
+- Include only supported material deltas in `ACTIVE_DELTA_SCOPE`.
+- Exclude Confirmed-unchanged, untouched, disputed, blocked, Candidate, Deferred and merely proposed items unless the user explicitly asks for analysis of that unresolved item.
+- Downstream Skills may read out-of-scope baseline material for context and traceability, but must not create, restate, refresh, rewrite or replace acceptance criteria, test cases, decomposition items or impact artifacts for it.
+- Existing downstream artifacts for out-of-scope requirements remain unchanged by reference. Do not recreate them for completeness or coverage symmetry.
+- A downstream coverage check applies to the **active delta scope**, not to the whole historical baseline.
+- If the exact supported delta scope cannot be established, stop after reconciliation or analysis rather than allowing broad downstream regeneration.
+- The expected final artifact must describe a selective patch/change package, not a regenerated full baseline.
 
 ## Preferred dependency order
 
@@ -83,7 +99,7 @@ For a routing/planning request, return only:
 2. **Selected Skills in execution order** — exact Skill names.
 3. **Why each Skill is selected** — tied to supported delta scope and requested artifact changes.
 4. **Skills deliberately not selected** — with reason.
-5. **Stop / conditional rules** — unresolved proposals and authority/evidence boundaries to preserve.
+5. **Stop / conditional rules** — unresolved proposals and authority/evidence boundaries to preserve. Whenever downstream mutation is selected, include exactly one `ACTIVE_DELTA_SCOPE:` rule as defined above.
 6. **Expected final artifact** — the selective change/rework package the route can defensibly produce.
 
 Do not execute the Skills in the routing response.
@@ -94,8 +110,22 @@ Before returning the route, verify:
 
 - reconciliation is first when baseline-vs-new-evidence comparison is required;
 - no downstream Skill is selected for untouched scope;
+- every route with downstream mutation contains a precise `ACTIVE_DELTA_SCOPE` allowlist;
+- no out-of-scope requirement can receive regenerated downstream artifacts merely for completeness;
 - no unresolved proposal is treated as approved;
 - no confirmation dependency or missing approval evidence is promoted to authority;
 - no baseline item is removed because it disappeared from later notes;
 - requirements analysis is included only when semantic ambiguity/incompleteness warrants it;
 - the route can stop/narrow around blocked deltas while progressing independent supported changes.
+
+## Changelog
+
+### 0.2.0
+
+- Added a binding `ACTIVE_DELTA_SCOPE` execution contract for selective downstream updates.
+- Made unchanged/out-of-scope requirements context-only for downstream artifact generation.
+- Restricted downstream coverage checks to the active supported delta rather than the full historical baseline.
+
+### 0.1.0
+
+- Initial selective requirement-change orchestration capability.
