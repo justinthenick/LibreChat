@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "run_id": "a001-g37-generalization-017",
+  "benchmark": "custom/ba-agent/benchmarks/032-a001-selective-readiness-generalization",
+  "model": "gemini-3.7-flash",
+  "status": "success",
+  "operational_status": null,
+  "created_at": "2026-09-05T13:39:32Z",
+  "agent_path": "custom/ba-agent/agents/ba-change-delivery-orchestrator/AGENT.md",
+  "agent_sha256": "24f976c2b56efacd7528c5aeb302422335f61f7736bb46f2cd4300768ebf38a5",
+  "route": {
+    "objective": "Prepare a solution/change-readiness handoff and an ITIL 4 practice-alignment assessment for the FreshFields scanner certificate rotation using the existing normalized BA, acceptance criteria, and test baseline without regenerating upstream artifacts.",
+    "selected_skills": [
+      "prepare-solution-change-readiness",
+      "assess-itil-alignment"
+    ],
+    "not_selected": [
+      {
+        "skill": "analyze-requirements",
+        "reason": "The requirements baseline (R-01 through R-07) is already normalized and traceable in the supplied source."
+      },
+      {
+        "skill": "decompose-requirements",
+        "reason": "Delivery work items (D-01 through D-07) are already agreed and decomposed for this decision point."
+      },
+      {
+        "skill": "elaborate-acceptance-criteria",
+        "reason": "Acceptance criteria (AC-01 through AC-05) are already baselined and linked to requirements."
+      },
+      {
+        "skill": "derive-test-cases",
+        "reason": "Test cases and test execution results (T-01 through T-06) already exist with explicit pass/not-run evidence."
+      }
+    ],
+    "stop_rules": [
+      "Downstream skills must not promote Candidate, Target, or Unknown items to Confirmed or Approved states (specifically: R-02 10 October target date, R-03 rollout group composition, R-05 alert threshold, R-06 Sunday 02:00-04:00 production window, and R-07 Change Authority identity).",
+      "Preserve confirmed policy gates and constraints: SEC-12 requires device-bound mutual TLS certificates, and CHG-04 requires an approved production change record prior to deployment.",
+      "Do not invent CAB approval mandates, Change Authority assignments, fleet-wide rollback timings (T-06 remains NOT RUN), or architectural mechanisms not evidenced in the baseline."
+    ],
+    "expected_final_artifact": "A combined solution change-readiness handoff package and ITIL 4 alignment assessment for the go/no-go pack, capturing evidenced readiness, operational risks, governance gaps (CHG-04 compliance), and unverified rollout/rollback timing without invented approvals."
+  },
+  "route_status": "success",
+  "route_usage": {
+    "promptTokenCount": 3104,
+    "candidatesTokenCount": 527,
+    "totalTokenCount": 4326,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 3104
+      }
+    ],
+    "thoughtsTokenCount": 695,
+    "serviceTier": "standard"
+  },
+  "stages": [
+    {
+      "index": 1,
+      "skill": "prepare-solution-change-readiness",
+      "skill_path": "custom/ba-agent/skills/prepare-solution-change-readiness/SKILL.md",
+      "skill_sha256": "b18b5fc6db55de3c58c5af8af867352f37e8cb63998b33d4b464e88cf3cb8e5e",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 3881,
+        "candidatesTokenCount": 2577,
+        "totalTokenCount": 6841,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3881
+          }
+        ],
+        "thoughtsTokenCount": 383,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "70f8d254899d2215d68f7a2ef80cf817fd3c5272167ea5d7283afd2b0fee895e",
+      "error": null
+    },
+    {
+      "index": 2,
+      "skill": "assess-itil-alignment",
+      "skill_path": "custom/ba-agent/skills/assess-itil-alignment/SKILL.md",
+      "skill_sha256": "3adeb63ebe63773137da0e9407d6fac98de1b84737464c2a45286fd1390fef59",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 6965,
+        "candidatesTokenCount": 3229,
+        "totalTokenCount": 11194,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 6965
+          }
+        ],
+        "thoughtsTokenCount": 1000,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "ecd94798bed47b8188dc20a5c2d3463774817359a4608083fdced2179e4011e9",
+      "error": null
+    }
+  ],
+  "usage_totals": {
+    "prompt": 13950,
+    "candidate": 6333,
+    "thoughts": 2078,
+    "total": 22361
+  },
+  "result_markdown": "a001-g37-generalization-017-gemini-3-7-flash-dynamic-01.md"
+}

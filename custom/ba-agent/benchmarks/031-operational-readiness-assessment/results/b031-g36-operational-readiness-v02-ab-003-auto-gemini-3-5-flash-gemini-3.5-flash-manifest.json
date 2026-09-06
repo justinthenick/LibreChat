@@ -1,0 +1,15 @@
+{
+  "benchmark": "Benchmark 031 — Operational Readiness Assessment",
+  "created_at": "2026-09-05T06:42:44Z",
+  "mode": "both",
+  "model": "gemini-3.5-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b031-g36-operational-readiness-v02-ab-003-auto-gemini-3-5-flash-gemini-3.5-flash-baseline-01.md",
+      "metadata": "b031-g36-operational-readiness-v02-ab-003-auto-gemini-3-5-flash-gemini-3.5-flash-baseline-01.json",
+      "status": "quota_blocked"
+    }
+  ],
+  "schema": 2
+}

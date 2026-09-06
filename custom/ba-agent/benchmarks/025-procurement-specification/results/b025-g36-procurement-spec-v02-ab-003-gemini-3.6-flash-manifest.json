@@ -1,0 +1,15 @@
+{
+  "benchmark": "Benchmark 025 — Vendor-Neutral Procurement Specification",
+  "created_at": "2026-09-05T06:36:20Z",
+  "mode": "both",
+  "model": "gemini-3.6-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b025-g36-procurement-spec-v02-ab-003-gemini-3.6-flash-baseline-01.md",
+      "metadata": "b025-g36-procurement-spec-v02-ab-003-gemini-3.6-flash-baseline-01.json",
+      "status": "quota_blocked"
+    }
+  ],
+  "schema": 2
+}

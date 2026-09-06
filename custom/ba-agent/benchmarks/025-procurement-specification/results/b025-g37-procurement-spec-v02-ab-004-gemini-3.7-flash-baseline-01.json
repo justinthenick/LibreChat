@@ -1,0 +1,30 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 025 — Vendor-Neutral Procurement Specification",
+  "benchmark_dir": "025-procurement-specification",
+  "ended_at": "2026-09-05T07:01:12Z",
+  "error": "{\"message\": \"This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\", \"status\": \"UNAVAILABLE\"}",
+  "finish_reason": null,
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": false,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 503,
+  "input_sha256": "31688b6413a9a3e3b657798af77ff6d00e42dcc3569712a1a8314fba4d5f324f",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "baseline",
+  "model": "gemini-3.7-flash",
+  "prompt_sha256": "df174f1c122373f73bbba80228d418cd7911c0b4ea580d66002cea99648cdf9c",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": null,
+  "skill_sha256": null,
+  "skill_version": null,
+  "started_at": "2026-09-05T07:01:07Z",
+  "status": "provider_busy",
+  "temperature": 0.0,
+  "usage": null
+}

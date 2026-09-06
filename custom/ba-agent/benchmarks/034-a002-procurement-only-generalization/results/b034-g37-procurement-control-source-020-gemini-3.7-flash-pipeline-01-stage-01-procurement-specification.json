@@ -1,0 +1,33 @@
+{
+  "agent_path": "custom/ba-agent/skills/prepare-procurement-specification/SKILL.md",
+  "agent_sha256": "a820bf449f4e9daf6280ec16d526271fd86cd5c7a807cd78395e10add81f12d7",
+  "agent_version": "0.2.0",
+  "ended_at": "2026-09-05T21:32:37Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "max_output_tokens": 8192,
+  "model": "gemini-3.7-flash",
+  "pipeline": "Benchmark 034 \u2014 Evidence-preserving fixed procurement control",
+  "run_id": "b034-g37-procurement-control-source-020",
+  "stage_id": "procurement-specification",
+  "stage_index": 1,
+  "stage_input_sha256": "2f9c5687cbe0ff0f174ea6aaf3bd165de5d8e75c40460f5e544455e5bb5aa73d",
+  "stage_name": "Prepare Procurement Specification",
+  "started_at": "2026-09-05T21:32:29Z",
+  "status": "success",
+  "temperature": 0.0,
+  "upstream_output_sha256": null,
+  "usage": {
+    "candidatesTokenCount": 2191,
+    "promptTokenCount": 3013,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 3013
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 667,
+    "totalTokenCount": 5871
+  }
+}

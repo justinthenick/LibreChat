@@ -1,0 +1,27 @@
+{
+  "schema": 2,
+  "name": "Benchmark 034 — Evidence-preserving fixed procurement control",
+  "input": "input.md",
+  "prompt": "pipeline-prompt.md",
+  "results_dir": "results",
+  "stages": [
+    {
+      "id": "procurement-specification",
+      "name": "Prepare Procurement Specification",
+      "agent": "../../skills/prepare-procurement-specification/SKILL.md",
+      "instruction": "Consume the supplied mature procurement baseline directly. Do not redo requirements, NFR, solution-design or ADR work. Produce the vendor-neutral procurement specification while preserving Hard minimum / Target / Preference / Unknown states exactly. Because downstream stages receive only this handoff, append a section headed exactly `## SUPPLIED_CANDIDATE_EVIDENCE_FOR_DOWNSTREAM` that reproduces the supplied C-01, C-02 and C-03 candidate names and every stated candidate fact from the original packet without adding, omitting, normalizing or interpreting product facts. This appendix is evidence transport, not verification. Only after the complete artifact and evidence appendix are produced, append the exact final line `PIPELINE_HANDOFF_COMPLETE: PROCUREMENT_SPECIFICATION`."
+    },
+    {
+      "id": "market-expansion",
+      "name": "Expand Procurement Market",
+      "agent": "../../skills/expand-procurement-market/SKILL.md",
+      "instruction": "Consume only the supplied procurement-specification handoff. Before substantive work, require the exact upstream marker `PIPELINE_HANDOFF_COMPLETE: PROCUREMENT_SPECIFICATION`. If absent, return only `UPSTREAM_INCOMPLETE: PROCUREMENT_SPECIFICATION` and stop. If present, broaden market/source coverage beyond the incumbent-reseller set without inventing newly verified products or facts. Market-discovery lanes are not verified candidates. Preserve the entire upstream section `## SUPPLIED_CANDIDATE_EVIDENCE_FOR_DOWNSTREAM` verbatim and unchanged in your output so the verification stage retains exact source evidence. Only after the market-expansion artifact and unchanged evidence appendix are produced, append the exact final line `PIPELINE_HANDOFF_COMPLETE: MARKET_EXPANSION`."
+    },
+    {
+      "id": "candidate-verification",
+      "name": "Verify Procurement Options",
+      "agent": "../../skills/verify-procurement-options/SKILL.md",
+      "instruction": "Consume the market-expansion handoff. Require `PIPELINE_HANDOFF_COMPLETE: MARKET_EXPANSION` and the `## SUPPLIED_CANDIDATE_EVIDENCE_FOR_DOWNSTREAM` section before substantive work. Verify only the supplied exact candidates C-01, C-02 and C-03 against the preserved requirement classes and supplied facts. Market-expansion examples/search lanes are not candidate evidence and must not be promoted to verified products. Preserve Target/Preference misses as non-hard and missing evidence as Unknown / verify. Do not invent approval authority, certifications, prices, dimensions, warranty facts or product capabilities. Only after the complete verification artifact is produced, append the exact final line `PIPELINE_HANDOFF_COMPLETE: PROCUREMENT_VERIFICATION`."
+    }
+  ]
+}

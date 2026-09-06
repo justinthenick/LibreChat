@@ -1,0 +1,27 @@
+{
+  "schema": 2,
+  "name": "Benchmark 036 — Fixed impact/evidence/ITIL control",
+  "input": "input.md",
+  "prompt": "pipeline-control.md",
+  "results_dir": "results",
+  "stages": [
+    {
+      "id": "change-impact",
+      "name": "Assess Change Impact",
+      "agent": "../../skills/assess-change-impact/SKILL.md",
+      "instruction": "Assess material impacts of the certificate rotation while preserving unknown consumer pinning/trust-store/window behavior as Unknown/questions, not confirmed impacts. Do not redo traceability. Append `## SOURCE_EVIDENCE_FOR_DOWNSTREAM` with the supplied release/governance evidence states needed later, without strengthening them, then append `PIPELINE_HANDOFF_COMPLETE: CHANGE_IMPACT`."
+    },
+    {
+      "id": "release-evidence",
+      "name": "Validate Release Evidence",
+      "agent": "../../skills/validate-release-evidence/SKILL.md",
+      "instruction": "Require `PIPELINE_HANDOFF_COMPLETE: CHANGE_IMPACT` and the preserved source-evidence section. Validate staging PASS evidence while preserving production post-change verification as NOT RUN, CHG-2217 as Draft, the window as Candidate and Change Authority as Unknown. Preserve the source-evidence section unchanged and append `PIPELINE_HANDOFF_COMPLETE: RELEASE_EVIDENCE`."
+    },
+    {
+      "id": "itil-alignment",
+      "name": "Assess ITIL Alignment",
+      "agent": "../../skills/assess-itil-alignment/SKILL.md",
+      "instruction": "Require `PIPELINE_HANDOFF_COMPLETE: RELEASE_EVIDENCE`. Assess ITIL 4 practice alignment from the supplied evidence without inventing a local CAB requirement, approval, Change Authority, production success or stronger states than Draft/Candidate/NOT RUN/Unknown. Append `PIPELINE_HANDOFF_COMPLETE: ITIL_ALIGNMENT`."
+    }
+  ]
+}

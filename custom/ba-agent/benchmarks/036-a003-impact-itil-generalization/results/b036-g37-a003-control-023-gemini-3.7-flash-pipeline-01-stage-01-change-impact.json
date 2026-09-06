@@ -1,0 +1,33 @@
+{
+  "agent_path": "custom/ba-agent/skills/assess-change-impact/SKILL.md",
+  "agent_sha256": "7beae99136a52ac2e0ab484ed9fcdd8311ec0951e54b74a4dcadbc52e9412437",
+  "agent_version": "0.2.0",
+  "ended_at": "2026-09-06T01:39:23Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "max_output_tokens": 8192,
+  "model": "gemini-3.7-flash",
+  "pipeline": "Benchmark 036 \u2014 Fixed impact/evidence/ITIL control",
+  "run_id": "b036-g37-a003-control-023",
+  "stage_id": "change-impact",
+  "stage_index": 1,
+  "stage_input_sha256": "96a34a0717e8248d5c0b7834f4a885556363b3e970cfe7baa91dee058f40387e",
+  "stage_name": "Assess Change Impact",
+  "started_at": "2026-09-06T01:39:15Z",
+  "status": "success",
+  "temperature": 0.0,
+  "upstream_output_sha256": null,
+  "usage": {
+    "candidatesTokenCount": 1433,
+    "promptTokenCount": 1979,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1979
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 826,
+    "totalTokenCount": 4238
+  }
+}

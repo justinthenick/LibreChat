@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 030 — Architecture Decision Recording",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/record-architecture-decisions/SKILL.md",
+  "results_dir": "results"
+}

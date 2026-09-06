@@ -1,0 +1,33 @@
+{
+  "agent_path": "custom/ba-agent/skills/prepare-solution-change-readiness/SKILL.md",
+  "agent_sha256": "b18b5fc6db55de3c58c5af8af867352f37e8cb63998b33d4b464e88cf3cb8e5e",
+  "agent_version": "0.2.0",
+  "ended_at": "2026-09-05T10:33:50Z",
+  "error": null,
+  "finish_reason": "MAX_TOKENS",
+  "max_output_tokens": 8192,
+  "model": "gemini-3.5-flash",
+  "pipeline": "Benchmark 023 \u2014 Candidate: Composite BA + Change Readiness + ITIL",
+  "run_id": "b023-g35-ba-change-itil-guarded-015",
+  "stage_id": "change-readiness",
+  "stage_index": 2,
+  "stage_input_sha256": "404f1543779bf0f58d4c830977c3f404f3eaf91108d70822371a38d689860465",
+  "stage_name": "Prepare Solution / Change Readiness v0.2",
+  "started_at": "2026-09-05T10:32:58Z",
+  "status": "success",
+  "temperature": 0.0,
+  "upstream_output_sha256": "94b4fdef467ce4b57ad84559ead81d92b913653602273d7da7a6f0d30c72c737",
+  "usage": {
+    "candidatesTokenCount": 2897,
+    "promptTokenCount": 6080,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 6080
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 6679,
+    "totalTokenCount": 15656
+  }
+}

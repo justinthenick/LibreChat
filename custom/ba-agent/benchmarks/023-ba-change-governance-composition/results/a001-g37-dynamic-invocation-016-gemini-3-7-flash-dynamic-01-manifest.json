@@ -1,0 +1,188 @@
+{
+  "schema": 1,
+  "run_id": "a001-g37-dynamic-invocation-016",
+  "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+  "model": "gemini-3.7-flash",
+  "status": "success",
+  "operational_status": null,
+  "created_at": "2026-09-05T13:10:41Z",
+  "agent_path": "custom/ba-agent/agents/ba-change-delivery-orchestrator/AGENT.md",
+  "agent_sha256": "24f976c2b56efacd7528c5aeb302422335f61f7736bb46f2cd4300768ebf38a5",
+  "route": {
+    "objective": "Deliver an end-to-end BA requirements and testing baseline for the NimbusHR corporate identity migration, prepare a solution and change-readiness handoff, and assess evidence alignment against ITIL 4 practice concepts while preserving all uncertain states, target dates, disputes, and explicit local policy constraints without inventing architecture or approvals.",
+    "selected_skills": [
+      "analyze-requirements",
+      "decompose-requirements",
+      "elaborate-acceptance-criteria",
+      "derive-test-cases",
+      "prepare-solution-change-readiness",
+      "assess-itil-alignment"
+    ],
+    "not_selected": [],
+    "stop_rules": [
+      "The 30 November date is a desired target date, not a committed delivery deadline; downstream stages must not treat it as a hard constraint.",
+      "Entra SAML federation is a proposed mechanism with unverified tenant entitlement and must not be hardened into a confirmed architectural requirement.",
+      "Contractor access is Disputed with an Unknown decision authority, and the 17 unmatched accounts remain unresolved; neither may be forced into Ready delivery items or committed acceptance criteria.",
+      "SCIM automated provisioning is Deferred to Phase 2 and excluded from current cutover scope.",
+      "The Saturday 22:00 cutover window and 45-minute recovery target remain unapproved proposals without committed mechanics.",
+      "Preserve confirmed source-backed outcomes: the Security Standard mandating corporate identity and existing MFA for SaaS employee data access, and the local Change Policy requiring an approved change record prior to production implementation.",
+      "Do not invent a named Change Authority, mandatory CAB sign-off, or unevidenced Standard Change template."
+    ],
+    "expected_final_artifact": "A complete, traceable BA delivery package comprising normalized requirements, delivery work decomposition, acceptance criteria, and behavioral test cases for ready items, alongside a solution and change-readiness assessment highlighting known gaps and an ITIL 4 practice alignment evaluation."
+  },
+  "route_status": "success",
+  "route_usage": {
+    "promptTokenCount": 2027,
+    "candidatesTokenCount": 438,
+    "totalTokenCount": 3066,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 2027
+      }
+    ],
+    "thoughtsTokenCount": 601,
+    "serviceTier": "standard"
+  },
+  "stages": [
+    {
+      "index": 1,
+      "skill": "analyze-requirements",
+      "skill_path": "custom/ba-agent/skills/analyze-requirements/SKILL.md",
+      "skill_sha256": "9b3033fb72fff244c170fa49e5719db5bbb10b9f0b5694d151f2445b3a844130",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 4938,
+        "candidatesTokenCount": 2936,
+        "totalTokenCount": 8748,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 4938
+          }
+        ],
+        "thoughtsTokenCount": 874,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "33d687cf9e34c98f2eaea6b1ef47d8e333320644561ea579bb32c8e24eb3a617",
+      "error": null
+    },
+    {
+      "index": 2,
+      "skill": "decompose-requirements",
+      "skill_path": "custom/ba-agent/skills/decompose-requirements/SKILL.md",
+      "skill_sha256": "51ca53c4113d96ccb60d87988d2c66c089b99274fc439ffaefbcec4e9085e9b5",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 7572,
+        "candidatesTokenCount": 3351,
+        "totalTokenCount": 13353,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 7572
+          }
+        ],
+        "thoughtsTokenCount": 2430,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "c99e698a87241adf507abf7ae3162d7f279e883fb07dc567cdca6e5477d21ff7",
+      "error": null
+    },
+    {
+      "index": 3,
+      "skill": "elaborate-acceptance-criteria",
+      "skill_path": "custom/ba-agent/skills/elaborate-acceptance-criteria/SKILL.md",
+      "skill_sha256": "852acfee189a2b88418f3f2fd948ff96ddaee23f9e6a620563bf06a94c380d0d",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 7034,
+        "candidatesTokenCount": 3020,
+        "totalTokenCount": 10828,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 7034
+          }
+        ],
+        "thoughtsTokenCount": 774,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "099e54e2d9d683cf533afbcbaf7cf50d7894d166b08e98c5fd10b869b4cd3b0d",
+      "error": null
+    },
+    {
+      "index": 4,
+      "skill": "derive-test-cases",
+      "skill_path": "custom/ba-agent/skills/derive-test-cases/SKILL.md",
+      "skill_sha256": "5105a2f0965663cf0f7f24ecedd8b8dc11f3d20afdc2815e25a224d7297df995",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 5742,
+        "candidatesTokenCount": 2903,
+        "totalTokenCount": 11323,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 5742
+          }
+        ],
+        "thoughtsTokenCount": 2678,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "9b51b37b55698ac82f168392cf49b74c2e7756d0c7757b39116306dbe85adc9d",
+      "error": null
+    },
+    {
+      "index": 5,
+      "skill": "prepare-solution-change-readiness",
+      "skill_path": "custom/ba-agent/skills/prepare-solution-change-readiness/SKILL.md",
+      "skill_sha256": "b18b5fc6db55de3c58c5af8af867352f37e8cb63998b33d4b464e88cf3cb8e5e",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 5656,
+        "candidatesTokenCount": 3290,
+        "totalTokenCount": 10213,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 5656
+          }
+        ],
+        "thoughtsTokenCount": 1267,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "975cb109d304f5a35258b1134aade4a6f1eaa7df160907816425b87a693bf3fc",
+      "error": null
+    },
+    {
+      "index": 6,
+      "skill": "assess-itil-alignment",
+      "skill_path": "custom/ba-agent/skills/assess-itil-alignment/SKILL.md",
+      "skill_sha256": "3adeb63ebe63773137da0e9407d6fac98de1b84737464c2a45286fd1390fef59",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 6562,
+        "candidatesTokenCount": 2986,
+        "totalTokenCount": 10154,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 6562
+          }
+        ],
+        "thoughtsTokenCount": 606,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "86560e79719da53731ac5a8a2bdefd84335457b318ac75ffe06a960911c949d7",
+      "error": null
+    }
+  ],
+  "usage_totals": {
+    "prompt": 39531,
+    "candidate": 18924,
+    "thoughts": 9230,
+    "total": 67685
+  },
+  "result_markdown": "a001-g37-dynamic-invocation-016-gemini-3-7-flash-dynamic-01.md"
+}

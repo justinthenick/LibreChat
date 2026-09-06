@@ -1,0 +1,239 @@
+{
+  "checks": [
+    {
+      "data": {
+        "enabled_remote_jobs": 68,
+        "known_local_jobs": 68,
+        "pending_job_count": 0,
+        "pending_job_ids": [],
+        "targets": {
+          "a001-g36-ba-change-router-v02-skill-007": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b023-g36-ba-change-control-guarded-008": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b023-g36-ba-change-itil-guarded-009": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b024-g36-traceability-v01-skill-002": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b025-g36-procurement-spec-v01-skill-002": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b026-g36-nfr-v01-skill-002": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b027-g36-change-impact-v02-skill-002": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b028-g35-release-evidence-v01-ab-002": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b029-g35-requirement-delta-v01-ab-002": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b030-g35-adr-v01-ab-002": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b031-g36-operational-readiness-v01-ab-002": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          }
+        }
+      },
+      "index": 1,
+      "label": "Current retry wave vs NAS worker state",
+      "status": "ok",
+      "type": "queue_compare"
+    },
+    {
+      "data": {
+        "jobs": {
+          "a001-g36-ba-change-router-v02-skill-007": {
+            "attempted_at_epoch": 1788557102,
+            "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+            "mode": "skill",
+            "model": "gemini-3.6-flash",
+            "output_tail": "[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/023-ba-change-governance-composition/results/a001-g36-ba-change-router-v02-skill-007-gemini-3.6-flash-skill-01.md\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: a8092023943b254b4fd3c7bc50e964f9bbc2baff\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b023-g36-ba-change-control-guarded-008": {
+            "attempted_at_epoch": 1788557431,
+            "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+            "model": "gemini-3.6-flash",
+            "output_tail": "ERROR: GitHub HTTP 403: {\"message\":\"API rate limit exceeded for 163.53.146.125. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)\",\"documentation_url\":\"https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting\"}\n\n",
+            "pipeline_config": "pipeline-control.json",
+            "return_code": 2,
+            "runner": "pipeline",
+            "status": "failed"
+          },
+          "b023-g36-ba-change-itil-guarded-009": {
+            "attempted_at_epoch": 1788557432,
+            "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+            "model": "gemini-3.6-flash",
+            "output_tail": "ERROR: GitHub HTTP 403: {\"message\":\"API rate limit exceeded for 163.53.146.125. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)\",\"documentation_url\":\"https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting\"}\n\n",
+            "pipeline_config": "pipeline-itil.json",
+            "return_code": 2,
+            "runner": "pipeline",
+            "status": "failed"
+          },
+          "b024-g36-traceability-v01-skill-002": {
+            "attempted_at_epoch": 1788557132,
+            "benchmark": "custom/ba-agent/benchmarks/024-artifact-traceability-audit",
+            "mode": "skill",
+            "model": "gemini-3.6-flash",
+            "output_tail": "[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/024-artifact-traceability-audit/results/b024-g36-traceability-v01-skill-002-gemini-3.6-flash-skill-01.md\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: a980cfea30ccda87d6143dbcd559bc2f2712d9cb\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b025-g36-procurement-spec-v01-skill-002": {
+            "attempted_at_epoch": 1788557179,
+            "benchmark": "custom/ba-agent/benchmarks/025-procurement-specification",
+            "mode": "skill",
+            "model": "gemini-3.6-flash",
+            "output_tail": "[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/025-procurement-specification/results/b025-g36-procurement-spec-v01-skill-002-gemini-3.6-flash-skill-01.md\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: d150fa3ebcea2b23493110ca6dfec8946bcf19e7\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b026-g36-nfr-v01-skill-002": {
+            "attempted_at_epoch": 1788557205,
+            "benchmark": "custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis",
+            "mode": "skill",
+            "model": "gemini-3.6-flash",
+            "output_tail": "[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis/results/b026-g36-nfr-v01-skill-002-gemini-3.6-flash-skill-01.md\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 63b57aad8f753e05cadd856a811bf4d3c0192e64\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b027-g36-change-impact-v02-skill-002": {
+            "attempted_at_epoch": 1788557238,
+            "benchmark": "custom/ba-agent/benchmarks/027-change-impact-assessment",
+            "mode": "skill",
+            "model": "gemini-3.6-flash",
+            "output_tail": "[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/027-change-impact-assessment/results/b027-g36-change-impact-v02-skill-002-gemini-3.6-flash-skill-01.md\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: f1092221b1e065d7fa6417050df1375dd92d360e\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b028-g35-release-evidence-v01-ab-002": {
+            "attempted_at_epoch": 1788557283,
+            "benchmark": "custom/ba-agent/benchmarks/028-release-evidence-validation",
+            "mode": "both",
+            "model": "gemini-3.5-flash",
+            "output_tail": "[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/028-release-evidence-validation/results/b028-g35-release-evidence-v01-ab-002-gemini-3.5-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/028-release-evidence-validation/results/b028-g35-release-evidence-v01-ab-002-gemini-3.5-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: a4e4db107435155723287c97899bed105e4437d8\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b029-g35-requirement-delta-v01-ab-002": {
+            "attempted_at_epoch": 1788557320,
+            "benchmark": "custom/ba-agent/benchmarks/029-requirement-change-reconciliation",
+            "mode": "both",
+            "model": "gemini-3.5-flash",
+            "output_tail": "[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/029-requirement-change-reconciliation/results/b029-g35-requirement-delta-v01-ab-002-gemini-3.5-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/029-requirement-change-reconciliation/results/b029-g35-requirement-delta-v01-ab-002-gemini-3.5-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: c1b18efece022b54d448cd93b8a024390654738d\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b030-g35-adr-v01-ab-002": {
+            "attempted_at_epoch": 1788557364,
+            "benchmark": "custom/ba-agent/benchmarks/030-architecture-decision-recording",
+            "mode": "both",
+            "model": "gemini-3.5-flash",
+            "output_tail": "[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/030-architecture-decision-recording/results/b030-g35-adr-v01-ab-002-gemini-3.5-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/030-architecture-decision-recording/results/b030-g35-adr-v01-ab-002-gemini-3.5-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 1540c25ee4ef1f99e7f257058ec210fb9017637d\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b031-g36-operational-readiness-v01-ab-002": {
+            "attempted_at_epoch": 1788557389,
+            "benchmark": "custom/ba-agent/benchmarks/031-operational-readiness-assessment",
+            "mode": "both",
+            "model": "gemini-3.6-flash",
+            "output_tail": "[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/031-operational-readiness-assessment/results/b031-g36-operational-readiness-v01-ab-002-gemini-3.6-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/031-operational-readiness-assessment/results/b031-g36-operational-readiness-v01-ab-002-gemini-3.6-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: d518bbb45fcefefa97400f1f97873a6c9dfebc73\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          }
+        },
+        "known_job_count": 68,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json"
+      },
+      "index": 2,
+      "label": "Worker records for current retry wave",
+      "status": "ok",
+      "type": "worker_state"
+    },
+    {
+      "data": {
+        "lines": 160,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/scheduler.log",
+        "text": "[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] request workflow-strengthening-health-20260905-001 already published\n2026-09-05 06:30:06 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 06:35:01 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] request workflow-strengthening-health-20260905-001 already published\n2026-09-05 06:35:02 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 06:40:02 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] request workflow-strengthening-health-20260905-001 already published\n2026-09-05 06:40:03 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 06:45:01 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] request workflow-strengthening-health-20260905-001 already published\n2026-09-05 06:45:02 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 06:50:01 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] request workflow-strengthening-health-20260905-001 already published\n2026-09-05 06:50:02 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 06:55:02 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] request workflow-strengthening-health-20260905-001 already published\n2026-09-05 06:55:03 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 07:00:02 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] request workflow-strengthening-health-20260905-001 already published\n2026-09-05 07:00:03 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 07:05:02 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] request workflow-strengthening-health-20260905-001 already published\n2026-09-05 07:05:03 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 07:10:02 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] request workflow-strengthening-health-20260905-001 already published\n2026-09-05 07:10:03 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 07:15:02 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] request workflow-strengthening-health-20260905-001 already published\n2026-09-05 07:15:03 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 07:20:03 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] request workflow-strengthening-health-20260905-001 already published\n2026-09-05 07:20:04 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 07:25:02 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] 11 new job(s)\n[worker] starting a001-g36-ba-change-router-v02-skill-007: gemini-3.6-flash skill custom/ba-agent/benchmarks/023-ba-change-governance-composition\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/023-ba-change-governance-composition/results/a001-g36-ba-change-router-v02-skill-007-gemini-3.6-flash-skill-01.md\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: a8092023943b254b4fd3c7bc50e964f9bbc2baff\n[worker] finished a001-g36-ba-change-router-v02-skill-007 rc=0\n[worker] starting b024-g36-traceability-v01-skill-002: gemini-3.6-flash skill custom/ba-agent/benchmarks/024-artifact-traceability-audit\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/024-artifact-traceability-audit/results/b024-g36-traceability-v01-skill-002-gemini-3.6-flash-skill-01.md\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: a980cfea30ccda87d6143dbcd559bc2f2712d9cb\n[worker] finished b024-g36-traceability-v01-skill-002 rc=0\n[worker] starting b025-g36-procurement-spec-v01-skill-002: gemini-3.6-flash skill custom/ba-agent/benchmarks/025-procurement-specification\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/025-procurement-specification/results/b025-g36-procurement-spec-v01-skill-002-gemini-3.6-flash-skill-01.md\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: d150fa3ebcea2b23493110ca6dfec8946bcf19e7\n[worker] finished b025-g36-procurement-spec-v01-skill-002 rc=0\n[worker] starting b026-g36-nfr-v01-skill-002: gemini-3.6-flash skill custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis/results/b026-g36-nfr-v01-skill-002-gemini-3.6-flash-skill-01.md\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 63b57aad8f753e05cadd856a811bf4d3c0192e64\n[worker] finished b026-g36-nfr-v01-skill-002 rc=0\n[worker] starting b027-g36-change-impact-v02-skill-002: gemini-3.6-flash skill custom/ba-agent/benchmarks/027-change-impact-assessment\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/027-change-impact-assessment/results/b027-g36-change-impact-v02-skill-002-gemini-3.6-flash-skill-01.md\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: f1092221b1e065d7fa6417050df1375dd92d360e\n[worker] finished b027-g36-change-impact-v02-skill-002 rc=0\n[worker] starting b028-g35-release-evidence-v01-ab-002: gemini-3.5-flash both custom/ba-agent/benchmarks/028-release-evidence-validation\n[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/028-release-evidence-validation/results/b028-g35-release-evidence-v01-ab-002-gemini-3.5-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/028-release-evidence-validation/results/b028-g35-release-evidence-v01-ab-002-gemini-3.5-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: a4e4db107435155723287c97899bed105e4437d8\n[worker] finished b028-g35-release-evidence-v01-ab-002 rc=0\n[worker] starting b029-g35-requirement-delta-v01-ab-002: gemini-3.5-flash both custom/ba-agent/benchmarks/029-requirement-change-reconciliation\n[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/029-requirement-change-reconciliation/results/b029-g35-requirement-delta-v01-ab-002-gemini-3.5-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/029-requirement-change-reconciliation/results/b029-g35-requirement-delta-v01-ab-002-gemini-3.5-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: c1b18efece022b54d448cd93b8a024390654738d\n[worker] finished b029-g35-requirement-delta-v01-ab-002 rc=0\n[worker] starting b030-g35-adr-v01-ab-002: gemini-3.5-flash both custom/ba-agent/benchmarks/030-architecture-decision-recording\n[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/030-architecture-decision-recording/results/b030-g35-adr-v01-ab-002-gemini-3.5-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/030-architecture-decision-recording/results/b030-g35-adr-v01-ab-002-gemini-3.5-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 1540c25ee4ef1f99e7f257058ec210fb9017637d\n[worker] finished b030-g35-adr-v01-ab-002 rc=0\n[worker] starting b031-g36-operational-readiness-v01-ab-002: gemini-3.6-flash both custom/ba-agent/benchmarks/031-operational-readiness-assessment\n[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/031-operational-readiness-assessment/results/b031-g36-operational-readiness-v01-ab-002-gemini-3.6-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/031-operational-readiness-assessment/results/b031-g36-operational-readiness-v01-ab-002-gemini-3.6-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: d518bbb45fcefefa97400f1f97873a6c9dfebc73\n[worker] finished b031-g36-operational-readiness-v01-ab-002 rc=0\n[worker] starting b023-g36-ba-change-control-guarded-008: gemini-3.6-flash pipeline pipeline-control.json custom/ba-agent/benchmarks/023-ba-change-governance-composition\nERROR: GitHub HTTP 403: {\"message\":\"API rate limit exceeded for 163.53.146.125. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)\",\"documentation_url\":\"https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting\"}\n[worker] finished b023-g36-ba-change-control-guarded-008 rc=2\n[worker] starting b023-g36-ba-change-itil-guarded-009: gemini-3.6-flash pipeline pipeline-itil.json custom/ba-agent/benchmarks/023-ba-change-governance-composition\nERROR: GitHub HTTP 403: {\"message\":\"API rate limit exceeded for 163.53.146.125. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)\",\"documentation_url\":\"https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting\"}\n[worker] finished b023-g36-ba-change-itil-guarded-009 rc=2\nERROR: GitHub HTTP 403: {\"message\":\"API rate limit exceeded for 163.53.146.125. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)\",\"documentation_url\":\"https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting\"}\n\n2026-09-05 07:30:32 worker poll end benchmark_rc=0 diagnostic_rc=2 rc=2\n2026-09-05 07:30:39 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] poll error: GitHub HTTP 403 for custom/ba-agent/automation/jobs.json: {\"message\":\"API rate limit exceeded for 163.53.146.125. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)\",\"documentation_url\":\"https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting\"}\n\nERROR: GitHub HTTP 403: {\"message\":\"API rate limit exceeded for 163.53.146.125. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)\",\"documentation_url\":\"https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting\"}\n\n2026-09-05 07:30:39 worker poll end benchmark_rc=0 diagnostic_rc=2 rc=2\n2026-09-05 07:35:03 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] poll error: GitHub HTTP 403 for custom/ba-agent/automation/jobs.json: {\"message\":\"API rate limit exceeded for 163.53.146.125. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)\",\"documentation_url\":\"https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting\"}\n\nERROR: GitHub HTTP 403: {\"message\":\"API rate limit exceeded for 163.53.146.125. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)\",\"documentation_url\":\"https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting\"}\n\n2026-09-05 07:35:03 worker poll end benchmark_rc=0 diagnostic_rc=2 rc=2\n2026-09-05 07:40:04 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs"
+      },
+      "index": 3,
+      "label": "Recent benchmark scheduler log",
+      "status": "ok",
+      "type": "tail"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-ba-benchmark-worker.lock",
+        "matching_processes": []
+      },
+      "index": 4,
+      "label": "Benchmark worker lock/process state",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "path": "/volume1/docker/librechat/deploy/synology/.env",
+        "present": {
+          "GITHUB_BA_BENCHMARK_TOKEN": false,
+          "GITHUB_TELEMETRY_TOKEN": true,
+          "GOOGLE_KEY": true
+        }
+      },
+      "index": 5,
+      "label": "Required key/token presence",
+      "status": "ok",
+      "type": "env_presence"
+    }
+  ],
+  "ended_at": "2026-09-04T21:40:05Z",
+  "hostname": "NAS",
+  "overall": "ok",
+  "recipe": "custom/ba-agent/diagnostics/workflow-strengthening-health.json",
+  "recipe_name": "Workflow strengthening and Agent benchmark health",
+  "request_id": "workflow-strengthening-health-20260905-002",
+  "schema": 1,
+  "started_at": "2026-09-04T21:40:05Z"
+}

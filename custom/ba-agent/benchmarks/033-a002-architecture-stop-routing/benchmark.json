@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 033 — A002 Architecture Stop Routing",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../agents/solution-procurement-orchestrator/AGENT.md",
+  "results_dir": "results"
+}

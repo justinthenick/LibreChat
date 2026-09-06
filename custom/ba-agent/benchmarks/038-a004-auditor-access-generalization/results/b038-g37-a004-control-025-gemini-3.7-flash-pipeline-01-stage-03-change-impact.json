@@ -1,0 +1,33 @@
+{
+  "agent_path": "custom/ba-agent/skills/assess-change-impact/SKILL.md",
+  "agent_sha256": "7beae99136a52ac2e0ab484ed9fcdd8311ec0951e54b74a4dcadbc52e9412437",
+  "agent_version": "0.2.0",
+  "ended_at": "2026-09-06T01:41:31Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "max_output_tokens": 8192,
+  "model": "gemini-3.7-flash",
+  "pipeline": "Benchmark 038 \u2014 Fixed auditor-access delta control",
+  "run_id": "b038-g37-a004-control-025",
+  "stage_id": "change-impact",
+  "stage_index": 3,
+  "stage_input_sha256": "8964e56caac519410ebdfe3968f68e4083918cac32b974f1d37b7e126ba1bf78",
+  "stage_name": "Assess Change Impact",
+  "started_at": "2026-09-06T01:41:21Z",
+  "status": "success",
+  "temperature": 0.0,
+  "upstream_output_sha256": "a3cd9773775f7fbfb11e4d72b4879fe670a2c4b81d8a3fe8495278a52a61d0a6",
+  "usage": {
+    "candidatesTokenCount": 2195,
+    "promptTokenCount": 4309,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 4309
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 452,
+    "totalTokenCount": 6956
+  }
+}

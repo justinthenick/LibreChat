@@ -1,0 +1,33 @@
+{
+  "agent_path": "custom/ba-agent/skills/prepare-solution-change-readiness/SKILL.md",
+  "agent_sha256": "b18b5fc6db55de3c58c5af8af867352f37e8cb63998b33d4b464e88cf3cb8e5e",
+  "agent_version": "0.2.0",
+  "ended_at": "2026-09-06T01:38:54Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "max_output_tokens": 8192,
+  "model": "gemini-3.7-flash",
+  "pipeline": "Benchmark 035 \u2014 Evidence-preserving fixed release-assurance control",
+  "run_id": "b035-g37-a003-control-022",
+  "stage_id": "change-readiness",
+  "stage_index": 4,
+  "stage_input_sha256": "d31aef54218cc3ea7c726966875130bd49f98ca63de0ea54113d3b9c96051271",
+  "stage_name": "Prepare Solution Change Readiness",
+  "started_at": "2026-09-06T01:38:42Z",
+  "status": "success",
+  "temperature": 0.0,
+  "upstream_output_sha256": "6d1ef0fc86fddad3a1fa2d3dc43b2bbee5c500e52845dd5518ce5b6583eb4132",
+  "usage": {
+    "candidatesTokenCount": 2183,
+    "promptTokenCount": 3916,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 3916
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 2193,
+    "totalTokenCount": 8292
+  }
+}

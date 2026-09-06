@@ -1,0 +1,33 @@
+{
+  "agent_path": "custom/ba-agent/skills/reconcile-requirement-changes/SKILL.md",
+  "agent_sha256": "957088617ba326d82d9f25c3d268fb6983a1268afcb85701d56a4cbd2d78d9e9",
+  "agent_version": "0.2.0",
+  "ended_at": "2026-09-06T01:41:07Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "max_output_tokens": 8192,
+  "model": "gemini-3.7-flash",
+  "pipeline": "Benchmark 038 \u2014 Fixed auditor-access delta control",
+  "run_id": "b038-g37-a004-control-025",
+  "stage_id": "requirement-reconciliation",
+  "stage_index": 1,
+  "stage_input_sha256": "7af58b7017dbe5081791765cb13966e22b16c02b7c2c8d922932ee8bc32c6603",
+  "stage_name": "Reconcile Requirement Changes",
+  "started_at": "2026-09-06T01:40:58Z",
+  "status": "success",
+  "temperature": 0.0,
+  "upstream_output_sha256": null,
+  "usage": {
+    "candidatesTokenCount": 2178,
+    "promptTokenCount": 1906,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1906
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 843,
+    "totalTokenCount": 4927
+  }
+}

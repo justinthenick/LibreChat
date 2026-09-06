@@ -1,0 +1,15 @@
+{
+  "benchmark": "Benchmark 022 — Campus Building Network Link Architecture",
+  "created_at": "2026-09-04T07:05:25Z",
+  "mode": "baseline",
+  "model": "gemini-3.7-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "maintenance-refresh-b022-v04-cache-005-gemini-3.7-flash-baseline-01.md",
+      "metadata": "maintenance-refresh-b022-v04-cache-005-gemini-3.7-flash-baseline-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}

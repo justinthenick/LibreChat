@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 034 — A002 Procurement-Only Generalization",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../agents/solution-procurement-orchestrator/AGENT.md",
+  "results_dir": "results"
+}

@@ -1,0 +1,33 @@
+{
+  "agent_path": "custom/ba-agent/skills/validate-release-evidence/SKILL.md",
+  "agent_sha256": "51901682cb58fc57442ad7876c2bbd6b2a7fb4cb881bcfac2d00349245564906",
+  "agent_version": "0.2.0",
+  "ended_at": "2026-09-06T01:38:34Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "max_output_tokens": 8192,
+  "model": "gemini-3.7-flash",
+  "pipeline": "Benchmark 035 \u2014 Evidence-preserving fixed release-assurance control",
+  "run_id": "b035-g37-a003-control-022",
+  "stage_id": "release-evidence-validation",
+  "stage_index": 2,
+  "stage_input_sha256": "97bd1f5808311167cba01c0c70aca89f1fadf272091b34298f9aff79089d6475",
+  "stage_name": "Validate Release Evidence",
+  "started_at": "2026-09-06T01:38:21Z",
+  "status": "success",
+  "temperature": 0.0,
+  "upstream_output_sha256": "f3679ff032c05041e12b2fc84e509ae2e546ecf470e1e5335aeafb24b5d76495",
+  "usage": {
+    "candidatesTokenCount": 3015,
+    "promptTokenCount": 4000,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 4000
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 1097,
+    "totalTokenCount": 8112
+  }
+}

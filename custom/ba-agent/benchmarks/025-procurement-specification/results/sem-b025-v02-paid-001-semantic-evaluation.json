@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-b025-v02-paid-001",
+  "benchmark": "Benchmark 025 — Vendor-Neutral Procurement Specification",
+  "benchmark_path": "custom/ba-agent/benchmarks/025-procurement-specification",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-05T11:00:18Z",
+  "baseline_result": "results/b025-g35-procurement-spec-v02-ab-005-gemini-3.5-flash-baseline-01.md",
+  "skill_result": "results/b025-g35-procurement-spec-v02-ab-005-gemini-3.5-flash-skill-01.md",
+  "skill_path": "custom/ba-agent/skills/prepare-procurement-specification/SKILL.md",
+  "skill_sha256": "a820bf449f4e9daf6280ec16d526271fd86cd5c7a807cd78395e10add81f12d7",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 97,
+      "critical_penalties": [],
+      "final_score": 97,
+      "criteria": [
+        {
+          "criterion": "A. Domain and objective",
+          "score": 9,
+          "max": 10,
+          "rationale": "Correctly classifies the AV/meeting room domain, though the procurement objective is presented implicitly across requirements rather than in a dedicated objective statement."
+        },
+        {
+          "criterion": "B. Hard minimum discipline",
+          "score": 25,
+          "max": 25,
+          "rationale": "Accurately captures single unit, wall mounting, >=70-inch size, HDMI compatibility, and physical width limit under 1.85 m without adding unsupported hard minimums."
+        },
+        {
+          "criterion": "C. Preference/Target/Unknown preservation",
+          "score": 30,
+          "max": 30,
+          "rationale": "Faithfully preserves 75-inch and wireless casting as preferences/targets, 4K and A$2,500 as targets, and VESA/mount details as unknown/deferred."
+        },
+        {
+          "criterion": "D. Scope and brand discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Maintains open brand neutrality, preserves all exclusions (dock, audio, installation labour, touch/signage/cameras), and avoids naming specific candidate models."
+        },
+        {
+          "criterion": "E. Downstream handoff / verification evidence",
+          "score": 18,
+          "max": 20,
+          "rationale": "Provides clear datasheet verification requirements without inventing unsupported specs, though downstream tool-specific handoff guidance is less structured."
+        }
+      ],
+      "summary": "The baseline produced a clean, disciplined specification that correctly handles requirement strengths, out-of-scope boundaries, and verification evidence without inventing ungrounded technical specs."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "A. Domain and objective",
+          "score": 10,
+          "max": 10,
+          "rationale": "Explicitly articulates the procurement objective incorporating the existing dock workflow and physical wall constraints within the AV domain."
+        },
+        {
+          "criterion": "B. Hard minimum discipline",
+          "score": 25,
+          "max": 25,
+          "rationale": "Correctly identifies and records all hard minimum constraints (single wall-mount, >=70\", HDMI input, <1.85m width, compatible mount) without ungrounded additions."
+        },
+        {
+          "criterion": "C. Preference/Target/Unknown preservation",
+          "score": 30,
+          "max": 30,
+          "rationale": "Maintains strict discipline regarding 75-inch preference, wireless casting preference, 4K target, A$2,500 target, and mounting unknown dependencies."
+        },
+        {
+          "criterion": "D. Scope and brand discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Clearly notes Samsung/LG as non-mandatory examples, leaves brand open, preserves out-of-scope exclusions, and does not jump ahead to market search."
+        },
+        {
+          "criterion": "E. Downstream handoff / verification evidence",
+          "score": 20,
+          "max": 20,
+          "rationale": "Supplies itemized candidate evidence requirements and explicit handoffs for both expand-procurement-market and verify-procurement-options."
+        }
+      ],
+      "summary": "The skill output provided a complete, structured procurement specification register with explicit strength classifications, compatibility questions, scope exclusions, and dedicated downstream handoffs."
+    },
+    "defects": [],
+    "summary": "Both models followed vendor-neutral specification discipline without hallucinating technical standards or hardening targets into mandatory constraints. The skill provided a structured tabular register and tailored downstream handoff sections."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 4898,
+    "candidatesTokenCount": 841,
+    "totalTokenCount": 7059,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 4898
+      }
+    ],
+    "thoughtsTokenCount": 1320,
+    "serviceTier": "standard"
+  }
+}

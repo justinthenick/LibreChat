@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-b035-a003-routing-g37-001",
+  "benchmark": "Benchmark 035 — A003 Selective Release Assurance Routing",
+  "benchmark_path": "custom/ba-agent/benchmarks/035-a003-release-assurance-routing",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-05T21:30:07Z",
+  "baseline_result": "results/b035-g37-a003-routing-v01-ab-001-gemini-3.7-flash-baseline-01.md",
+  "skill_result": "results/b035-g37-a003-routing-v01-ab-001-gemini-3.7-flash-skill-01.md",
+  "skill_path": "custom/ba-agent/agents/release-assurance-orchestrator/AGENT.md",
+  "skill_sha256": "79a630ce3b946c545426468ac9fa3af03bc6516315c9e668e68ec5a2b6871168",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 98,
+      "critical_penalties": [],
+      "final_score": 98,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 28,
+          "max": 30,
+          "rationale": "Correctly selected the four required pipeline stages in order and excluded change impact and ITIL, though used descriptive step names rather than the exact canonical skill identifiers."
+        },
+        {
+          "criterion": "Evidence-state preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "Perfect preservation of NOT RUN, OPEN (DEF-17), Candidate, and Draft states without conflation."
+        },
+        {
+          "criterion": "Negative / conditional readiness discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Clearly articulated blocking conditions and constraints preventing premature green readiness."
+        },
+        {
+          "criterion": "Traceability and scope discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Accurately noted why traceability was still necessary while fully respecting the complete impact register."
+        },
+        {
+          "criterion": "Authority and non-invention discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Did not invent Change Authority, CAB requirements, or defect sign-offs."
+        }
+      ],
+      "summary": "Baseline performed exceptionally well, identifying the exact four-stage assurance route, excluding change impact and ITIL assessments, and strictly maintaining evidence states and authority boundaries."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 30,
+          "max": 30,
+          "rationale": "Selected the exact canonical skill identifiers (`audit-artifact-traceability`, `validate-release-evidence`, `assess-operational-readiness`, `prepare-solution-change-readiness`) in exact order and explicitly rejected `assess-change-impact` and `assess-itil-alignment`."
+        },
+        {
+          "criterion": "Evidence-state preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "Maintained rigorous evidence fidelity for T-04/T-06 (NOT RUN), DEF-17 (OPEN), CHG-9481 (Draft), and thresholds/windows (Candidate)."
+        },
+        {
+          "criterion": "Negative / conditional readiness discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Explicitly preserved conditional / not-ready readiness boundaries with concrete blocking rules for downstream execution."
+        },
+        {
+          "criterion": "Traceability and scope discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Followed user scope instructions perfectly without re-deriving change impact."
+        },
+        {
+          "criterion": "Authority and non-invention discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Maintained strict authority boundaries and refused to invent approvals, risk acceptances, or Change Authorities."
+        }
+      ],
+      "summary": "Skill provided a flawless execution plan using canonical skill identifiers, exact stage ordering, complete evidence-state preservation, explicit exclusions, and rigorous go/no-go conditional rules."
+    },
+    "defects": [],
+    "summary": "Both outputs followed all instructions and boundaries accurately. The Skill output achieved full marks by utilizing the exact canonical skill names and providing sharp, concise conditional rules."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 5402,
+    "candidatesTokenCount": 882,
+    "totalTokenCount": 6949,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 5402
+      }
+    ],
+    "thoughtsTokenCount": 665,
+    "serviceTier": "standard"
+  }
+}

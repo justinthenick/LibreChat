@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "run_id": "a003-g37-generalization-023",
+  "benchmark": "custom/ba-agent/benchmarks/036-a003-impact-itil-generalization",
+  "model": "gemini-3.7-flash",
+  "status": "success",
+  "operational_status": null,
+  "created_at": "2026-09-06T01:42:21Z",
+  "agent_path": "custom/ba-agent/agents/release-assurance-orchestrator/AGENT.md",
+  "agent_sha256": "79a630ce3b946c545426468ac9fa3af03bc6516315c9e668e68ec5a2b6871168",
+  "route": {
+    "objective": "Orchestrate the minimum assurance route to assess unverified consumer impacts, validate current staging/release evidence, and evaluate ITIL 4 practice alignment for the EdgeAuth certificate rotation without re-auditing completed traceability or operational readiness.",
+    "selected_skills": [
+      "assess-change-impact",
+      "validate-release-evidence",
+      "assess-itil-alignment"
+    ],
+    "not_selected": [
+      {
+        "skill": "audit-artifact-traceability",
+        "reason": "Traceability audit TA-88 is complete and current with no unresolved gaps, and the user explicitly requested not to re-audit traceability."
+      },
+      {
+        "skill": "assess-operational-readiness",
+        "reason": "Operational baseline and readiness are already validated as current and unchanged, with no contradicting evidence supplied."
+      },
+      {
+        "skill": "prepare-solution-change-readiness",
+        "reason": "A consolidated solution/change-readiness handoff was explicitly excluded from the request scope."
+      }
+    ],
+    "stop_rules": [
+      "Downstream consumer impacts (certificate pinning, trust-store behavior, maintenance-window sensitivity for MobileApp and PartnerGateway) must remain recorded as Unknown until evidenced.",
+      "Staging handshake and rollback passes must not be generalized as production verification; production post-change verification remains NOT RUN.",
+      "Change record CHG-2217 status must remain Draft and proposed production window must remain Candidate; do not invent approvals, Change Authority, or CAB mandates."
+    ],
+    "expected_final_artifact": "A bounded assurance review detailing identified consumer impact unknowns, verified staging versus unevidenced production release status, and an ITIL 4 practice-alignment assessment highlighting the draft change state and missing authorization."
+  },
+  "route_status": "success",
+  "route_usage": {
+    "promptTokenCount": 2202,
+    "candidatesTokenCount": 404,
+    "totalTokenCount": 3335,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 2202
+      }
+    ],
+    "thoughtsTokenCount": 729,
+    "serviceTier": "standard"
+  },
+  "stages": [
+    {
+      "index": 1,
+      "skill": "assess-change-impact",
+      "skill_path": "custom/ba-agent/skills/assess-change-impact/SKILL.md",
+      "skill_sha256": "7beae99136a52ac2e0ab484ed9fcdd8311ec0951e54b74a4dcadbc52e9412437",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 2347,
+        "candidatesTokenCount": 1352,
+        "totalTokenCount": 4350,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2347
+          }
+        ],
+        "thoughtsTokenCount": 651,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "b267c33651cb3b5101f6a644cadaa10cd1112370365e554b96161d7c83e09651",
+      "error": null
+    },
+    {
+      "index": 2,
+      "skill": "validate-release-evidence",
+      "skill_path": "custom/ba-agent/skills/validate-release-evidence/SKILL.md",
+      "skill_sha256": "51901682cb58fc57442ad7876c2bbd6b2a7fb4cb881bcfac2d00349245564906",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 3659,
+        "candidatesTokenCount": 1533,
+        "totalTokenCount": 6416,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3659
+          }
+        ],
+        "thoughtsTokenCount": 1224,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "a96027769429b671c5792ddbe327e08082a7bbb3757a3b27bc0def3f7f5be7d9",
+      "error": null
+    },
+    {
+      "index": 3,
+      "skill": "assess-itil-alignment",
+      "skill_path": "custom/ba-agent/skills/assess-itil-alignment/SKILL.md",
+      "skill_sha256": "3adeb63ebe63773137da0e9407d6fac98de1b84737464c2a45286fd1390fef59",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 4571,
+        "candidatesTokenCount": 1779,
+        "totalTokenCount": 7615,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 4571
+          }
+        ],
+        "thoughtsTokenCount": 1265,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "67cfb82fb8ad5e10b3f9b9d2bb7445a84dbdfcd2af4fa6b159a7abde4eb458ff",
+      "error": null
+    }
+  ],
+  "usage_totals": {
+    "prompt": 12779,
+    "candidate": 5068,
+    "thoughts": 3869,
+    "total": 21716
+  },
+  "result_markdown": "a003-g37-generalization-023-gemini-3-7-flash-dynamic-01.md"
+}

@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "name": "Benchmark 023 — A001 true dynamic invocation",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "results_dir": "results",
+  "agent": "../../agents/ba-change-delivery-orchestrator/AGENT.md",
+  "max_steps": 6,
+  "allowed_skills": [
+    {"name": "analyze-requirements", "path": "../../skills/analyze-requirements/SKILL.md"},
+    {"name": "decompose-requirements", "path": "../../skills/decompose-requirements/SKILL.md"},
+    {"name": "elaborate-acceptance-criteria", "path": "../../skills/elaborate-acceptance-criteria/SKILL.md"},
+    {"name": "derive-test-cases", "path": "../../skills/derive-test-cases/SKILL.md"},
+    {"name": "prepare-solution-change-readiness", "path": "../../skills/prepare-solution-change-readiness/SKILL.md"},
+    {"name": "assess-itil-alignment", "path": "../../skills/assess-itil-alignment/SKILL.md"}
+  ]
+}

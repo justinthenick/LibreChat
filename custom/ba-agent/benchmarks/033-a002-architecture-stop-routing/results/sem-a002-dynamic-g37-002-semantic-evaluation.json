@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-a002-dynamic-g37-002",
+  "benchmark": "Benchmark 033 — A002 Architecture Stop Routing",
+  "benchmark_path": "custom/ba-agent/benchmarks/033-a002-architecture-stop-routing",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-05T21:22:26Z",
+  "baseline_result": "results/b033-g37-a002-routing-v01-ab-001-gemini-3.7-flash-baseline-01.md",
+  "skill_result": "results/a002-g37-dynamic-stop-018-gemini-3-7-flash-dynamic-01.md",
+  "skill_path": "custom/ba-agent/agents/solution-procurement-orchestrator/AGENT.md",
+  "skill_sha256": "20ffaa07d7c6118bb2a17f0ca0af1995fbbe65a45a7b200543221f8a70d35dab",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 92,
+      "critical_penalties": [],
+      "final_score": 92,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 24,
+          "max": 30,
+          "rationale": "Combined requirements and NFRs into a single step and mapped architecture to ADR evaluation rather than following the three discrete analysis/design skills."
+        },
+        {
+          "criterion": "Architecture stop discipline",
+          "score": 25,
+          "max": 25,
+          "rationale": "Clearly identified architecture-changing unknowns (OCR engine runtime, acceleration support, workload bottleneck) and established an explicit stop before procurement."
+        },
+        {
+          "criterion": "Evidence/status preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Correctly preserved all evidence statuses including RH-7, budget target, volume estimate, physical dimensions, and unknown GPU necessity."
+        },
+        {
+          "criterion": "Outcome-vs-mechanism / feasibility discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Properly identified that the existing mini-PC's USB 3.2 Gen 1 ports lack PCIe tunneling/Thunderbolt capabilities for external desktop GPU operation."
+        },
+        {
+          "criterion": "Authority / procurement boundary discipline",
+          "score": 8,
+          "max": 10,
+          "rationale": "Maintained clean procurement boundaries with no premature shortlists, though referenced capturing an ADR when no accepted decision was established."
+        }
+      ],
+      "summary": "Baseline correctly recognized the need to stop before procurement due to unresolved software dependencies, with minor deviations in canonical skill decomposition."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 30,
+          "max": 30,
+          "rationale": "Selected the exact three-stage route (`analyze-requirements` -> `analyze-nonfunctional-requirements` -> `design-technical-solution`) and explicitly stopped execution before procurement."
+        },
+        {
+          "criterion": "Architecture stop discipline",
+          "score": 25,
+          "max": 25,
+          "rationale": "Identified all core architecture-changing unknowns, explained downstream platform impacts, and provided a detailed verification action plan (ACT-01 to ACT-04) specifying prerequisites to resume procurement."
+        },
+        {
+          "criterion": "Evidence/status preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Flawlessly preserved all evidence classifications: RH-7 Confirmed, 120k volume estimate, faster-than-current qualitative target, A$2,500 target, Windows confirmed / Linux candidate, 240x520 mm footprint limits, and GPU requirement Unknown."
+        },
+        {
+          "criterion": "Outcome-vs-mechanism / feasibility discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Rigorously evaluated the mini-PC external-GPU mechanism against USB 3.2 Gen 1 physical limitations without inventing unsupported adapter or bus claims, while preserving the OCR workstation outcome."
+        },
+        {
+          "criterion": "Authority / procurement boundary discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Explicitly excluded downstream procurement, market expansion, candidate verification, and ADR recording skills; did not invent accepted decisions, authority roles, or hardware shortlists."
+        }
+      ],
+      "summary": "The Skill execution adhered strictly to the gold standard route, produced comprehensive requirements and technical design artifacts, rigorously enforced the architecture stop gate, and avoided all critical pitfalls."
+    },
+    "defects": [],
+    "summary": "Both baseline and Skill correctly identified that procurement is blocked until OCR engine runtime requirements are known. Skill achieved full marks by precisely executing the canonical three-stage workflow, providing thorough requirement and NFR registers, and rigorously structuring the architecture stop gate and resume conditions."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 15579,
+    "candidatesTokenCount": 978,
+    "totalTokenCount": 17604,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15579
+      }
+    ],
+    "thoughtsTokenCount": 1047,
+    "serviceTier": "standard"
+  }
+}

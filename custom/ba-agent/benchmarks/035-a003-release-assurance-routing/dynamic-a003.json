@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "name": "Benchmark 035 — A003 true dynamic release-assurance execution",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "results_dir": "results",
+  "agent": "../../agents/release-assurance-orchestrator/AGENT.md",
+  "max_steps": 6,
+  "allowed_skills": [
+    {"name": "audit-artifact-traceability", "path": "../../skills/audit-artifact-traceability/SKILL.md"},
+    {"name": "assess-change-impact", "path": "../../skills/assess-change-impact/SKILL.md"},
+    {"name": "validate-release-evidence", "path": "../../skills/validate-release-evidence/SKILL.md"},
+    {"name": "assess-operational-readiness", "path": "../../skills/assess-operational-readiness/SKILL.md"},
+    {"name": "prepare-solution-change-readiness", "path": "../../skills/prepare-solution-change-readiness/SKILL.md"},
+    {"name": "assess-itil-alignment", "path": "../../skills/assess-itil-alignment/SKILL.md"}
+  ]
+}

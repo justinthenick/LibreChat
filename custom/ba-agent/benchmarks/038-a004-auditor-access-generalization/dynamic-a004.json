@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "name": "Benchmark 038 — A004 true dynamic auditor-access generalization",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "results_dir": "results",
+  "agent": "../../agents/requirement-change-orchestrator/AGENT.md",
+  "max_steps": 6,
+  "allowed_skills": [
+    {
+      "name": "reconcile-requirement-changes",
+      "path": "../../skills/reconcile-requirement-changes/SKILL.md"
+    },
+    {
+      "name": "analyze-requirements",
+      "path": "../../skills/analyze-requirements/SKILL.md"
+    },
+    {
+      "name": "decompose-requirements",
+      "path": "../../skills/decompose-requirements/SKILL.md"
+    },
+    {
+      "name": "elaborate-acceptance-criteria",
+      "path": "../../skills/elaborate-acceptance-criteria/SKILL.md"
+    },
+    {
+      "name": "derive-test-cases",
+      "path": "../../skills/derive-test-cases/SKILL.md"
+    },
+    {
+      "name": "assess-change-impact",
+      "path": "../../skills/assess-change-impact/SKILL.md"
+    }
+  ],
+  "require_active_delta_scope": true
+}

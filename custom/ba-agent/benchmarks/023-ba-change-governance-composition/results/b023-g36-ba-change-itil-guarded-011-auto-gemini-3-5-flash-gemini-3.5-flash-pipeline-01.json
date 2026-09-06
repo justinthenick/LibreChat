@@ -1,0 +1,48 @@
+{
+  "input_sha256": "46226a8f175179daadd26281a187d44d9f155aca710aeb03b82e74f504df3f3c",
+  "model": "gemini-3.5-flash",
+  "pipeline": "Benchmark 023 \u2014 Candidate: Composite BA + Change Readiness + ITIL",
+  "prompt_sha256": "37b7e00c6474bbefc20f7031a5d76991b4e2b3e29dac58c8e89dfcece4227542",
+  "run_id": "b023-g36-ba-change-itil-guarded-011-auto-gemini-3-5-flash",
+  "schema": 1,
+  "stages": [
+    {
+      "markdown": "b023-g36-ba-change-itil-guarded-011-auto-gemini-3-5-flash-gemini-3.5-flash-pipeline-01-stage-01-ba-delivery.md",
+      "metadata": "b023-g36-ba-change-itil-guarded-011-auto-gemini-3-5-flash-gemini-3.5-flash-pipeline-01-stage-01-ba-delivery.json",
+      "output_sha256": "d38ee4d488f83c6e07d129af8f422e0f66242eb38ca2cc48200524d69e9cfb2e",
+      "stage_id": "ba-delivery",
+      "stage_name": "Composite BA Delivery Analyst v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 3465,
+        "promptTokenCount": 2959,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2959
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 4723,
+        "totalTokenCount": 11147
+      }
+    },
+    {
+      "markdown": "b023-g36-ba-change-itil-guarded-011-auto-gemini-3-5-flash-gemini-3.5-flash-pipeline-01-stage-02-change-readiness.md",
+      "metadata": "b023-g36-ba-change-itil-guarded-011-auto-gemini-3-5-flash-gemini-3.5-flash-pipeline-01-stage-02-change-readiness.json",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stage_id": "change-readiness",
+      "stage_name": "Prepare Solution / Change Readiness v0.2",
+      "status": "provider_busy",
+      "usage": {}
+    }
+  ],
+  "status": "incomplete",
+  "temperature": 0.0,
+  "total_usage": {
+    "candidatesTokenCount": 3465,
+    "promptTokenCount": 2959,
+    "thoughtsTokenCount": 4723,
+    "totalTokenCount": 11147
+  }
+}

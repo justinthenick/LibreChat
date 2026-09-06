@@ -1,0 +1,33 @@
+# BA Specialist Pipeline Stage
+
+## Metadata
+
+```json
+{
+  "agent_path": "custom/ba-agent/agents/ba-delivery-analyst/AGENT.md",
+  "agent_sha256": "7c0db327b629991e7c929a1cb4628931525d6dd978182e427ab228e3f631ab72",
+  "agent_version": "0.2.0",
+  "ended_at": "2026-09-04T14:05:55Z",
+  "error": "{\"message\": \"This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\", \"status\": \"UNAVAILABLE\"}",
+  "finish_reason": null,
+  "max_output_tokens": 8192,
+  "model": "gemini-3.5-flash",
+  "pipeline": "Benchmark 023 \u2014 Candidate: Composite BA + Change Readiness + ITIL",
+  "run_id": "b023-g35-ba-change-itil-003",
+  "stage_id": "ba-delivery",
+  "stage_index": 1,
+  "stage_input_sha256": "e36f780460cd8f9211fff0802028c65f867600b26cf06cabd18d8206cef0d66c",
+  "stage_name": "Composite BA Delivery Analyst v0.2",
+  "started_at": "2026-09-04T14:05:54Z",
+  "status": "provider_busy",
+  "temperature": 0.0,
+  "upstream_output_sha256": null,
+  "usage": {}
+}
+```
+
+---
+
+## Stage output
+
+_No model output._

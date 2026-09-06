@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 038 — A004 Auditor Access Generalization",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../agents/requirement-change-orchestrator/AGENT.md",
+  "results_dir": "results"
+}

@@ -1,0 +1,21 @@
+{
+  "schema": 2,
+  "name": "Benchmark 023 — Control: Composite BA + Change Readiness",
+  "input": "input.md",
+  "prompt": "pipeline-prompt.md",
+  "results_dir": "results",
+  "stages": [
+    {
+      "id": "ba-delivery",
+      "name": "Composite BA Delivery Analyst v0.2",
+      "agent": "../../agents/ba-delivery-analyst/AGENT.md",
+      "instruction": "Consume the original source packet and produce the complete four-stage BA delivery artifact defined by your agent contract. Only after all four stages and the final end-to-end traceability summary are complete, append the exact final line `PIPELINE_HANDOFF_COMPLETE: BA_DELIVERY_4_STAGE`. Do not emit that marker if any required section is unfinished."
+    },
+    {
+      "id": "change-readiness",
+      "name": "Prepare Solution / Change Readiness v0.2",
+      "agent": "../../skills/prepare-solution-change-readiness/SKILL.md",
+      "instruction": "Consume only the supplied BA delivery artifact. Before substantive work, require the exact upstream marker `PIPELINE_HANDOFF_COMPLETE: BA_DELIVERY_4_STAGE`. If it is absent, return only `UPSTREAM_INCOMPLETE: BA_DELIVERY_4_STAGE` and stop. If present, produce the solution/design and Change Enablement readiness handoff defined by the Skill. Preserve all unresolved status and authority states; do not consult or reconstruct the original packet. Only after the complete readiness artifact is produced, append the exact final line `PIPELINE_HANDOFF_COMPLETE: CHANGE_READINESS`."
+    }
+  ]
+}

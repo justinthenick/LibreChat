@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-a004-generalization-g37-003",
+  "benchmark": "Benchmark 038 — A004 Auditor Access Generalization",
+  "benchmark_path": "custom/ba-agent/benchmarks/038-a004-auditor-access-generalization",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-06T01:45:27Z",
+  "baseline_result": "results/b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01.md",
+  "skill_result": "results/a004-g37-generalization-025-gemini-3-7-flash-dynamic-01.md",
+  "skill_path": "custom/ba-agent/agents/requirement-change-orchestrator/AGENT.md",
+  "skill_sha256": "d54afd5574c969b13d86f78bac774c677a0b156d6a7858b386c45202c12d8bd1",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 35,
+          "max": 35,
+          "rationale": "Followed the exact expected route: reconcile requirement changes, analyze requirements, and assess change impact, without proceeding to downstream decomposition or test generation."
+        },
+        {
+          "criterion": "Baseline/delta preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Correctly added the approved SD-77 auditor access requirement while preserving IAM-10, IAM-11, IAM-12, and IAM-13. The 30-day proposal was correctly treated as unapproved/deferred."
+        },
+        {
+          "criterion": "Semantic Unknown discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Exposed all critical semantic unknowns (timer start trigger, duration limits, approval authority, identity source, renewal rules, and privileged role boundary) without inventing answers."
+        },
+        {
+          "criterion": "Change-impact quality",
+          "score": 15,
+          "max": 15,
+          "rationale": "Thoroughly analyzed impacts across workflows, support operations, SLA fulfillment, MFA enforcement, and governance, properly distinguishing confirmed impacts from candidate/investigation items."
+        },
+        {
+          "criterion": "Authority and stop discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Maintained approval authority as Unknown rather than assigning it to the audit programme manager, and respected the explicit stop instruction before downstream refinement."
+        }
+      ],
+      "summary": "The baseline output adhered to all benchmark constraints, following the correct three-step route, preserving unchanged baseline rules, capturing all semantic unknowns, and providing an impact assessment without inventing facts or proceeding into decomposition."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 35,
+          "max": 35,
+          "rationale": "The orchestrator selected the exact required sequence (reconcile-requirement-changes -> analyze-requirements -> assess-change-impact) and explicitly justified excluding downstream stages."
+        },
+        {
+          "criterion": "Baseline/delta preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Correctly added SD-77 while confirming IAM-10, IAM-11, IAM-12, and IAM-13 unchanged, and logged the 30-day proposal as an unapproved deferred item."
+        },
+        {
+          "criterion": "Semantic Unknown discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "All six core semantic unknowns (SLA start trigger, access duration ceiling, approval authority, identity path, renewal policy, privileged access eligibility) were identified and preserved as Unknown."
+        },
+        {
+          "criterion": "Change-impact quality",
+          "score": 15,
+          "max": 15,
+          "rationale": "Delivered a structured change impact assessment categorizing confirmed direct/indirect, candidate, and unknown impacts across personas, SLA mechanisms, MFA, and service desk operations."
+        },
+        {
+          "criterion": "Authority and stop discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Explicitly recognized that the audit programme manager is not the approval authority and halted the pipeline prior to decomposition and test derivation."
+        }
+      ],
+      "summary": "The Skill execution flawlessly executed the three-stage change analysis workflow, maintaining strict boundary discipline, preserving baseline requirements, isolating material semantic unknowns, and delivering an impact analysis."
+    },
+    "defects": [],
+    "summary": "Both baseline and skill outputs achieved full scores. Both identified the approved delta from SD-77, preserved baseline requirements (IAM-10 through IAM-13), rejected the unapproved 30-day suggestion, isolated all six material semantic unknowns, assessed change impact across operational/governance dimensions, and strictly obeyed the stop instruction before downstream refinement."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 17091,
+    "candidatesTokenCount": 1011,
+    "totalTokenCount": 18940,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 17091
+      }
+    ],
+    "thoughtsTokenCount": 838,
+    "serviceTier": "standard"
+  }
+}

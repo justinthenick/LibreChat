@@ -1,0 +1,51 @@
+{
+  "combined_markdown": "b023-g36-ba-change-control-guarded-010-auto-gemini-3-5-flash-gemini-3.5-flash-pipeline-01.md",
+  "combined_metadata": "b023-g36-ba-change-control-guarded-010-auto-gemini-3-5-flash-gemini-3.5-flash-pipeline-01.json",
+  "run_id": "b023-g36-ba-change-control-guarded-010-auto-gemini-3-5-flash",
+  "schema": 1,
+  "stages": [
+    {
+      "markdown": "b023-g36-ba-change-control-guarded-010-auto-gemini-3-5-flash-gemini-3.5-flash-pipeline-01-stage-01-ba-delivery.md",
+      "metadata": "b023-g36-ba-change-control-guarded-010-auto-gemini-3-5-flash-gemini-3.5-flash-pipeline-01-stage-01-ba-delivery.json",
+      "output_sha256": "7fe244a83a734a4d8be97f18552ef9688e801a01a7d5904ccf8337e052f933e3",
+      "stage_id": "ba-delivery",
+      "stage_name": "Composite BA Delivery Analyst v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 3974,
+        "promptTokenCount": 2959,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2959
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 3594,
+        "totalTokenCount": 10527
+      }
+    },
+    {
+      "markdown": "b023-g36-ba-change-control-guarded-010-auto-gemini-3-5-flash-gemini-3.5-flash-pipeline-01-stage-02-change-readiness.md",
+      "metadata": "b023-g36-ba-change-control-guarded-010-auto-gemini-3-5-flash-gemini-3.5-flash-pipeline-01-stage-02-change-readiness.json",
+      "output_sha256": "03440b56862b0888af1ad550c2456327bff077f91f761c3af609171a0e7f73c1",
+      "stage_id": "change-readiness",
+      "stage_name": "Prepare Solution / Change Readiness v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2919,
+        "promptTokenCount": 5783,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 5783
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 3983,
+        "totalTokenCount": 12685
+      }
+    }
+  ],
+  "status": "success"
+}

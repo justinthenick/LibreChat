@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 037 — A004 Selective Downstream Delta",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../agents/requirement-change-orchestrator/AGENT.md",
+  "results_dir": "results"
+}
