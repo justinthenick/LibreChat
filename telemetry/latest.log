@@ -1,40 +1,40 @@
-2026-09-06 16:05:01 LibreChat deployment check started
-2026-09-06 16:05:02 Cloudflare tunnel integration enabled
-2026-09-06 16:05:02 Synology Admin Settings integration enabled
-2026-09-06 16:05:59 No deployment change; healthy deployment already recorded at 1e43ad56
-2026-09-06 16:10:02 LibreChat deployment check started
-2026-09-06 16:10:02 Cloudflare tunnel integration enabled
-2026-09-06 16:10:02 Synology Admin Settings integration enabled
-2026-09-06 16:11:01 No deployment change; healthy deployment already recorded at 1e43ad56
-2026-09-06 16:15:03 LibreChat deployment check started
-2026-09-06 16:15:03 Cloudflare tunnel integration enabled
-2026-09-06 16:15:03 Synology Admin Settings integration enabled
-2026-09-06 16:16:23 No deployment change; healthy deployment already recorded at 1e43ad56
-2026-09-06 16:20:05 LibreChat deployment check started
-2026-09-06 16:20:05 Cloudflare tunnel integration enabled
-2026-09-06 16:20:05 Synology Admin Settings integration enabled
-2026-09-06 16:21:29 No deployment change; healthy deployment already recorded at 1e43ad56
-2026-09-06 16:25:09 LibreChat deployment check started
-2026-09-06 16:25:09 Cloudflare tunnel integration enabled
-2026-09-06 16:25:09 Synology Admin Settings integration enabled
-2026-09-06 16:26:36 No deployment change; healthy deployment already recorded at 1e43ad56
-2026-09-06 16:30:02 LibreChat deployment check started
-2026-09-06 16:30:02 Cloudflare tunnel integration enabled
-2026-09-06 16:30:02 Synology Admin Settings integration enabled
-2026-09-06 16:31:01 No deployment change; healthy deployment already recorded at 1e43ad56
-2026-09-06 16:35:02 LibreChat deployment check started
-2026-09-06 16:35:02 Cloudflare tunnel integration enabled
-2026-09-06 16:35:02 Synology Admin Settings integration enabled
-2026-09-06 16:36:01 No deployment change; healthy deployment already recorded at 1e43ad56
-2026-09-06 16:40:02 LibreChat deployment check started
-2026-09-06 16:40:02 Cloudflare tunnel integration enabled
-2026-09-06 16:40:02 Synology Admin Settings integration enabled
-2026-09-06 16:41:08 Change detected: 1e43ad56 -> b7b418c2
-2026-09-06 16:42:14 Synology Admin Settings privileged worker ready
-2026-09-06 16:42:16 Compose validation passed
-2026-09-06 16:42:46 Image pull completed
-2026-09-06 16:42:47 Compose update completed
-2026-09-06 16:42:48 LibreChat health check passed
-2026-09-06 16:42:48 MCP workspace mount passed write/read/delete check
-2026-09-06 16:42:48 Cloudflare tunnel connector registered
-2026-09-06 16:42:49 Synology Admin Settings panel and worker healthy
+2026-09-07 08:15:01 Cloudflare tunnel integration enabled
+2026-09-07 08:15:01 Synology Admin Settings integration enabled
+2026-09-07 08:17:50 No deployment change; healthy deployment already recorded at b7b418c2
+2026-09-07 08:20:02 LibreChat deployment check started
+2026-09-07 08:20:02 Cloudflare tunnel integration enabled
+2026-09-07 08:20:02 Synology Admin Settings integration enabled
+2026-09-07 08:22:01 No deployment change; healthy deployment already recorded at b7b418c2
+2026-09-07 08:25:01 LibreChat deployment check started
+2026-09-07 08:25:01 Cloudflare tunnel integration enabled
+2026-09-07 08:25:01 Synology Admin Settings integration enabled
+2026-09-07 08:27:11 No deployment change; healthy deployment already recorded at b7b418c2
+2026-09-07 08:30:01 LibreChat deployment check started
+2026-09-07 08:30:01 Cloudflare tunnel integration enabled
+2026-09-07 08:30:01 Synology Admin Settings integration enabled
+2026-09-07 08:32:33 No deployment change; healthy deployment already recorded at b7b418c2
+2026-09-07 08:35:12 LibreChat deployment check started
+2026-09-07 08:35:12 Cloudflare tunnel integration enabled
+2026-09-07 08:35:12 Synology Admin Settings integration enabled
+2026-09-07 08:37:17 No deployment change; healthy deployment already recorded at b7b418c2
+2026-09-07 08:40:02 LibreChat deployment check started
+2026-09-07 08:40:02 Cloudflare tunnel integration enabled
+2026-09-07 08:40:02 Synology Admin Settings integration enabled
+2026-09-07 08:42:47 No deployment change; healthy deployment already recorded at b7b418c2
+2026-09-07 08:45:05 LibreChat deployment check started
+2026-09-07 08:45:05 Cloudflare tunnel integration enabled
+2026-09-07 08:45:05 Synology Admin Settings integration enabled
+2026-09-07 08:47:06 No deployment change; healthy deployment already recorded at b7b418c2
+2026-09-07 08:50:11 LibreChat deployment check started
+2026-09-07 08:50:12 Cloudflare tunnel integration enabled
+2026-09-07 08:50:12 Synology Admin Settings integration enabled
+2026-09-07 08:53:30 No deployment change; healthy deployment already recorded at b7b418c2
+2026-09-07 08:55:02 LibreChat deployment check started
+2026-09-07 08:55:02 Cloudflare tunnel integration enabled
+2026-09-07 08:55:02 Synology Admin Settings integration enabled
+2026-09-07 08:57:01 Change detected: b7b418c2 -> c1236564
+2026-09-07 08:59:15 Synology Admin Settings privileged worker ready
+2026-09-07 08:59:16 Compose validation passed
+2026-09-07 09:03:26 Image pull completed
+2026-09-07 09:07:03 ERROR: Compose update failed
+2026-09-07 09:07:03 Collecting deployment diagnostics for stage compose_up
