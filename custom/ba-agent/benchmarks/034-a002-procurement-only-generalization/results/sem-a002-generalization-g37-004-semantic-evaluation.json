@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-a002-generalization-g37-004",
+  "benchmark": "Benchmark 034 — A002 Procurement-Only Generalization",
+  "benchmark_path": "custom/ba-agent/benchmarks/034-a002-procurement-only-generalization",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-06T01:43:59Z",
+  "baseline_result": "results/b034-g37-procurement-control-source-020-gemini-3.7-flash-pipeline-01.md",
+  "skill_result": "results/a002-g37-procurement-generalization-019-gemini-3-7-flash-dynamic-01.md",
+  "skill_path": "custom/ba-agent/agents/solution-procurement-orchestrator/AGENT.md",
+  "skill_sha256": "20ffaa07d7c6118bb2a17f0ca0af1995fbbe65a45a7b200543221f8a70d35dab",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 30,
+          "max": 30,
+          "rationale": "Correctly selected the exact 3-stage procurement pipeline (prepare-procurement-specification -> expand-procurement-market -> verify-procurement-options) without unnecessary requirements analysis, NFR analysis, solution design, or ADR stages."
+        },
+        {
+          "criterion": "Requirement-strength preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Preserved all Hard minimums (P-01 to P-08), Targets (P-09, P-10), Preference (P-11), and Unknown/non-eligibility item (P-12) exactly as specified."
+        },
+        {
+          "criterion": "Market-expansion discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Constructed a well-structured market discovery plan across direct manufacturers, specialist distributors, and contract aggregators without inventing unevidenced product facts."
+        },
+        {
+          "criterion": "Candidate evidence and eligibility discipline",
+          "score": 25,
+          "max": 25,
+          "rationale": "Correctly identified C-01 as eligible, C-02 as disqualified on the 135 kg user rating hard gate, and C-03 as on hold / unverified due to missing armrest lateral-width evidence."
+        },
+        {
+          "criterion": "Authority and non-invention discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Did not infer procurement approval authority, sole-source rights, or unevidenced candidate capabilities."
+        }
+      ],
+      "summary": "Baseline executed the full procurement workflow cleanly and accurately, preserving all requirement strengths, correctly verifying candidate evidence, and delivering a thorough market expansion plan."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 30,
+          "max": 30,
+          "rationale": "Perfect route selection with clear explicit justifications for omitting requirements analysis, NFR analysis, technical solution design, and ADR stages."
+        },
+        {
+          "criterion": "Requirement-strength preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Preserved all requirement classifications rigorously across all three stages: Hard minimums for P-02 through P-08, Targets for P-09/P-10, Preference for P-11, and post-shortlist configuration for P-12."
+        },
+        {
+          "criterion": "Market-expansion discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Created a comprehensive search and discovery plan covering OEM direct, independent commercial dealers, specialist WHS providers, and purchasing aggregators, maintaining strict boundaries between discovery and verification."
+        },
+        {
+          "criterion": "Candidate evidence and eligibility discipline",
+          "score": 25,
+          "max": 25,
+          "rationale": "Verified candidates with complete fidelity: C-01 recommended, C-02 rejected on Hard minimum structural failure (135 kg rating), and C-03 held as Unknown/verify due to unevidenced armrest lateral width without hardening target/preference misses."
+        },
+        {
+          "criterion": "Authority and non-invention discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Maintained strict non-invention and governance boundaries; quotes were not treated as purchase commitments and no approval authority was assumed."
+        }
+      ],
+      "summary": "The Skill orchestrator correctly selected the minimum necessary procurement route, preserved all requirement strengths and gating criteria, generated an actionable market expansion plan, and produced exact, evidence-gated verification conclusions."
+    },
+    "defects": [],
+    "summary": "Both baseline and skill outputs demonstrated full mastery of the benchmark requirements, adhering strictly to evidence boundaries, route minimalism, and requirement classification strengths."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 18060,
+    "candidatesTokenCount": 1021,
+    "totalTokenCount": 19957,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 18060
+      }
+    ],
+    "thoughtsTokenCount": 876,
+    "serviceTier": "standard"
+  }
+}
