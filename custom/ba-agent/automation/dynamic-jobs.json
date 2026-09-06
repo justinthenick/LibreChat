@@ -72,6 +72,20 @@
       "benchmark": "custom/ba-agent/benchmarks/038-a004-auditor-access-generalization",
       "dynamic_config": "dynamic-a004.json",
       "model": "gemini-3.7-flash"
+    },
+    {
+      "id": "a004-g37-dynamic-provenance-028",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/037-a004-selective-downstream-delta",
+      "dynamic_config": "dynamic-a004.json",
+      "model": "gemini-3.7-flash"
+    },
+    {
+      "id": "a004-g37-generalization-provenance-029",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/038-a004-auditor-access-generalization",
+      "dynamic_config": "dynamic-a004.json",
+      "model": "gemini-3.7-flash"
     }
   ]
 }
