@@ -1,0 +1,67 @@
+version: "3.7"
+
+# Agent File Search / RAG support for the Synology deployment.
+#
+# This overlay deliberately keeps embedding compute off the NAS. The lightweight
+# RAG API parses/chunks documents locally, stores vectors in pgvector, and sends
+# embedding requests to OpenRouter using the deployment's existing private
+# OPENROUTER_KEY. Neither RAG API nor PostgreSQL publishes a host port.
+services:
+  api:
+    environment:
+      RAG_API_URL: http://rag_api:8000
+
+  vectordb:
+    image: pgvector/pgvector:0.8.0-pg15-trixie
+    container_name: librechat-vectordb
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: librechat_rag
+      POSTGRES_USER: librechat
+      POSTGRES_PASSWORD: "${RAG_DB_PASSWORD}"
+    volumes:
+      - rag-pgdata:/var/lib/postgresql/data
+    networks:
+      - librechat
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U librechat -d librechat_rag"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  rag_api:
+    image: registry.librechat.ai/danny-avila/librechat-rag-api-dev-lite:latest
+    container_name: librechat-rag-api
+    restart: unless-stopped
+    depends_on:
+      - vectordb
+    environment:
+      DB_HOST: vectordb
+      DB_PORT: "5432"
+      POSTGRES_DB: librechat_rag
+      POSTGRES_USER: librechat
+      POSTGRES_PASSWORD: "${RAG_DB_PASSWORD}"
+      RAG_PORT: "8000"
+      JWT_SECRET: "${JWT_SECRET}"
+      RAG_OPENAI_API_KEY: "${OPENROUTER_KEY}"
+      RAG_OPENAI_BASEURL: https://openrouter.ai/api/v1
+      EMBEDDINGS_PROVIDER: openai
+      EMBEDDINGS_MODEL: openai/text-embedding-3-small
+      # Keep the DS918+-class NAS conservative: extraction/storage is local,
+      # while the expensive embedding inference remains remote.
+      EMBEDDING_BATCH_SIZE: "100"
+      EMBEDDING_MAX_QUEUE_SIZE: "1"
+      PARALLEL_EXECUTION: "1"
+    networks:
+      - librechat
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -c "import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5); raise SystemExit(0 if 200 <= r.status < 300 else 1)"
+      interval: 10s
+      timeout: 6s
+      retries: 12
+
+volumes:
+  rag-pgdata:
