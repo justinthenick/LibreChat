@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 039 — O001 BA Supervisor to Release Assurance Selective Handoff",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../production/workflows/ba-to-release-assurance.json",
+  "results_dir": "results"
+}
