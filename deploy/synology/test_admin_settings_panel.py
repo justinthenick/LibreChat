@@ -50,31 +50,30 @@ class AdminPasswordTests(unittest.TestCase):
 class RuntimeConfigRendererTests(unittest.TestCase):
     TEMPLATE = """endpoints:\n  custom:\n    - name: 'OpenRouter'\n      # BEGIN MANAGED OPENROUTER MODELS\n      models:\n        default:\n          - 'deepseek/deepseek-v3.2'\n        fetch: true\n      # END MANAGED OPENROUTER MODELS\n      titleConvo: true\n"""
 
-    def test_unfiltered_fetches_provider_catalogue(self):
-        rendered = renderer.render(self.TEMPLATE, {"MODEL_PREFILTER_ENABLED": "false", "ALLOWED_MODELS": ""})
+    def test_empty_allowlist_fetches_provider_catalogue(self):
+        rendered = renderer.render(self.TEMPLATE, {"ALLOWED_MODELS": ""})
         self.assertIn("fetch: true", rendered)
         self.assertIn("deepseek/deepseek-v3.2", rendered)
 
     def test_allowlist_disables_provider_fetch(self):
         rendered = renderer.render(
             self.TEMPLATE,
-            {"MODEL_PREFILTER_ENABLED": "true", "ALLOWED_MODELS": "google/gemini-2.5-pro,deepseek/deepseek-v3.2"},
+            {"ALLOWED_MODELS": "google/gemini-2.5-pro,deepseek/deepseek-v3.2"},
         )
         self.assertIn("fetch: false", rendered)
         self.assertIn("google/gemini-2.5-pro", rendered)
         self.assertIn("deepseek/deepseek-v3.2", rendered)
 
-    def test_legacy_allowlist_implicitly_enables_filter(self):
-        rendered = renderer.render(self.TEMPLATE, {"ALLOWED_MODELS": "google/gemini-2.5-pro"})
-        self.assertIn("fetch: false", rendered)
-
-    def test_enabled_empty_allowlist_fails_closed(self):
-        with self.assertRaises(ValueError):
-            renderer.render(self.TEMPLATE, {"MODEL_PREFILTER_ENABLED": "true", "ALLOWED_MODELS": ""})
+    def test_allowlist_is_deduplicated(self):
+        rendered = renderer.render(
+            self.TEMPLATE,
+            {"ALLOWED_MODELS": "google/gemini-2.5-pro,google/gemini-2.5-pro"},
+        )
+        self.assertEqual(rendered.count("          - 'google/gemini-2.5-pro'"), 1)
 
     def test_invalid_model_id_rejected(self):
         with self.assertRaises(ValueError):
-            renderer.render(self.TEMPLATE, {"MODEL_PREFILTER_ENABLED": "true", "ALLOWED_MODELS": "model id with spaces"})
+            renderer.render(self.TEMPLATE, {"ALLOWED_MODELS": "model id with spaces"})
 
 
 if __name__ == "__main__":
