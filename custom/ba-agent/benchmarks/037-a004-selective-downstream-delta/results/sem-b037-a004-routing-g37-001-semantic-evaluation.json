@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-b037-a004-routing-g37-001",
+  "benchmark": "Benchmark 037 — A004 Selective Downstream Delta",
+  "benchmark_path": "custom/ba-agent/benchmarks/037-a004-selective-downstream-delta",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-06T01:44:41Z",
+  "baseline_result": "results/b037-g37-a004-routing-v01-ab-001-gemini-3.7-flash-baseline-01.md",
+  "skill_result": "results/b037-g37-a004-routing-v01-ab-001-gemini-3.7-flash-skill-01.md",
+  "skill_path": "custom/ba-agent/agents/requirement-change-orchestrator/AGENT.md",
+  "skill_sha256": "d54afd5574c969b13d86f78bac774c677a0b156d6a7858b386c45202c12d8bd1",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 97,
+      "critical_penalties": [],
+      "final_score": 97,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 33,
+          "max": 35,
+          "rationale": "Correct 3-stage flow selected and unnecessary skills explicitly excluded, though using non-canonical skill name variants."
+        },
+        {
+          "criterion": "Delta authority/state preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "Correctly identified supported deltas (AD-12, PD-51, D-52), preserved REQ-23, and treated 19:00 and 7-day retention as unresolved/unapproved."
+        },
+        {
+          "criterion": "Selective downstream propagation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Correctly limited downstream updates strictly to REQ-22, REQ-24, and the new invoice_status requirement."
+        },
+        {
+          "criterion": "Acceptance/test fidelity",
+          "score": 14,
+          "max": 15,
+          "rationale": "Accurately captured OPEN/PAID/VOID values and null handling without inventing unsupported behaviors."
+        },
+        {
+          "criterion": "Scope discipline",
+          "score": 5,
+          "max": 5,
+          "rationale": "Respects the validity of existing decomposition and impact assessment."
+        }
+      ],
+      "summary": "Baseline correctly identified the supported deltas, isolated unresolved notes, and selectively propagated updates downstream."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 35,
+          "max": 35,
+          "rationale": "Exact canonical route selection (`reconcile-requirement-changes` -> `elaborate-acceptance-criteria` -> `derive-test-cases`) with thorough, justified exclusions."
+        },
+        {
+          "criterion": "Delta authority/state preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "Flawlessly distinguished authorized decisions from unresolved proposals and preserved unchanged baseline items."
+        },
+        {
+          "criterion": "Selective downstream propagation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Precisely scoped downstream propagation to AC-22-1/TC-22-1, AC-24-1/TC-24-1, and new invoice_status criteria/tests."
+        },
+        {
+          "criterion": "Acceptance/test fidelity",
+          "score": 15,
+          "max": 15,
+          "rationale": "Exact fidelity to PD-51 values (OPEN, PAID, VOID), null handling, and managed SFTP integration."
+        },
+        {
+          "criterion": "Scope discipline",
+          "score": 5,
+          "max": 5,
+          "rationale": "Full adherence to boundary constraints and explicit exclusions."
+        }
+      ],
+      "summary": "Skill provided a completely accurate orchestration plan with exact canonical routing, clear authority boundaries, and disciplined downstream propagation."
+    },
+    "defects": [],
+    "summary": "Both models performed exceptionally well on Benchmark 037. The Skill output followed the canonical routing schema and orchestration structure with perfect precision."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 4532,
+    "candidatesTokenCount": 843,
+    "totalTokenCount": 6244,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 4532
+      }
+    ],
+    "thoughtsTokenCount": 869,
+    "serviceTier": "standard"
+  }
+}
