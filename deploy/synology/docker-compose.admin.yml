@@ -1,11 +1,11 @@
 version: "3.7"
 
 # Optional Synology Admin Settings panel. autodeploy.sh loads this overlay only
-# when ADMIN_SETTINGS_ACCESS_TOKEN is configured in the private NAS .env.
+# when the private host recovery credential is configured.
 #
-# The panel deliberately has NO .env mount and NO Docker socket. It receives
-# only its own access token and communicates with the privileged host worker via
-# a Unix-domain socket under /state.
+# The panel deliberately has NO .env mount and NO Docker socket. Routine browser
+# access uses password-backed HttpOnly sessions stored under /state; the host
+# token is retained only for bootstrap/emergency recovery.
 services:
   admin-settings:
     image: python:3.12-alpine
@@ -24,6 +24,8 @@ services:
       ADMIN_SETTINGS_ACCESS_TOKEN: "${ADMIN_SETTINGS_ACCESS_TOKEN}"
       ADMIN_SETTINGS_PORT: "3210"
       ADMIN_SETTINGS_SOCKET: /state/worker.sock
+      ADMIN_SETTINGS_AUTH_FILE: /state/auth.json
+      ADMIN_SETTINGS_COOKIE_SECURE: "${SESSION_COOKIE_SECURE:-false}"
     ports:
       - "${ADMIN_SETTINGS_PORT:-3210}:3210"
     volumes:
