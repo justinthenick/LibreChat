@@ -1,0 +1,72 @@
+{
+  "combined_markdown": "b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01.md",
+  "combined_metadata": "b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01.json",
+  "run_id": "b038-g37-a004-control-025",
+  "schema": 1,
+  "stages": [
+    {
+      "markdown": "b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01-stage-01-requirement-reconciliation.md",
+      "metadata": "b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01-stage-01-requirement-reconciliation.json",
+      "output_sha256": "8cd1c5f7183446d844e196e7e9a918889588c62791f33a6dc408495a9eb33895",
+      "stage_id": "requirement-reconciliation",
+      "stage_name": "Reconcile Requirement Changes",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2178,
+        "promptTokenCount": 1906,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1906
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 843,
+        "totalTokenCount": 4927
+      }
+    },
+    {
+      "markdown": "b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01-stage-02-requirements-analysis.md",
+      "metadata": "b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01-stage-02-requirements-analysis.json",
+      "output_sha256": "a3cd9773775f7fbfb11e4d72b4879fe670a2c4b81d8a3fe8495278a52a61d0a6",
+      "stage_id": "requirements-analysis",
+      "stage_name": "Analyze Requirements",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2884,
+        "promptTokenCount": 5975,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 5975
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 961,
+        "totalTokenCount": 9820
+      }
+    },
+    {
+      "markdown": "b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01-stage-03-change-impact.md",
+      "metadata": "b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01-stage-03-change-impact.json",
+      "output_sha256": "97179669a4c35b3dbc4d466b856a1b031ee165093ff23f97ebc7cd798471de38",
+      "stage_id": "change-impact",
+      "stage_name": "Assess Change Impact",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2195,
+        "promptTokenCount": 4309,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 4309
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 452,
+        "totalTokenCount": 6956
+      }
+    }
+  ],
+  "status": "success"
+}
