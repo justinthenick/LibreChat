@@ -269,7 +269,7 @@ def main():
     write_local_json(state_path, state)
     if not acted:
         print("[semantic-reviser] no semantic transition required")
-    return 0
+    return 2 if acted and status not in ("revised_and_queued", "revision_limit_reached") else 0
 
 
 if __name__ == "__main__":

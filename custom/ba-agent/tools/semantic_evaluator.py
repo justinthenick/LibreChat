@@ -211,6 +211,43 @@ def queue_on_pass(args, token, job):
             append_unique(args.repo, args.branch, token, EXECUTION_QUEUE, item, "automation: queue post-evaluation progression job")
 
 
+def metadata_mode(meta):
+    if meta.get("mode"):
+        return meta["mode"]
+    if meta.get("agent_path") and meta.get("route") is not None:
+        return "dynamic"
+    if meta.get("pipeline") and isinstance(meta.get("stages"), list):
+        return "pipeline"
+    return None
+
+
+def validate_pair(metadata, job, input_text, baseline, skill_raw):
+    model = job.get("generation_model")
+    if not model:
+        raise LabError("Semantic evaluation requires generation_model")
+    input_hash = sha256_text(input_text)
+    for label, text in (("baseline", baseline), ("skill", skill_raw)):
+        meta = metadata[label]
+        if meta.get("status") != "success":
+            raise LabError("{} generation did not succeed".format(label))
+        if meta.get("model") != model:
+            raise LabError("{} generation model mismatch".format(label))
+        if meta.get("input_sha256") != input_hash:
+            raise LabError("{} generation input hash missing or mismatched".format(label))
+        mode = metadata_mode(meta)
+        allowed = ("baseline", "pipeline") if label == "baseline" else ("skill", "dynamic", "pipeline")
+        if mode not in allowed or (job.get(label + "_mode") and mode != job[label + "_mode"]):
+            raise LabError("{} generation mode mismatch".format(label))
+        if mode in ("pipeline", "dynamic"):
+            stages = meta.get("stages")
+            if not stages or any(s.get("status") != "success" for s in stages):
+                raise LabError("{} has incomplete generation stages".format(label))
+        if mode == "dynamic" and meta.get("route_status") != "success":
+            raise LabError("Dynamic routing did not succeed")
+        if meta.get("result_sha256") and meta["result_sha256"] != sha256_text(text):
+            raise LabError("{} result hash mismatch".format(label))
+
+
 def process(args, token, api_key, job):
     benchmark = str(job.get("benchmark") or "").strip().rstrip("/")
     if not benchmark.startswith("custom/ba-agent/benchmarks/"):
@@ -224,16 +261,22 @@ def process(args, token, api_key, job):
     skill_raw, _ = get_text(args.repo, args.branch, benchmark + "/" + str(job["skill_result"]), token, missing_ok=True)
     if baseline is None or skill_raw is None:
         return {"status": "waiting"}
-    if job.get("skill_metadata"):
-        meta, _ = get_json(args.repo, args.branch, benchmark + "/" + str(job["skill_metadata"]), token, missing_ok=True)
-        if meta is None or meta.get("status") != "success":
+    metadata = {}
+    for label in ("baseline", "skill"):
+        result_path = str(job[label + "_result"])
+        inferred = result_path[:-3] + ("-manifest.json" if result_path.endswith("-dynamic-01.md") else ".json")
+        meta_path = str(job.get(label + "_metadata") or inferred)
+        meta, _ = get_json(args.repo, args.branch, benchmark + "/" + meta_path, token, missing_ok=True)
+        if meta is None:
             return {"status": "waiting"}
+        metadata[label] = meta
+    validate_pair(metadata, job, input_text, baseline, skill_raw)
+    meta = metadata["skill"]
     skill_path = repo_relative(benchmark, config.get("skill"))
     current_skill, _ = get_text(args.repo, args.branch, skill_path, token)
-    if job.get("skill_metadata"):
-        expected = str(meta.get("skill_sha256") or "")
-        if expected and expected != sha256_text(current_skill):
-            return {"status": "stale_skill", "expected": expected, "current": sha256_text(current_skill)}
+    expected = str(meta.get("agent_sha256") if metadata_mode(meta) == "dynamic" else meta.get("skill_sha256") or "")
+    if metadata_mode(meta) != "pipeline" and (not expected or expected != sha256_text(current_skill)):
+        raise LabError("Skill/Agent generation hash is missing or differs from current instructions")
     prompt = "\n\n".join([
         "# Required JSON contract\n" + SCHEMA,
         "# Benchmark\n" + name,
@@ -262,6 +305,7 @@ def process(args, token, api_key, job):
         "skill_result": job["skill_result"],
         "skill_path": skill_path,
         "skill_sha256": sha256_text(current_skill),
+        "generation_metadata": metadata,
         "evaluation": evaluation,
         "gate": g,
         "usage": result.get("usage"),
@@ -328,7 +372,7 @@ def main():
     write_local_json(state_path, state)
     if not acted:
         print("[semantic-evaluator] no semantic transition required")
-    return 0
+    return 2 if acted and status not in ("passed", "revision_queued", "revision_required") else 0
 
 
 if __name__ == "__main__":

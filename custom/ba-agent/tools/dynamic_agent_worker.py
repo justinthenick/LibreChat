@@ -191,7 +191,34 @@ def validate_route(route, inputs):
         route["stop_rules"] = []
     route["objective"] = str(route.get("objective") or "").strip()
     route["expected_final_artifact"] = str(route.get("expected_final_artifact") or "").strip()
+    downstream = {"decompose-requirements", "elaborate-acceptance-criteria", "derive-test-cases", "assess-change-impact"}
+    if inputs["config"].get("require_active_delta_scope") and downstream.intersection(names):
+        active_delta_scope(route, required=True)
     return route
+
+
+def active_delta_scope(route, required=False):
+    rules = [r.strip() for r in route.get("stop_rules", [])
+             if isinstance(r, str) and r.strip().startswith("ACTIVE_DELTA_SCOPE:")]
+    if not rules and not required:
+        return ""
+    if len(rules) != 1 or not rules[0].split(":", 1)[1].strip():
+        raise LabError("Selective downstream execution requires exactly one nonempty ACTIVE_DELTA_SCOPE")
+    return rules[0]
+
+
+def invocation_system(skill_text, route):
+    instruction = strip_frontmatter(skill_text)
+    scope = active_delta_scope(route)
+    if not scope:
+        return instruction
+    return instruction + "\n\n# Binding invocation scope\n" + scope + "\n" + (
+        "This scope limits artifact creation for this invocation. General coverage or completeness "
+        "instructions apply only within this active delta. Read other baseline items as context; "
+        "leave their existing downstream artifacts unchanged by reference. Do not create or restate "
+        "acceptance criteria, tests or other downstream artifacts for unaffected items. "
+        "Reconciliation may classify all source items without regenerating their downstream artifacts.\n"
+    )
 
 
 def render_final(job, route, stage_records, status, operational_status, totals):
@@ -244,6 +271,10 @@ def publish_result(args, token, job, inputs, route, stage_records, route_result,
         "run_id": job["id"],
         "benchmark": job["benchmark"],
         "model": job["model"],
+        "mode": "dynamic",
+        "input_sha256": sha256_text(inputs["input_text"]),
+        "prompt_sha256": sha256_text(inputs["prompt_text"]),
+        "result_sha256": sha256_text(md_text),
         "status": status,
         "operational_status": operational_status,
         "created_at": now_z(),
@@ -351,7 +382,7 @@ def process_job(args, token, api_key, job):
             api_key,
             job["model"],
             "\n\n".join(stage_prompt_parts),
-            strip_frontmatter(skill["text"]),
+            invocation_system(skill["text"], route),
             timeout=args.timeout,
             api_base=args.api_base,
         )
