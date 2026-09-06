@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-a004-generalization-v02-g37-005",
+  "benchmark": "Benchmark 038 — A004 Auditor Access Generalization",
+  "benchmark_path": "custom/ba-agent/benchmarks/038-a004-auditor-access-generalization",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-06T03:15:55Z",
+  "baseline_result": "results/b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01.md",
+  "skill_result": "results/a004-g37-generalization-v02-027-gemini-3-7-flash-dynamic-01.md",
+  "skill_path": "custom/ba-agent/agents/requirement-change-orchestrator/AGENT.md",
+  "skill_sha256": "f00e55f160e3ff7c66d9b0e8497a7254a50fff3dbca466ba0dc552f3fb2dc77a",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 35,
+          "max": 35,
+          "rationale": "Correctly executed the three required stages (reconcile, analyze, assess impact) and stopped before downstream decomposition or test generation."
+        },
+        {
+          "criterion": "Baseline/delta preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Accurately identified SD-77 as the sole approved addition while confirming IAM-10, IAM-11, IAM-12, and IAM-13 remain unchanged, treating the 30-day expiration suggestion as unapproved."
+        },
+        {
+          "criterion": "Semantic Unknown discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Exposed all required open semantic ambiguities (timer start event, duration caps, approval authority, identity path, renewal rules, privileged role boundaries) without inventing details."
+        },
+        {
+          "criterion": "Change-impact quality",
+          "score": 15,
+          "max": 15,
+          "rationale": "Thoroughly analyzed impacts across lifecycle, support, governance, and audit coordination, clearly separating confirmed impacts from unknown/candidate items."
+        },
+        {
+          "criterion": "Authority and stop discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Maintained approval authority as Unknown (distinguishing it from the programme manager's coordination role) and strictly stopped prior to downstream refinement."
+        }
+      ],
+      "summary": "The baseline output met all benchmark requirements, adhering strictly to authority boundaries, preserving baseline rules, capturing all semantic unknowns, and providing a comprehensive change impact assessment."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 35,
+          "max": 35,
+          "rationale": "Explicitly selected and sequentially executed `reconcile-requirement-changes` -> `analyze-requirements` -> `assess-change-impact`, properly omitting downstream decomposition and test generation."
+        },
+        {
+          "criterion": "Baseline/delta preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Preserved IAM-10 through IAM-13 as Confirmed and unchanged, treated the 30-day suggestion as an unapproved proposal, and correctly classified SD-77 as the single approved delta."
+        },
+        {
+          "criterion": "Semantic Unknown discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Identified and preserved all required missing parameters and open decisions (timer trigger, duration limits, approval authority, identity repository, extensions, and privileged role eligibility) as unresolved unknowns."
+        },
+        {
+          "criterion": "Change-impact quality",
+          "score": 15,
+          "max": 15,
+          "rationale": "Provided a structured impact register across users, processes, security/access, operations, and applications, distinguishing confirmed direct/indirect impacts from candidate and unknown impacts."
+        },
+        {
+          "criterion": "Authority and stop discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Correctly separated the Audit Programme Manager's scheduling role from approval authority (marking approver authority as Unknown) and halted execution before decomposition."
+        }
+      ],
+      "summary": "The Skill execution adhered perfectly to the benchmark requirements, providing rigorous routing decisions, flawless baseline reconciliation, disciplined capture of semantic gaps, and a well-structured change impact assessment."
+    },
+    "defects": [],
+    "summary": "Both baseline and skill outputs fully satisfied the gold standard and scoring rubric criteria without incurring any critical penalties."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 16863,
+    "candidatesTokenCount": 953,
+    "totalTokenCount": 18481,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 16863
+      }
+    ],
+    "thoughtsTokenCount": 665,
+    "serviceTier": "standard"
+  }
+}
