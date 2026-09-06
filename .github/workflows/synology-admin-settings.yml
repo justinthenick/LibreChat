@@ -25,6 +25,7 @@ jobs:
           python -m py_compile \
             deploy/synology/manage-env.py \
             deploy/synology/bootstrap-admin-settings.py \
+            deploy/synology/bootstrap-rag.py \
             deploy/synology/admin-settings-worker.py \
             deploy/synology/admin-settings-panel.py
       - name: Validate JSON schema document
