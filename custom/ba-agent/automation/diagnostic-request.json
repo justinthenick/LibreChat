@@ -1,7 +1,6 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "autonomous-a001-a004-wave-20260906-011",
-  "recipe": "custom/ba-agent/diagnostics/workflow-strengthening-health.json",
-  "note": "Verify the one-minute NAS loop picked up the autonomous A001-A004 completion wave after feature/ba-agent-v0.1 advanced. Confirm authenticated self-refresh, worker/controller/dynamic/semantic phases remain healthy, newly seeded B035-B038 execution and semantic jobs are visible or progressing, locks prevent overlap, and no secrets are exposed. Report operational status only; do not infer semantic success before evaluation artifacts exist."
+  "request_id": "a004-worker-provenance-20260906-012",
+  "recipe": "custom/ba-agent/diagnostics/a004-worker-provenance-20260906-012.json"
 }
