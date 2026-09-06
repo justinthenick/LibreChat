@@ -39,14 +39,35 @@ mcpServers:
     timeout: 120000
 
 endpoints:
+  # Pin the capabilities we have intentionally enabled/tested instead of inheriting
+  # an expanding upstream default set. Code execution, web search, actions, memory,
+  # OCR and background execution remain off until separately engineered.
+  agents:
+    capabilities:
+      - deferred_tools
+      - file_search
+      - subagents
+      - context
+      - skills
+      - tools
+      - chain
+      - ask_user_question
+    skills:
+      maxCatalogSkills: 100
+
   custom:
     - name: 'OpenRouter'
       apiKey: '${OPENROUTER_KEY}'
       baseURL: 'https://openrouter.ai/api/v1'
+      # BEGIN MANAGED OPENROUTER MODELS
+      # render-librechat-config.py replaces only this block in the runtime copy.
+      # With no managed allowlist, keep the historical default and fetch the
+      # complete provider catalogue.
       models:
         default:
           - 'deepseek/deepseek-v3.2'
         fetch: true
+      # END MANAGED OPENROUTER MODELS
       titleConvo: true
       titleModel: 'deepseek/deepseek-v3.2'
       summarize: false
