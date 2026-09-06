@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-b026-v02-paid-g37-002",
+  "benchmark": "Benchmark 026 — Non-Functional Requirements Analysis",
+  "benchmark_path": "custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-05T11:35:57Z",
+  "baseline_result": "results/b026-g37-nfr-v02-ab-006-gemini-3.7-flash-baseline-01.md",
+  "skill_result": "results/b026-g37-nfr-v02-ab-006-gemini-3.7-flash-skill-01.md",
+  "skill_path": "custom/ba-agent/skills/analyze-nonfunctional-requirements/SKILL.md",
+  "skill_sha256": "46e1300f2bac96ee7d9df95d9f326dd2a24521c4776cde7859efe9903c70ce04",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 98,
+      "critical_penalties": [],
+      "final_score": 98,
+      "criteria": [
+        {
+          "criterion": "A. Confirmed NFR/constraint extraction",
+          "score": 25,
+          "max": 25,
+          "rationale": "Correctly extracted Australian data residency, support hours, manual email fallback, and support claim identification outcome without inventing mechanisms."
+        },
+        {
+          "criterion": "B. Target / candidate / estimate discipline",
+          "score": 35,
+          "max": 35,
+          "rationale": "Maintained strict discipline across 99.9% availability, 2,000 concurrency planning estimate, candidate encryption at rest, candidate WCAG 2.2 AA, and qualitative 'feel fast' goal."
+        },
+        {
+          "criterion": "C. Recovery and unknowns",
+          "score": 15,
+          "max": 15,
+          "rationale": "Accurately noted that RTO/RPO are unset/unknown and correctly cataloged unassessed quality areas without turning them into requirements."
+        },
+        {
+          "criterion": "D. Solution-design handoff",
+          "score": 14,
+          "max": 15,
+          "rationale": "Clearly separates confirmed baseline items from items requiring clarification, with only a minor phrasing assumption regarding intake UI redirecting users."
+        },
+        {
+          "criterion": "E. Analysis quality",
+          "score": 9,
+          "max": 10,
+          "rationale": "High quality register and clear categorization, though it omitted an explicit top-level readiness classification label."
+        }
+      ],
+      "summary": "Baseline delivered an accurate and disciplined analysis, correctly classifying confirmed constraints versus targets and estimates without critical hallucinations."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "A. Confirmed NFR/constraint extraction",
+          "score": 25,
+          "max": 25,
+          "rationale": "Extracted all four confirmed constraints and operational boundaries accurately without mechanism substitution."
+        },
+        {
+          "criterion": "B. Target / candidate / estimate discipline",
+          "score": 35,
+          "max": 35,
+          "rationale": "Exemplary handling of non-binding items: 99.9% target, 2,000 user estimate, unaccepted WCAG scope, unconfirmed export encryption, and qualitative speed goal."
+        },
+        {
+          "criterion": "C. Recovery and unknowns",
+          "score": 15,
+          "max": 15,
+          "rationale": "Correctly captured informal recovery targets vs unknown RTO/RPO, and formulated open quality questions without requirement hardening."
+        },
+        {
+          "criterion": "D. Solution-design handoff",
+          "score": 15,
+          "max": 15,
+          "rationale": "Explicitly defined confirmed items architecture can rely upon and strictly guarded non-binding items against downstream hardening."
+        },
+        {
+          "criterion": "E. Analysis quality",
+          "score": 10,
+          "max": 10,
+          "rationale": "Provides the explicit Partially Ready assessment, rigorous taxonomy (Explicit, Proposed, Assumption), and clear conflict identification."
+        }
+      ],
+      "summary": "Skill provided an exceptional analysis matching the gold standard across all dimensions, including formal readiness grading, evidence-based taxonomy, and an explicit solution design handoff."
+    },
+    "defects": [],
+    "summary": "Both models demonstrated strong discipline against hallucinating architectural mechanisms, SLAs, and capacity ceilings. Skill achieved a perfect score by including the formal readiness determination, granular confidence scoring, and explicit boundary analysis."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 5899,
+    "candidatesTokenCount": 901,
+    "totalTokenCount": 8154,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 5899
+      }
+    ],
+    "thoughtsTokenCount": 1354,
+    "serviceTier": "standard"
+  }
+}

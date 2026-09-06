@@ -1,0 +1,33 @@
+{
+  "agent_path": "custom/ba-agent/agents/ba-delivery-analyst/AGENT.md",
+  "agent_sha256": "7c0db327b629991e7c929a1cb4628931525d6dd978182e427ab228e3f631ab72",
+  "agent_version": "0.2.0",
+  "ended_at": "2026-09-04T14:47:55Z",
+  "error": null,
+  "finish_reason": "MAX_TOKENS",
+  "max_output_tokens": 8192,
+  "model": "gemini-3.6-flash",
+  "pipeline": "Benchmark 023 \u2014 Control: Composite BA + Change Readiness",
+  "run_id": "b023-g36-ba-change-control-005",
+  "stage_id": "ba-delivery",
+  "stage_index": 1,
+  "stage_input_sha256": "e36f780460cd8f9211fff0802028c65f867600b26cf06cabd18d8206cef0d66c",
+  "stage_name": "Composite BA Delivery Analyst v0.2",
+  "started_at": "2026-09-04T14:46:43Z",
+  "status": "success",
+  "temperature": 0.0,
+  "upstream_output_sha256": null,
+  "usage": {
+    "candidatesTokenCount": 327,
+    "promptTokenCount": 2752,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 2752
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 7861,
+    "totalTokenCount": 10940
+  }
+}

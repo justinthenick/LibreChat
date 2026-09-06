@@ -1,0 +1,51 @@
+{
+  "combined_markdown": "b032-g37-readiness-control-017-gemini-3.7-flash-pipeline-01.md",
+  "combined_metadata": "b032-g37-readiness-control-017-gemini-3.7-flash-pipeline-01.json",
+  "run_id": "b032-g37-readiness-control-017",
+  "schema": 1,
+  "stages": [
+    {
+      "markdown": "b032-g37-readiness-control-017-gemini-3.7-flash-pipeline-01-stage-01-change-readiness.md",
+      "metadata": "b032-g37-readiness-control-017-gemini-3.7-flash-pipeline-01-stage-01-change-readiness.json",
+      "output_sha256": "d137e3b5c41b55f1dd98b2818e98e57fa7dcc5b60e656d746575b3a7d0804f1f",
+      "stage_id": "change-readiness",
+      "stage_name": "Prepare Solution / Change Readiness v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2959,
+        "promptTokenCount": 3538,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3538
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 388,
+        "totalTokenCount": 6885
+      }
+    },
+    {
+      "markdown": "b032-g37-readiness-control-017-gemini-3.7-flash-pipeline-01-stage-02-itil-alignment.md",
+      "metadata": "b032-g37-readiness-control-017-gemini-3.7-flash-pipeline-01-stage-02-itil-alignment.json",
+      "output_sha256": "39f5eddf16d44bad6fa5e2d00d6b8c543e1d60236378b5b001c4d204d05fbc7b",
+      "stage_id": "itil-alignment",
+      "stage_name": "Assess ITIL Alignment v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2505,
+        "promptTokenCount": 5261,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 5261
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 2403,
+        "totalTokenCount": 10169
+      }
+    }
+  ],
+  "status": "success"
+}

@@ -1,0 +1,20 @@
+{
+  "benchmark": "Benchmark 025 — Vendor-Neutral Procurement Specification",
+  "created_at": "2026-09-05T07:01:24Z",
+  "mode": "both",
+  "model": "gemini-3.7-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b025-g37-procurement-spec-v02-ab-004-gemini-3.7-flash-baseline-01.md",
+      "metadata": "b025-g37-procurement-spec-v02-ab-004-gemini-3.7-flash-baseline-01.json",
+      "status": "provider_busy"
+    },
+    {
+      "markdown": "b025-g37-procurement-spec-v02-ab-004-gemini-3.7-flash-skill-01.md",
+      "metadata": "b025-g37-procurement-spec-v02-ab-004-gemini-3.7-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}

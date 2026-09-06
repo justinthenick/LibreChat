@@ -1,0 +1,134 @@
+{
+  "schema": 1,
+  "run_id": "a002-g37-procurement-generalization-019",
+  "benchmark": "custom/ba-agent/benchmarks/034-a002-procurement-only-generalization",
+  "model": "gemini-3.7-flash",
+  "status": "success",
+  "operational_status": null,
+  "created_at": "2026-09-05T21:26:48Z",
+  "agent_path": "custom/ba-agent/agents/solution-procurement-orchestrator/AGENT.md",
+  "agent_sha256": "20ffaa07d7c6118bb2a17f0ca0af1995fbbe65a45a7b200543221f8a70d35dab",
+  "route": {
+    "objective": "Prepare a vendor-neutral procurement specification for 65 ergonomic task chairs, expand market search coverage beyond the incumbent reseller, and perform evidence-based verification of candidate chairs against normalized requirements.",
+    "selected_skills": [
+      "prepare-procurement-specification",
+      "expand-procurement-market",
+      "verify-procurement-options"
+    ],
+    "not_selected": [
+      {
+        "skill": "analyze-requirements",
+        "reason": "Functional and business requirements are already normalized and approved in the procurement baseline."
+      },
+      {
+        "skill": "analyze-nonfunctional-requirements",
+        "reason": "Quality, physical, commercial, and warranty constraints are already normalized with explicit requirement strengths."
+      },
+      {
+        "skill": "design-technical-solution",
+        "reason": "The purchasing boundary is a standard physical furniture procurement with no unresolved architecture or technical solution design needed."
+      },
+      {
+        "skill": "record-architecture-decisions",
+        "reason": "No architecture decisions or ADRs were requested or required for this commodity task chair procurement."
+      }
+    ],
+    "stop_rules": [
+      "Preserve stated requirement strengths: Hard minimums remain mandatory eligibility gates; Targets and Preferences must not be hardened into rejection gates.",
+      "Do not invent candidate facts: missing evidence (such as C-03 lateral-width adjustment) must remain Unknown / verify rather than being marked as passed or failed without evidence.",
+      "Hard minimum failures (such as C-02 weight rating of 135 kg against the 150 kg minimum) constitute definitive eligibility failures.",
+      "Non-eligibility items (such as P-12 upholstery colour) must remain post-shortlist configuration decisions and not block platform evaluation.",
+      "Do not invent procurement approval authority or convert price quotations into purchase commitments."
+    ],
+    "expected_final_artifact": "A vendor-neutral procurement specification document, a market-expansion search plan extending discovery beyond the incumbent reseller, and an evidence-gated candidate verification assessment with shortlist/rejection classifications."
+  },
+  "route_status": "success",
+  "route_usage": {
+    "promptTokenCount": 3038,
+    "candidatesTokenCount": 475,
+    "totalTokenCount": 4024,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 3038
+      }
+    ],
+    "thoughtsTokenCount": 511,
+    "serviceTier": "standard"
+  },
+  "stages": [
+    {
+      "index": 1,
+      "skill": "prepare-procurement-specification",
+      "skill_path": "custom/ba-agent/skills/prepare-procurement-specification/SKILL.md",
+      "skill_sha256": "a820bf449f4e9daf6280ec16d526271fd86cd5c7a807cd78395e10add81f12d7",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 3371,
+        "candidatesTokenCount": 1916,
+        "totalTokenCount": 5919,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3371
+          }
+        ],
+        "thoughtsTokenCount": 632,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "f65ae6d67e8f9a9f1a15642b079c920b2361a5c5fa58e3d444b66a6b5c077e9d",
+      "error": null
+    },
+    {
+      "index": 2,
+      "skill": "expand-procurement-market",
+      "skill_path": "custom/ba-agent/skills/expand-procurement-market/SKILL.md",
+      "skill_sha256": "b31412c2b92a9757df4cb2597ef4509fedbd0067518833ec55e57efaf1c562a2",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 4662,
+        "candidatesTokenCount": 2097,
+        "totalTokenCount": 7352,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 4662
+          }
+        ],
+        "thoughtsTokenCount": 593,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "9b31b3e38622de6197ed957fe5ee080f68c5700f0a43c5f2acc6f75cf232ff9f",
+      "error": null
+    },
+    {
+      "index": 3,
+      "skill": "verify-procurement-options",
+      "skill_path": "custom/ba-agent/skills/verify-procurement-options/SKILL.md",
+      "skill_sha256": "cc1c97060337fca48bd08df7e23900f2883e457b65b948c85acb6379819c36e1",
+      "status": "success",
+      "usage": {
+        "promptTokenCount": 5505,
+        "candidatesTokenCount": 3353,
+        "totalTokenCount": 10281,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 5505
+          }
+        ],
+        "thoughtsTokenCount": 1423,
+        "serviceTier": "standard"
+      },
+      "output_sha256": "98f2391304076910463913a81ab7b8c38fc8d7a1f66693d8a6ae3fb18e620253",
+      "error": null
+    }
+  ],
+  "usage_totals": {
+    "prompt": 16576,
+    "candidate": 7841,
+    "thoughts": 3159,
+    "total": 27576
+  },
+  "result_markdown": "a002-g37-procurement-generalization-019-gemini-3-7-flash-dynamic-01.md"
+}

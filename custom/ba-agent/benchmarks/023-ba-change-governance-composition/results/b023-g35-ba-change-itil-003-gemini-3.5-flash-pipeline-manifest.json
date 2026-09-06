@@ -1,0 +1,18 @@
+{
+  "combined_markdown": "b023-g35-ba-change-itil-003-gemini-3.5-flash-pipeline-01.md",
+  "combined_metadata": "b023-g35-ba-change-itil-003-gemini-3.5-flash-pipeline-01.json",
+  "run_id": "b023-g35-ba-change-itil-003",
+  "schema": 1,
+  "stages": [
+    {
+      "markdown": "b023-g35-ba-change-itil-003-gemini-3.5-flash-pipeline-01-stage-01-ba-delivery.md",
+      "metadata": "b023-g35-ba-change-itil-003-gemini-3.5-flash-pipeline-01-stage-01-ba-delivery.json",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stage_id": "ba-delivery",
+      "stage_name": "Composite BA Delivery Analyst v0.2",
+      "status": "provider_busy",
+      "usage": {}
+    }
+  ],
+  "status": "incomplete"
+}

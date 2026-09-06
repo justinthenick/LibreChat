@@ -1,0 +1,20 @@
+{
+  "benchmark": "Benchmark 027 — Change Impact Assessment",
+  "created_at": "2026-09-04T14:57:08Z",
+  "mode": "both",
+  "model": "gemini-3.6-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b027-g36-change-impact-v01-ab-001-gemini-3.6-flash-baseline-01.md",
+      "metadata": "b027-g36-change-impact-v01-ab-001-gemini-3.6-flash-baseline-01.json",
+      "status": "success"
+    },
+    {
+      "markdown": "b027-g36-change-impact-v01-ab-001-gemini-3.6-flash-skill-01.md",
+      "metadata": "b027-g36-change-impact-v01-ab-001-gemini-3.6-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}

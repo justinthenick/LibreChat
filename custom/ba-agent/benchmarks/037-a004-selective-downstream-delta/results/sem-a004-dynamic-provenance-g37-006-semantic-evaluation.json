@@ -1,0 +1,328 @@
+{
+  "schema": 1,
+  "job_id": "sem-a004-dynamic-provenance-g37-006",
+  "benchmark": "Benchmark 037 — A004 Selective Downstream Delta",
+  "benchmark_path": "custom/ba-agent/benchmarks/037-a004-selective-downstream-delta",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-06T05:46:49Z",
+  "baseline_result": "results/b037-g37-a004-control-024-gemini-3.7-flash-pipeline-01.md",
+  "skill_result": "results/a004-g37-dynamic-provenance-028-gemini-3-7-flash-dynamic-01.md",
+  "skill_path": "custom/ba-agent/agents/requirement-change-orchestrator/AGENT.md",
+  "skill_sha256": "f00e55f160e3ff7c66d9b0e8497a7254a50fff3dbca466ba0dc552f3fb2dc77a",
+  "generation_metadata": {
+    "baseline": {
+      "input_sha256": "3fdf3bb57a50dc11dc51c1833d8b40533c3b1412886486544e2080b55b457a57",
+      "model": "gemini-3.7-flash",
+      "pipeline": "Benchmark 037 — Fixed selective requirement-delta control",
+      "prompt_sha256": "819b82f2257bd565d5833d42dba9627a6bef10a3a2989c7ca76fa6c42411a433",
+      "run_id": "b037-g37-a004-control-024",
+      "schema": 1,
+      "stages": [
+        {
+          "markdown": "b037-g37-a004-control-024-gemini-3.7-flash-pipeline-01-stage-01-requirement-reconciliation.md",
+          "metadata": "b037-g37-a004-control-024-gemini-3.7-flash-pipeline-01-stage-01-requirement-reconciliation.json",
+          "output_sha256": "0ef025aa33bcb3897fa51bb1cd87421a52f341ddb37deedb8cc0bc992a93507f",
+          "stage_id": "requirement-reconciliation",
+          "stage_name": "Reconcile Requirement Changes",
+          "status": "success",
+          "usage": {
+            "candidatesTokenCount": 2369,
+            "promptTokenCount": 2072,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 2072
+              }
+            ],
+            "serviceTier": "standard",
+            "thoughtsTokenCount": 1345,
+            "totalTokenCount": 5786
+          }
+        },
+        {
+          "markdown": "b037-g37-a004-control-024-gemini-3.7-flash-pipeline-01-stage-02-acceptance-criteria.md",
+          "metadata": "b037-g37-a004-control-024-gemini-3.7-flash-pipeline-01-stage-02-acceptance-criteria.json",
+          "output_sha256": "b9bcd59ba7b152dfbf8525e4d07097487ef51bfe4813d310212bc863427f4678",
+          "stage_id": "acceptance-criteria",
+          "stage_name": "Elaborate Acceptance Criteria",
+          "status": "success",
+          "usage": {
+            "candidatesTokenCount": 1516,
+            "promptTokenCount": 4928,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4928
+              }
+            ],
+            "serviceTier": "standard",
+            "thoughtsTokenCount": 582,
+            "totalTokenCount": 7026
+          }
+        },
+        {
+          "markdown": "b037-g37-a004-control-024-gemini-3.7-flash-pipeline-01-stage-03-test-cases.md",
+          "metadata": "b037-g37-a004-control-024-gemini-3.7-flash-pipeline-01-stage-03-test-cases.json",
+          "output_sha256": "d5937cc56dec7e7c08b9f05e603f8761823caade43f45e5f81f6810f1172d0d4",
+          "stage_id": "test-cases",
+          "stage_name": "Derive Test Cases",
+          "status": "success",
+          "usage": {
+            "candidatesTokenCount": 1501,
+            "promptTokenCount": 3116,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 3116
+              }
+            ],
+            "serviceTier": "standard",
+            "thoughtsTokenCount": 926,
+            "totalTokenCount": 5543
+          }
+        }
+      ],
+      "status": "success",
+      "temperature": 0.0,
+      "total_usage": {
+        "candidatesTokenCount": 5386,
+        "promptTokenCount": 10116,
+        "thoughtsTokenCount": 2853,
+        "totalTokenCount": 18355
+      }
+    },
+    "skill": {
+      "schema": 1,
+      "run_id": "a004-g37-dynamic-provenance-028",
+      "benchmark": "custom/ba-agent/benchmarks/037-a004-selective-downstream-delta",
+      "model": "gemini-3.7-flash",
+      "mode": "dynamic",
+      "input_sha256": "3fdf3bb57a50dc11dc51c1833d8b40533c3b1412886486544e2080b55b457a57",
+      "prompt_sha256": "5812e0f8a9421b42846ec303a441bd7945335b3daa75cff5d5be38796d4deac8",
+      "result_sha256": "dffff57aaf1043f875fa607f5d3a8f54b371a7155092c5e2f3f9ec5e8d30486e",
+      "status": "success",
+      "operational_status": null,
+      "created_at": "2026-09-06T05:45:45Z",
+      "agent_path": "custom/ba-agent/agents/requirement-change-orchestrator/AGENT.md",
+      "agent_sha256": "f00e55f160e3ff7c66d9b0e8497a7254a50fff3dbca466ba0dc552f3fb2dc77a",
+      "route": {
+        "objective": "Reconcile baseline v4 requirements against 6 September decisions and notes, then selectively update only acceptance criteria and test cases for supported material deltas while skipping unaffected decomposition and impact assessments.",
+        "selected_skills": [
+          "reconcile-requirement-changes",
+          "elaborate-acceptance-criteria",
+          "derive-test-cases"
+        ],
+        "not_selected": [
+          {
+            "skill": "analyze-requirements",
+            "reason": "Supported changes (AD-12 managed SFTP, PD-51 invoice_status specification, and D-52 withdrawal) are clear, unambiguous, and immediately ready for downstream artifact updates without additional semantic analysis."
+          },
+          {
+            "skill": "decompose-requirements",
+            "reason": "Existing decomposition is explicitly documented to remain valid across transport and payload-field changes."
+          },
+          {
+            "skill": "assess-change-impact",
+            "reason": "The 5 September impact assessment already sufficiently covers the export service, vendor intake, and Operations support flow for transport and payload-field adjustments."
+          }
+        ],
+        "stop_rules": [
+          "ACTIVE_DELTA_SCOPE: REQ-22 (confirmed managed SFTP), REQ-24 (withdrawn/removed), and PD-51 invoice_status field addition. All other baseline IDs are context-only and MUST NOT receive regenerated or rewritten downstream artifacts.",
+          "The 19:00 export time preference is an unapproved, unresolved proposal; REQ-20 baseline remains 18:00 Australia/Sydney and must not drive downstream mutation.",
+          "The 7-day retention comment lacks data-governance approval; REQ-21 baseline remains 30 days and must not drive downstream mutation.",
+          "Silence regarding REQ-23 does not constitute removal; REQ-23 remains Confirmed unchanged with no artifact regeneration."
+        ],
+        "expected_final_artifact": "A selective requirement change package containing the reconciled requirement status register, targeted updates/additions to acceptance criteria (for REQ-22 resolution, PD-51 invoice_status, and retirement of REQ-24 ACs), and corresponding selective test cases, leaving untouched baseline artifacts unchanged."
+      },
+      "route_status": "success",
+      "route_usage": {
+        "promptTokenCount": 2570,
+        "candidatesTokenCount": 508,
+        "totalTokenCount": 4040,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2570
+          }
+        ],
+        "thoughtsTokenCount": 962,
+        "serviceTier": "standard"
+      },
+      "stages": [
+        {
+          "index": 1,
+          "skill": "reconcile-requirement-changes",
+          "skill_path": "custom/ba-agent/skills/reconcile-requirement-changes/SKILL.md",
+          "skill_sha256": "957088617ba326d82d9f25c3d268fb6983a1268afcb85701d56a4cbd2d78d9e9",
+          "status": "success",
+          "usage": {
+            "promptTokenCount": 2621,
+            "candidatesTokenCount": 1692,
+            "totalTokenCount": 5919,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 2621
+              }
+            ],
+            "thoughtsTokenCount": 1606,
+            "serviceTier": "standard"
+          },
+          "output_sha256": "a181fcfb1c8f3f6c8ae958bd7337c3dddb58e756f8f4a8b1cec4816a2eaedfe5",
+          "error": null
+        },
+        {
+          "index": 2,
+          "skill": "elaborate-acceptance-criteria",
+          "skill_path": "custom/ba-agent/skills/elaborate-acceptance-criteria/SKILL.md",
+          "skill_sha256": "852acfee189a2b88418f3f2fd948ff96ddaee23f9e6a620563bf06a94c380d0d",
+          "status": "success",
+          "usage": {
+            "promptTokenCount": 5543,
+            "candidatesTokenCount": 1386,
+            "totalTokenCount": 7663,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 5543
+              }
+            ],
+            "thoughtsTokenCount": 734,
+            "serviceTier": "standard"
+          },
+          "output_sha256": "9ca027ef7eafc31fc2006d0b793dc0d56b2fc8cb55e2a0745bc2af5449df1b60",
+          "error": null
+        },
+        {
+          "index": 3,
+          "skill": "derive-test-cases",
+          "skill_path": "custom/ba-agent/skills/derive-test-cases/SKILL.md",
+          "skill_sha256": "5105a2f0965663cf0f7f24ecedd8b8dc11f3d20afdc2815e25a224d7297df995",
+          "status": "success",
+          "usage": {
+            "promptTokenCount": 4276,
+            "candidatesTokenCount": 1474,
+            "totalTokenCount": 6751,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4276
+              }
+            ],
+            "thoughtsTokenCount": 1001,
+            "serviceTier": "standard"
+          },
+          "output_sha256": "cff17155e4708e5e81c2035ef55bf2099708684a92ea5f539edc62d4f1687356",
+          "error": null
+        }
+      ],
+      "usage_totals": {
+        "prompt": 15010,
+        "candidate": 5060,
+        "thoughts": 4303,
+        "total": 24373
+      },
+      "result_markdown": "a004-g37-dynamic-provenance-028-gemini-3-7-flash-dynamic-01.md"
+    }
+  },
+  "evaluation": {
+    "baseline": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 35,
+          "max": 35,
+          "rationale": "Correctly executed the three-step sequence (reconcile -> acceptance criteria -> test cases) without unnecessarily triggering requirements analysis, decomposition, or change impact assessment."
+        },
+        {
+          "criterion": "Delta authority/state preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "Accurately distinguished authorized deltas (AD-12, PD-51, D-52) from unresolved proposals (18:00 vs 19:00, 30-day vs 7-day retention) and confirmed REQ-23 as untouched without inferring Finance decision ownership."
+        },
+        {
+          "criterion": "Selective downstream propagation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Selectively mutated and authored downstream artifacts exclusively for REQ-22, REQ-24, and the new PD-51 requirement while leaving untouched baseline items intact."
+        },
+        {
+          "criterion": "Acceptance/test fidelity",
+          "score": 15,
+          "max": 15,
+          "rationale": "Correctly captured managed SFTP transport, exact invoice_status string mapping (OPEN, PAID, VOID), null handling without defaulting, and de-scoping of REQ-24."
+        },
+        {
+          "criterion": "Scope discipline",
+          "score": 5,
+          "max": 5,
+          "rationale": "Preserved existing decomposition and impact assessment without rework."
+        }
+      ],
+      "summary": "The baseline output performed exact selective downstream reconciliation and artifact updates with complete fidelity to the evidence."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 35,
+          "max": 35,
+          "rationale": "Explicitly reasoned against and bypassed unnecessary skills (analyze-requirements, decompose-requirements, assess-change-impact) and executed exactly reconcile-requirement-changes -> elaborate-acceptance-criteria -> derive-test-cases."
+        },
+        {
+          "criterion": "Delta authority/state preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "Correctly categorized AD-12, PD-51, and D-52 as authorized, isolated unapproved 19:00 and 7-day proposals without inferring unauthorized Finance decision ownership, and preserved REQ-23."
+        },
+        {
+          "criterion": "Selective downstream propagation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Strictly limited downstream generation to REQ-22, PD-51, and REQ-24, preserving all context baseline artifacts without mutation."
+        },
+        {
+          "criterion": "Acceptance/test fidelity",
+          "score": 15,
+          "max": 15,
+          "rationale": "Captured managed SFTP gateway requirements, verbatim OPEN/PAID/VOID extraction, null handling for missing ERP status, negative boundary rules against defaulting, and explicit retirement of AC-24-1/TC-24-1."
+        },
+        {
+          "criterion": "Scope discipline",
+          "score": 5,
+          "max": 5,
+          "rationale": "Followed strict stop rules to avoid rerunning stable decomposition and impact assessment."
+        }
+      ],
+      "summary": "The Skill orchestrator and specialized skills executed a flawless selective delta propagation, maintaining strict scope discipline and decision authority rigor."
+    },
+    "defects": [],
+    "summary": "Both baseline and Skill achieved full marks by strictly adhering to evidence boundaries, selecting the exact 3-step route, avoiding unauthorized delta propagation, and selectively updating only the affected downstream artifacts."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 13158,
+    "candidatesTokenCount": 975,
+    "totalTokenCount": 15083,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 13158
+      }
+    ],
+    "thoughtsTokenCount": 950,
+    "serviceTier": "standard"
+  }
+}

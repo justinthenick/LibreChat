@@ -1,0 +1,102 @@
+{
+  "input_sha256": "3cf9bddba0b36afb5e8d1bd8a68a088b8a8db31398ff69088952dfbac5806ee3",
+  "model": "gemini-3.7-flash",
+  "pipeline": "Benchmark 035 \u2014 Evidence-preserving fixed release-assurance control",
+  "prompt_sha256": "a8c3301110eaaed9d123930ac3ec61f80c92d27cd53c17681f313de02171897f",
+  "run_id": "b035-g37-a003-control-022",
+  "schema": 1,
+  "stages": [
+    {
+      "markdown": "b035-g37-a003-control-022-gemini-3.7-flash-pipeline-01-stage-01-traceability-audit.md",
+      "metadata": "b035-g37-a003-control-022-gemini-3.7-flash-pipeline-01-stage-01-traceability-audit.json",
+      "output_sha256": "f3679ff032c05041e12b2fc84e509ae2e546ecf470e1e5335aeafb24b5d76495",
+      "stage_id": "traceability-audit",
+      "stage_name": "Audit Artifact Traceability",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2504,
+        "promptTokenCount": 3308,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3308
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 1233,
+        "totalTokenCount": 7045
+      }
+    },
+    {
+      "markdown": "b035-g37-a003-control-022-gemini-3.7-flash-pipeline-01-stage-02-release-evidence-validation.md",
+      "metadata": "b035-g37-a003-control-022-gemini-3.7-flash-pipeline-01-stage-02-release-evidence-validation.json",
+      "output_sha256": "6129cfb83c3b94594eaa68e585b5186689f16b06faa1e74fb1ea82c29da709bc",
+      "stage_id": "release-evidence-validation",
+      "stage_name": "Validate Release Evidence",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 3015,
+        "promptTokenCount": 4000,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 4000
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 1097,
+        "totalTokenCount": 8112
+      }
+    },
+    {
+      "markdown": "b035-g37-a003-control-022-gemini-3.7-flash-pipeline-01-stage-03-operational-readiness.md",
+      "metadata": "b035-g37-a003-control-022-gemini-3.7-flash-pipeline-01-stage-03-operational-readiness.json",
+      "output_sha256": "6d1ef0fc86fddad3a1fa2d3dc43b2bbee5c500e52845dd5518ce5b6583eb4132",
+      "stage_id": "operational-readiness",
+      "stage_name": "Assess Operational Readiness",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2230,
+        "promptTokenCount": 4602,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 4602
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 294,
+        "totalTokenCount": 7126
+      }
+    },
+    {
+      "markdown": "b035-g37-a003-control-022-gemini-3.7-flash-pipeline-01-stage-04-change-readiness.md",
+      "metadata": "b035-g37-a003-control-022-gemini-3.7-flash-pipeline-01-stage-04-change-readiness.json",
+      "output_sha256": "d610b742a811ad12b3bafa58871bdc658c72e71ee77b1b2342bc1adc344b4d21",
+      "stage_id": "change-readiness",
+      "stage_name": "Prepare Solution Change Readiness",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2183,
+        "promptTokenCount": 3916,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3916
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 2193,
+        "totalTokenCount": 8292
+      }
+    }
+  ],
+  "status": "success",
+  "temperature": 0.0,
+  "total_usage": {
+    "candidatesTokenCount": 9932,
+    "promptTokenCount": 15826,
+    "thoughtsTokenCount": 4817,
+    "totalTokenCount": 30575
+  }
+}

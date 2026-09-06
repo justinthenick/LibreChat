@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-a003-generalization-g37-003",
+  "benchmark": "Benchmark 036 — A003 Impact and ITIL Generalization",
+  "benchmark_path": "custom/ba-agent/benchmarks/036-a003-impact-itil-generalization",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-06T01:44:28Z",
+  "baseline_result": "results/b036-g37-a003-control-023-gemini-3.7-flash-pipeline-01.md",
+  "skill_result": "results/a003-g37-generalization-023-gemini-3-7-flash-dynamic-01.md",
+  "skill_path": "custom/ba-agent/agents/release-assurance-orchestrator/AGENT.md",
+  "skill_sha256": "79a630ce3b946c545426468ac9fa3af03bc6516315c9e668e68ec5a2b6871168",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 35,
+          "max": 35,
+          "rationale": "Correctly selected and executed exactly assess-change-impact -> validate-release-evidence -> assess-itil-alignment without adding unrequested stages."
+        },
+        {
+          "criterion": "Selectivity and maturity preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Preserved TA-88 as complete and current, and avoided re-assessing the mature operational readiness baseline."
+        },
+        {
+          "criterion": "Evidence-state preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Maintained staging results strictly in staging scope, kept production verification as NOT RUN, CHG-2217 as Draft, the window as Candidate, and Change Authority as Unknown."
+        },
+        {
+          "criterion": "Impact uncertainty discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Correctly classified downstream consumer pinning, trust-store behavior, and maintenance window sensitivity as Unknown impact questions rather than confirmed impacts."
+        },
+        {
+          "criterion": "ITIL / authority discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Evaluated ITIL 4 practice alignment without inventing mandatory CAB requirements, approvals, or authority structures."
+        }
+      ],
+      "summary": "Baseline successfully followed the minimum validated route, respected all artifact maturity states, preserved exact evidence statuses, and evaluated ITIL alignment without policy invention."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 35,
+          "max": 35,
+          "rationale": "Correctly selected and ordered the exact required 3-stage route (assess-change-impact -> validate-release-evidence -> assess-itil-alignment), explicitly documenting exclusions for traceability, operational readiness, and change readiness handoffs."
+        },
+        {
+          "criterion": "Selectivity and maturity preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Respected TA-88 and operational baseline maturity without redundant re-auditing."
+        },
+        {
+          "criterion": "Evidence-state preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Accurately preserved all states: staging tests as PASS, production post-change verification as NOT RUN, CHG-2217 as Draft, execution window as Candidate, and Change Authority as Unknown."
+        },
+        {
+          "criterion": "Impact uncertainty discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Properly categorized MobileApp and PartnerGateway dependencies and sensitivities as Unknown / unevidenced risks."
+        },
+        {
+          "criterion": "ITIL / authority discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Assessed ITIL 4 practice alignment with clear distinctions between general framework guidance and local organizational policy, without inferring a mandatory CAB."
+        }
+      ],
+      "summary": "Skill executed the precise minimal assurance route, properly justified skipped mature artifacts, adhered strictly to evidence boundaries and uncertainty classifications, and provided a sound ITIL 4 alignment assessment."
+    },
+    "defects": [],
+    "summary": "Both baseline and Skill performed flawlessly against all rubric criteria. Both selected the exact three-stage route, preserved mature artifacts (traceability and operational readiness), maintained precise evidence state designations (NOT RUN, Draft, Candidate, Unknown), treated consumer pinning/trust-store risks as unverified unknowns, and refrained from inventing Change Authorities or CAB requirements."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 12407,
+    "candidatesTokenCount": 949,
+    "totalTokenCount": 14070,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 12407
+      }
+    ],
+    "thoughtsTokenCount": 714,
+    "serviceTier": "standard"
+  }
+}

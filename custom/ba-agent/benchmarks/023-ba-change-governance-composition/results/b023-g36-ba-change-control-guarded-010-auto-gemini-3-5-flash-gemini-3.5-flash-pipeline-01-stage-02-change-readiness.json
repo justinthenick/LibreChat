@@ -1,0 +1,33 @@
+{
+  "agent_path": "custom/ba-agent/skills/prepare-solution-change-readiness/SKILL.md",
+  "agent_sha256": "b18b5fc6db55de3c58c5af8af867352f37e8cb63998b33d4b464e88cf3cb8e5e",
+  "agent_version": "0.2.0",
+  "ended_at": "2026-09-05T06:41:17Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "max_output_tokens": 8192,
+  "model": "gemini-3.5-flash",
+  "pipeline": "Benchmark 023 \u2014 Control: Composite BA + Change Readiness",
+  "run_id": "b023-g36-ba-change-control-guarded-010-auto-gemini-3-5-flash",
+  "stage_id": "change-readiness",
+  "stage_index": 2,
+  "stage_input_sha256": "702df5a95cdaa615a6d67d7a5b532c3fc9c209930da7db96bbeadcd0cd795b3c",
+  "stage_name": "Prepare Solution / Change Readiness v0.2",
+  "started_at": "2026-09-05T06:40:44Z",
+  "status": "success",
+  "temperature": 0.0,
+  "upstream_output_sha256": "7fe244a83a734a4d8be97f18552ef9688e801a01a7d5904ccf8337e052f933e3",
+  "usage": {
+    "candidatesTokenCount": 2919,
+    "promptTokenCount": 5783,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 5783
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 3983,
+    "totalTokenCount": 12685
+  }
+}

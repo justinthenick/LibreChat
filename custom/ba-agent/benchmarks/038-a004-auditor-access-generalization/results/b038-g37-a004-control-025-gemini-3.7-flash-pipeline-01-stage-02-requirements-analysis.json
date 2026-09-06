@@ -1,0 +1,33 @@
+{
+  "agent_path": "custom/ba-agent/skills/analyze-requirements/SKILL.md",
+  "agent_sha256": "9b3033fb72fff244c170fa49e5719db5bbb10b9f0b5694d151f2445b3a844130",
+  "agent_version": "0.4.0",
+  "ended_at": "2026-09-06T01:41:21Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "max_output_tokens": 8192,
+  "model": "gemini-3.7-flash",
+  "pipeline": "Benchmark 038 \u2014 Fixed auditor-access delta control",
+  "run_id": "b038-g37-a004-control-025",
+  "stage_id": "requirements-analysis",
+  "stage_index": 2,
+  "stage_input_sha256": "b2a1ce1c18d9a05d7c5b8af98d0f3ad1dce30b7a3f04b86ae86a41bb504bccc4",
+  "stage_name": "Analyze Requirements",
+  "started_at": "2026-09-06T01:41:07Z",
+  "status": "success",
+  "temperature": 0.0,
+  "upstream_output_sha256": "8cd1c5f7183446d844e196e7e9a918889588c62791f33a6dc408495a9eb33895",
+  "usage": {
+    "candidatesTokenCount": 2884,
+    "promptTokenCount": 5975,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 5975
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 961,
+    "totalTokenCount": 9820
+  }
+}

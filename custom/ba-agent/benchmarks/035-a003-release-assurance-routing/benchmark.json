@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 035 — A003 Selective Release Assurance Routing",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../agents/release-assurance-orchestrator/AGENT.md",
+  "results_dir": "results"
+}

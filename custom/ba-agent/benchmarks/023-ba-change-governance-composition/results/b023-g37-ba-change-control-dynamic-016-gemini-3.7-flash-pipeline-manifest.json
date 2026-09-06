@@ -1,0 +1,72 @@
+{
+  "combined_markdown": "b023-g37-ba-change-control-dynamic-016-gemini-3.7-flash-pipeline-01.md",
+  "combined_metadata": "b023-g37-ba-change-control-dynamic-016-gemini-3.7-flash-pipeline-01.json",
+  "run_id": "b023-g37-ba-change-control-dynamic-016",
+  "schema": 1,
+  "stages": [
+    {
+      "markdown": "b023-g37-ba-change-control-dynamic-016-gemini-3.7-flash-pipeline-01-stage-01-ba-delivery.md",
+      "metadata": "b023-g37-ba-change-control-dynamic-016-gemini-3.7-flash-pipeline-01-stage-01-ba-delivery.json",
+      "output_sha256": "c738ea01fcb7a7f220419bde8136f5f8d0765f40bbf43146b5af8dc0569e2eeb",
+      "stage_id": "ba-delivery",
+      "stage_name": "Composite BA Delivery Analyst v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 3771,
+        "promptTokenCount": 2959,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2959
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 992,
+        "totalTokenCount": 7722
+      }
+    },
+    {
+      "markdown": "b023-g37-ba-change-control-dynamic-016-gemini-3.7-flash-pipeline-01-stage-02-change-readiness.md",
+      "metadata": "b023-g37-ba-change-control-dynamic-016-gemini-3.7-flash-pipeline-01-stage-02-change-readiness.json",
+      "output_sha256": "2deb0abd6cceb3a4da5f8ef0d7968d39ccbf6d4d85709c02e717d9bbbc071f0d",
+      "stage_id": "change-readiness",
+      "stage_name": "Prepare Solution / Change Readiness v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 3395,
+        "promptTokenCount": 5580,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 5580
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 2978,
+        "totalTokenCount": 11953
+      }
+    },
+    {
+      "markdown": "b023-g37-ba-change-control-dynamic-016-gemini-3.7-flash-pipeline-01-stage-03-itil-alignment.md",
+      "metadata": "b023-g37-ba-change-control-dynamic-016-gemini-3.7-flash-pipeline-01-stage-03-itil-alignment.json",
+      "output_sha256": "3b207a5535b09077b86255dc135f38cba25721dabd68c2f7996849d4ffe90f98",
+      "stage_id": "itil-alignment",
+      "stage_name": "Assess ITIL Alignment v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2942,
+        "promptTokenCount": 5719,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 5719
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 914,
+        "totalTokenCount": 9575
+      }
+    }
+  ],
+  "status": "success"
+}

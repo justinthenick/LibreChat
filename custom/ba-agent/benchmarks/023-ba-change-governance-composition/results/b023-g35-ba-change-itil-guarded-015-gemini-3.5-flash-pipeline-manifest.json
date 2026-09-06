@@ -1,0 +1,72 @@
+{
+  "combined_markdown": "b023-g35-ba-change-itil-guarded-015-gemini-3.5-flash-pipeline-01.md",
+  "combined_metadata": "b023-g35-ba-change-itil-guarded-015-gemini-3.5-flash-pipeline-01.json",
+  "run_id": "b023-g35-ba-change-itil-guarded-015",
+  "schema": 1,
+  "stages": [
+    {
+      "markdown": "b023-g35-ba-change-itil-guarded-015-gemini-3.5-flash-pipeline-01-stage-01-ba-delivery.md",
+      "metadata": "b023-g35-ba-change-itil-guarded-015-gemini-3.5-flash-pipeline-01-stage-01-ba-delivery.json",
+      "output_sha256": "94b4fdef467ce4b57ad84559ead81d92b913653602273d7da7a6f0d30c72c737",
+      "stage_id": "ba-delivery",
+      "stage_name": "Composite BA Delivery Analyst v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 4271,
+        "promptTokenCount": 2959,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2959
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 3031,
+        "totalTokenCount": 10261
+      }
+    },
+    {
+      "markdown": "b023-g35-ba-change-itil-guarded-015-gemini-3.5-flash-pipeline-01-stage-02-change-readiness.md",
+      "metadata": "b023-g35-ba-change-itil-guarded-015-gemini-3.5-flash-pipeline-01-stage-02-change-readiness.json",
+      "output_sha256": "3ce0db16d720ee69c427e3f09ca164919830746cd9c29755b1d0e4a037e6073d",
+      "stage_id": "change-readiness",
+      "stage_name": "Prepare Solution / Change Readiness v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2897,
+        "promptTokenCount": 6080,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 6080
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 6679,
+        "totalTokenCount": 15656
+      }
+    },
+    {
+      "markdown": "b023-g35-ba-change-itil-guarded-015-gemini-3.5-flash-pipeline-01-stage-03-itil-alignment.md",
+      "metadata": "b023-g35-ba-change-itil-guarded-015-gemini-3.5-flash-pipeline-01-stage-03-itil-alignment.json",
+      "output_sha256": "2ca37be16c6e94adea2dd506030667ef84486d4a919d50174a192eb1f0c19a7f",
+      "stage_id": "itil-alignment",
+      "stage_name": "Assess ITIL Alignment v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2332,
+        "promptTokenCount": 5221,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 5221
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 1564,
+        "totalTokenCount": 9117
+      }
+    }
+  ],
+  "status": "success"
+}

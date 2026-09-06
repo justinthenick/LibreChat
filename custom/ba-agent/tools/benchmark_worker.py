@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Poll a GitHub-controlled BA benchmark job queue and run new jobs on the NAS.
 
-Python 3.8+ standard library only. The worker never stores API keys; it passes the
-configured private .env path to the selected runner. Each unique job ID is
-attempted once and recorded locally. To retry, publish a new job ID.
+Python 3.8+ standard library only. GitHub reads are authenticated with the
+configured token when available. Model-visible benchmark/pipeline inputs are
+refreshed by this worker before execution, so the runners can execute from the
+local cache without making anonymous GitHub reads.
+
+Each unique job ID is attempted once and recorded locally.
 """
 
 import argparse
+import base64
 import json
 import os
 from pathlib import Path
@@ -29,26 +33,61 @@ class WorkerError(RuntimeError):
     pass
 
 
-def fetch_json(repo, branch, repo_path):
-    encoded_path = urllib.parse.quote(repo_path.strip("/"), safe="/")
-    ref = urllib.parse.quote(branch, safe="")
-    url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(repo, encoded_path, ref)
-    req = urllib.request.Request(
-        url,
-        headers={
-            "Accept": "application/vnd.github.raw+json",
-            "User-Agent": "ba-agent-benchmark-worker/1.1",
-            "X-GitHub-Api-Version": "2022-11-28",
-        },
-    )
+def load_dotenv(path):
+    values = {}
+    if not path.exists():
+        raise WorkerError("Environment file not found: {}".format(path))
+    for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+            value = value[1:-1]
+        if key:
+            values[key] = value
+    return values
+
+
+def merged_environment(env_file):
+    values = load_dotenv(env_file)
+    values.update(os.environ)
+    return values
+
+
+def github_request(url, token=None, accept="application/vnd.github+json"):
+    headers = {
+        "Accept": accept,
+        "User-Agent": "ba-agent-benchmark-worker/2.0",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    if token:
+        headers["Authorization"] = "Bearer {}".format(token)
+    request = urllib.request.Request(url, headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=60) as response:
-            raw = response.read().decode("utf-8")
+        with urllib.request.urlopen(request, timeout=60) as response:
+            return response.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
-        raise WorkerError("GitHub HTTP {} for {}: {}".format(exc.code, repo_path, body[:500]))
+        raise WorkerError("GitHub HTTP {}: {}".format(exc.code, body[:500]))
     except urllib.error.URLError as exc:
-        raise WorkerError("GitHub network error for {}: {}".format(repo_path, exc.reason))
+        raise WorkerError("GitHub network error: {}".format(exc.reason))
+
+
+def contents_url(repo, branch, repo_path):
+    encoded_path = urllib.parse.quote(repo_path.strip("/"), safe="/")
+    ref = urllib.parse.quote(branch, safe="")
+    return "https://api.github.com/repos/{}/contents/{}?ref={}".format(repo, encoded_path, ref)
+
+
+def fetch_json(repo, branch, repo_path, token=None):
+    raw = github_request(
+        contents_url(repo, branch, repo_path),
+        token=token,
+        accept="application/vnd.github.raw+json",
+    )
     try:
         value = json.loads(raw)
     except json.JSONDecodeError as exc:
@@ -58,15 +97,36 @@ def fetch_json(repo, branch, repo_path):
     return value
 
 
+def fetch_text(repo, branch, repo_path, token=None):
+    raw = github_request(contents_url(repo, branch, repo_path), token=token)
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise WorkerError("Invalid GitHub content response for {}: {}".format(repo_path, exc))
+    if not isinstance(data, dict) or data.get("type") != "file" or data.get("encoding") != "base64":
+        raise WorkerError("GitHub path is not a text file: {}".format(repo_path))
+    try:
+        return base64.b64decode(data.get("content", "")).decode("utf-8")
+    except Exception as exc:
+        raise WorkerError("Cannot decode {}: {}".format(repo_path, exc))
+
+
+def write_repo_file(root, repo_path, text):
+    path = root / repo_path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
 def load_state(path):
     if not path.exists():
-        return {"schema": 1, "jobs": {}}
+        return {"schema": 2, "jobs": {}}
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
-        return {"schema": 1, "jobs": {}}
+        return {"schema": 2, "jobs": {}}
     if not isinstance(value, dict) or not isinstance(value.get("jobs"), dict):
-        return {"schema": 1, "jobs": {}}
+        return {"schema": 2, "jobs": {}}
     return value
 
 
@@ -107,6 +167,9 @@ def validate_job(job):
         "repeat": repeat,
         "temperature": temperature,
         "enabled": bool(job.get("enabled", True)),
+        "auto_fallback": bool(job.get("auto_fallback", False)),
+        "comparison_group": str(job.get("comparison_group") or "").strip() or None,
+        "fallback_models": [str(x).strip() for x in (job.get("fallback_models") or []) if str(x).strip()],
     }
     if runner == "benchmark":
         mode = str(job.get("mode") or "skill").strip()
@@ -118,6 +181,65 @@ def validate_job(job):
     return normalized
 
 
+def refresh_benchmark_inputs(root, repo, branch, job, token):
+    benchmark_rel = job["benchmark"].rstrip("/")
+    config_rel = benchmark_rel + "/benchmark.json"
+    config_text = fetch_text(repo, branch, config_rel, token=token)
+    write_repo_file(root, config_rel, config_text)
+    try:
+        config = json.loads(config_text)
+    except ValueError as exc:
+        raise WorkerError("Invalid benchmark config {}: {}".format(config_rel, exc))
+
+    for name in (str(config.get("input") or "input.md"), str(config.get("prompt") or "prompt.md")):
+        rel = benchmark_rel + "/" + name
+        write_repo_file(root, rel, fetch_text(repo, branch, rel, token=token))
+
+    skill_config = config.get("skill")
+    if skill_config:
+        benchmark_dir = root / benchmark_rel
+        skill_path = (benchmark_dir / str(skill_config)).resolve()
+        try:
+            skill_rel = skill_path.relative_to(root.resolve()).as_posix()
+        except ValueError:
+            raise WorkerError("Configured skill resolves outside lab root: {}".format(skill_path))
+        write_repo_file(root, skill_rel, fetch_text(repo, branch, skill_rel, token=token))
+
+
+def refresh_pipeline_inputs(root, repo, branch, job, token):
+    benchmark_rel = job["benchmark"].rstrip("/")
+    config_name = job["pipeline_config"]
+    config_rel = benchmark_rel + "/" + config_name
+    config_text = fetch_text(repo, branch, config_rel, token=token)
+    write_repo_file(root, config_rel, config_text)
+    try:
+        config = json.loads(config_text)
+    except ValueError as exc:
+        raise WorkerError("Invalid pipeline config {}: {}".format(config_rel, exc))
+
+    for name in (str(config.get("input") or "input.md"), str(config.get("prompt") or "pipeline-prompt.md")):
+        rel = benchmark_rel + "/" + name
+        write_repo_file(root, rel, fetch_text(repo, branch, rel, token=token))
+
+    benchmark_dir = root / benchmark_rel
+    for stage in config.get("stages") or []:
+        agent_path = (benchmark_dir / str(stage.get("agent") or "")).resolve()
+        try:
+            agent_rel = agent_path.relative_to(root.resolve()).as_posix()
+        except ValueError:
+            raise WorkerError("Pipeline agent resolves outside lab root: {}".format(agent_path))
+        write_repo_file(root, agent_rel, fetch_text(repo, branch, agent_rel, token=token))
+
+
+def refresh_job_inputs(root, repo, branch, job, token):
+    if not token:
+        raise WorkerError("Authenticated GitHub token is required for autonomous refresh")
+    if job["runner"] == "pipeline":
+        refresh_pipeline_inputs(root, repo, branch, job, token)
+    else:
+        refresh_benchmark_inputs(root, repo, branch, job, token)
+
+
 def run_job(root, env_file, token_env, repo, branch, job):
     benchmark = root / job["benchmark"]
     benchmark.mkdir(parents=True, exist_ok=True)
@@ -127,15 +249,12 @@ def run_job(root, env_file, token_env, repo, branch, job):
         if not runner.exists():
             raise WorkerError("Pipeline runner not found: {}".format(runner))
         cmd = [
-            sys.executable,
-            str(runner),
-            str(benchmark),
+            sys.executable, str(runner), str(benchmark),
             "--pipeline-config", job["pipeline_config"],
             "--model", job["model"],
             "--temperature", str(job["temperature"]),
             "--run-id", job["id"],
             "--env-file", str(env_file),
-            "--refresh-from-github",
             "--publish-github",
             "--github-token-env", token_env,
             "--github-repo", repo,
@@ -147,22 +266,19 @@ def run_job(root, env_file, token_env, repo, branch, job):
         if not runner.exists():
             raise WorkerError("Runner not found: {}".format(runner))
         cmd = [
-            sys.executable,
-            str(runner),
-            str(benchmark),
+            sys.executable, str(runner), str(benchmark),
             "--model", job["model"],
             "--mode", job["mode"],
             "--repeat", str(job["repeat"]),
             "--temperature", str(job["temperature"]),
             "--run-id", job["id"],
             "--env-file", str(env_file),
-            "--refresh-from-github",
             "--publish-github",
             "--github-token-env", token_env,
             "--github-repo", repo,
             "--github-branch", branch,
         ]
-        label = "{}".format(job["mode"])
+        label = job["mode"]
 
     print("[worker] starting {}: {} {} {}".format(job["id"], job["model"], label, job["benchmark"]))
     proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -171,6 +287,17 @@ def run_job(root, env_file, token_env, repo, branch, job):
         print(output.rstrip())
     print("[worker] finished {} rc={}".format(job["id"], proc.returncode))
     return proc.returncode, output
+
+
+def classify_operational_status(output):
+    text = (output or "").lower()
+    if "quota_blocked" in text:
+        return "quota_blocked"
+    if "provider_busy" in text:
+        return "provider_busy"
+    if "network_error" in text:
+        return "network_error"
+    return None
 
 
 def main():
@@ -195,18 +322,25 @@ def main():
     if args.interval < 60 and not args.once:
         raise WorkerError("Loop interval must be at least 60 seconds")
 
+    env = merged_environment(env_file)
+    token = env.get(args.github_token_env, "").strip() or None
+    if not token:
+        raise WorkerError("{} is required for autonomous GitHub reads".format(args.github_token_env))
+
     print("[worker] repo={} branch={} jobs={}".format(args.repo, args.branch, args.jobs_path))
     print("[worker] root={} env={}".format(root, env_file))
     print("[worker] state={}".format(state_file))
+    print("[worker] authenticated GitHub reads enabled")
 
     while True:
         try:
-            queue = fetch_json(args.repo, args.branch, args.jobs_path)
+            queue = fetch_json(args.repo, args.branch, args.jobs_path, token=token)
             jobs = queue.get("jobs") or []
             if not isinstance(jobs, list):
                 raise WorkerError("jobs.json must contain a jobs array")
 
             state = load_state(state_file)
+            state["schema"] = 2
             known = state["jobs"]
             pending = []
             for raw_job in jobs:
@@ -222,15 +356,21 @@ def main():
                     "runner": job["runner"],
                     "benchmark": job["benchmark"],
                     "attempted_at_epoch": int(time.time()),
+                    "comparison_group": job.get("comparison_group"),
+                    "auto_fallback": job.get("auto_fallback", False),
+                    "fallback_models": job.get("fallback_models") or [],
                 }
                 if job["runner"] == "benchmark":
                     record["mode"] = job["mode"]
                 else:
                     record["pipeline_config"] = job["pipeline_config"]
                 try:
+                    refresh_job_inputs(root, args.repo, args.branch, job, token)
+                    record["source_refresh"] = "authenticated"
                     rc, output = run_job(root, env_file, args.github_token_env, args.repo, args.branch, job)
                     record["return_code"] = rc
                     record["status"] = "completed" if rc == 0 else "failed"
+                    record["operational_status"] = classify_operational_status(output)
                     record["output_tail"] = output[-4000:]
                 except Exception as exc:
                     record["return_code"] = None

@@ -1,0 +1,519 @@
+{
+  "schema": 1,
+  "enabled": true,
+  "note": "Autonomous semantic completion wave. Historical Skill/A001/A002/A003 routing gates remain preserved. The rejected A002 generalization control is disabled and replaced by the evidence-preserving control. A003 true-dynamic plus independent generalization and A004 routing/dynamic/generalization gates are predeclared so the evaluator can wait for and score outputs without another manual hand-off.",
+  "jobs": [
+    {
+      "id": "sem-b023-composition-g35-001",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+      "baseline_result": "results/b023-g35-ba-change-control-guarded-014-gemini-3.5-flash-pipeline-01.md",
+      "skill_result": "results/b023-g35-ba-change-itil-guarded-015-gemini-3.5-flash-pipeline-01.md",
+      "generation_model": "gemini-3.5-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "paid_tier_composition_evaluation"
+    },
+    {
+      "id": "sem-b024-v02-paid-001",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/024-artifact-traceability-audit",
+      "baseline_result": "results/b024-g35-traceability-v02-ab-005-gemini-3.5-flash-baseline-01.md",
+      "skill_result": "results/b024-g35-traceability-v02-ab-005-gemini-3.5-flash-skill-01.md",
+      "skill_metadata": "results/b024-g35-traceability-v02-ab-005-gemini-3.5-flash-skill-01.json",
+      "generation_model": "gemini-3.5-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "revision_model": "gemini-3.7-flash",
+      "revision_fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "rerun_model": "gemini-3.5-flash",
+      "generation_fallback_models": [
+        "gemini-3.5-flash"
+      ],
+      "rerun_id_prefix": "b024-g35-traceability-semantic",
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": true,
+      "max_revisions": 1,
+      "revision_count": 0
+    },
+    {
+      "id": "sem-b025-v02-paid-001",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/025-procurement-specification",
+      "baseline_result": "results/b025-g35-procurement-spec-v02-ab-005-gemini-3.5-flash-baseline-01.md",
+      "skill_result": "results/b025-g35-procurement-spec-v02-ab-005-gemini-3.5-flash-skill-01.md",
+      "skill_metadata": "results/b025-g35-procurement-spec-v02-ab-005-gemini-3.5-flash-skill-01.json",
+      "generation_model": "gemini-3.5-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "revision_model": "gemini-3.7-flash",
+      "revision_fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "rerun_model": "gemini-3.5-flash",
+      "generation_fallback_models": [
+        "gemini-3.5-flash"
+      ],
+      "rerun_id_prefix": "b025-g35-procurement-spec-semantic",
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": true,
+      "max_revisions": 1,
+      "revision_count": 0
+    },
+    {
+      "id": "sem-b026-v02-paid-g36-001",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis",
+      "baseline_result": "results/b026-g35-nfr-v02-ab-005-auto-gemini-3-6-flash-gemini-3.6-flash-baseline-01.md",
+      "skill_result": "results/b026-g35-nfr-v02-ab-005-auto-gemini-3-6-flash-gemini-3.6-flash-skill-01.md",
+      "skill_metadata": "results/b026-g35-nfr-v02-ab-005-auto-gemini-3-6-flash-gemini-3.6-flash-skill-01.json",
+      "generation_model": "gemini-3.6-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "revision_model": "gemini-3.7-flash",
+      "revision_fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "rerun_model": "gemini-3.6-flash",
+      "generation_fallback_models": [
+        "gemini-3.6-flash"
+      ],
+      "rerun_id_prefix": "b026-g36-nfr-semantic",
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": true,
+      "max_revisions": 1,
+      "revision_count": 0
+    },
+    {
+      "id": "sem-b031-v02-paid-001",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/031-operational-readiness-assessment",
+      "baseline_result": "results/b031-g35-operational-readiness-v02-ab-005-gemini-3.5-flash-baseline-01.md",
+      "skill_result": "results/b031-g35-operational-readiness-v02-ab-005-gemini-3.5-flash-skill-01.md",
+      "skill_metadata": "results/b031-g35-operational-readiness-v02-ab-005-gemini-3.5-flash-skill-01.json",
+      "generation_model": "gemini-3.5-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "revision_model": "gemini-3.7-flash",
+      "revision_fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "rerun_model": "gemini-3.5-flash",
+      "generation_fallback_models": [
+        "gemini-3.5-flash"
+      ],
+      "rerun_id_prefix": "b031-g35-operational-readiness-semantic",
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": true,
+      "max_revisions": 1,
+      "revision_count": 0
+    },
+    {
+      "id": "sem-b026-v02-paid-g37-002",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis",
+      "baseline_result": "results/b026-g37-nfr-v02-ab-006-gemini-3.7-flash-baseline-01.md",
+      "skill_result": "results/b026-g37-nfr-v02-ab-006-gemini-3.7-flash-skill-01.md",
+      "skill_metadata": "results/b026-g37-nfr-v02-ab-006-gemini-3.7-flash-skill-01.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "revision_model": "gemini-3.7-flash",
+      "revision_fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "rerun_model": "gemini-3.7-flash",
+      "generation_fallback_models": [
+        "gemini-3.7-flash"
+      ],
+      "rerun_id_prefix": "b026-g37-nfr-semantic",
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": true,
+      "max_revisions": 1,
+      "revision_count": 0,
+      "autonomy_reason": "fresh_paid_tier_semantic_target_after_unpublished_g36_attempt"
+    },
+    {
+      "id": "sem-a001-dynamic-g37-001",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+      "baseline_result": "results/b023-g37-ba-change-control-dynamic-016-gemini-3.7-flash-pipeline-01.md",
+      "skill_result": "results/a001-g37-dynamic-invocation-016-gemini-3-7-flash-dynamic-01.md",
+      "skill_metadata": "results/a001-g37-dynamic-invocation-016-gemini-3-7-flash-dynamic-01-manifest.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "a001_true_dynamic_invocation_gate"
+    },
+    {
+      "id": "sem-a001-generalization-g37-002",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/032-a001-selective-readiness-generalization",
+      "baseline_result": "results/b032-g37-readiness-control-017-gemini-3.7-flash-pipeline-01.md",
+      "skill_result": "results/a001-g37-generalization-017-gemini-3-7-flash-dynamic-01.md",
+      "skill_metadata": "results/a001-g37-generalization-017-gemini-3-7-flash-dynamic-01-manifest.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "a001_selective_routing_generalization_gate"
+    },
+    {
+      "id": "sem-b033-a002-routing-g37-001",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/033-a002-architecture-stop-routing",
+      "baseline_result": "results/b033-g37-a002-routing-v01-ab-001-gemini-3.7-flash-baseline-01.md",
+      "skill_result": "results/b033-g37-a002-routing-v01-ab-001-gemini-3.7-flash-skill-01.md",
+      "skill_metadata": "results/b033-g37-a002-routing-v01-ab-001-gemini-3.7-flash-skill-01.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "a002_initial_architecture_stop_routing_gate"
+    },
+    {
+      "id": "sem-a002-dynamic-g37-002",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/033-a002-architecture-stop-routing",
+      "baseline_result": "results/b033-g37-a002-routing-v01-ab-001-gemini-3.7-flash-baseline-01.md",
+      "skill_result": "results/a002-g37-dynamic-stop-018-gemini-3-7-flash-dynamic-01.md",
+      "skill_metadata": "results/a002-g37-dynamic-stop-018-gemini-3-7-flash-dynamic-01-manifest.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "a002_true_dynamic_architecture_stop_gate"
+    },
+    {
+      "id": "sem-a002-generalization-g37-003",
+      "enabled": false,
+      "benchmark": "custom/ba-agent/benchmarks/034-a002-procurement-only-generalization",
+      "baseline_result": "results/b034-g37-procurement-control-019-gemini-3.7-flash-pipeline-01.md",
+      "skill_result": "results/a002-g37-procurement-generalization-019-gemini-3-7-flash-dynamic-01.md",
+      "skill_metadata": "results/a002-g37-procurement-generalization-019-gemini-3-7-flash-dynamic-01-manifest.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "rejected_invalid_control_preserved_disabled"
+    },
+    {
+      "id": "sem-b035-a003-routing-g37-001",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/035-a003-release-assurance-routing",
+      "baseline_result": "results/b035-g37-a003-routing-v01-ab-001-gemini-3.7-flash-baseline-01.md",
+      "skill_result": "results/b035-g37-a003-routing-v01-ab-001-gemini-3.7-flash-skill-01.md",
+      "skill_metadata": "results/b035-g37-a003-routing-v01-ab-001-gemini-3.7-flash-skill-01.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "a003_initial_selective_release_assurance_routing_gate"
+    },
+    {
+      "id": "sem-a002-generalization-g37-004",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/034-a002-procurement-only-generalization",
+      "baseline_result": "results/b034-g37-procurement-control-source-020-gemini-3.7-flash-pipeline-01.md",
+      "skill_result": "results/a002-g37-procurement-generalization-019-gemini-3-7-flash-dynamic-01.md",
+      "skill_metadata": "results/a002-g37-procurement-generalization-019-gemini-3-7-flash-dynamic-01-manifest.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "a002_generalization_corrected_evidence_preserving_control"
+    },
+    {
+      "id": "sem-a003-dynamic-g37-002",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/035-a003-release-assurance-routing",
+      "baseline_result": "results/b035-g37-a003-control-022-gemini-3.7-flash-pipeline-01.md",
+      "skill_result": "results/a003-g37-dynamic-assurance-021-gemini-3-7-flash-dynamic-01.md",
+      "skill_metadata": "results/a003-g37-dynamic-assurance-021-gemini-3-7-flash-dynamic-01-manifest.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "a003_true_dynamic_release_assurance_gate"
+    },
+    {
+      "id": "sem-a003-generalization-g37-003",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/036-a003-impact-itil-generalization",
+      "baseline_result": "results/b036-g37-a003-control-023-gemini-3.7-flash-pipeline-01.md",
+      "skill_result": "results/a003-g37-generalization-023-gemini-3-7-flash-dynamic-01.md",
+      "skill_metadata": "results/a003-g37-generalization-023-gemini-3-7-flash-dynamic-01-manifest.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "a003_independent_generalization_gate"
+    },
+    {
+      "id": "sem-b037-a004-routing-g37-001",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/037-a004-selective-downstream-delta",
+      "baseline_result": "results/b037-g37-a004-routing-v01-ab-001-gemini-3.7-flash-baseline-01.md",
+      "skill_result": "results/b037-g37-a004-routing-v01-ab-001-gemini-3.7-flash-skill-01.md",
+      "skill_metadata": "results/b037-g37-a004-routing-v01-ab-001-gemini-3.7-flash-skill-01.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "a004_initial_selective_delta_routing_gate"
+    },
+    {
+      "id": "sem-a004-dynamic-g37-002",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/037-a004-selective-downstream-delta",
+      "baseline_result": "results/b037-g37-a004-control-024-gemini-3.7-flash-pipeline-01.md",
+      "skill_result": "results/a004-g37-dynamic-selective-024-gemini-3-7-flash-dynamic-01.md",
+      "skill_metadata": "results/a004-g37-dynamic-selective-024-gemini-3-7-flash-dynamic-01-manifest.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "a004_true_dynamic_selective_delta_gate"
+    },
+    {
+      "id": "sem-a004-generalization-g37-003",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/038-a004-auditor-access-generalization",
+      "baseline_result": "results/b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01.md",
+      "skill_result": "results/a004-g37-generalization-025-gemini-3-7-flash-dynamic-01.md",
+      "skill_metadata": "results/a004-g37-generalization-025-gemini-3-7-flash-dynamic-01-manifest.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "a004_independent_auditor_access_generalization_gate"
+    },
+    {
+      "id": "sem-a004-dynamic-v02-g37-004",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/037-a004-selective-downstream-delta",
+      "baseline_result": "results/b037-g37-a004-control-024-gemini-3.7-flash-pipeline-01.md",
+      "skill_result": "results/a004-g37-dynamic-selective-v02-026-gemini-3-7-flash-dynamic-01.md",
+      "skill_metadata": "results/a004-g37-dynamic-selective-v02-026-gemini-3-7-flash-dynamic-01-manifest.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "validate_a004_v02_selective_scope_and_regression",
+      "baseline_mode": "pipeline",
+      "skill_mode": "dynamic",
+      "baseline_metadata": "results/b037-g37-a004-control-024-gemini-3.7-flash-pipeline-01.json"
+    },
+    {
+      "id": "sem-a004-generalization-v02-g37-005",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/038-a004-auditor-access-generalization",
+      "baseline_result": "results/b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01.md",
+      "skill_result": "results/a004-g37-generalization-v02-027-gemini-3-7-flash-dynamic-01.md",
+      "skill_metadata": "results/a004-g37-generalization-v02-027-gemini-3-7-flash-dynamic-01-manifest.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "validate_a004_v02_selective_scope_and_regression",
+      "baseline_mode": "pipeline",
+      "skill_mode": "dynamic",
+      "baseline_metadata": "results/b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01.json"
+    },
+    {
+      "id": "sem-a004-dynamic-provenance-g37-006",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/037-a004-selective-downstream-delta",
+      "baseline_result": "results/b037-g37-a004-control-024-gemini-3.7-flash-pipeline-01.md",
+      "skill_result": "results/a004-g37-dynamic-provenance-028-gemini-3-7-flash-dynamic-01.md",
+      "skill_metadata": "results/a004-g37-dynamic-provenance-028-gemini-3-7-flash-dynamic-01-manifest.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "verify_execution_after_NAS_diagnostic_confirmed_updated_workers",
+      "baseline_mode": "pipeline",
+      "skill_mode": "dynamic",
+      "baseline_metadata": "results/b037-g37-a004-control-024-gemini-3.7-flash-pipeline-01.json"
+    },
+    {
+      "id": "sem-a004-generalization-provenance-g37-007",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/038-a004-auditor-access-generalization",
+      "baseline_result": "results/b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01.md",
+      "skill_result": "results/a004-g37-generalization-provenance-029-gemini-3-7-flash-dynamic-01.md",
+      "skill_metadata": "results/a004-g37-generalization-provenance-029-gemini-3-7-flash-dynamic-01-manifest.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash"
+      ],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "verify_execution_after_NAS_diagnostic_confirmed_updated_workers",
+      "baseline_mode": "pipeline",
+      "skill_mode": "dynamic",
+      "baseline_metadata": "results/b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01.json"
+    }
+  ]
+}

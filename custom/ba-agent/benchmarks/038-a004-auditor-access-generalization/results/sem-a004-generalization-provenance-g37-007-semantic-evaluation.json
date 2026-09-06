@@ -1,0 +1,328 @@
+{
+  "schema": 1,
+  "job_id": "sem-a004-generalization-provenance-g37-007",
+  "benchmark": "Benchmark 038 — A004 Auditor Access Generalization",
+  "benchmark_path": "custom/ba-agent/benchmarks/038-a004-auditor-access-generalization",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-06T05:47:03Z",
+  "baseline_result": "results/b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01.md",
+  "skill_result": "results/a004-g37-generalization-provenance-029-gemini-3-7-flash-dynamic-01.md",
+  "skill_path": "custom/ba-agent/agents/requirement-change-orchestrator/AGENT.md",
+  "skill_sha256": "f00e55f160e3ff7c66d9b0e8497a7254a50fff3dbca466ba0dc552f3fb2dc77a",
+  "generation_metadata": {
+    "baseline": {
+      "input_sha256": "dc1789e8a115d1256cc517077090598d76e04ad1d015f12143b88f773a6d7e7a",
+      "model": "gemini-3.7-flash",
+      "pipeline": "Benchmark 038 — Fixed auditor-access delta control",
+      "prompt_sha256": "0210e553f8b334c9e97dd7e00dfdebb8b949f53761d51d8587c49326708d137a",
+      "run_id": "b038-g37-a004-control-025",
+      "schema": 1,
+      "stages": [
+        {
+          "markdown": "b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01-stage-01-requirement-reconciliation.md",
+          "metadata": "b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01-stage-01-requirement-reconciliation.json",
+          "output_sha256": "8cd1c5f7183446d844e196e7e9a918889588c62791f33a6dc408495a9eb33895",
+          "stage_id": "requirement-reconciliation",
+          "stage_name": "Reconcile Requirement Changes",
+          "status": "success",
+          "usage": {
+            "candidatesTokenCount": 2178,
+            "promptTokenCount": 1906,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1906
+              }
+            ],
+            "serviceTier": "standard",
+            "thoughtsTokenCount": 843,
+            "totalTokenCount": 4927
+          }
+        },
+        {
+          "markdown": "b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01-stage-02-requirements-analysis.md",
+          "metadata": "b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01-stage-02-requirements-analysis.json",
+          "output_sha256": "a3cd9773775f7fbfb11e4d72b4879fe670a2c4b81d8a3fe8495278a52a61d0a6",
+          "stage_id": "requirements-analysis",
+          "stage_name": "Analyze Requirements",
+          "status": "success",
+          "usage": {
+            "candidatesTokenCount": 2884,
+            "promptTokenCount": 5975,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 5975
+              }
+            ],
+            "serviceTier": "standard",
+            "thoughtsTokenCount": 961,
+            "totalTokenCount": 9820
+          }
+        },
+        {
+          "markdown": "b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01-stage-03-change-impact.md",
+          "metadata": "b038-g37-a004-control-025-gemini-3.7-flash-pipeline-01-stage-03-change-impact.json",
+          "output_sha256": "97179669a4c35b3dbc4d466b856a1b031ee165093ff23f97ebc7cd798471de38",
+          "stage_id": "change-impact",
+          "stage_name": "Assess Change Impact",
+          "status": "success",
+          "usage": {
+            "candidatesTokenCount": 2195,
+            "promptTokenCount": 4309,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4309
+              }
+            ],
+            "serviceTier": "standard",
+            "thoughtsTokenCount": 452,
+            "totalTokenCount": 6956
+          }
+        }
+      ],
+      "status": "success",
+      "temperature": 0.0,
+      "total_usage": {
+        "candidatesTokenCount": 7257,
+        "promptTokenCount": 12190,
+        "thoughtsTokenCount": 2256,
+        "totalTokenCount": 21703
+      }
+    },
+    "skill": {
+      "schema": 1,
+      "run_id": "a004-g37-generalization-provenance-029",
+      "benchmark": "custom/ba-agent/benchmarks/038-a004-auditor-access-generalization",
+      "model": "gemini-3.7-flash",
+      "mode": "dynamic",
+      "input_sha256": "dc1789e8a115d1256cc517077090598d76e04ad1d015f12143b88f773a6d7e7a",
+      "prompt_sha256": "b8340b6786be28571a5463c8abac9fd530cbe607e5b6a0293e9bc35faa8f04b6",
+      "result_sha256": "ba9202ff5f8a27b515583d0ad9f3b69e52076a4472cab2a3c295229c3533c466",
+      "status": "success",
+      "operational_status": null,
+      "created_at": "2026-09-06T05:46:35Z",
+      "agent_path": "custom/ba-agent/agents/requirement-change-orchestrator/AGENT.md",
+      "agent_sha256": "f00e55f160e3ff7c66d9b0e8497a7254a50fff3dbca466ba0dc552f3fb2dc77a",
+      "route": {
+        "objective": "Reconcile baseline IAM requirements against later evidence, analyze the newly approved external auditor access requirement to capture unresolved semantics without inventing details, and selectively assess change impact for the new auditor capability while holding downstream decomposition, acceptance criteria, and test cases.",
+        "selected_skills": [
+          "reconcile-requirement-changes",
+          "analyze-requirements",
+          "assess-change-impact"
+        ],
+        "not_selected": [
+          {
+            "skill": "decompose-requirements",
+            "reason": "Explicitly deferred by user instruction until material semantic unknowns (timer start, duration, approval authority, identity source) are resolved."
+          },
+          {
+            "skill": "elaborate-acceptance-criteria",
+            "reason": "Explicitly deferred by user instruction; behavioral acceptance criteria must not be drafted while key requirement semantics and decision owners remain unresolved."
+          },
+          {
+            "skill": "derive-test-cases",
+            "reason": "Explicitly deferred by user instruction; test coverage cannot be defensibly generated prior to requirement clarification and acceptance criteria elaboration."
+          }
+        ],
+        "stop_rules": [
+          "ACTIVE_DELTA_SCOPE: Approved external auditor time-limited application access requirement (SD-77) only. All other baseline IDs (IAM-10, IAM-11, IAM-12, IAM-13) are context-only and MUST NOT receive regenerated or rewritten downstream artifacts.",
+          "Stop prior to downstream functional artifact generation (decomposition, acceptance criteria, test cases) until material open decisions (trigger event for 15-minute SLA, duration limits, approval authority, identity/guest path, extension rules, privileged role limits) are formally resolved.",
+          "Preserve baseline items IAM-10, IAM-11, IAM-12, and IAM-13 as Confirmed unchanged; do not adopt conversational meeting suggestions (e.g., 30-day expiration) as baseline changes without an approved decision.",
+          "Do not infer approval authority from coordination roles or supply ungrounded technical mechanisms."
+        ],
+        "expected_final_artifact": "A selective change package containing a requirement reconciliation register (confirming IAM-10 through IAM-13 unchanged and capturing the SD-77 auditor access addition), a structured ambiguity analysis detailing open semantic decisions/unknowns for auditor access, and a targeted change impact assessment evaluating systems, processes, and support burden strictly for the external auditor access capability."
+      },
+      "route_status": "success",
+      "route_usage": {
+        "promptTokenCount": 2419,
+        "candidatesTokenCount": 543,
+        "totalTokenCount": 3789,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2419
+          }
+        ],
+        "thoughtsTokenCount": 827,
+        "serviceTier": "standard"
+      },
+      "stages": [
+        {
+          "index": 1,
+          "skill": "reconcile-requirement-changes",
+          "skill_path": "custom/ba-agent/skills/reconcile-requirement-changes/SKILL.md",
+          "skill_sha256": "957088617ba326d82d9f25c3d268fb6983a1268afcb85701d56a4cbd2d78d9e9",
+          "status": "success",
+          "usage": {
+            "promptTokenCount": 2525,
+            "candidatesTokenCount": 1898,
+            "totalTokenCount": 5221,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 2525
+              }
+            ],
+            "thoughtsTokenCount": 798,
+            "serviceTier": "standard"
+          },
+          "output_sha256": "ffe5bf133057917f7478ceb2ddf9ea082ab233df50c10dbcbb3fc121c6ccf8c2",
+          "error": null
+        },
+        {
+          "index": 2,
+          "skill": "analyze-requirements",
+          "skill_path": "custom/ba-agent/skills/analyze-requirements/SKILL.md",
+          "skill_sha256": "9b3033fb72fff244c170fa49e5719db5bbb10b9f0b5694d151f2445b3a844130",
+          "status": "success",
+          "usage": {
+            "promptTokenCount": 6896,
+            "candidatesTokenCount": 2667,
+            "totalTokenCount": 11513,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 6896
+              }
+            ],
+            "thoughtsTokenCount": 1950,
+            "serviceTier": "standard"
+          },
+          "output_sha256": "3136ca8ae0da6984d60801bb1d03bb8645a438be280e99bc5982ee796a160067",
+          "error": null
+        },
+        {
+          "index": 3,
+          "skill": "assess-change-impact",
+          "skill_path": "custom/ba-agent/skills/assess-change-impact/SKILL.md",
+          "skill_sha256": "7beae99136a52ac2e0ab484ed9fcdd8311ec0951e54b74a4dcadbc52e9412437",
+          "status": "success",
+          "usage": {
+            "promptTokenCount": 5309,
+            "candidatesTokenCount": 2313,
+            "totalTokenCount": 8390,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 5309
+              }
+            ],
+            "thoughtsTokenCount": 768,
+            "serviceTier": "standard"
+          },
+          "output_sha256": "bdb9aa2c965f671bda15afcb8999d7802645eb81478d237fe7467e45ac5e575a",
+          "error": null
+        }
+      ],
+      "usage_totals": {
+        "prompt": 17149,
+        "candidate": 7421,
+        "thoughts": 4343,
+        "total": 28913
+      },
+      "result_markdown": "a004-g37-generalization-provenance-029-gemini-3-7-flash-dynamic-01.md"
+    }
+  },
+  "evaluation": {
+    "baseline": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 35,
+          "max": 35,
+          "rationale": "Correctly executed exactly reconciliation, analysis, and change-impact without downstream decomposition or AC/test generation."
+        },
+        {
+          "criterion": "Baseline/delta preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Accurately added SD-77 while preserving IAM-10 through IAM-13 unchanged, correctly classifying the 30-day proposal as an unapproved suggestion."
+        },
+        {
+          "criterion": "Semantic Unknown discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Preserved all six key semantic ambiguities (timer trigger, duration, approval authority, identity source, renewals, privileged roles) as Unknown without inventing answers."
+        },
+        {
+          "criterion": "Change-impact quality",
+          "score": 15,
+          "max": 15,
+          "rationale": "Thoroughly evaluated impacts across IAM workflow, request/approval process, support, security governance, audit coordination, and entitlements while separating confirmed from candidate/unknown impacts."
+        },
+        {
+          "criterion": "Authority and stop discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Correctly avoided inferring the Audit Programme Manager as approval authority and stopped cleanly prior to downstream artifact generation."
+        }
+      ],
+      "summary": "The baseline output perfectly adheres to all benchmark requirements, preserving baseline invariants, highlighting semantic unknowns, and stopping at the change-impact stage."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 35,
+          "max": 35,
+          "rationale": "Explicitly justified and selected the exact three required skills (reconcile -> analyze -> impact) while enforcing stop rules against decomposition, acceptance criteria, and test cases."
+        },
+        {
+          "criterion": "Baseline/delta preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Correctly recognized SD-77 as the sole approved addition, maintained IAM-10, IAM-11, IAM-12, and IAM-13 as Confirmed unchanged, and rejected the 30-day suggestion."
+        },
+        {
+          "criterion": "Semantic Unknown discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Rigorously identified and categorized all material open questions and semantic gaps as Unknown without fabricating mechanisms or policies."
+        },
+        {
+          "criterion": "Change-impact quality",
+          "score": 15,
+          "max": 15,
+          "rationale": "Produced a well-structured change impact assessment detailing direct, indirect, candidate, and unknown impacts across user groups, processes, identity paths, and operations."
+        },
+        {
+          "criterion": "Authority and stop discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Clearly separated the Audit Programme Manager's coordination role from request approval authority and strictly obeyed the downstream refinement stop rule."
+        }
+      ],
+      "summary": "The Skill orchestrator executed the exact target route flawlessly, maintained baseline invariants, preserved all required semantic unknowns, and conducted a thorough change impact assessment."
+    },
+    "defects": [],
+    "summary": "Both runs followed the required 3-stage route, preserved all baseline invariants including IAM-11 through IAM-13, maintained strict discipline around open semantic unknowns and approval authority, and stopped before downstream artifact generation."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 17117,
+    "candidatesTokenCount": 805,
+    "totalTokenCount": 18777,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 17117
+      }
+    ],
+    "thoughtsTokenCount": 855,
+    "serviceTier": "standard"
+  }
+}

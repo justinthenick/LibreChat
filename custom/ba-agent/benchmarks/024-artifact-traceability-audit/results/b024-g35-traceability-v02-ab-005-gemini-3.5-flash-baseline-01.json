@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 024 — Artifact Traceability Audit",
+  "benchmark_dir": "024-artifact-traceability-audit",
+  "ended_at": "2026-09-05T10:35:13Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": false,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "c276ec654b6d3aa951afd432ed9da8ab72db300982059ce8714f3c71d692a6bd",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "baseline",
+  "model": "gemini-3.5-flash",
+  "prompt_sha256": "6c8bccf594dac555f5d27ada6c67931104df057d1a6db02672979a886ff2a658",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": null,
+  "skill_sha256": null,
+  "skill_version": null,
+  "started_at": "2026-09-05T10:34:51Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 1870,
+    "promptTokenCount": 976,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 976
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 2907,
+    "totalTokenCount": 5753
+  }
+}

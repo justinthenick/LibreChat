@@ -1,0 +1,27 @@
+{
+  "schema": 2,
+  "name": "Benchmark 037 — Fixed selective requirement-delta control",
+  "input": "input.md",
+  "prompt": "pipeline-control.md",
+  "results_dir": "results",
+  "stages": [
+    {
+      "id": "requirement-reconciliation",
+      "name": "Reconcile Requirement Changes",
+      "agent": "../../skills/reconcile-requirement-changes/SKILL.md",
+      "instruction": "Reconcile the baseline with later evidence. Preserve 18:00, 30-day retention and REQ-23 unless explicitly changed; preserve 19:00 and seven-day proposals as unresolved; recognize AD-12, PD-51 and D-52 as supported deltas. Do not infer Finance authority. Append a section headed exactly `## SUPPORTED_DELTA_HANDOFF` containing only supported material deltas and the affected downstream IDs/artifacts, plus a separate `## BLOCKED_OR_UNCHANGED_HANDOFF` for unresolved/untouched items. Append `PIPELINE_HANDOFF_COMPLETE: REQUIREMENT_RECONCILIATION`."
+    },
+    {
+      "id": "acceptance-criteria",
+      "name": "Elaborate Acceptance Criteria",
+      "agent": "../../skills/elaborate-acceptance-criteria/SKILL.md",
+      "instruction": "Require `PIPELINE_HANDOFF_COMPLETE: REQUIREMENT_RECONCILIATION` and the supported-delta handoff. Update acceptance criteria only for supported affected scope: managed SFTP REQ-22, the approved invoice_status requirement, and de-scope of REQ-24. Do not alter REQ-20/21/23. Preserve unresolved proposals as non-operative. Append `## SUPPORTED_DELTA_FOR_TESTS` containing the exact supported behavior needed by test derivation and append `PIPELINE_HANDOFF_COMPLETE: ACCEPTANCE_CRITERIA`."
+    },
+    {
+      "id": "test-cases",
+      "name": "Derive Test Cases",
+      "agent": "../../skills/derive-test-cases/SKILL.md",
+      "instruction": "Require `PIPELINE_HANDOFF_COMPLETE: ACCEPTANCE_CRITERIA` and `## SUPPORTED_DELTA_FOR_TESTS`. Derive/update tests only for supported affected scope. Cover managed-SFTP delivery at requirement level and invoice_status exact passthrough for OPEN, PAID, VOID and null when source unavailable. Identify REQ-24 manual-report test coverage as de-scoped. Do not create tests for unresolved 19:00/seven-day proposals or rewrite unaffected REQ-23 coverage. Append `PIPELINE_HANDOFF_COMPLETE: TEST_CASES`."
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "name": "Workflow strengthening and Agent benchmark health",
+  "checks": [
+    {
+      "type": "queue_compare",
+      "label": "Post-bootstrap validation wave vs NAS worker state",
+      "state_path": "custom/ba-agent/automation/worker-state.json",
+      "jobs_path": "custom/ba-agent/automation/jobs.json",
+      "job_ids": [
+        "b023-g36-ba-change-control-guarded-010",
+        "b023-g36-ba-change-itil-guarded-011",
+        "b024-g36-traceability-v02-ab-003",
+        "b025-g36-procurement-spec-v02-ab-003",
+        "b026-g36-nfr-v02-ab-003",
+        "b028-g35-release-evidence-v02-ab-003",
+        "b029-g35-requirement-delta-v02-ab-003",
+        "b030-g35-adr-v02-ab-003",
+        "b031-g36-operational-readiness-v02-ab-003"
+      ]
+    },
+    {
+      "type": "worker_state",
+      "label": "Worker records for post-bootstrap validation wave",
+      "path": "custom/ba-agent/automation/worker-state.json",
+      "job_ids": [
+        "b023-g36-ba-change-control-guarded-010",
+        "b023-g36-ba-change-itil-guarded-011",
+        "b024-g36-traceability-v02-ab-003",
+        "b025-g36-procurement-spec-v02-ab-003",
+        "b026-g36-nfr-v02-ab-003",
+        "b028-g35-release-evidence-v02-ab-003",
+        "b029-g35-requirement-delta-v02-ab-003",
+        "b030-g35-adr-v02-ab-003",
+        "b031-g36-operational-readiness-v02-ab-003"
+      ]
+    },
+    {
+      "type": "tail",
+      "label": "Recent autonomy scheduler log",
+      "path": "custom/ba-agent/automation/scheduler.log",
+      "lines": 200
+    },
+    {
+      "type": "lock_status",
+      "label": "Benchmark worker lock/process state",
+      "path": "/tmp/librechat-ba-benchmark-worker.lock",
+      "process_contains": "benchmark_worker.py"
+    },
+    {
+      "type": "env_presence",
+      "label": "Required key/token presence",
+      "path": "/volume1/docker/librechat/deploy/synology/.env",
+      "names": ["GOOGLE_KEY", "GITHUB_TELEMETRY_TOKEN", "GITHUB_BA_BENCHMARK_TOKEN"]
+    }
+  ]
+}

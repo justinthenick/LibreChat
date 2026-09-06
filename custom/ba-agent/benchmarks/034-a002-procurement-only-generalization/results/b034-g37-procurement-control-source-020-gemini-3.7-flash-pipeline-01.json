@@ -1,0 +1,81 @@
+{
+  "input_sha256": "3f63f07ba56d4c5f1a99d263d466ce2e87c8218af6bd640b2c3ba84890e153e2",
+  "model": "gemini-3.7-flash",
+  "pipeline": "Benchmark 034 \u2014 Evidence-preserving fixed procurement control",
+  "prompt_sha256": "3ecd6dc3cd9b8e9db63607cbbf095f229d9d997e7ac3dfed72a120d2ac9deda2",
+  "run_id": "b034-g37-procurement-control-source-020",
+  "schema": 1,
+  "stages": [
+    {
+      "markdown": "b034-g37-procurement-control-source-020-gemini-3.7-flash-pipeline-01-stage-01-procurement-specification.md",
+      "metadata": "b034-g37-procurement-control-source-020-gemini-3.7-flash-pipeline-01-stage-01-procurement-specification.json",
+      "output_sha256": "ffb466b940298954f4b359f86ffad86d2922b1f1fbe8b0b05b986c26577c2e1a",
+      "stage_id": "procurement-specification",
+      "stage_name": "Prepare Procurement Specification",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2191,
+        "promptTokenCount": 3013,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3013
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 667,
+        "totalTokenCount": 5871
+      }
+    },
+    {
+      "markdown": "b034-g37-procurement-control-source-020-gemini-3.7-flash-pipeline-01-stage-02-market-expansion.md",
+      "metadata": "b034-g37-procurement-control-source-020-gemini-3.7-flash-pipeline-01-stage-02-market-expansion.json",
+      "output_sha256": "4dde10d8d085397298040a8907dc8c1751c8bfcbce545c2c521a91480a034cb0",
+      "stage_id": "market-expansion",
+      "stage_name": "Expand Procurement Market",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 1731,
+        "promptTokenCount": 3211,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3211
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 499,
+        "totalTokenCount": 5441
+      }
+    },
+    {
+      "markdown": "b034-g37-procurement-control-source-020-gemini-3.7-flash-pipeline-01-stage-03-candidate-verification.md",
+      "metadata": "b034-g37-procurement-control-source-020-gemini-3.7-flash-pipeline-01-stage-03-candidate-verification.json",
+      "output_sha256": "2e308b28da07c776e83548a86d982ef69f028c28dfb690db7504620657a0c6bf",
+      "stage_id": "candidate-verification",
+      "stage_name": "Verify Procurement Options",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 2611,
+        "promptTokenCount": 3417,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3417
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 1543,
+        "totalTokenCount": 7571
+      }
+    }
+  ],
+  "status": "success",
+  "temperature": 0.0,
+  "total_usage": {
+    "candidatesTokenCount": 6533,
+    "promptTokenCount": 9641,
+    "thoughtsTokenCount": 2709,
+    "totalTokenCount": 18883
+  }
+}

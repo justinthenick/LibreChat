@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-b029-v02-001",
+  "benchmark": "Benchmark 029 — Requirement Change Reconciliation",
+  "benchmark_path": "custom/ba-agent/benchmarks/029-requirement-change-reconciliation",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-05T07:30:30Z",
+  "baseline_result": "results/b029-g35-requirement-delta-v02-ab-003-gemini-3.5-flash-baseline-01.md",
+  "skill_result": "results/b029-g35-requirement-delta-v02-ab-003-gemini-3.5-flash-skill-01.md",
+  "skill_path": "custom/ba-agent/skills/reconcile-requirement-changes/SKILL.md",
+  "skill_sha256": "957088617ba326d82d9f25c3d268fb6983a1268afcb85701d56a4cbd2d78d9e9",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "A. Explicit supported changes",
+          "score": 30,
+          "max": 30,
+          "rationale": "Correctly promotes REQ-12 to confirmed via AD-7, identifies REQ-15 as withdrawn via D-36, and adds the new approved invoice-status requirement."
+        },
+        {
+          "criterion": "B. Unresolved proposal discipline",
+          "score": 25,
+          "max": 25,
+          "rationale": "Preserves REQ-10 at 18:00 as current Confirmed while treating 19:00 as an unresolved proposal; maintains REQ-11 30-day retention despite the analyst suggestion."
+        },
+        {
+          "criterion": "C. Silence / unchanged discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Maintains REQ-13 as confirmed active despite silence in meeting notes and confirms CON-02 data residency constraint as unchanged."
+        },
+        {
+          "criterion": "D. Authority / provenance discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Preserves baseline and new evidence sources accurately without inventing decision ownership authority."
+        },
+        {
+          "criterion": "E. Selective downstream handoff",
+          "score": 15,
+          "max": 15,
+          "rationale": "Correctly flags only REQ-12, REQ-15, and the new invoice-status requirement (REQ-16) for downstream updates while preventing premature changes to REQ-10, REQ-11, REQ-13, and CON-02."
+        }
+      ],
+      "summary": "Baseline correctly reconciles all baseline requirements against new evidence, maintains strict discipline around proposals and silence, and identifies the exact set of downstream updates."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "A. Explicit supported changes",
+          "score": 30,
+          "max": 30,
+          "rationale": "Accurately reconciles REQ-12 (modified via AD-7), REQ-15 (withdrawn via D-36), and adds REQ-16 (approved invoice status)."
+        },
+        {
+          "criterion": "B. Unresolved proposal discipline",
+          "score": 25,
+          "max": 25,
+          "rationale": "Maintains REQ-10 baseline while recording 19:00 as Disputed/unresolved, and keeps REQ-11 unchanged under 'No reliable delta'."
+        },
+        {
+          "criterion": "C. Silence / unchanged discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Preserves REQ-13 via explicit silent baseline item handling and confirms CON-02 as Confirmed unchanged."
+        },
+        {
+          "criterion": "D. Authority / provenance discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Explicitly marks decision owners as 'Unknown' where not documented, strictly avoiding inferred authority, while fully maintaining source provenance."
+        },
+        {
+          "criterion": "E. Selective downstream handoff",
+          "score": 15,
+          "max": 15,
+          "rationale": "Clearly segregates immediate downstream updates (REQ-12, REQ-15, REQ-16) from blocked items (REQ-10) and unchanged items."
+        }
+      ],
+      "summary": "Skill produces an exemplary structured delta register with delta classifications, explicit tracking of unknown decision authorities, and clean downstream handoff boundaries."
+    },
+    "defects": [],
+    "summary": "Both baseline and skill outputs achieved full scores with zero penalties, correctly distinguishing authorized changes from unresolved proposals, preserving unchanged items, and providing accurate downstream handoffs."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 5477,
+    "candidatesTokenCount": 984,
+    "totalTokenCount": 7609,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 5477
+      }
+    ],
+    "thoughtsTokenCount": 1148,
+    "serviceTier": "standard"
+  }
+}

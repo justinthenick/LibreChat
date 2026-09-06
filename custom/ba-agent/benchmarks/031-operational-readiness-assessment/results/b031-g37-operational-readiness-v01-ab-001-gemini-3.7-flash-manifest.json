@@ -1,0 +1,20 @@
+{
+  "benchmark": "Benchmark 031 — Operational Readiness Assessment",
+  "created_at": "2026-09-04T14:59:13Z",
+  "mode": "both",
+  "model": "gemini-3.7-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b031-g37-operational-readiness-v01-ab-001-gemini-3.7-flash-baseline-01.md",
+      "metadata": "b031-g37-operational-readiness-v01-ab-001-gemini-3.7-flash-baseline-01.json",
+      "status": "provider_busy"
+    },
+    {
+      "markdown": "b031-g37-operational-readiness-v01-ab-001-gemini-3.7-flash-skill-01.md",
+      "metadata": "b031-g37-operational-readiness-v01-ab-001-gemini-3.7-flash-skill-01.json",
+      "status": "provider_busy"
+    }
+  ],
+  "schema": 2
+}

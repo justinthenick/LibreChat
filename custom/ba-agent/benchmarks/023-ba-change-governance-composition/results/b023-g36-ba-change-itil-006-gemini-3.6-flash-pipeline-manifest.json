@@ -1,0 +1,39 @@
+{
+  "combined_markdown": "b023-g36-ba-change-itil-006-gemini-3.6-flash-pipeline-01.md",
+  "combined_metadata": "b023-g36-ba-change-itil-006-gemini-3.6-flash-pipeline-01.json",
+  "run_id": "b023-g36-ba-change-itil-006",
+  "schema": 1,
+  "stages": [
+    {
+      "markdown": "b023-g36-ba-change-itil-006-gemini-3.6-flash-pipeline-01-stage-01-ba-delivery.md",
+      "metadata": "b023-g36-ba-change-itil-006-gemini-3.6-flash-pipeline-01-stage-01-ba-delivery.json",
+      "output_sha256": "a384ee046ef0697de47c282432f78cceaa65b026e87381f109bc445a1b69ad02",
+      "stage_id": "ba-delivery",
+      "stage_name": "Composite BA Delivery Analyst v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 4409,
+        "promptTokenCount": 2752,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2752
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 2201,
+        "totalTokenCount": 9362
+      }
+    },
+    {
+      "markdown": "b023-g36-ba-change-itil-006-gemini-3.6-flash-pipeline-01-stage-02-change-readiness.md",
+      "metadata": "b023-g36-ba-change-itil-006-gemini-3.6-flash-pipeline-01-stage-02-change-readiness.json",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stage_id": "change-readiness",
+      "stage_name": "Prepare Solution / Change Readiness v0.2",
+      "status": "provider_busy",
+      "usage": {}
+    }
+  ],
+  "status": "incomplete"
+}

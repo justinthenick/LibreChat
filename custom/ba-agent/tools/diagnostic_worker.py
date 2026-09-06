@@ -37,6 +37,7 @@ SAFE_ENV_NAMES = {
 MAX_CHECKS = 20
 MAX_TAIL_LINES = 200
 MAX_TEXT = 20000
+GITHUB_READ_TOKEN = None
 
 
 class DiagnosticError(RuntimeError):
@@ -113,7 +114,7 @@ def github_fetch_json(repo, branch, repo_path):
     encoded = urllib.parse.quote(repo_path.strip("/"), safe="/")
     ref = urllib.parse.quote(branch, safe="")
     url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(repo, encoded, ref)
-    _, data = github_request(url)
+    _, data = github_request(url, token=GITHUB_READ_TOKEN)
     if not isinstance(data, dict) or data.get("type") != "file" or data.get("encoding") != "base64":
         raise DiagnosticError("GitHub path is not a JSON file: {}".format(repo_path))
     try:
@@ -348,6 +349,8 @@ def execute_recipe(recipe, root, env_file, repo, branch):
 
 
 def main():
+    global GITHUB_READ_TOKEN
+
     parser = argparse.ArgumentParser(description="Run one GitHub-triggered constrained NAS diagnostic request.")
     parser.add_argument("--repo", default=DEFAULT_REPO)
     parser.add_argument("--branch", default=DEFAULT_BRANCH)
@@ -364,6 +367,10 @@ def main():
     state_file = Path(args.state_file).resolve() if args.state_file else root / "custom/ba-agent/automation/diagnostic-state.json"
     local_dir = root / "custom/ba-agent/automation/diagnostic-local"
     local_dir.mkdir(parents=True, exist_ok=True)
+
+    env = merged_environment(env_file)
+    token = str(env.get(args.github_token_env) or "").strip()
+    GITHUB_READ_TOKEN = token or None
 
     request = github_fetch_json(args.repo, args.branch, args.request_path)
     if not bool(request.get("enabled", False)):
@@ -385,8 +392,6 @@ def main():
 
     previous = requests.get(request_id)
     local_path = local_dir / (request_id + ".json")
-    env = merged_environment(env_file)
-    token = str(env.get(args.github_token_env) or "").strip()
 
     if isinstance(previous, dict) and previous.get("published"):
         print("[diagnostic] request {} already published".format(request_id))

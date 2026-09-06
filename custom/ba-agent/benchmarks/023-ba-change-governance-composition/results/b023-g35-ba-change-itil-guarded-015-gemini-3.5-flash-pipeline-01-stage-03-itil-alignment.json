@@ -1,0 +1,33 @@
+{
+  "agent_path": "custom/ba-agent/skills/assess-itil-alignment/SKILL.md",
+  "agent_sha256": "3adeb63ebe63773137da0e9407d6fac98de1b84737464c2a45286fd1390fef59",
+  "agent_version": "0.2.0",
+  "ended_at": "2026-09-05T10:34:36Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "max_output_tokens": 8192,
+  "model": "gemini-3.5-flash",
+  "pipeline": "Benchmark 023 \u2014 Candidate: Composite BA + Change Readiness + ITIL",
+  "run_id": "b023-g35-ba-change-itil-guarded-015",
+  "stage_id": "itil-alignment",
+  "stage_index": 3,
+  "stage_input_sha256": "74cebbb8970df1671e6d3df9a3db736a2f52e93a0f097182f1f79b851398cc5e",
+  "stage_name": "Assess ITIL Alignment v0.2",
+  "started_at": "2026-09-05T10:33:50Z",
+  "status": "success",
+  "temperature": 0.0,
+  "upstream_output_sha256": "3ce0db16d720ee69c427e3f09ca164919830746cd9c29755b1d0e4a037e6073d",
+  "usage": {
+    "candidatesTokenCount": 2332,
+    "promptTokenCount": 5221,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 5221
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 1564,
+    "totalTokenCount": 9117
+  }
+}

@@ -1,0 +1,239 @@
+{
+  "checks": [
+    {
+      "data": {
+        "enabled_remote_jobs": 57,
+        "known_local_jobs": 57,
+        "pending_job_count": 0,
+        "pending_job_ids": [],
+        "targets": {
+          "a001-g36-ba-change-router-v01-ab-004": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b023-g36-ba-change-control-005": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b023-g36-ba-change-itil-006": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b024-g36-traceability-v01-ab-001": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b025-g36-procurement-spec-v01-ab-001": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b026-g36-nfr-v01-ab-001": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b027-g36-change-impact-v01-ab-001": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b028-g37-release-evidence-v01-ab-001": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b029-g37-requirement-delta-v01-ab-001": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b030-g37-adr-v01-ab-001": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b031-g37-operational-readiness-v01-ab-001": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          }
+        }
+      },
+      "index": 1,
+      "label": "Queued Agent and Skill jobs vs NAS worker state",
+      "status": "ok",
+      "type": "queue_compare"
+    },
+    {
+      "data": {
+        "jobs": {
+          "a001-g36-ba-change-router-v01-ab-004": {
+            "attempted_at_epoch": 1788533103,
+            "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+            "mode": "both",
+            "model": "gemini-3.6-flash",
+            "output_tail": "[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/023-ba-change-governance-composition/results/a001-g36-ba-change-router-v01-ab-004-gemini-3.6-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/023-ba-change-governance-composition/results/a001-g36-ba-change-router-v01-ab-004-gemini-3.6-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 0dce5332a239786505ae3f35683587e09a242890\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b023-g36-ba-change-control-005": {
+            "attempted_at_epoch": 1788533202,
+            "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+            "model": "gemini-3.6-flash",
+            "output_tail": "[pipeline] stage 1 ba-delivery -> success\n[pipeline] stage 2 change-readiness -> success\nPublished 7 pipeline files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: de275e725f0b554b07f90afaf47f8cded4416eeb\n[pipeline] b023-g36-ba-change-control-005 -> success\n[pipeline] combined result: /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/023-ba-change-governance-composition/results/b023-g36-ba-change-control-005-gemini-3.6-flash-pipeline-01.md\n",
+            "pipeline_config": "pipeline-control.json",
+            "return_code": 0,
+            "runner": "pipeline",
+            "status": "completed"
+          },
+          "b023-g36-ba-change-itil-006": {
+            "attempted_at_epoch": 1788533345,
+            "benchmark": "custom/ba-agent/benchmarks/023-ba-change-governance-composition",
+            "model": "gemini-3.6-flash",
+            "output_tail": "[pipeline] stage 1 ba-delivery -> success\n[pipeline] stage 2 change-readiness -> provider_busy\nPublished 7 pipeline files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 1bf2a298dc3ca01d7b1ea91b1b90071c080b7990\n[pipeline] b023-g36-ba-change-itil-006 -> incomplete\n[pipeline] combined result: /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/023-ba-change-governance-composition/results/b023-g36-ba-change-itil-006-gemini-3.6-flash-pipeline-01.md\n",
+            "pipeline_config": "pipeline-itil.json",
+            "return_code": 3,
+            "runner": "pipeline",
+            "status": "failed"
+          },
+          "b024-g36-traceability-v01-ab-001": {
+            "attempted_at_epoch": 1788533412,
+            "benchmark": "custom/ba-agent/benchmarks/024-artifact-traceability-audit",
+            "mode": "both",
+            "model": "gemini-3.6-flash",
+            "output_tail": "[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/024-artifact-traceability-audit/results/b024-g36-traceability-v01-ab-001-gemini-3.6-flash-baseline-01.md\n[provider_busy] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/024-artifact-traceability-audit/results/b024-g36-traceability-v01-ab-001-gemini-3.6-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 338c28deecd7f4884bb805913029a046def2b916\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b025-g36-procurement-spec-v01-ab-001": {
+            "attempted_at_epoch": 1788533497,
+            "benchmark": "custom/ba-agent/benchmarks/025-procurement-specification",
+            "mode": "both",
+            "model": "gemini-3.6-flash",
+            "output_tail": "[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/025-procurement-specification/results/b025-g36-procurement-spec-v01-ab-001-gemini-3.6-flash-baseline-01.md\n[provider_busy] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/025-procurement-specification/results/b025-g36-procurement-spec-v01-ab-001-gemini-3.6-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 0ca2c7690fe4ff16ce558b575468a0679869cfbf\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b026-g36-nfr-v01-ab-001": {
+            "attempted_at_epoch": 1788533566,
+            "benchmark": "custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis",
+            "mode": "both",
+            "model": "gemini-3.6-flash",
+            "output_tail": "[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis/results/b026-g36-nfr-v01-ab-001-gemini-3.6-flash-baseline-01.md\n[provider_busy] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis/results/b026-g36-nfr-v01-ab-001-gemini-3.6-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 94da494e2943928a58516eeb954a09334fa0b3f1\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b027-g36-change-impact-v01-ab-001": {
+            "attempted_at_epoch": 1788533657,
+            "benchmark": "custom/ba-agent/benchmarks/027-change-impact-assessment",
+            "mode": "both",
+            "model": "gemini-3.6-flash",
+            "output_tail": "[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/027-change-impact-assessment/results/b027-g36-change-impact-v01-ab-001-gemini-3.6-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/027-change-impact-assessment/results/b027-g36-change-impact-v01-ab-001-gemini-3.6-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 22154a42114df7ea24783895a816b5f9c1563e1b\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b028-g37-release-evidence-v01-ab-001": {
+            "attempted_at_epoch": 1788533837,
+            "benchmark": "custom/ba-agent/benchmarks/028-release-evidence-validation",
+            "mode": "both",
+            "model": "gemini-3.7-flash",
+            "output_tail": "[provider_busy] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/028-release-evidence-validation/results/b028-g37-release-evidence-v01-ab-001-gemini-3.7-flash-baseline-01.md\n[provider_busy] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/028-release-evidence-validation/results/b028-g37-release-evidence-v01-ab-001-gemini-3.7-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 0ff68d7cd497f52c86a3d1675888d4cd0b740cc5\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b029-g37-requirement-delta-v01-ab-001": {
+            "attempted_at_epoch": 1788533882,
+            "benchmark": "custom/ba-agent/benchmarks/029-requirement-change-reconciliation",
+            "mode": "both",
+            "model": "gemini-3.7-flash",
+            "output_tail": "[provider_busy] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/029-requirement-change-reconciliation/results/b029-g37-requirement-delta-v01-ab-001-gemini-3.7-flash-baseline-01.md\n[provider_busy] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/029-requirement-change-reconciliation/results/b029-g37-requirement-delta-v01-ab-001-gemini-3.7-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 8690dd46fc4996a4369080c56baa4edeebb91701\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b030-g37-adr-v01-ab-001": {
+            "attempted_at_epoch": 1788533904,
+            "benchmark": "custom/ba-agent/benchmarks/030-architecture-decision-recording",
+            "mode": "both",
+            "model": "gemini-3.7-flash",
+            "output_tail": "[provider_busy] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/030-architecture-decision-recording/results/b030-g37-adr-v01-ab-001-gemini-3.7-flash-baseline-01.md\n[provider_busy] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/030-architecture-decision-recording/results/b030-g37-adr-v01-ab-001-gemini-3.7-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: a0e68e7553798a453c8c1498c110d6300b1961f1\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          },
+          "b031-g37-operational-readiness-v01-ab-001": {
+            "attempted_at_epoch": 1788533936,
+            "benchmark": "custom/ba-agent/benchmarks/031-operational-readiness-assessment",
+            "mode": "both",
+            "model": "gemini-3.7-flash",
+            "output_tail": "[provider_busy] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/031-operational-readiness-assessment/results/b031-g37-operational-readiness-v01-ab-001-gemini-3.7-flash-baseline-01.md\n[provider_busy] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/031-operational-readiness-assessment/results/b031-g37-operational-readiness-v01-ab-001-gemini-3.7-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 15ebe1962aa50aa4e20b90acb3e0b653c9d9d422\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "status": "completed"
+          }
+        },
+        "known_job_count": 57,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json"
+      },
+      "index": 2,
+      "label": "Worker records for Agent and Skill jobs",
+      "status": "ok",
+      "type": "worker_state"
+    },
+    {
+      "data": {
+        "lines": 120,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/scheduler.log",
+        "text": "[worker] no new jobs\n[diagnostic] no enabled request\n2026-09-05 00:10:06 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 00:15:05 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] no enabled request\n2026-09-05 00:15:06 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 00:20:05 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] no enabled request\n2026-09-05 00:20:06 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 00:25:02 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] no enabled request\n2026-09-05 00:25:03 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 00:30:03 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] no enabled request\n2026-09-05 00:30:04 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 00:35:01 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] no enabled request\n2026-09-05 00:35:02 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 00:40:03 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] no new jobs\n[diagnostic] no enabled request\n2026-09-05 00:40:04 worker poll end benchmark_rc=0 diagnostic_rc=0 rc=0\n2026-09-05 00:45:03 worker poll start using /usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] 11 new job(s)\n[worker] starting a001-g36-ba-change-router-v01-ab-004: gemini-3.6-flash both custom/ba-agent/benchmarks/023-ba-change-governance-composition\n[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/023-ba-change-governance-composition/results/a001-g36-ba-change-router-v01-ab-004-gemini-3.6-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/023-ba-change-governance-composition/results/a001-g36-ba-change-router-v01-ab-004-gemini-3.6-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 0dce5332a239786505ae3f35683587e09a242890\n[worker] finished a001-g36-ba-change-router-v01-ab-004 rc=0\n[worker] starting b023-g36-ba-change-control-005: gemini-3.6-flash pipeline pipeline-control.json custom/ba-agent/benchmarks/023-ba-change-governance-composition\n[pipeline] stage 1 ba-delivery -> success\n[pipeline] stage 2 change-readiness -> success\nPublished 7 pipeline files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: de275e725f0b554b07f90afaf47f8cded4416eeb\n[pipeline] b023-g36-ba-change-control-005 -> success\n[pipeline] combined result: /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/023-ba-change-governance-composition/results/b023-g36-ba-change-control-005-gemini-3.6-flash-pipeline-01.md\n[worker] finished b023-g36-ba-change-control-005 rc=0\n[worker] starting b023-g36-ba-change-itil-006: gemini-3.6-flash pipeline pipeline-itil.json custom/ba-agent/benchmarks/023-ba-change-governance-composition\n[pipeline] stage 1 ba-delivery -> success\n[pipeline] stage 2 change-readiness -> provider_busy\nPublished 7 pipeline files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 1bf2a298dc3ca01d7b1ea91b1b90071c080b7990\n[pipeline] b023-g36-ba-change-itil-006 -> incomplete\n[pipeline] combined result: /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/023-ba-change-governance-composition/results/b023-g36-ba-change-itil-006-gemini-3.6-flash-pipeline-01.md\n[worker] finished b023-g36-ba-change-itil-006 rc=3\n[worker] starting b024-g36-traceability-v01-ab-001: gemini-3.6-flash both custom/ba-agent/benchmarks/024-artifact-traceability-audit\n[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/024-artifact-traceability-audit/results/b024-g36-traceability-v01-ab-001-gemini-3.6-flash-baseline-01.md\n[provider_busy] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/024-artifact-traceability-audit/results/b024-g36-traceability-v01-ab-001-gemini-3.6-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 338c28deecd7f4884bb805913029a046def2b916\n[worker] finished b024-g36-traceability-v01-ab-001 rc=0\n[worker] starting b025-g36-procurement-spec-v01-ab-001: gemini-3.6-flash both custom/ba-agent/benchmarks/025-procurement-specification\n[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/025-procurement-specification/results/b025-g36-procurement-spec-v01-ab-001-gemini-3.6-flash-baseline-01.md\n[provider_busy] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/025-procurement-specification/results/b025-g36-procurement-spec-v01-ab-001-gemini-3.6-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 0ca2c7690fe4ff16ce558b575468a0679869cfbf\n[worker] finished b025-g36-procurement-spec-v01-ab-001 rc=0\n[worker] starting b026-g36-nfr-v01-ab-001: gemini-3.6-flash both custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis\n[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis/results/b026-g36-nfr-v01-ab-001-gemini-3.6-flash-baseline-01.md\n[provider_busy] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/026-nonfunctional-requirements-analysis/results/b026-g36-nfr-v01-ab-001-gemini-3.6-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 94da494e2943928a58516eeb954a09334fa0b3f1\n[worker] finished b026-g36-nfr-v01-ab-001 rc=0\n[worker] starting b027-g36-change-impact-v01-ab-001: gemini-3.6-flash both custom/ba-agent/benchmarks/027-change-impact-assessment\n[success] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/027-change-impact-assessment/results/b027-g36-change-impact-v01-ab-001-gemini-3.6-flash-baseline-01.md\n[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/027-change-impact-assessment/results/b027-g36-change-impact-v01-ab-001-gemini-3.6-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 22154a42114df7ea24783895a816b5f9c1563e1b\n[worker] finished b027-g36-change-impact-v01-ab-001 rc=0\n[worker] starting b028-g37-release-evidence-v01-ab-001: gemini-3.7-flash both custom/ba-agent/benchmarks/028-release-evidence-validation\n[provider_busy] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/028-release-evidence-validation/results/b028-g37-release-evidence-v01-ab-001-gemini-3.7-flash-baseline-01.md\n[provider_busy] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/028-release-evidence-validation/results/b028-g37-release-evidence-v01-ab-001-gemini-3.7-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 0ff68d7cd497f52c86a3d1675888d4cd0b740cc5\n[worker] finished b028-g37-release-evidence-v01-ab-001 rc=0\n[worker] starting b029-g37-requirement-delta-v01-ab-001: gemini-3.7-flash both custom/ba-agent/benchmarks/029-requirement-change-reconciliation\n[provider_busy] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/029-requirement-change-reconciliation/results/b029-g37-requirement-delta-v01-ab-001-gemini-3.7-flash-baseline-01.md\n[provider_busy] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/029-requirement-change-reconciliation/results/b029-g37-requirement-delta-v01-ab-001-gemini-3.7-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 8690dd46fc4996a4369080c56baa4edeebb91701\n[worker] finished b029-g37-requirement-delta-v01-ab-001 rc=0\n[worker] starting b030-g37-adr-v01-ab-001: gemini-3.7-flash both custom/ba-agent/benchmarks/030-architecture-decision-recording\n[provider_busy] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/030-architecture-decision-recording/results/b030-g37-adr-v01-ab-001-gemini-3.7-flash-baseline-01.md\n[provider_busy] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/030-architecture-decision-recording/results/b030-g37-adr-v01-ab-001-gemini-3.7-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: a0e68e7553798a453c8c1498c110d6300b1961f1\n[worker] finished b030-g37-adr-v01-ab-001 rc=0\n[worker] starting b031-g37-operational-readiness-v01-ab-001: gemini-3.7-flash both custom/ba-agent/benchmarks/031-operational-readiness-assessment\n[provider_busy] baseline 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/031-operational-readiness-assessment/results/b031-g37-operational-readiness-v01-ab-001-gemini-3.7-flash-baseline-01.md\n[provider_busy] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/031-operational-readiness-assessment/results/b031-g37-operational-readiness-v01-ab-001-gemini-3.7-flash-skill-01.md\nPublished 5 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 15ebe1962aa50aa4e20b90acb3e0b653c9d9d422\n[worker] finished b031-g37-operational-readiness-v01-ab-001 rc=0"
+      },
+      "index": 3,
+      "label": "Recent benchmark scheduler log",
+      "status": "ok",
+      "type": "tail"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-ba-benchmark-worker.lock",
+        "matching_processes": []
+      },
+      "index": 4,
+      "label": "Benchmark worker lock/process state",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "path": "/volume1/docker/librechat/deploy/synology/.env",
+        "present": {
+          "GITHUB_BA_BENCHMARK_TOKEN": false,
+          "GITHUB_TELEMETRY_TOKEN": true,
+          "GOOGLE_KEY": true
+        }
+      },
+      "index": 5,
+      "label": "Required key/token presence",
+      "status": "ok",
+      "type": "env_presence"
+    }
+  ],
+  "ended_at": "2026-09-04T14:59:23Z",
+  "hostname": "NAS",
+  "overall": "ok",
+  "recipe": "custom/ba-agent/diagnostics/workflow-strengthening-health.json",
+  "recipe_name": "Workflow strengthening and Agent benchmark health",
+  "request_id": "workflow-strengthening-health-20260905-001",
+  "schema": 1,
+  "started_at": "2026-09-04T14:59:22Z"
+}
