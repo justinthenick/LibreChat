@@ -2,8 +2,9 @@
 """Render the Synology LibreChat runtime YAML without a YAML dependency.
 
 Only the block between the two MANAGED OPENROUTER MODELS markers is replaced.
-The source librechat.yaml remains valid and reviewable. The generated runtime
-copy is local deployment state and must not be committed.
+A non-empty ALLOWED_MODELS value enables the pre-filter; clearing it restores
+provider catalogue fetch. This preserves the earlier Synology pre-filter
+contract without maintaining a second boolean that can disagree with the list.
 """
 
 import argparse
@@ -50,18 +51,9 @@ def parse_models(value):
     return result
 
 
-def bool_value(raw):
-    return str(raw or "").strip().lower() in ("1", "true", "yes", "on")
-
-
 def render(template_text, values):
     allowed = parse_models(values.get("ALLOWED_MODELS", ""))
-    explicit_flag = values.get("MODEL_PREFILTER_ENABLED")
-    # Backwards compatibility with the earlier Synology pre-filter: if the new
-    # flag has never been written, an existing ALLOWED_MODELS list remains active.
-    enabled = bool_value(explicit_flag) if explicit_flag is not None else bool(allowed)
-    if enabled and not allowed:
-        raise ValueError("MODEL_PREFILTER_ENABLED=true requires at least one ALLOWED_MODELS entry")
+    enabled = bool(allowed)
 
     start = template_text.find(BEGIN)
     end = template_text.find(END)
@@ -112,13 +104,11 @@ def main():
     args = parser.parse_args()
 
     values = parse_env(args.env_file)
+    models = parse_models(values.get("ALLOWED_MODELS", ""))
     rendered = render(args.template.read_text(encoding="utf-8"), values)
     atomic_write(args.output, rendered)
-    models = parse_models(values.get("ALLOWED_MODELS", ""))
-    explicit_flag = values.get("MODEL_PREFILTER_ENABLED")
-    enabled = bool_value(explicit_flag) if explicit_flag is not None else bool(models)
     print("Rendered {} (model pre-filter: {}; allowed models: {})".format(
-        args.output, "enabled" if enabled else "disabled", len(models) if enabled else "provider fetch"
+        args.output, "enabled" if models else "disabled", len(models) if models else "provider fetch"
     ))
     return 0
 
