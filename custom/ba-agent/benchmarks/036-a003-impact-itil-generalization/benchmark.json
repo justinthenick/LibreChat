@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 036 — A003 Impact and ITIL Generalization",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../agents/release-assurance-orchestrator/AGENT.md",
+  "results_dir": "results"
+}
