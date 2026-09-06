@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 031 — Operational Readiness Assessment",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/assess-operational-readiness/SKILL.md",
+  "results_dir": "results"
+}

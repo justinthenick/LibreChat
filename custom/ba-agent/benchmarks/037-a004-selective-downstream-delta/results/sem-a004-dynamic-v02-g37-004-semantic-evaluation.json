@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-a004-dynamic-v02-g37-004",
+  "benchmark": "Benchmark 037 — A004 Selective Downstream Delta",
+  "benchmark_path": "custom/ba-agent/benchmarks/037-a004-selective-downstream-delta",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-06T03:15:40Z",
+  "baseline_result": "results/b037-g37-a004-control-024-gemini-3.7-flash-pipeline-01.md",
+  "skill_result": "results/a004-g37-dynamic-selective-v02-026-gemini-3-7-flash-dynamic-01.md",
+  "skill_path": "custom/ba-agent/agents/requirement-change-orchestrator/AGENT.md",
+  "skill_sha256": "f00e55f160e3ff7c66d9b0e8497a7254a50fff3dbca466ba0dc552f3fb2dc77a",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 35,
+          "max": 35,
+          "rationale": "Followed the exact pipeline route: reconcile-requirement-changes -> elaborate-acceptance-criteria -> derive-test-cases without unnecessary stages."
+        },
+        {
+          "criterion": "Delta authority/state preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "Correctly preserved REQ-20 (18:00 Sydney), REQ-21 (30 days), and REQ-23 (unchanged), while noting Finance authority is unknown and proposals are unapproved. Correctly recognized AD-12, PD-51, and D-52."
+        },
+        {
+          "criterion": "Selective downstream propagation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Propagated downstream updates strictly to REQ-22, REQ-24, and the new invoice_status requirement without touching unaffected baseline items."
+        },
+        {
+          "criterion": "Acceptance/test fidelity",
+          "score": 15,
+          "max": 15,
+          "rationale": "Acceptance criteria and test cases accurately reflect managed SFTP, exact ERP status values (OPEN/PAID/VOID), and explicit null handling without defaults or guessed values."
+        },
+        {
+          "criterion": "Scope discipline",
+          "score": 5,
+          "max": 5,
+          "rationale": "Respected the stability of existing decomposition and the 5 September impact assessment."
+        }
+      ],
+      "summary": "Baseline executed the required selective reconciliation and downstream updates with full fidelity to the evidence and scope constraints."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 35,
+          "max": 35,
+          "rationale": "Orchestrator selected exactly reconcile-requirement-changes -> elaborate-acceptance-criteria -> derive-test-cases, explicitly excluding unnecessary skills with appropriate justifications."
+        },
+        {
+          "criterion": "Delta authority/state preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "Accurately distinguished approved deltas (AD-12, PD-51, D-52) from unapproved proposals (19:00 export time, 7-day retention) and preserved untouched items (REQ-23) without inferring undocumented Finance authority."
+        },
+        {
+          "criterion": "Selective downstream propagation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Limited downstream artifact elaboration and test derivation strictly to the active delta scope (REQ-22, REQ-24, and PD-51), referencing unaffected baseline items without rewriting them."
+        },
+        {
+          "criterion": "Acceptance/test fidelity",
+          "score": 15,
+          "max": 15,
+          "rationale": "Formulated precise acceptance criteria and test cases for managed SFTP transport, exact OPEN/PAID/VOID status mapping, and negative/boundary checks for null handling without defaults."
+        },
+        {
+          "criterion": "Scope discipline",
+          "score": 5,
+          "max": 5,
+          "rationale": "Maintained strict boundary control, honoring existing decomposition validity and the current impact assessment."
+        }
+      ],
+      "summary": "Skill dynamically selected the exact required route and executed clean, selective downstream delta propagation with exemplary evidence discipline."
+    },
+    "defects": [],
+    "summary": "Both baseline and skill achieved perfect scores. Both correctly identified the exact supported deltas, rejected unapproved proposals without inventing authority, and strictly limited downstream acceptance criteria and test case generation to affected requirements."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 14200,
+    "candidatesTokenCount": 957,
+    "totalTokenCount": 16299,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 14200
+      }
+    ],
+    "thoughtsTokenCount": 1142,
+    "serviceTier": "standard"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "benchmark": "Benchmark 033 — A002 Architecture Stop Routing",
+  "created_at": "2026-09-05T13:43:34Z",
+  "mode": "both",
+  "model": "gemini-3.7-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b033-g37-a002-routing-v01-ab-001-gemini-3.7-flash-baseline-01.md",
+      "metadata": "b033-g37-a002-routing-v01-ab-001-gemini-3.7-flash-baseline-01.json",
+      "status": "success"
+    },
+    {
+      "markdown": "b033-g37-a002-routing-v01-ab-001-gemini-3.7-flash-skill-01.md",
+      "metadata": "b033-g37-a002-routing-v01-ab-001-gemini-3.7-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}

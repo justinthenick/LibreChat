@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 023 — BA Change Delivery Agent Routing",
+  "benchmark_dir": "023-ba-change-governance-composition",
+  "ended_at": "2026-09-04T14:45:45Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": true,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "46226a8f175179daadd26281a187d44d9f155aca710aeb03b82e74f504df3f3c",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "baseline",
+  "model": "gemini-3.6-flash",
+  "prompt_sha256": "8a1bc134b18a42137bd06a16abda4b51078ba0a1d90e82d3af14799be255716b",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": null,
+  "skill_sha256": null,
+  "skill_version": null,
+  "started_at": "2026-09-04T14:45:04Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 920,
+    "promptTokenCount": 915,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 915
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 1214,
+    "totalTokenCount": 3049
+  }
+}

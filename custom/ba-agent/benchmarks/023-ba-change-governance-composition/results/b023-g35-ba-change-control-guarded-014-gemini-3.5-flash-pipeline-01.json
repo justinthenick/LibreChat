@@ -1,0 +1,60 @@
+{
+  "input_sha256": "46226a8f175179daadd26281a187d44d9f155aca710aeb03b82e74f504df3f3c",
+  "model": "gemini-3.5-flash",
+  "pipeline": "Benchmark 023 \u2014 Control: Composite BA + Change Readiness",
+  "prompt_sha256": "37b7e00c6474bbefc20f7031a5d76991b4e2b3e29dac58c8e89dfcece4227542",
+  "run_id": "b023-g35-ba-change-control-guarded-014",
+  "schema": 1,
+  "stages": [
+    {
+      "markdown": "b023-g35-ba-change-control-guarded-014-gemini-3.5-flash-pipeline-01-stage-01-ba-delivery.md",
+      "metadata": "b023-g35-ba-change-control-guarded-014-gemini-3.5-flash-pipeline-01-stage-01-ba-delivery.json",
+      "output_sha256": "cb167e0059b9d3b2eaf60506c33222c05620d685eb58d0732f1a88a35b5d0eb3",
+      "stage_id": "ba-delivery",
+      "stage_name": "Composite BA Delivery Analyst v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 4342,
+        "promptTokenCount": 2959,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2959
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 3594,
+        "totalTokenCount": 10895
+      }
+    },
+    {
+      "markdown": "b023-g35-ba-change-control-guarded-014-gemini-3.5-flash-pipeline-01-stage-02-change-readiness.md",
+      "metadata": "b023-g35-ba-change-control-guarded-014-gemini-3.5-flash-pipeline-01-stage-02-change-readiness.json",
+      "output_sha256": "5719603fee173076b1786519e678ce287bb1f9a05f46e9c2e155978b4bcb1ce0",
+      "stage_id": "change-readiness",
+      "stage_name": "Prepare Solution / Change Readiness v0.2",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 3100,
+        "promptTokenCount": 6152,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 6152
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 4650,
+        "totalTokenCount": 13902
+      }
+    }
+  ],
+  "status": "success",
+  "temperature": 0.0,
+  "total_usage": {
+    "candidatesTokenCount": 7442,
+    "promptTokenCount": 9111,
+    "thoughtsTokenCount": 8244,
+    "totalTokenCount": 24797
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-b031-v02-paid-001",
+  "benchmark": "Benchmark 031 — Operational Readiness Assessment",
+  "benchmark_path": "custom/ba-agent/benchmarks/031-operational-readiness-assessment",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-05T11:05:23Z",
+  "baseline_result": "results/b031-g35-operational-readiness-v02-ab-005-gemini-3.5-flash-baseline-01.md",
+  "skill_result": "results/b031-g35-operational-readiness-v02-ab-005-gemini-3.5-flash-skill-01.md",
+  "skill_path": "custom/ba-agent/skills/assess-operational-readiness/SKILL.md",
+  "skill_sha256": "df6bd0e785eff2b6e24c02137a68d4fd000f7fd8c4e41c0d84e5b020907a1127",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 98,
+      "critical_penalties": [],
+      "final_score": 98,
+      "criteria": [
+        {
+          "criterion": "A. Confirmed blocker recognition",
+          "score": 25,
+          "max": 25,
+          "rationale": "Correctly identifies the permission-denied write failure on target folder and open ticket ACC-91 as a demonstrated production blocker."
+        },
+        {
+          "criterion": "B. Ready evidence",
+          "score": 25,
+          "max": 25,
+          "rationale": "Captures service ownership, support coverage, vendor contact/escalation, approved runbook RB-12, manual fallback, and complete Release 1.2 configuration records."
+        },
+        {
+          "criterion": "C. Partial / not-evidenced discipline",
+          "score": 20,
+          "max": 25,
+          "rationale": "Accurately categorizes the draft support article and planned monitoring as partially ready/pending, and lists absent items (RTO/RPO, DR, 24x7, etc.) as not evidenced without treating them as mandatory gates."
+        },
+        {
+          "criterion": "D. Residual risk / scope discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Correctly preserves DEF-42 as accepted residual risk by Billing Operations with documented RB-12 workaround, and identifies the automated retry enhancement as deferred scope."
+        },
+        {
+          "criterion": "E. Governance / handoff discipline",
+          "score": 13,
+          "max": 15,
+          "rationale": "CMDB update is properly treated as a post-release task. The handoff table summarizes dimensions well, though listing 'Conditional Approval' slightly blurs the clear overall 'Not ready' state."
+        }
+      ],
+      "summary": "Baseline correctly identifies the access permission issue as a blocker, preserves accepted risk and deferred scope, and handles absent evidence appropriately."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "A. Confirmed blocker recognition",
+          "score": 25,
+          "max": 25,
+          "rationale": "Explicitly assigns an overall Not ready assessment driven by the ACC-91 target folder write permission failure."
+        },
+        {
+          "criterion": "B. Ready evidence",
+          "score": 25,
+          "max": 25,
+          "rationale": "Identifies and categorizes all confirmed operational assets (Billing Operations ownership, 08:00-18:00 support window, vendor escalation, RB-12 approval, manual fallback, configuration record)."
+        },
+        {
+          "criterion": "C. Partial / not-evidenced discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Classifies the draft article and planned monitoring as Partially ready, while framing RTO/RPO and other absent artifacts strictly as operational questions rather than blockers."
+        },
+        {
+          "criterion": "D. Residual risk / scope discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Maintains strict discipline regarding DEF-42 risk acceptance by Billing Operations and marks the future retry enhancement as deferred."
+        },
+        {
+          "criterion": "E. Governance / handoff discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "CMDB update is not turned into a pre-release gate, and the Change/ITIL handoff structure cleanly separates blockers, ready evidence, accepted risks, and non-blocking questions."
+        }
+      ],
+      "summary": "Skill provides a rigorous assessment strictly anchored in the evidence packet, with clear state classifications and structured ITIL handoff."
+    },
+    "defects": [],
+    "summary": "Both models successfully identified the core operational blocker (ACC-91 write permission failure) and avoided inventing requirements. Skill provided a structured matrix with explicit state classification and clear ITIL handoff sections."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 5457,
+    "candidatesTokenCount": 978,
+    "totalTokenCount": 8028,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 5457
+      }
+    ],
+    "thoughtsTokenCount": 1593,
+    "serviceTier": "standard"
+  }
+}

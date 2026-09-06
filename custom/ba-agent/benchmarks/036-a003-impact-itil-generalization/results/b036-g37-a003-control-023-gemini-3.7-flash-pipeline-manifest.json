@@ -1,0 +1,72 @@
+{
+  "combined_markdown": "b036-g37-a003-control-023-gemini-3.7-flash-pipeline-01.md",
+  "combined_metadata": "b036-g37-a003-control-023-gemini-3.7-flash-pipeline-01.json",
+  "run_id": "b036-g37-a003-control-023",
+  "schema": 1,
+  "stages": [
+    {
+      "markdown": "b036-g37-a003-control-023-gemini-3.7-flash-pipeline-01-stage-01-change-impact.md",
+      "metadata": "b036-g37-a003-control-023-gemini-3.7-flash-pipeline-01-stage-01-change-impact.json",
+      "output_sha256": "8a6f385ffcc3d3626a6717bee1fe8aa6f3015f8bb9bfebb0c2dbc4034287ec95",
+      "stage_id": "change-impact",
+      "stage_name": "Assess Change Impact",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 1433,
+        "promptTokenCount": 1979,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1979
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 826,
+        "totalTokenCount": 4238
+      }
+    },
+    {
+      "markdown": "b036-g37-a003-control-023-gemini-3.7-flash-pipeline-01-stage-02-release-evidence.md",
+      "metadata": "b036-g37-a003-control-023-gemini-3.7-flash-pipeline-01-stage-02-release-evidence.json",
+      "output_sha256": "5af66ab043098a9413c366dcdfc56ac9507d17ae46d648037a260d910710e4db",
+      "stage_id": "release-evidence",
+      "stage_name": "Validate Release Evidence",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 1884,
+        "promptTokenCount": 2824,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2824
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 468,
+        "totalTokenCount": 5176
+      }
+    },
+    {
+      "markdown": "b036-g37-a003-control-023-gemini-3.7-flash-pipeline-01-stage-03-itil-alignment.md",
+      "metadata": "b036-g37-a003-control-023-gemini-3.7-flash-pipeline-01-stage-03-itil-alignment.json",
+      "output_sha256": "d5218a86e753830cbf2118935d316ff13b4fc51e9261a9e4c8b1817a6567f915",
+      "stage_id": "itil-alignment",
+      "stage_name": "Assess ITIL Alignment",
+      "status": "success",
+      "usage": {
+        "candidatesTokenCount": 1674,
+        "promptTokenCount": 3992,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3992
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 1554,
+        "totalTokenCount": 7220
+      }
+    }
+  ],
+  "status": "success"
+}

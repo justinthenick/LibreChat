@@ -1,0 +1,6 @@
+{
+  "schema": 1,
+  "enabled": true,
+  "note": "Bounded Skill revisions queued only by semantic_evaluator.py after a failed evidence-backed gate.",
+  "jobs": []
+}

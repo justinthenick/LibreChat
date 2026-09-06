@@ -1,0 +1,30 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 026 — Non-Functional Requirements Analysis",
+  "benchmark_dir": "026-nonfunctional-requirements-analysis",
+  "ended_at": "2026-09-05T10:37:23Z",
+  "error": "{\"message\": \"This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\", \"status\": \"UNAVAILABLE\"}",
+  "finish_reason": null,
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": false,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 503,
+  "input_sha256": "386d3a52dc2a37f2803c65f1891e87a51c5a460dc0025cdb953891043e9572bb",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "baseline",
+  "model": "gemini-3.5-flash",
+  "prompt_sha256": "99ede73e7328e9f3fd4455570e0a22d290b4b0b330304dc6f29772bb2b59e12f",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": null,
+  "skill_sha256": null,
+  "skill_version": null,
+  "started_at": "2026-09-05T10:36:55Z",
+  "status": "provider_busy",
+  "temperature": 0.0,
+  "usage": null
+}

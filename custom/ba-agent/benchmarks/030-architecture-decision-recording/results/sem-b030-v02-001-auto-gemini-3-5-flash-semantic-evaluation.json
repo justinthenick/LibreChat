@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-b030-v02-001-auto-gemini-3-5-flash",
+  "benchmark": "Benchmark 030 — Architecture Decision Recording",
+  "benchmark_path": "custom/ba-agent/benchmarks/030-architecture-decision-recording",
+  "evaluator_model": "gemini-3.5-flash",
+  "evaluated_at": "2026-09-05T07:45:35Z",
+  "baseline_result": "results/b030-g35-adr-v02-ab-003-gemini-3.5-flash-baseline-01.md",
+  "skill_result": "results/b030-g35-adr-v02-ab-003-gemini-3.5-flash-skill-01.md",
+  "skill_path": "custom/ba-agent/skills/record-architecture-decisions/SKILL.md",
+  "skill_sha256": "e6887a3efdc59a65fa714642dedc9d1a05398af1ef61da79bd9fb7994bfc4ae4",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "A. Accepted D-44 ADR",
+          "score": 35,
+          "max": 35,
+          "rationale": "The baseline correctly records D-44 as Accepted, with the Architecture Review Board as the authority, dated 3 September 2026. The decision to poll from the existing Integration Service is accurately captured, and rejected alternatives are preserved without invention."
+        },
+        {
+          "criterion": "B. Recommendation / candidate discipline",
+          "score": 25,
+          "max": 25,
+          "rationale": "The exponential backoff recommendation and internal message queue candidate are correctly kept separate from accepted decisions, with their status and lack of authority/triggers accurately preserved."
+        },
+        {
+          "criterion": "C. Target / unknown preservation",
+          "score": 15,
+          "max": 15,
+          "rationale": "The 5-minute update goal is correctly preserved as a target rather than an exact polling interval, and authentication/credentials are correctly noted as out of scope/unknown."
+        },
+        {
+          "criterion": "D. Rationale / consequence discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Consequences and rationales are strictly limited to the provided evidence, with no invented details, products, or topologies."
+        },
+        {
+          "criterion": "E. ADR quality",
+          "score": 10,
+          "max": 10,
+          "rationale": "The output has a clear ADR structure with metadata, context, options, decision, consequences, and open items, with clear status distinctions."
+        }
+      ],
+      "summary": "The baseline output is an excellent, high-fidelity ADR that perfectly adheres to all constraints, avoids any hallucinations, and maintains strict discipline regarding unapproved recommendations and targets."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "A. Accepted D-44 ADR",
+          "score": 35,
+          "max": 35,
+          "rationale": "The skill output correctly records D-44 as Accepted, with the Architecture Review Board as the authority, dated 3 September 2026. The decision to poll from the existing Integration Service is accurately captured, and rejected alternatives are preserved without invention."
+        },
+        {
+          "criterion": "B. Recommendation / candidate discipline",
+          "score": 25,
+          "max": 25,
+          "rationale": "The exponential backoff recommendation and internal message queue candidate are correctly kept separate from accepted decisions, with their status and lack of authority/triggers accurately preserved in a structured table."
+        },
+        {
+          "criterion": "C. Target / unknown preservation",
+          "score": 15,
+          "max": 15,
+          "rationale": "The 5-minute update goal is correctly preserved as a target rather than an exact polling interval, and authentication/credentials are correctly noted as out of scope/unknown."
+        },
+        {
+          "criterion": "D. Rationale / consequence discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Consequences and rationales are strictly limited to the provided evidence, with no invented details, products, or topologies."
+        },
+        {
+          "criterion": "E. ADR quality",
+          "score": 10,
+          "max": 10,
+          "rationale": "The output has a clear ADR structure with metadata, context, options, decision, consequences, and open items, with clear status distinctions and an excellent Recommendations and Candidates Register table."
+        }
+      ],
+      "summary": "The skill output is an outstanding, highly structured ADR. It uses a clean tabular format for the Recommendations and Candidates Register, ensuring perfect separation of concerns while maintaining absolute fidelity to the source text without any hallucinations."
+    },
+    "defects": [],
+    "summary": "Both the baseline and skill outputs achieved perfect scores of 100/100. They both demonstrated exceptional discipline in separating accepted decisions from recommendations, candidates, and targets, and strictly avoided inventing any implementation details (such as retry counts, queue products, or credentials). The skill output is slightly more polished due to its structured tabular layout for recommendations and candidates."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 3854,
+    "candidatesTokenCount": 922,
+    "totalTokenCount": 6645,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 3854
+      }
+    ],
+    "thoughtsTokenCount": 1869,
+    "serviceTier": "standard"
+  }
+}

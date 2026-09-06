@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 031 — Operational Readiness Assessment",
+  "benchmark_dir": "031-operational-readiness-assessment",
+  "ended_at": "2026-09-05T10:39:01Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": false,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "709b77aee79a9d96d9130e7412c33c0ba0ee0d72e315d5a3e878fbbedbf5484c",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "skill",
+  "model": "gemini-3.5-flash",
+  "prompt_sha256": "4dc14b663756ac4c1047eacf8479544c3157166844b8c75338fdf6a94de1f5ee",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/assess-operational-readiness/SKILL.md",
+  "skill_sha256": "df6bd0e785eff2b6e24c02137a68d4fd000f7fd8c4e41c0d84e5b020907a1127",
+  "skill_version": "0.2.0",
+  "started_at": "2026-09-05T10:38:34Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 1333,
+    "promptTokenCount": 2000,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 2000
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 2337,
+    "totalTokenCount": 5670
+  }
+}

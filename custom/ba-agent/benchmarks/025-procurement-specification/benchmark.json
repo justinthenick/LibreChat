@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 025 — Vendor-Neutral Procurement Specification",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/prepare-procurement-specification/SKILL.md",
+  "results_dir": "results"
+}

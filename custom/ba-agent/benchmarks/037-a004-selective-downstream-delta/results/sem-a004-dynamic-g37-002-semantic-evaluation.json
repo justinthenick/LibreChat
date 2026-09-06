@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "job_id": "sem-a004-dynamic-g37-002",
+  "benchmark": "Benchmark 037 — A004 Selective Downstream Delta",
+  "benchmark_path": "custom/ba-agent/benchmarks/037-a004-selective-downstream-delta",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-06T01:45:12Z",
+  "baseline_result": "results/b037-g37-a004-control-024-gemini-3.7-flash-pipeline-01.md",
+  "skill_result": "results/a004-g37-dynamic-selective-024-gemini-3-7-flash-dynamic-01.md",
+  "skill_path": "custom/ba-agent/agents/requirement-change-orchestrator/AGENT.md",
+  "skill_sha256": "d54afd5574c969b13d86f78bac774c677a0b156d6a7858b386c45202c12d8bd1",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 35,
+          "max": 35,
+          "rationale": "Executed the exact sequence reconcile-requirement-changes -> elaborate-acceptance-criteria -> derive-test-cases without unnecessary intermediate skills."
+        },
+        {
+          "criterion": "Delta authority/state preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "Correctly identified AD-12, PD-51, and D-52 as supported deltas. Preserved REQ-20 and REQ-21 as unresolved proposals with Decision Owner Unknown (avoiding inferring Finance authority). Preserved REQ-23."
+        },
+        {
+          "criterion": "Selective downstream propagation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Strictly limited downstream AC and TC elaboration and updates to REQ-22, REQ-25, and REQ-24, leaving unaffected baseline items untouched."
+        },
+        {
+          "criterion": "Acceptance/test fidelity",
+          "score": 15,
+          "max": 15,
+          "rationale": "Accurately covered managed SFTP transport and exact passthrough of OPEN/PAID/VOID plus null handling without defaulting."
+        },
+        {
+          "criterion": "Scope discipline",
+          "score": 5,
+          "max": 5,
+          "rationale": "Did not rerun decomposition or impact analysis, respecting current stability."
+        }
+      ],
+      "summary": "Baseline executed a flawless selective downstream update, precisely isolating deltas, handling governance authority with discipline, and updating only the affected ACs and test cases."
+    },
+    "skill": {
+      "raw_score": 89,
+      "critical_penalties": [],
+      "final_score": 89,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 35,
+          "max": 35,
+          "rationale": "Correctly routed through reconcile-requirement-changes -> elaborate-acceptance-criteria -> derive-test-cases with explicit justification for skipping analysis, decomposition, and impact assessment."
+        },
+        {
+          "criterion": "Delta authority/state preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "Properly distinguished supported deltas (AD-12, PD-51, D-52) from proposals (19:00, 7-day retention) and correctly documented Decision Owner as Unknown without inferring Finance authority."
+        },
+        {
+          "criterion": "Selective downstream propagation",
+          "score": 10,
+          "max": 20,
+          "rationale": "Failed strict downstream selectivity by synthesizing new acceptance criteria (AC-20-1, AC-21-1, AC-23-1) and test cases (TC-20-1, CHK-21-1, TC-23-1) for unaffected baseline items rather than leaving them untouched."
+        },
+        {
+          "criterion": "Acceptance/test fidelity",
+          "score": 15,
+          "max": 15,
+          "rationale": "ACs and TCs for REQ-22, REQ-24, and REQ-25 accurately capture managed SFTP and invoice_status ERP values/null constraints."
+        },
+        {
+          "criterion": "Scope discipline",
+          "score": 4,
+          "max": 5,
+          "rationale": "Maintained decomposition and impact stability, but generated unnecessary baseline criteria/tests."
+        }
+      ],
+      "summary": "Skill executed the correct workflow and accurately distinguished supported decisions from unresolved proposals without authority hallucination. However, it generated acceptance criteria and test cases for unaffected baseline requirements instead of restricting downstream generation exclusively to the supported deltas."
+    },
+    "defects": [
+      {
+        "severity": "major",
+        "criterion": "Selective downstream propagation",
+        "evidence": "In elaborate-acceptance-criteria and derive-test-cases, Skill generated AC-20-1, AC-21-1, AC-23-1 and TC-20-1, CHK-21-1, TC-23-1 for unaffected baseline items.",
+        "correction": "Leave unaffected baseline requirements untouched in downstream AC elaboration and test case derivation, updating and creating artifacts only for REQ-22, REQ-24, and the new invoice_status requirement (REQ-25)."
+      }
+    ],
+    "summary": "Both models selected the optimal skill route and correctly handled governance constraints (rejecting 19:00 and 7-day retention while preserving REQ-23 and keeping Finance authority as Unknown). Baseline achieved full marks by strictly limiting downstream updates to affected artifacts, whereas Skill elaborated downstream ACs and tests for unaffected baseline items."
+  },
+  "gate": {
+    "passed": false,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": [
+      "skill_final_score 89 < 90",
+      "baseline_gap 11 > 10"
+    ]
+  },
+  "usage": {
+    "promptTokenCount": 14963,
+    "candidatesTokenCount": 1170,
+    "totalTokenCount": 19363,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 14963
+      }
+    ],
+    "thoughtsTokenCount": 3230,
+    "serviceTier": "standard"
+  }
+}

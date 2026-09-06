@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 032 — A001 Selective Readiness Generalization",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../agents/ba-change-delivery-orchestrator/AGENT.md",
+  "results_dir": "results"
+}

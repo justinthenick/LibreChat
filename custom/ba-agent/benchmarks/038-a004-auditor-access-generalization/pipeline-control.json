@@ -1,0 +1,27 @@
+{
+  "schema": 2,
+  "name": "Benchmark 038 — Fixed auditor-access delta control",
+  "input": "input.md",
+  "prompt": "pipeline-control.md",
+  "results_dir": "results",
+  "stages": [
+    {
+      "id": "requirement-reconciliation",
+      "name": "Reconcile Requirement Changes",
+      "agent": "../../skills/reconcile-requirement-changes/SKILL.md",
+      "instruction": "Reconcile the baseline with SD-77 and later notes. Add the approved auditor-access capability while preserving IAM-11, IAM-12 and IAM-13; keep the 30-day suggestion unresolved and approval authority Unknown. Append `## SUPPORTED_DELTA_HANDOFF` plus `## SEMANTIC_UNKNOWNS_HANDOFF` listing the unresolved auditor-access semantics without inventing answers, then append `PIPELINE_HANDOFF_COMPLETE: REQUIREMENT_RECONCILIATION`."
+    },
+    {
+      "id": "requirements-analysis",
+      "name": "Analyze Requirements",
+      "agent": "../../skills/analyze-requirements/SKILL.md",
+      "instruction": "Require `PIPELINE_HANDOFF_COMPLETE: REQUIREMENT_RECONCILIATION`. Analyze only the approved auditor-access requirement and preserve as Unknown/open: 15-minute start event, default/max duration, approval authority, identity source/guest path, renewal/extension rules and privileged-role scope. Do not invent implementation or authority. Append `## ANALYZED_DELTA_FOR_IMPACT` preserving confirmed scope versus Unknowns and append `PIPELINE_HANDOFF_COMPLETE: REQUIREMENTS_ANALYSIS`."
+    },
+    {
+      "id": "change-impact",
+      "name": "Assess Change Impact",
+      "agent": "../../skills/assess-change-impact/SKILL.md",
+      "instruction": "Require `PIPELINE_HANDOFF_COMPLETE: REQUIREMENTS_ANALYSIS`. Assess impacts of adding the auditor actor/capability because the prior impact assessment does not cover it. Consider IAM workflow/identity lifecycle, request/approval process, service desk/support, security/access governance, audit coordination and entitlement handling while distinguishing confirmed impact from investigation items. Do not proceed into decomposition, acceptance criteria or tests. Append `PIPELINE_HANDOFF_COMPLETE: CHANGE_IMPACT`."
+    }
+  ]
+}

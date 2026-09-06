@@ -1,7 +1,6 @@
 {
   "schema": 1,
-  "enabled": false,
-  "request_id": "worker-health-dsm-single-scheduler-20260903-postcleanup-01",
-  "recipe": "custom/ba-agent/diagnostics/worker-health.json",
-  "note": "Post-cleanup scheduler validation completed successfully. Systemd timer remained stopped, the legacy DSM benchmark-only task was disabled, and the remaining DSM Task Scheduler path invoked run_worker_once.sh on a single five-minute cadence. Re-enable only with a new unique request_id for a future diagnostic."
+  "enabled": true,
+  "request_id": "a004-worker-provenance-20260906-012",
+  "recipe": "custom/ba-agent/diagnostics/a004-worker-provenance-20260906-012.json"
 }

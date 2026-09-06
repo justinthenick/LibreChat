@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "job_id": "sem-b028-v02-001-auto-gemini-3-5-flash-auto-gemini-3-6-flash",
+  "benchmark": "Benchmark 028 — Release Evidence Validation",
+  "benchmark_path": "custom/ba-agent/benchmarks/028-release-evidence-validation",
+  "evaluator_model": "gemini-3.6-flash",
+  "evaluated_at": "2026-09-05T07:50:32Z",
+  "baseline_result": "results/b028-g35-release-evidence-v02-ab-003-gemini-3.5-flash-baseline-01.md",
+  "skill_result": "results/b028-g35-release-evidence-v02-ab-003-gemini-3.5-flash-skill-01.md",
+  "skill_path": "custom/ba-agent/skills/validate-release-evidence/SKILL.md",
+  "skill_sha256": "51901682cb58fc57442ad7876c2bbd6b2a7fb4cb881bcfac2d00349245564906",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 99,
+      "critical_penalties": [],
+      "final_score": 99,
+      "criteria": [
+        {
+          "criterion": "A",
+          "score": 20,
+          "max": 20,
+          "rationale": "Correctly identifies CHG-442 authorization details, build 2.4.1 deployment log execution/exit code, and properly scopes health endpoint and container infrastructure metrics without treating them as total functional proof."
+        },
+        {
+          "criterion": "B",
+          "score": 30,
+          "max": 30,
+          "rationale": "Correctly marks T-101 and T-103 as verified, T-102 / AC-17 as failed, and preserves DEF-77 as an unresolved, open defect without inventing risk acceptance."
+        },
+        {
+          "criterion": "C",
+          "score": 19,
+          "max": 20,
+          "rationale": "Correctly classifies rollback execution as Not Evidenced and post-deployment customer/business monitoring as Not Evidenced. Deducted 1 point for placing basic technical health under Verified and transaction health under Not Evidenced rather than explicitly grouping service health as Partially Evidenced overall."
+        },
+        {
+          "criterion": "D",
+          "score": 20,
+          "max": 20,
+          "rationale": "Overall conclusion ('Partially Successful Deployment with a Functional Failure and Open Defect') is materially equivalent to the gold standard. Explicitly refutes the release coordinator's claim as false and unsupported."
+        },
+        {
+          "criterion": "E",
+          "score": 10,
+          "max": 10,
+          "rationale": "Strictly adheres to packet evidence without inventing facts, timestamps, re-tests, or approvals."
+        }
+      ],
+      "summary": "The baseline output gives an exceptionally accurate, well-structured, and strictly evidence-bound evaluation of the release packet."
+    },
+    "skill": {
+      "raw_score": 98,
+      "critical_penalties": [],
+      "final_score": 98,
+      "criteria": [
+        {
+          "criterion": "A",
+          "score": 20,
+          "max": 20,
+          "rationale": "Correctly validates CHG-442 authorization, deployment logs, and appropriately bounds technical health endpoint/dashboard scope."
+        },
+        {
+          "criterion": "B",
+          "score": 30,
+          "max": 30,
+          "rationale": "Accurately categorizes T-101 and T-103 as verified, T-102 as failed, and DEF-77 as open with missing risk acceptance."
+        },
+        {
+          "criterion": "C",
+          "score": 20,
+          "max": 20,
+          "rationale": "Flawlessly categorizes service health as partially evidenced, transaction/customer validation and rollback as not evidenced, and avoids confusing planned procedures with executed evidence."
+        },
+        {
+          "criterion": "D",
+          "score": 18,
+          "max": 20,
+          "rationale": "Explicitly refutes the coordinator's statement. However, the top-level verdict header 'Evidence does not establish release success' is slightly more negative than 'Evidence partially supports release success', although the rationale correctly establishes partial success."
+        },
+        {
+          "criterion": "E",
+          "score": 10,
+          "max": 10,
+          "rationale": "Maintains strict evidence discipline with zero hallucinated facts or unevidenced assumptions."
+        }
+      ],
+      "summary": "The skill output delivers a highly thorough, structured release validation report with complete evidence discipline and a detailed validation matrix."
+    },
+    "defects": [
+      {
+        "severity": "minor",
+        "criterion": "D",
+        "evidence": "Verdict: `Evidence does not establish release success`",
+        "correction": "State the verdict headline as 'Evidence partially supports release success' (or 'Partially Evidenced') to directly align with the gold standard phrasing while keeping the rationale that technical deployment and login fix succeeded but invoice export failed."
+      }
+    ],
+    "summary": "Both models performed extraordinarily well, adhering strictly to the evidence packet without introducing critical penalties or hallucinated details. Baseline scored 99 and Skill scored 98, both providing clear refutations of the release coordinator's claim and accurate status classifications."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 5771,
+    "candidatesTokenCount": 1045,
+    "totalTokenCount": 9938,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 5771
+      }
+    ],
+    "thoughtsTokenCount": 3122,
+    "serviceTier": "standard"
+  }
+}

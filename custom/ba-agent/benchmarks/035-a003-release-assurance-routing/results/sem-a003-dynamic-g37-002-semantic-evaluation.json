@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "job_id": "sem-a003-dynamic-g37-002",
+  "benchmark": "Benchmark 035 — A003 Selective Release Assurance Routing",
+  "benchmark_path": "custom/ba-agent/benchmarks/035-a003-release-assurance-routing",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-06T01:44:14Z",
+  "baseline_result": "results/b035-g37-a003-control-022-gemini-3.7-flash-pipeline-01.md",
+  "skill_result": "results/a003-g37-dynamic-assurance-021-gemini-3-7-flash-dynamic-01.md",
+  "skill_path": "custom/ba-agent/agents/release-assurance-orchestrator/AGENT.md",
+  "skill_sha256": "79a630ce3b946c545426468ac9fa3af03bc6516315c9e668e68ec5a2b6871168",
+  "evaluation": {
+    "baseline": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 30,
+          "max": 30,
+          "rationale": "Correctly selected and executed audit-artifact-traceability -> validate-release-evidence -> assess-operational-readiness -> prepare-solution-change-readiness without re-running change impact or adding ITIL assessment."
+        },
+        {
+          "criterion": "Evidence-state preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "Accurately preserved all statuses: T-04/T-06 NOT RUN, DEF-17 OPEN, CHG-9481 Draft, alert threshold and deployment window Candidate, rollback timing and Change Authority Unknown. Pilot scope was not conflated with full-fleet production proof."
+        },
+        {
+          "criterion": "Negative / conditional readiness discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Maintained a rigorous 'Not ready' assessment across operational readiness and final change readiness handoff based on unresolved blockers."
+        },
+        {
+          "criterion": "Traceability and scope discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Maintained end-to-end requirement traceability while respecting the pre-existing impact register without re-derivation."
+        },
+        {
+          "criterion": "Authority and non-invention discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Did not invent Change Authority, mandatory CAB requirements, defect risk acceptance, or rollback timing."
+        }
+      ],
+      "summary": "Baseline executed the required selective assurance route cleanly, preserving all evidence states, boundaries, and governance constraints."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Route selection and ordering",
+          "score": 30,
+          "max": 30,
+          "rationale": "Explicitly planned and routed the exact four required skills in order, providing clear justifications for excluding assess-change-impact and assess-itil-alignment."
+        },
+        {
+          "criterion": "Evidence-state preservation",
+          "score": 25,
+          "max": 25,
+          "rationale": "Strictly preserved all evidence states across all pipeline stages, correctly handling Candidate thresholds, Draft governance/runbooks, NOT RUN tests, and OPEN defect DEF-17."
+        },
+        {
+          "criterion": "Negative / conditional readiness discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Delivered an evidence-based 'Not ready' determination across operational readiness and solution handoff stages due to genuine blockers."
+        },
+        {
+          "criterion": "Traceability and scope discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Identified coverage and survival gaps (e.g. Service Desk knowledge article update) without re-assessing upstream change impact."
+        },
+        {
+          "criterion": "Authority and non-invention discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Maintained strict authority boundaries, correctly classifying PO statements as non-authoritative opinions and keeping Change Authority as Unknown."
+        }
+      ],
+      "summary": "Skill executed the optimal 4-stage assurance route with explicit routing rationale and stop rules, maintaining flawless state fidelity, strict governance boundaries, and a well-supported 'Not ready' release conclusion."
+    },
+    "defects": [],
+    "summary": "Both Baseline and Skill achieved perfect compliance with the benchmark requirements, selecting the exact required 4-stage pipeline, excluding change impact re-analysis and ITIL, preserving all evidence states without leakage or promotion, and arriving at a defensible 'Not ready' release decision."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 23511,
+    "candidatesTokenCount": 839,
+    "totalTokenCount": 25359,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 23511
+      }
+    ],
+    "thoughtsTokenCount": 1009,
+    "serviceTier": "standard"
+  }
+}

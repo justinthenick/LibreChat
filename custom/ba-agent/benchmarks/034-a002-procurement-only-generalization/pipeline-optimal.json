@@ -1,0 +1,27 @@
+{
+  "schema": 2,
+  "name": "Benchmark 034 — Optimal fixed procurement control",
+  "input": "input.md",
+  "prompt": "pipeline-prompt.md",
+  "results_dir": "results",
+  "stages": [
+    {
+      "id": "procurement-specification",
+      "name": "Prepare Procurement Specification",
+      "agent": "../../skills/prepare-procurement-specification/SKILL.md",
+      "instruction": "Consume the supplied mature procurement baseline directly. Do not redo requirements, NFR, solution-design or ADR work. Produce the vendor-neutral procurement specification while preserving Hard minimum / Target / Preference / Unknown states exactly. Only after the complete artifact is produced, append the exact final line `PIPELINE_HANDOFF_COMPLETE: PROCUREMENT_SPECIFICATION`."
+    },
+    {
+      "id": "market-expansion",
+      "name": "Expand Procurement Market",
+      "agent": "../../skills/expand-procurement-market/SKILL.md",
+      "instruction": "Consume only the supplied procurement-specification handoff. Before substantive work, require the exact upstream marker `PIPELINE_HANDOFF_COMPLETE: PROCUREMENT_SPECIFICATION`. If absent, return only `UPSTREAM_INCOMPLETE: PROCUREMENT_SPECIFICATION` and stop. If present, broaden market/source coverage beyond the incumbent-reseller set without inventing newly verified products or facts. Only after the complete market-expansion artifact is produced, append the exact final line `PIPELINE_HANDOFF_COMPLETE: MARKET_EXPANSION`."
+    },
+    {
+      "id": "candidate-verification",
+      "name": "Verify Procurement Options",
+      "agent": "../../skills/verify-procurement-options/SKILL.md",
+      "instruction": "Consume the procurement-specification and market-expansion handoff plus the supplied candidate evidence. Require `PIPELINE_HANDOFF_COMPLETE: MARKET_EXPANSION` before substantive work. Verify candidates only against supplied exact-model evidence and preserve Target/Preference misses as non-hard. Missing evidence remains Unknown / verify. Do not invent approval authority or product facts. Only after the complete verification artifact is produced, append the exact final line `PIPELINE_HANDOFF_COMPLETE: PROCUREMENT_VERIFICATION`."
+    }
+  ]
+}

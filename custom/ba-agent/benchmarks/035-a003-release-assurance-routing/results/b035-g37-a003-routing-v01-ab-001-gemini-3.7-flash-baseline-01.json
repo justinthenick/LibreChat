@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 035 — A003 Selective Release Assurance Routing",
+  "benchmark_dir": "035-a003-release-assurance-routing",
+  "ended_at": "2026-09-05T21:29:40Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": false,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "3cf9bddba0b36afb5e8d1bd8a68a088b8a8db31398ff69088952dfbac5806ee3",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "baseline",
+  "model": "gemini-3.7-flash",
+  "prompt_sha256": "48d97cfaabfe3753472cfaa63d704a547097f2d303eb3d78f1b306d668951b49",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": null,
+  "skill_sha256": null,
+  "skill_version": null,
+  "started_at": "2026-09-05T21:29:35Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 830,
+    "promptTokenCount": 1625,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1625
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 427,
+    "totalTokenCount": 2882
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "benchmark": "Benchmark 026 — Non-Functional Requirements Analysis",
+  "created_at": "2026-09-05T06:36:28Z",
+  "mode": "both",
+  "model": "gemini-3.6-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b026-g36-nfr-v02-ab-003-gemini-3.6-flash-baseline-01.md",
+      "metadata": "b026-g36-nfr-v02-ab-003-gemini-3.6-flash-baseline-01.json",
+      "status": "quota_blocked"
+    }
+  ],
+  "schema": 2
+}

@@ -1,0 +1,28 @@
+{
+  "name": "Verify NAS runtime provenance and scheduler health",
+  "checks": [
+    {
+      "type": "tail",
+      "path": "custom/ba-agent/automation/scheduler.log",
+      "lines": 100,
+      "label": "Recent scheduler sync and failures"
+    },
+    {
+      "type": "tail",
+      "path": "custom/ba-agent/tools/dynamic_agent_worker.py",
+      "lines": 200,
+      "label": "Dynamic worker installed source"
+    },
+    {
+      "type": "tail",
+      "path": "custom/ba-agent/tools/semantic_evaluator.py",
+      "lines": 160,
+      "label": "Evaluator installed source"
+    },
+    {
+      "type": "lock_status",
+      "path": "/tmp/librechat-ba-benchmark-worker.lock",
+      "process_contains": "run_worker_once.sh"
+    }
+  ]
+}

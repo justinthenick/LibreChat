@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 027 — Change Impact Assessment",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/assess-change-impact/SKILL.md",
+  "results_dir": "results"
+}

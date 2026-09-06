@@ -1,0 +1,33 @@
+{
+  "schema": 2,
+  "name": "Benchmark 035 — Evidence-preserving fixed release-assurance control",
+  "input": "input.md",
+  "prompt": "pipeline-control.md",
+  "results_dir": "results",
+  "stages": [
+    {
+      "id": "traceability-audit",
+      "name": "Audit Artifact Traceability",
+      "agent": "../../skills/audit-artifact-traceability/SKILL.md",
+      "instruction": "Audit the supplied release packet for requirement/design/test/release linkage and coverage. Respect the supplied complete impact register and do not redo impact analysis. Preserve T-04 as NOT RUN, DEF-17 as OPEN, CHG-9481 as Draft, the alert threshold and deployment window as Candidate, rollback timing and Change Authority as Unknown, and pilot scope as non-production evidence. Append a section headed exactly `## SOURCE_EVIDENCE_FOR_DOWNSTREAM` containing the material supplied evidence states needed by later stages without strengthening or interpreting them, then append the exact final line `PIPELINE_HANDOFF_COMPLETE: TRACEABILITY_AUDIT`."
+    },
+    {
+      "id": "release-evidence-validation",
+      "name": "Validate Release Evidence",
+      "agent": "../../skills/validate-release-evidence/SKILL.md",
+      "instruction": "Consume only the traceability handoff. Require `PIPELINE_HANDOFF_COMPLETE: TRACEABILITY_AUDIT` and `## SOURCE_EVIDENCE_FOR_DOWNSTREAM`; otherwise return only `UPSTREAM_INCOMPLETE: TRACEABILITY_AUDIT`. Validate what the supplied release/test/change/rollback/defect evidence actually demonstrates. Do not turn NOT RUN, OPEN, Draft, Candidate or Unknown into success. Preserve the entire source-evidence section unchanged for downstream use and append `PIPELINE_HANDOFF_COMPLETE: RELEASE_EVIDENCE`."
+    },
+    {
+      "id": "operational-readiness",
+      "name": "Assess Operational Readiness",
+      "agent": "../../skills/assess-operational-readiness/SKILL.md",
+      "instruction": "Consume only the release-evidence handoff. Require `PIPELINE_HANDOFF_COMPLETE: RELEASE_EVIDENCE` and the preserved source-evidence section. Assess support, monitoring, rollback/recovery, runbook and operational gaps without inventing controls or owners. Preserve Candidate thresholds/windows and Unknown rollback timing/authority exactly. Preserve the source-evidence section unchanged and append `PIPELINE_HANDOFF_COMPLETE: OPERATIONAL_READINESS`."
+    },
+    {
+      "id": "change-readiness",
+      "name": "Prepare Solution Change Readiness",
+      "agent": "../../skills/prepare-solution-change-readiness/SKILL.md",
+      "instruction": "Consume only the operational-readiness handoff. Require `PIPELINE_HANDOFF_COMPLETE: OPERATIONAL_READINESS` and the source-evidence section. Produce a consolidated readiness handoff that may be not-ready or conditional. Do not invent a green decision, approval, Change Authority, CAB obligation, rollback timing, defect acceptance, monitoring approval or production success. Explicitly preserve unresolved blockers and append `PIPELINE_HANDOFF_COMPLETE: CHANGE_READINESS`."
+    }
+  ]
+}

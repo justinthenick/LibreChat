@@ -1,0 +1,20 @@
+{
+  "benchmark": "Benchmark 024 — Artifact Traceability Audit",
+  "created_at": "2026-09-05T10:36:10Z",
+  "mode": "both",
+  "model": "gemini-3.5-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b024-g35-traceability-v02-ab-005-gemini-3.5-flash-baseline-01.md",
+      "metadata": "b024-g35-traceability-v02-ab-005-gemini-3.5-flash-baseline-01.json",
+      "status": "success"
+    },
+    {
+      "markdown": "b024-g35-traceability-v02-ab-005-gemini-3.5-flash-skill-01.md",
+      "metadata": "b024-g35-traceability-v02-ab-005-gemini-3.5-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}

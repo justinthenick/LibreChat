@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 037 — A004 Selective Downstream Delta",
+  "benchmark_dir": "037-a004-selective-downstream-delta",
+  "ended_at": "2026-09-06T01:40:01Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": false,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "3fdf3bb57a50dc11dc51c1833d8b40533c3b1412886486544e2080b55b457a57",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "baseline",
+  "model": "gemini-3.7-flash",
+  "prompt_sha256": "1f8856818405fb436ca9a1a9bcc829d1441aa54dcef95a6c3fa996bffb513e7b",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": null,
+  "skill_sha256": null,
+  "skill_version": null,
+  "started_at": "2026-09-06T01:39:56Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 603,
+    "promptTokenCount": 814,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 814
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 671,
+    "totalTokenCount": 2088
+  }
+}

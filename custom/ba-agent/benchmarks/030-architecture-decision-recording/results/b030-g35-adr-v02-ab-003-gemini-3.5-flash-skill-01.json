@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 030 — Architecture Decision Recording",
+  "benchmark_dir": "030-architecture-decision-recording",
+  "ended_at": "2026-09-05T06:39:08Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": false,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "57f49d57b0fe1b3575ba8a1bfc20d70dce4e662363de9eda507a3541cc419a4d",
+  "iteration": 1,
+  "max_output_tokens": 8192,
+  "mode": "skill",
+  "model": "gemini-3.5-flash",
+  "prompt_sha256": "79364f4ae3bac2ceae958c46e88cd0430968f42c891b7695c5818e29529ed985",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/record-architecture-decisions/SKILL.md",
+  "skill_sha256": "e6887a3efdc59a65fa714642dedc9d1a05398af1ef61da79bd9fb7994bfc4ae4",
+  "skill_version": "0.2.0",
+  "started_at": "2026-09-05T06:38:53Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 659,
+    "promptTokenCount": 1692,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1692
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 1474,
+    "totalTokenCount": 3825
+  }
+}
