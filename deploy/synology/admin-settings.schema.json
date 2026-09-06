@@ -1,5 +1,5 @@
 {
-  "schema": 3,
+  "schema": 4,
   "title": "LibreChat Synology Admin Settings",
   "groups": [
     {"id": "address", "label": "Address and access"},
@@ -26,11 +26,12 @@
     {"key":"ALLOW_SOCIAL_REGISTRATION","label":"Allow social registration","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
     {"key":"ALLOW_UNVERIFIED_EMAIL_LOGIN","label":"Allow unverified email login","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
     {"key":"ALLOW_PASSWORD_RESET","label":"Allow password reset","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
-    {"key":"OPENROUTER_KEY","label":"OpenRouter API key","group":"providers","class":"replace_only_secret","control":"secret","restart":"recreate","services":["api"]},
+    {"key":"OPENROUTER_KEY","label":"OpenRouter API key","group":"providers","class":"replace_only_secret","control":"secret","restart":"recreate","services":["api","rag_api"]},
     {"key":"GITHUB_DEPLOY_STATUS_TOKEN","label":"GitHub deployment status token","group":"providers","class":"replace_only_secret","control":"secret","restart":"none","services":[]},
     {"key":"GITHUB_TELEMETRY_TOKEN","label":"GitHub telemetry token","group":"providers","class":"replace_only_secret","control":"secret","restart":"none","services":[]},
     {"key":"CLOUDFLARE_TUNNEL_TOKEN","label":"Cloudflare tunnel token","group":"providers","class":"replace_only_secret","control":"secret","restart":"recreate","services":["cloudflared"]},
     {"key":"ADMIN_SETTINGS_ACCESS_TOKEN","label":"Admin settings access token","group":"security","class":"replace_only_secret","control":"secret","required":false,"ui_hidden":true,"restart":"recreate","services":["admin-settings"],"description":"Independent bearer token for the Synology Admin Settings panel. Managed by bootstrap/CLI and never displayed by the web panel."},
+    {"key":"RAG_DB_PASSWORD","label":"RAG database password","group":"security","class":"locked_secret","ui_hidden":true,"description":"Private PostgreSQL/pgvector credential. Set once before first RAG deployment; rotate only with a coordinated database credential change."},
     {"key":"JWT_SECRET","label":"JWT secret","group":"security","class":"locked_secret","ui_hidden":true},
     {"key":"JWT_REFRESH_SECRET","label":"JWT refresh secret","group":"security","class":"locked_secret","ui_hidden":true},
     {"key":"CREDS_KEY","label":"Credential encryption key","group":"security","class":"locked_secret","ui_hidden":true},

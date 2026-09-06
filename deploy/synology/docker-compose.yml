@@ -17,6 +17,7 @@ services:
       MONGO_URI: mongodb://mongodb:27017/LibreChat
       CONFIG_PATH: /app/librechat.yaml
       LIBRECHAT_TEMP_CREDENTIALS_PATH: /app/data/.env.temp
+      RAG_API_URL: http://rag_api:8000
 
       # LibreChat loads deployment skills at server startup. Keep them outside
       # the image's own /app/skill directory so this bind mount cannot mask any
@@ -50,6 +51,7 @@ services:
       - librechat-logs:/app/logs
     depends_on:
       - mongodb
+      - rag_api
     networks:
       - librechat
 
@@ -64,12 +66,69 @@ services:
     networks:
       - librechat
 
+  # LibreChat Agent File Search requires the separate RAG API. Use the lite
+  # image so document parsing/chunking stays local while embeddings are computed
+  # remotely through OpenRouter rather than consuming NAS CPU/RAM for a local
+  # sentence-transformer model.
+  rag_api:
+    image: registry.librechat.ai/danny-avila/librechat-rag-api-dev-lite:latest
+    container_name: librechat-rag-api
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      DB_HOST: vectordb
+      DB_PORT: "5432"
+      POSTGRES_DB: librechat_rag
+      POSTGRES_USER: librechat
+      POSTGRES_PASSWORD: "${RAG_DB_PASSWORD}"
+      RAG_PORT: "8000"
+      JWT_SECRET: "${JWT_SECRET}"
+      RAG_OPENAI_API_KEY: "${OPENROUTER_KEY}"
+      RAG_OPENAI_BASEURL: https://openrouter.ai/api/v1
+      EMBEDDINGS_PROVIDER: openai
+      EMBEDDINGS_MODEL: openai/text-embedding-3-small
+      EMBEDDING_BATCH_SIZE: "100"
+      EMBEDDING_MAX_QUEUE_SIZE: "1"
+      PARALLEL_EXECUTION: "1"
+    depends_on:
+      - vectordb
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -c "import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5); raise SystemExit(0 if 200 <= r.status < 300 else 1)"
+      interval: 10s
+      timeout: 6s
+      retries: 12
+    networks:
+      - librechat
+
+  vectordb:
+    image: pgvector/pgvector:0.8.0-pg15-trixie
+    container_name: librechat-vectordb
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: librechat_rag
+      POSTGRES_USER: librechat
+      POSTGRES_PASSWORD: "${RAG_DB_PASSWORD}"
+    volumes:
+      - rag-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U librechat -d librechat_rag"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - librechat
+
 networks:
   librechat:
     driver: bridge
 
 volumes:
   mongo-data:
+  rag-pgdata:
   librechat-data:
   librechat-images:
   librechat-uploads:
