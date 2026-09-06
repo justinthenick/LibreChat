@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - 'feature/synology-ui-settings-v0.1'
+      - 'feature/admin-settings-v2-agent-runtime'
     paths:
       - 'deploy/synology/**'
       - '.github/workflows/synology-admin-settings.yml'
@@ -27,13 +28,25 @@ jobs:
             deploy/synology/bootstrap-admin-settings.py \
             deploy/synology/bootstrap-rag.py \
             deploy/synology/admin-settings-worker.py \
-            deploy/synology/admin-settings-panel.py
+            deploy/synology/admin-settings-panel.py \
+            deploy/synology/render-librechat-config.py
       - name: Validate JSON schema document
         run: python -m json.tool deploy/synology/admin-settings.schema.json >/dev/null
       - name: Run settings regression tests
         run: |
           python -m unittest -v \
             deploy/synology/test_manage_env.py \
-            deploy/synology/test_admin_settings_worker.py
+            deploy/synology/test_admin_settings_worker.py \
+            deploy/synology/test_admin_settings_panel.py
+      - name: Validate rendered default LibreChat config
+        run: |
+          tmp_env="$(mktemp)"
+          printf 'MODEL_PREFILTER_ENABLED=false\nALLOWED_MODELS=\n' > "$tmp_env"
+          python deploy/synology/render-librechat-config.py \
+            --env-file "$tmp_env" \
+            --template deploy/synology/librechat.yaml \
+            --output /tmp/librechat.runtime.yaml
+          grep -q 'fetch: true' /tmp/librechat.runtime.yaml
+          grep -q 'capabilities:' /tmp/librechat.runtime.yaml
       - name: Validate shell syntax
         run: sh -n deploy/synology/autodeploy.sh
