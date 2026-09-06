@@ -24,8 +24,7 @@
     {"key":"SEARCH","label":"Enable LibreChat search integration","group":"application","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
     {"key":"SESSION_COOKIE_SECURE","label":"Secure session cookie","group":"application","class":"editable","control":"boolean","restart":"recreate","services":["api"],"warning":"Enable when the browser reaches LibreChat over HTTPS."},
 
-    {"key":"MODEL_PREFILTER_ENABLED","label":"Restrict OpenRouter model catalogue","group":"models","class":"editable","control":"boolean","required":false,"restart":"recreate","services":["api"],"description":"When enabled, LibreChat exposes only the model IDs in Allowed models instead of fetching the full OpenRouter catalogue."},
-    {"key":"ALLOWED_MODELS","label":"Allowed OpenRouter models","group":"models","class":"editable","control":"textarea","required":false,"validation":{"type":"model_list"},"restart":"recreate","services":["api"],"description":"Comma or newline separated OpenRouter model IDs. Existing ALLOWED_MODELS values from the earlier pre-filter are preserved and used. Enabling the filter with an empty list is rejected."},
+    {"key":"ALLOWED_MODELS","label":"Allowed OpenRouter models / pre-filter","group":"models","class":"editable","control":"text","required":false,"restart":"recreate","services":["api"],"description":"Comma-separated OpenRouter model IDs. A non-empty list restricts the catalogue to exactly these models; clear the field to fetch the full OpenRouter catalogue. Existing ALLOWED_MODELS values from the earlier pre-filter are preserved."},
 
     {"key":"ALLOW_EMAIL_LOGIN","label":"Allow email login","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
     {"key":"ALLOW_REGISTRATION","label":"Allow new registrations","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"],"warning":"Normally disable after the intended accounts have been created."},
@@ -36,7 +35,8 @@
 
     {"key":"OPENAI_API_KEY","label":"OpenAI API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
     {"key":"ANTHROPIC_API_KEY","label":"Anthropic API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
-    {"key":"GOOGLE_KEY","label":"Google / Gemini API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
+    {"key":"GOOGLE_KEY","label":"Google / Gemini chat API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
+    {"key":"GEMINI_API_KEY","label":"Gemini tools / image API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"],"description":"Optional dedicated Gemini tool key. GOOGLE_KEY remains the shared Google chat endpoint credential."},
     {"key":"OPENROUTER_KEY","label":"OpenRouter API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api","rag_api"]},
     {"key":"DEEPSEEK_API_KEY","label":"DeepSeek API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
     {"key":"MISTRAL_API_KEY","label":"Mistral API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
