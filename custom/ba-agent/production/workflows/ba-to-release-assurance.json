@@ -2,9 +2,9 @@
   "schema": 1,
   "id": "workflow_ba_to_release_assurance_v01",
   "name": "BA Supervisor → Release / Change Assurance",
-  "version": "0.1.0-candidate",
-  "status": "benchmark-required-before-activation",
-  "enabled": false,
+  "version": "0.1.0",
+  "status": "validated-for-production-activation",
+  "enabled": true,
   "pattern": "conditional_handoff",
   "from_agent": "agent_ba_supervisor_v01",
   "to_agent": "agent_release_change_assurance_v01",
@@ -38,6 +38,7 @@
     "benchmark": "O001-ba-to-release-selective-handoff",
     "minimum_score": 90,
     "maximum_baseline_gap": 10,
-    "critical_penalties_allowed": 0
+    "critical_penalties_allowed": 0,
+    "evidence": "../../benchmarks/039-o001-ba-release-handoff/activation-evidence.json"
   }
 }
