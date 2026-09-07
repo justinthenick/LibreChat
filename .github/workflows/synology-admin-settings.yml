@@ -66,7 +66,7 @@ jobs:
           # render-librechat-config.py intentionally renders only the managed model
           # block. Runtime ${...} interpolation is performed later by LibreChat, so
           # these OCR placeholders must survive this renderer unchanged.
-          grep -Fq "apiKey: '${OCR_API_KEY}'" /tmp/librechat.runtime.yaml
-          grep -Fq "baseURL: '${OCR_BASEURL}'" /tmp/librechat.runtime.yaml
+          grep -Fq "apiKey: '\${OCR_API_KEY}'" /tmp/librechat.runtime.yaml
+          grep -Fq "baseURL: '\${OCR_BASEURL}'" /tmp/librechat.runtime.yaml
       - name: Validate shell syntax
         run: sh -n deploy/synology/autodeploy.sh
