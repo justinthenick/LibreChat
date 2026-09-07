@@ -7,16 +7,19 @@ on:
       - 'custom/ba-agent/benchmarks/039-o001-ba-release-handoff/**'
       - 'config/seed-production-agents.js'
       - 'deploy/synology/docker-compose.yml'
+      - 'deploy/synology/autodeploy.sh'
       - '.github/workflows/ba-production-agents.yml'
   push:
     branches:
       - 'feature/ba-release-production-agents-v0.1'
       - 'fix/synology-production-agent-runtime-wiring'
+      - 'fix/synology-agent-bootstrap-handoff-policy'
     paths:
       - 'custom/ba-agent/production/**'
       - 'custom/ba-agent/benchmarks/039-o001-ba-release-handoff/**'
       - 'config/seed-production-agents.js'
       - 'deploy/synology/docker-compose.yml'
+      - 'deploy/synology/autodeploy.sh'
       - '.github/workflows/ba-production-agents.yml'
 
 jobs:
@@ -106,21 +109,43 @@ jobs:
 
           seeder = Path('config/seed-production-agents.js').read_text()
           compose = Path('deploy/synology/docker-compose.yml').read_text()
+          autodeploy = Path('deploy/synology/autodeploy.sh').read_text()
 
+          # Native handoff edges must carry the O001 routing policy and packet
+          # contract directly from the validated workflow rather than duplicate it.
           assert "edgeType: 'handoff'" in seeder
           assert "from: workflow.from_agent" in seeder
           assert "to: workflow.to_agent" in seeder
-          assert 'edges: desiredEdges(manifest.id, workflow)' in seeder
+          assert 'description: buildHandoffDescription(workflow)' in seeder
+          assert 'prompt: buildHandoffPrompt(workflow)' in seeder
+          assert 'workflow.handoff_when' in seeder
+          assert 'workflow.do_not_handoff_when' in seeder
+          assert 'contract.must_pass' in seeder
+          assert 'contract.must_not_pass_as_fact' in seeder
+          assert 'contract.return_to_supervisor' in seeder
+          assert 'description: String(edge.description || \'\')' in seeder
+          assert 'prompt: String(edge.prompt || \'\')' in seeder
           assert 'handoff edges differ from validated production workflow' in seeder
 
+          # The container must be able to access the seeder and manifests, but
+          # must start normally so a fresh database can bootstrap first.
           assert 'PRODUCTION_AGENTS_DIR: /app/production-agents' in compose
           assert '/volume1/docker/librechat/config/seed-production-agents.js:/app/config/seed-production-agents.js:ro' in compose
           assert '/volume1/docker/librechat/custom/ba-agent/production:/app/production-agents:ro' in compose
-          seed = 'node /app/config/seed-production-agents.js /app/production-agents'
-          backend = 'exec npm run backend'
-          assert seed in compose
-          assert backend in compose
-          assert compose.index(seed) < compose.index(backend), 'backend must start only after production seed succeeds'
+          seed = 'docker exec librechat node /app/config/seed-production-agents.js /app/production-agents'
+          assert seed not in compose, 'production seed must not run before the backend starts'
+          assert 'exec npm run backend' in compose
+
+          # NAS deployment success must require a post-health seed. This makes
+          # the seed bootstrap-safe while preventing a false-green deployment.
+          health = 'log "LibreChat health check passed"'
+          state = 'FAILED_STAGE="state_record"'
+          assert 'FAILED_STAGE="production_agent_seed"' in autodeploy
+          assert seed in autodeploy
+          assert 'Validated production agents and BA handoff seeded' in autodeploy
+          assert autodeploy.index(health) < autodeploy.index(seed) < autodeploy.index(state), (
+              'production seed must run after backend health and before success state is recorded'
+          )
           PY
       - name: Validate Benchmark 039 gate package
         run: |
