@@ -24,6 +24,10 @@ STATUS_IMAGE="curlimages/curl:8.10.1"
 STATUS_REPO="justinthenick/LibreChat"
 STATUS_CONTEXT="nas/librechat"
 FORCE_DEPLOY="${FORCE_DEPLOY:-0}"
+# Synology's Docker daemon can take longer than Compose v1's 60-second default
+# to recreate the API container even when the recreation succeeds.
+COMPOSE_HTTP_TIMEOUT="${COMPOSE_HTTP_TIMEOUT:-300}"
+export COMPOSE_HTTP_TIMEOUT
 STATUS_TARGET_SHA=""
 FAILED_STAGE="startup"
 LOCK_HELD=0
