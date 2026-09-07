@@ -6,14 +6,17 @@ on:
       - 'custom/ba-agent/production/**'
       - 'custom/ba-agent/benchmarks/039-o001-ba-release-handoff/**'
       - 'config/seed-production-agents.js'
+      - 'deploy/synology/docker-compose.yml'
       - '.github/workflows/ba-production-agents.yml'
   push:
     branches:
       - 'feature/ba-release-production-agents-v0.1'
+      - 'fix/synology-production-agent-runtime-wiring'
     paths:
       - 'custom/ba-agent/production/**'
       - 'custom/ba-agent/benchmarks/039-o001-ba-release-handoff/**'
       - 'config/seed-production-agents.js'
+      - 'deploy/synology/docker-compose.yml'
       - '.github/workflows/ba-production-agents.yml'
 
 jobs:
@@ -62,6 +65,9 @@ jobs:
           assert workflow['enabled'] is True, 'O001 passed; production workflow policy must be activated'
           assert workflow['status'] == 'validated-for-production-activation'
           assert workflow['version'] == '0.1.0'
+          assert workflow['pattern'] == 'conditional_handoff'
+          assert workflow['from_agent'] == 'agent_ba_supervisor_v01'
+          assert workflow['to_agent'] == 'agent_release_change_assurance_v01'
           evidence_rel = workflow['activation_gate']['evidence']
           assert evidence_rel == '../../benchmarks/039-o001-ba-release-handoff/activation-evidence.json'
 
@@ -92,6 +98,29 @@ jobs:
           assert semantic_hash == evidence['semantic_policy_sha256'], (
               'activated workflow semantics differ from the O001-tested policy'
           )
+          PY
+      - name: Validate production runtime wiring
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          seeder = Path('config/seed-production-agents.js').read_text()
+          compose = Path('deploy/synology/docker-compose.yml').read_text()
+
+          assert "edgeType: 'handoff'" in seeder
+          assert "from: workflow.from_agent" in seeder
+          assert "to: workflow.to_agent" in seeder
+          assert 'edges: desiredEdges(manifest.id, workflow)' in seeder
+          assert 'handoff edges differ from validated production workflow' in seeder
+
+          assert 'PRODUCTION_AGENTS_DIR: /app/production-agents' in compose
+          assert '/volume1/docker/librechat/config/seed-production-agents.js:/app/config/seed-production-agents.js:ro' in compose
+          assert '/volume1/docker/librechat/custom/ba-agent/production:/app/production-agents:ro' in compose
+          seed = 'node /app/config/seed-production-agents.js /app/production-agents'
+          backend = 'exec npm run backend'
+          assert seed in compose
+          assert backend in compose
+          assert compose.index(seed) < compose.index(backend), 'backend must start only after production seed succeeds'
           PY
       - name: Validate Benchmark 039 gate package
         run: |
