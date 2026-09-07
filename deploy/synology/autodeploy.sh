@@ -362,6 +362,14 @@ COUNT=0
 until health_check; do COUNT=$((COUNT+1)); if [ "$COUNT" -ge 12 ]; then log "ERROR: LibreChat health check failed after 60 seconds"; collect_diagnostics; exit 1; fi; sleep 5; done
 log "LibreChat health check passed"
 
+FAILED_STAGE="production_agent_seed"
+if ! docker exec librechat node /app/config/seed-production-agents.js /app/production-agents >> "$LOG_FILE" 2>&1; then
+  log "ERROR: validated production agent seed failed"
+  collect_diagnostics
+  exit 1
+fi
+log "Validated production agents and BA handoff seeded"
+
 FAILED_STAGE="workspace_check"
 if ! workspace_check; then log "ERROR: LibreChat cannot complete a write/read/delete test in /workspace"; collect_diagnostics; exit 1; fi
 log "MCP workspace mount passed write/read/delete check"
