@@ -32,6 +32,7 @@ jobs:
       - name: Validate production manifests and bounded scope
         run: |
           python - <<'PY'
+          import hashlib
           import json
           from pathlib import Path
 
@@ -56,9 +57,41 @@ jobs:
               assert 'ocr' in policy
               assert 'web_fetch' in policy
               assert 'artifacts' in policy
+
           workflow = json.loads((root / 'workflows/ba-to-release-assurance.json').read_text())
-          assert workflow['enabled'] is False, 'cross-agent handoff must remain gated until O001 passes'
-          assert workflow['status'] == 'benchmark-required-before-activation'
+          assert workflow['enabled'] is True, 'O001 passed; production workflow policy must be activated'
+          assert workflow['status'] == 'validated-for-production-activation'
+          assert workflow['version'] == '0.1.0'
+          evidence_rel = workflow['activation_gate']['evidence']
+          assert evidence_rel == '../../benchmarks/039-o001-ba-release-handoff/activation-evidence.json'
+
+          evidence_path = (root / 'workflows' / evidence_rel).resolve()
+          evidence = json.loads(evidence_path.read_text())
+          assert evidence['gate_passed'] is True
+          assert evidence['workflow_final_score'] >= workflow['activation_gate']['minimum_score']
+          assert evidence['critical_penalties'] <= workflow['activation_gate']['critical_penalties_allowed']
+          assert evidence['baseline_gap'] <= workflow['activation_gate']['maximum_baseline_gap']
+          assert evidence['defects'] == 0
+          assert evidence['tested_candidate_sha256'] == 'b38e942f02340f873bdb0f1ce2e9e20c293b319f002e30b1a738b9b7ddfe3764'
+
+          semantic_policy = {
+              key: value for key, value in workflow.items()
+              if key not in {'name', 'version', 'status', 'enabled'}
+          }
+          semantic_policy['activation_gate'] = {
+              key: value for key, value in semantic_policy['activation_gate'].items()
+              if key != 'evidence'
+          }
+          canonical = json.dumps(
+              semantic_policy,
+              ensure_ascii=False,
+              sort_keys=True,
+              separators=(',', ':'),
+          ).encode('utf-8')
+          semantic_hash = hashlib.sha256(canonical).hexdigest()
+          assert semantic_hash == evidence['semantic_policy_sha256'], (
+              'activated workflow semantics differ from the O001-tested policy'
+          )
           PY
       - name: Validate Benchmark 039 gate package
         run: |
@@ -66,7 +99,10 @@ jobs:
           import json
           from pathlib import Path
           root = Path('custom/ba-agent/benchmarks/039-o001-ba-release-handoff')
-          required = ['benchmark.json','input.md','prompt.md','gold-standard.md','scoring-rubric.md']
+          required = [
+              'benchmark.json', 'input.md', 'prompt.md', 'gold-standard.md',
+              'scoring-rubric.md', 'activation-evidence.json'
+          ]
           for name in required:
               assert (root / name).is_file(), f'missing {name}'
           benchmark = json.loads((root / 'benchmark.json').read_text())
@@ -74,4 +110,10 @@ jobs:
           rubric = (root / 'scoring-rubric.md').read_text()
           assert 'score >= 90/100' in rubric
           assert 'no critical penalties' in rubric
+          evidence = json.loads((root / 'activation-evidence.json').read_text())
+          assert evidence['gate_passed'] is True
+          assert evidence['baseline_final_score'] == 100
+          assert evidence['workflow_final_score'] == 100
+          assert evidence['baseline_gap'] == 0
+          assert evidence['critical_penalties'] == 0
           PY
