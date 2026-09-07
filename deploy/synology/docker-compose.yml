@@ -25,10 +25,10 @@ services:
       SESSION_COOKIE_SECURE: "${SESSION_COOKIE_SECURE:-false}"
       ADMIN_PANEL_URL: "${ADMIN_PANEL_URL:-}"
       OPENROUTER_KEY: "${OPENROUTER_KEY:-}"
-    # Render the reviewed YAML and seed the validated production agents before
-    # starting the backend. Because npm run backend is reached only if the seed
-    # exits successfully, the NAS /api/config health gate cannot report success
-    # while the production-agent seed is missing or invalid.
+    # Render the reviewed YAML and start LibreChat normally. Production agents
+    # are seeded by autodeploy only after the backend health gate passes, which
+    # preserves fresh-install bootstrap while keeping agent seeding mandatory
+    # before a deployment can be recorded as successful.
     command:
       - sh
       - -lc
@@ -36,7 +36,6 @@ services:
         python3 /app/render-librechat-config.py
         --template /app/librechat.template.yaml
         --output /tmp/librechat.runtime.yaml
-        && node /app/config/seed-production-agents.js /app/production-agents
         && exec npm run backend
     group_add:
       - "100"
