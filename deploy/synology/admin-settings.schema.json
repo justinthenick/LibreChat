@@ -1,5 +1,5 @@
 {
-  "schema": 6,
+  "schema": 7,
   "title": "LibreChat Synology Admin Settings",
   "groups": [
     {"id":"address","label":"Address and access"},
@@ -59,7 +59,9 @@
     {"key":"BEDROCK_AWS_SECRET_ACCESS_KEY","label":"AWS Bedrock secret access key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
     {"key":"BEDROCK_AWS_SESSION_TOKEN","label":"AWS Bedrock session token","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
 
-    {"key":"TAVILY_API_KEY","label":"Tavily web search API key","group":"capabilities","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"],"description":"Used by the enabled Agent web_search capability for search and page extraction."},
+    {"key":"TAVILY_API_KEY","label":"Tavily web search / page extraction API key","group":"capabilities","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"],"description":"Used by the enabled Agent web_search capability for search and native page extraction through the Tavily scraper provider."},
+    {"key":"OCR_API_KEY","label":"OCR service API key","group":"capabilities","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"],"description":"Credential used by LibreChat's enabled OCR capability with the configured Mistral OCR strategy."},
+    {"key":"OCR_BASEURL","label":"OCR service base URL","group":"capabilities","class":"editable","control":"text","required":false,"validation":{"type":"url","schemes":["http","https"],"allow_empty":true},"restart":"recreate","services":["api"],"description":"Base URL for the OCR service. Leave empty until the OCR service endpoint is selected/configured."},
     {"key":"LIBRECHAT_CODE_API_KEY","label":"LibreChat code execution API key","group":"capabilities","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
     {"key":"LIBRECHAT_CODE_BASEURL","label":"LibreChat code execution base URL","group":"capabilities","class":"editable","control":"text","required":false,"validation":{"type":"url","schemes":["http","https"],"allow_empty":true},"restart":"recreate","services":["api"]},
     {"key":"CODE_ENV_API_KEY","label":"Code environment API key","group":"capabilities","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
