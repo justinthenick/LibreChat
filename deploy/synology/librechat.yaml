@@ -37,14 +37,22 @@ interface:
 memory:
   disabled: false
 
-# Tavily is the initial managed web-search backend. The capability is present in
-# LibreChat immediately; supplying TAVILY_API_KEY through Admin Settings makes
-# live search/scraping operational without editing this file.
+# Tavily is the initial managed web-search backend. LibreChat's supported page-
+# fetch/extraction path is the web_search scraper provider rather than a separate
+# web_fetch Agent capability/tool in this checkout.
 webSearch:
   searchProvider: tavily
   scraperProvider: tavily
   rerankerType: none
   tavilyApiKey: '${TAVILY_API_KEY}'
+
+# OCR is an Agent endpoint capability with its own top-level runtime service
+# configuration. The Mistral OCR strategy becomes operational when the managed
+# OCR service credential/base URL are configured in Admin Settings.
+ocr:
+  apiKey: '${OCR_API_KEY}'
+  baseURL: '${OCR_BASEURL}'
+  strategy: mistral_ocr
 
 mcpServers:
   filesystem:
@@ -70,6 +78,8 @@ endpoints:
       - memory
       - actions
       - run_in_background
+      - ocr
+      - artifacts
       - subagents
       - context
       - skills
