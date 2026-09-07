@@ -17,6 +17,7 @@ CONTROLLER="$ROOT/custom/ba-agent/tools/autonomy_controller.py"
 SEM_EVAL="$ROOT/custom/ba-agent/tools/semantic_evaluator.py"
 SEM_REVISE="$ROOT/custom/ba-agent/tools/semantic_reviser.py"
 DIAG_WORKER="$ROOT/custom/ba-agent/tools/diagnostic_worker.py"
+PROD_SEM_QUEUE="custom/ba-agent/automation/semantic-production-gates.json"
 LOG_DIR="$ROOT/custom/ba-agent/automation"
 LOG_FILE="$LOG_DIR/scheduler.log"
 LOCK_DIR="/tmp/librechat-ba-benchmark-worker.lock"
@@ -62,6 +63,7 @@ LAST_BENCH_RC=0
 LAST_DYNAMIC_RC=0
 LAST_CTRL_RC=0
 LAST_SEM_EVAL_RC=0
+LAST_PROD_SEM_EVAL_RC=0
 LAST_SEM_REVISE_RC=0
 cycle=1
 while [ "$cycle" -le "$MAX_BURST_CYCLES" ]; do
@@ -92,6 +94,12 @@ while [ "$cycle" -le "$MAX_BURST_CYCLES" ]; do
     "$PYTHON_BIN" "$SEM_EVAL" --env-file "$ENV_FILE" >> "$LOG_FILE" 2>&1
     LAST_SEM_EVAL_RC=$?
     if [ "$RC" -eq 0 ] && [ "$LAST_SEM_EVAL_RC" -ne 0 ]; then RC=$LAST_SEM_EVAL_RC; fi
+
+    # Production activation candidates use the same evaluator/rubric engine but
+    # a separate queue so they cannot trigger autonomous Skill revision.
+    "$PYTHON_BIN" "$SEM_EVAL" --env-file "$ENV_FILE" --semantic-jobs "$PROD_SEM_QUEUE" >> "$LOG_FILE" 2>&1
+    LAST_PROD_SEM_EVAL_RC=$?
+    if [ "$RC" -eq 0 ] && [ "$LAST_PROD_SEM_EVAL_RC" -ne 0 ]; then RC=$LAST_PROD_SEM_EVAL_RC; fi
   fi
 
   LAST_SEM_REVISE_RC=0
@@ -101,8 +109,8 @@ while [ "$cycle" -le "$MAX_BURST_CYCLES" ]; do
     if [ "$RC" -eq 0 ] && [ "$LAST_SEM_REVISE_RC" -ne 0 ]; then RC=$LAST_SEM_REVISE_RC; fi
   fi
 
-  printf '%s autonomy burst cycle %s/%s end benchmark_rc=%s dynamic_rc=%s controller_rc=%s semantic_eval_rc=%s semantic_revise_rc=%s\n' \
-    "$(date '+%Y-%m-%d %H:%M:%S')" "$cycle" "$MAX_BURST_CYCLES" "$LAST_BENCH_RC" "$LAST_DYNAMIC_RC" "$LAST_CTRL_RC" "$LAST_SEM_EVAL_RC" "$LAST_SEM_REVISE_RC" >> "$LOG_FILE"
+  printf '%s autonomy burst cycle %s/%s end benchmark_rc=%s dynamic_rc=%s controller_rc=%s semantic_eval_rc=%s production_semantic_eval_rc=%s semantic_revise_rc=%s\n' \
+    "$(date '+%Y-%m-%d %H:%M:%S')" "$cycle" "$MAX_BURST_CYCLES" "$LAST_BENCH_RC" "$LAST_DYNAMIC_RC" "$LAST_CTRL_RC" "$LAST_SEM_EVAL_RC" "$LAST_PROD_SEM_EVAL_RC" "$LAST_SEM_REVISE_RC" >> "$LOG_FILE"
   cycle=$((cycle + 1))
 done
 
@@ -114,6 +122,6 @@ fi
 
 # Diagnostics are observability-only. Semantic evaluation/revision failures are
 # real engineering-cycle failures and should surface in the scheduler return code.
-printf '%s autonomy poll end sync_rc=%s benchmark_rc=%s dynamic_rc=%s controller_rc=%s semantic_eval_rc=%s semantic_revise_rc=%s diagnostic_rc=%s rc=%s\n' \
-  "$(date '+%Y-%m-%d %H:%M:%S')" "$SYNC_RC" "$LAST_BENCH_RC" "$LAST_DYNAMIC_RC" "$LAST_CTRL_RC" "$LAST_SEM_EVAL_RC" "$LAST_SEM_REVISE_RC" "$DIAG_RC" "$RC" >> "$LOG_FILE"
+printf '%s autonomy poll end sync_rc=%s benchmark_rc=%s dynamic_rc=%s controller_rc=%s semantic_eval_rc=%s production_semantic_eval_rc=%s semantic_revise_rc=%s diagnostic_rc=%s rc=%s\n' \
+  "$(date '+%Y-%m-%d %H:%M:%S')" "$SYNC_RC" "$LAST_BENCH_RC" "$LAST_DYNAMIC_RC" "$LAST_CTRL_RC" "$LAST_SEM_EVAL_RC" "$LAST_PROD_SEM_EVAL_RC" "$LAST_SEM_REVISE_RC" "$DIAG_RC" "$RC" >> "$LOG_FILE"
 exit "$RC"
