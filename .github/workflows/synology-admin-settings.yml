@@ -11,6 +11,7 @@ on:
       - 'feature/admin-settings-v2-agent-runtime'
       - 'fix/synology-render-env-permissions'
       - 'fix/synology-runtime-yaml-permissions'
+      - 'fix/synology-agent-capability-enums'
     paths:
       - 'deploy/synology/**'
       - '.github/workflows/synology-admin-settings.yml'
@@ -50,13 +51,21 @@ jobs:
             --output /tmp/librechat.runtime.yaml
           grep -q 'fetch: true' /tmp/librechat.runtime.yaml
           grep -q 'capabilities:' /tmp/librechat.runtime.yaml
+          grep -q -- '- deferred_tools' /tmp/librechat.runtime.yaml
           grep -q -- '- execute_code' /tmp/librechat.runtime.yaml
+          grep -q -- '- file_search' /tmp/librechat.runtime.yaml
           grep -q -- '- web_search' /tmp/librechat.runtime.yaml
-          grep -q -- '- memory' /tmp/librechat.runtime.yaml
           grep -q -- '- actions' /tmp/librechat.runtime.yaml
-          grep -q -- '- run_in_background' /tmp/librechat.runtime.yaml
           grep -q -- '- ocr' /tmp/librechat.runtime.yaml
           grep -q -- '- artifacts' /tmp/librechat.runtime.yaml
+          grep -q -- '- subagents' /tmp/librechat.runtime.yaml
+          grep -q -- '- context' /tmp/librechat.runtime.yaml
+          grep -q -- '- skills' /tmp/librechat.runtime.yaml
+          grep -q -- '- tools' /tmp/librechat.runtime.yaml
+          grep -q -- '- chain' /tmp/librechat.runtime.yaml
+          ! grep -q -- '- memory' /tmp/librechat.runtime.yaml
+          ! grep -q -- '- run_in_background' /tmp/librechat.runtime.yaml
+          ! grep -q -- '- ask_user_question' /tmp/librechat.runtime.yaml
           grep -q 'webSearch: true' /tmp/librechat.runtime.yaml
           grep -q 'runCode: true' /tmp/librechat.runtime.yaml
           grep -q 'memories: true' /tmp/librechat.runtime.yaml
