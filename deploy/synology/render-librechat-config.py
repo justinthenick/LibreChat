@@ -5,13 +5,17 @@ Only the block between the two MANAGED OPENROUTER MODELS markers is replaced.
 A non-empty ALLOWED_MODELS value enables the pre-filter; clearing it restores
 provider catalogue fetch. This preserves the earlier Synology pre-filter
 contract without maintaining a second boolean that can disagree with the list.
+
+Production containers read values from their process environment (populated by
+Docker Compose env_file). --env-file remains available for tests and host-side
+tooling, but the private host .env never needs to be bind-mounted into LibreChat.
 """
 
 import argparse
+import os
 from pathlib import Path
 import re
 import tempfile
-import os
 
 BEGIN = "      # BEGIN MANAGED OPENROUTER MODELS"
 END = "      # END MANAGED OPENROUTER MODELS"
@@ -34,6 +38,12 @@ def parse_env(path):
                 value = value.replace('\\"', '"').replace("\\\\", "\\")
         values[key] = value
     return values
+
+
+def load_values(env_file=None):
+    if env_file is not None:
+        return parse_env(env_file)
+    return dict(os.environ)
 
 
 def parse_models(value):
@@ -98,12 +108,17 @@ def atomic_write(path, text):
 def main():
     parser = argparse.ArgumentParser()
     root = Path(__file__).resolve().parent
-    parser.add_argument("--env-file", type=Path, default=root / ".env")
+    parser.add_argument(
+        "--env-file",
+        type=Path,
+        default=None,
+        help="Optional dotenv source. If omitted, read the current process environment.",
+    )
     parser.add_argument("--template", type=Path, default=root / "librechat.yaml")
     parser.add_argument("--output", type=Path, default=root / "librechat.runtime.yaml")
     args = parser.parse_args()
 
-    values = parse_env(args.env_file)
+    values = load_values(args.env_file)
     models = parse_models(values.get("ALLOWED_MODELS", ""))
     rendered = render(args.template.read_text(encoding="utf-8"), values)
     atomic_write(args.output, rendered)
