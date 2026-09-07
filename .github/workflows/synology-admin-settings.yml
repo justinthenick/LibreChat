@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - 'feature/synology-ui-settings-v0.1'
+      - 'feature/admin-settings-v2-agent-runtime'
     paths:
       - 'deploy/synology/**'
       - '.github/workflows/synology-admin-settings.yml'
@@ -27,13 +28,45 @@ jobs:
             deploy/synology/bootstrap-admin-settings.py \
             deploy/synology/bootstrap-rag.py \
             deploy/synology/admin-settings-worker.py \
-            deploy/synology/admin-settings-panel.py
+            deploy/synology/admin-settings-panel.py \
+            deploy/synology/render-librechat-config.py
       - name: Validate JSON schema document
         run: python -m json.tool deploy/synology/admin-settings.schema.json >/dev/null
       - name: Run settings regression tests
         run: |
           python -m unittest -v \
             deploy/synology/test_manage_env.py \
-            deploy/synology/test_admin_settings_worker.py
+            deploy/synology/test_admin_settings_worker.py \
+            deploy/synology/test_admin_settings_panel.py
+      - name: Validate rendered default LibreChat config and capabilities
+        run: |
+          tmp_env="$(mktemp)"
+          printf 'ALLOWED_MODELS=\nTAVILY_API_KEY=\nOCR_API_KEY=\nOCR_BASEURL=\n' > "$tmp_env"
+          python deploy/synology/render-librechat-config.py \
+            --env-file "$tmp_env" \
+            --template deploy/synology/librechat.yaml \
+            --output /tmp/librechat.runtime.yaml
+          grep -q 'fetch: true' /tmp/librechat.runtime.yaml
+          grep -q 'capabilities:' /tmp/librechat.runtime.yaml
+          grep -q -- '- execute_code' /tmp/librechat.runtime.yaml
+          grep -q -- '- web_search' /tmp/librechat.runtime.yaml
+          grep -q -- '- memory' /tmp/librechat.runtime.yaml
+          grep -q -- '- actions' /tmp/librechat.runtime.yaml
+          grep -q -- '- run_in_background' /tmp/librechat.runtime.yaml
+          grep -q -- '- ocr' /tmp/librechat.runtime.yaml
+          grep -q -- '- artifacts' /tmp/librechat.runtime.yaml
+          grep -q 'webSearch: true' /tmp/librechat.runtime.yaml
+          grep -q 'runCode: true' /tmp/librechat.runtime.yaml
+          grep -q 'memories: true' /tmp/librechat.runtime.yaml
+          grep -q '^memory:' /tmp/librechat.runtime.yaml
+          grep -q 'searchProvider: tavily' /tmp/librechat.runtime.yaml
+          grep -q 'scraperProvider: tavily' /tmp/librechat.runtime.yaml
+          grep -q '^ocr:' /tmp/librechat.runtime.yaml
+          grep -q 'strategy: mistral_ocr' /tmp/librechat.runtime.yaml
+          # render-librechat-config.py intentionally renders only the managed model
+          # block. Runtime ${...} interpolation is performed later by LibreChat, so
+          # these OCR placeholders must survive this renderer unchanged.
+          grep -Fq "apiKey: '\${OCR_API_KEY}'" /tmp/librechat.runtime.yaml
+          grep -Fq "baseURL: '\${OCR_BASEURL}'" /tmp/librechat.runtime.yaml
       - name: Validate shell syntax
         run: sh -n deploy/synology/autodeploy.sh
