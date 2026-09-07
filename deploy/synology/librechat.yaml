@@ -7,6 +7,9 @@ interface:
   modelSelect: true
   parameters: true
   presets: true
+  webSearch: true
+  runCode: true
+  memories: true
   prompts:
     use: true
     create: true
@@ -28,6 +31,21 @@ interface:
   marketplace:
     use: false
 
+# Memory is enabled globally, while each production agent must explicitly opt in
+# with memory_scope. BA Supervisor and Release / Change Assurance use isolated
+# per-agent memory rather than silently sharing one memory pool.
+memory:
+  disabled: false
+
+# Tavily is the initial managed web-search backend. The capability is present in
+# LibreChat immediately; supplying TAVILY_API_KEY through Admin Settings makes
+# live search/scraping operational without editing this file.
+webSearch:
+  searchProvider: tavily
+  scraperProvider: tavily
+  rerankerType: none
+  tavilyApiKey: '${TAVILY_API_KEY}'
+
 mcpServers:
   filesystem:
     type: stdio
@@ -39,13 +57,19 @@ mcpServers:
     timeout: 120000
 
 endpoints:
-  # Pin the capabilities we have intentionally enabled/tested instead of inheriting
-  # an expanding upstream default set. Code execution, web search, actions, memory,
-  # OCR and background execution remain off until separately engineered.
+  # Deliberately pin the production capability set instead of inheriting future
+  # upstream additions. These are enabled for the BA Supervisor and Release /
+  # Change Assurance rollout; individual agents still control which tools they
+  # actually receive.
   agents:
     capabilities:
       - deferred_tools
       - file_search
+      - execute_code
+      - web_search
+      - memory
+      - actions
+      - run_in_background
       - subagents
       - context
       - skills
