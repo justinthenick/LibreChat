@@ -1,0 +1,71 @@
+name: BA Production Agents
+
+on:
+  pull_request:
+    paths:
+      - 'custom/ba-agent/production/**'
+      - 'custom/ba-agent/benchmarks/039-o001-ba-release-handoff/**'
+      - 'config/seed-production-agents.js'
+      - '.github/workflows/ba-production-agents.yml'
+  push:
+    branches:
+      - 'feature/ba-release-production-agents-v0.1'
+    paths:
+      - 'custom/ba-agent/production/**'
+      - 'custom/ba-agent/benchmarks/039-o001-ba-release-handoff/**'
+      - 'config/seed-production-agents.js'
+      - '.github/workflows/ba-production-agents.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate seeder JavaScript syntax
+        run: node --check config/seed-production-agents.js
+      - name: Validate production manifests and bounded scope
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('custom/ba-agent/production')
+          expected = {
+              'ba-supervisor.json': 'agent_ba_supervisor_v01',
+              'release-change-assurance.json': 'agent_release_change_assurance_v01',
+          }
+          files = sorted(p.name for p in root.glob('*.json'))
+          assert files == sorted(expected), f'unexpected production agent manifests: {files}'
+          for filename, agent_id in expected.items():
+              data = json.loads((root / filename).read_text())
+              assert data['id'] == agent_id
+              assert data['status'] == 'validated-for-independent-use'
+              assert data['memory_scope'] == 'agent'
+              assert data['skills_enabled'] is True
+              assert data['skills']
+              assert set(['file_search', 'execute_code', 'web_search']).issubset(data['tools'])
+          workflow = json.loads((root / 'workflows/ba-to-release-assurance.json').read_text())
+          assert workflow['enabled'] is False, 'cross-agent handoff must remain gated until O001 passes'
+          assert workflow['status'] == 'benchmark-required-before-activation'
+          PY
+      - name: Validate Benchmark 039 gate package
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('custom/ba-agent/benchmarks/039-o001-ba-release-handoff')
+          required = ['benchmark.json','input.md','prompt.md','gold-standard.md','scoring-rubric.md']
+          for name in required:
+              assert (root / name).is_file(), f'missing {name}'
+          benchmark = json.loads((root / 'benchmark.json').read_text())
+          assert benchmark['skill'] == '../../production/workflows/ba-to-release-assurance.json'
+          rubric = (root / 'scoring-rubric.md').read_text()
+          assert 'score >= 90/100' in rubric
+          assert 'no critical penalties' in rubric
+          PY
