@@ -1,16 +1,3 @@
-2026-09-07 20:13:50 Compose update completed
-2026-09-07 20:15:54 ERROR: LibreChat health check failed after 60 seconds
-2026-09-07 20:15:54 Collecting deployment diagnostics for stage health_check
-2026-09-07 20:20:41 Sanitised GitHub telemetry published
-2026-09-07 20:21:37 LibreChat deployment check started
-2026-09-07 20:21:37 Cloudflare tunnel integration enabled
-2026-09-07 20:21:37 Synology Admin Settings integration enabled
-2026-09-07 20:23:49 Retrying deployment at 0f8cf0ff; last successful deployment was f14533df
-2026-09-07 20:25:09 Synology Admin Settings privileged worker ready
-2026-09-07 20:25:10 Compose validation passed
-2026-09-07 20:25:59 Image pull completed
-2026-09-07 20:26:17 Compose update completed
-2026-09-07 20:28:07 ERROR: LibreChat health check failed after 60 seconds
 2026-09-07 20:28:07 Collecting deployment diagnostics for stage health_check
 2026-09-07 20:32:10 Sanitised GitHub telemetry published
 2026-09-07 20:33:04 LibreChat deployment check started
@@ -38,3 +25,16 @@
 2026-09-07 21:17:55 Image pull completed
 2026-09-07 21:21:44 ERROR: Compose update failed
 2026-09-07 21:21:44 Collecting deployment diagnostics for stage compose_up
+2026-09-07 21:33:24 Sanitised GitHub telemetry published
+2026-09-07 21:34:05 LibreChat deployment check started
+2026-09-07 21:34:05 Cloudflare tunnel integration enabled
+2026-09-07 21:34:05 Synology Admin Settings integration enabled
+2026-09-07 21:36:08 Retrying deployment at e3202b6b; last successful deployment was f14533df
+2026-09-07 21:37:29 Synology Admin Settings privileged worker ready
+2026-09-07 21:37:32 Compose validation passed
+2026-09-07 21:38:22 Image pull completed
+2026-09-07 21:38:24 Compose update completed
+2026-09-07 21:38:24 LibreChat health check passed
+2026-09-07 21:38:24 MCP workspace mount passed write/read/delete check
+2026-09-07 21:38:24 Cloudflare tunnel connector registered
+2026-09-07 21:38:26 Synology Admin Settings panel and worker healthy
