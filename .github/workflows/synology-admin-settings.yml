@@ -41,7 +41,7 @@ jobs:
       - name: Validate rendered default LibreChat config and capabilities
         run: |
           tmp_env="$(mktemp)"
-          printf 'ALLOWED_MODELS=\nTAVILY_API_KEY=\n' > "$tmp_env"
+          printf 'ALLOWED_MODELS=\nTAVILY_API_KEY=\nOCR_API_KEY=\nOCR_BASEURL=\n' > "$tmp_env"
           python deploy/synology/render-librechat-config.py \
             --env-file "$tmp_env" \
             --template deploy/synology/librechat.yaml \
@@ -53,10 +53,17 @@ jobs:
           grep -q -- '- memory' /tmp/librechat.runtime.yaml
           grep -q -- '- actions' /tmp/librechat.runtime.yaml
           grep -q -- '- run_in_background' /tmp/librechat.runtime.yaml
+          grep -q -- '- ocr' /tmp/librechat.runtime.yaml
+          grep -q -- '- artifacts' /tmp/librechat.runtime.yaml
           grep -q 'webSearch: true' /tmp/librechat.runtime.yaml
           grep -q 'runCode: true' /tmp/librechat.runtime.yaml
           grep -q 'memories: true' /tmp/librechat.runtime.yaml
           grep -q '^memory:' /tmp/librechat.runtime.yaml
           grep -q 'searchProvider: tavily' /tmp/librechat.runtime.yaml
+          grep -q 'scraperProvider: tavily' /tmp/librechat.runtime.yaml
+          grep -q '^ocr:' /tmp/librechat.runtime.yaml
+          grep -q 'strategy: mistral_ocr' /tmp/librechat.runtime.yaml
+          grep -q "apiKey: ''" /tmp/librechat.runtime.yaml
+          grep -q "baseURL: ''" /tmp/librechat.runtime.yaml
       - name: Validate shell syntax
         run: sh -n deploy/synology/autodeploy.sh
