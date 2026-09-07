@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "benchmark": "Benchmark 039 — O001 BA Supervisor to Release Assurance Selective Handoff",
+  "generation_job": "b039-g37-o001-ba-release-handoff-v01-ab-001",
+  "semantic_job": "sem-b039-o001-production-handoff-g37-001",
+  "generation_model": "gemini-3.7-flash",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-07T08:16:26Z",
+  "baseline_final_score": 100,
+  "workflow_final_score": 100,
+  "baseline_gap": 0,
+  "critical_penalties": 0,
+  "defects": 0,
+  "gate_passed": true,
+  "tested_candidate_sha256": "b38e942f02340f873bdb0f1ce2e9e20c293b319f002e30b1a738b9b7ddfe3764",
+  "semantic_policy_sha256": "7acf29b73703d567ad7ce5fb36214bc1eb23ae6c1e8d616d8ee6906d122d7010",
+  "source_lab_branch": "feature/ba-agent-v0.1",
+  "source_lab_commit": "6bcc16bf3df27399f7d86e527893d12c9da7fac4",
+  "source_evaluation_path": "custom/ba-agent/benchmarks/039-o001-ba-release-handoff/results/sem-b039-o001-production-handoff-g37-001-semantic-evaluation.json",
+  "activation_note": "Production activation changed only workflow metadata and the evidence pointer after the semantic gate passed; the tested routing/handoff policy is protected by semantic_policy_sha256."
+}
