@@ -114,7 +114,7 @@ services:
     volumes:
       - rag-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U librechat -d librechat"]
+      test: ["CMD-SHELL", "pg_isready -U librechat -d librechat_rag"]
       interval: 10s
       timeout: 5s
       retries: 12
