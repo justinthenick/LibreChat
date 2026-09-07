@@ -31,9 +31,10 @@ interface:
   marketplace:
     use: false
 
-# Memory is enabled globally, while each production agent must explicitly opt in
-# with memory_scope. BA Supervisor and Release / Change Assurance use isolated
-# per-agent memory rather than silently sharing one memory pool.
+# Memory is enabled globally. In the deployed LibreChat build, `memory` is not
+# a valid endpoints.agents.capabilities enum value, so it must not be listed
+# there. Agent-level memory isolation remains a manifest concern for production
+# agents rather than an endpoint capability token.
 memory:
   disabled: false
 
@@ -65,19 +66,17 @@ mcpServers:
     timeout: 120000
 
 endpoints:
-  # Deliberately pin the production capability set instead of inheriting future
-  # upstream additions. These are enabled for the BA Supervisor and Release /
-  # Change Assurance rollout; individual agents still control which tools they
-  # actually receive.
+  # Pin only capability enum values accepted by the deployed LibreChat build.
+  # Unsupported pseudo-capabilities such as memory, run_in_background and
+  # ask_user_question must not be advertised here because schema validation is
+  # fatal and prevents the API from starting.
   agents:
     capabilities:
       - deferred_tools
       - file_search
       - execute_code
       - web_search
-      - memory
       - actions
-      - run_in_background
       - ocr
       - artifacts
       - subagents
@@ -85,7 +84,6 @@ endpoints:
       - skills
       - tools
       - chain
-      - ask_user_question
     skills:
       maxCatalogSkills: 100
 
