@@ -25,21 +25,20 @@ services:
       ADMIN_PANEL_URL: "${ADMIN_PANEL_URL:-}"
       OPENROUTER_KEY: "${OPENROUTER_KEY:-}"
     # Render the reviewed YAML into the writable /app/data volume at every API
-    # start. This turns the admin-managed ALLOWED_MODELS setting into native
-    # LibreChat models.default/fetch configuration without patching LibreChat.
+    # start. Docker Compose already injects .env via env_file, so the renderer
+    # reads the process environment and the private host .env is never mounted
+    # into the LibreChat container.
     command:
       - sh
       - -lc
       - >-
         python3 /app/render-librechat-config.py
-        --env-file /app/.env
         --template /app/librechat.template.yaml
         --output /app/data/librechat.runtime.yaml
         && exec npm run backend
     group_add:
       - "100"
     volumes:
-      - ./.env:/app/.env:ro
       - ./librechat.yaml:/app/librechat.template.yaml:ro
       - ./render-librechat-config.py:/app/render-librechat-config.py:ro
       - /volume1/docker/librechat/custom/ba-agent/skills:/app/deployment-skills:ro
