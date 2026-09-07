@@ -1,25 +1,3 @@
-2026-09-07 20:28:07 Collecting deployment diagnostics for stage health_check
-2026-09-07 20:32:10 Sanitised GitHub telemetry published
-2026-09-07 20:33:04 LibreChat deployment check started
-2026-09-07 20:33:06 Cloudflare tunnel integration enabled
-2026-09-07 20:33:06 Synology Admin Settings integration enabled
-2026-09-07 20:35:09 Change detected: 0f8cf0ff -> 710b7258
-2026-09-07 20:37:14 Synology Admin Settings privileged worker ready
-2026-09-07 20:37:15 Compose validation passed
-2026-09-07 20:54:52 Image pull completed
-2026-09-07 20:59:12 ERROR: Compose update failed
-2026-09-07 20:59:12 Collecting deployment diagnostics for stage compose_up
-2026-09-07 21:04:39 WARN: sanitised GitHub telemetry publish failed
-2026-09-07 21:05:24 WARN: could not report GitHub commit status for 710b7258
-2026-09-07 21:05:32 LibreChat deployment check started
-2026-09-07 21:05:32 Cloudflare tunnel integration enabled
-2026-09-07 21:05:32 Synology Admin Settings integration enabled
-2026-09-07 21:08:37 ERROR: could not resolve remote branch server/synology
-2026-09-07 21:10:20 WARN: sanitised GitHub telemetry publish failed
-2026-09-07 21:10:36 LibreChat deployment check started
-2026-09-07 21:10:36 Cloudflare tunnel integration enabled
-2026-09-07 21:10:36 Synology Admin Settings integration enabled
-2026-09-07 21:13:27 Change detected: 710b7258 -> e3202b6b
 2026-09-07 21:16:06 Synology Admin Settings privileged worker ready
 2026-09-07 21:16:08 Compose validation passed
 2026-09-07 21:17:55 Image pull completed
@@ -38,3 +16,25 @@
 2026-09-07 21:38:24 MCP workspace mount passed write/read/delete check
 2026-09-07 21:38:24 Cloudflare tunnel connector registered
 2026-09-07 21:38:26 Synology Admin Settings panel and worker healthy
+2026-09-07 21:42:41 Sanitised GitHub telemetry published
+2026-09-07 21:43:32 Deployment healthy at e3202b6b4cca3f588e0d2c926f28be9f88a8d609
+2026-09-07 21:43:42 LibreChat deployment check started
+2026-09-07 21:43:42 Cloudflare tunnel integration enabled
+2026-09-07 21:43:42 Synology Admin Settings integration enabled
+2026-09-07 21:45:54 No deployment change; healthy deployment already recorded at e3202b6b
+2026-09-07 21:46:10 LibreChat deployment check started
+2026-09-07 21:46:10 Cloudflare tunnel integration enabled
+2026-09-07 21:46:10 Synology Admin Settings integration enabled
+2026-09-07 21:48:22 No deployment change; healthy deployment already recorded at e3202b6b
+2026-09-07 21:50:06 LibreChat deployment check started
+2026-09-07 21:50:06 Cloudflare tunnel integration enabled
+2026-09-07 21:50:06 Synology Admin Settings integration enabled
+2026-09-07 21:52:17 Change detected: e3202b6b -> 934b4285
+2026-09-07 21:54:39 Synology Admin Settings privileged worker ready
+2026-09-07 21:54:40 Compose validation passed
+2026-09-07 21:55:50 Image pull completed
+2026-09-07 21:55:52 Compose update completed
+2026-09-07 21:55:52 LibreChat health check passed
+2026-09-07 21:55:52 MCP workspace mount passed write/read/delete check
+2026-09-07 21:55:52 Cloudflare tunnel connector registered
+2026-09-07 21:55:54 Synology Admin Settings panel and worker healthy
