@@ -9,7 +9,6 @@ const {
   ResourceType,
   PrincipalType,
   SystemRoles,
-  Providers,
 } = require('librechat-data-provider');
 const connect = require('./connect');
 
@@ -22,6 +21,7 @@ const BA_AGENT_ID = 'agent_ba_supervisor_v01';
 const RELEASE_AGENT_ID = 'agent_release_change_assurance_v01';
 const EXPECTED_AGENT_IDS = new Set([BA_AGENT_ID, RELEASE_AGENT_ID]);
 const ALLOWED_ARTIFACT_MODES = new Set(['default', 'code', 'artifacts']);
+const OPENROUTER_ENDPOINT_NAME = 'OpenRouter';
 
 function parseAllowedModels(raw) {
   return String(raw || '')
@@ -37,7 +37,10 @@ function chooseModel() {
 function normalizeProvider(value) {
   const normalized = String(value || '').trim().toLowerCase();
   if (normalized === 'openrouter') {
-    return Providers.OPENROUTER;
+    // Agent.provider is an endpoint lookup key in the pinned LibreChat runtime.
+    // Keep it aligned with the configured custom endpoint name so model
+    // validation resolves modelsConfig.OpenRouter instead of modelsConfig.openrouter.
+    return OPENROUTER_ENDPOINT_NAME;
   }
   throw new Error(`Unsupported production-agent provider: ${value}`);
 }
