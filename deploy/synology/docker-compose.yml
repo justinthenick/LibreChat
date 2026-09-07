@@ -13,7 +13,7 @@ services:
       HOST: 0.0.0.0
       PORT: "3080"
       MONGO_URI: mongodb://mongodb:27017/LibreChat
-      CONFIG_PATH: /app/data/librechat.runtime.yaml
+      CONFIG_PATH: /tmp/librechat.runtime.yaml
       LIBRECHAT_TEMP_CREDENTIALS_PATH: /app/data/.env.temp
       RAG_API_URL: http://rag_api:8000
       DEPLOYMENT_SKILLS_DIR: /app/deployment-skills
@@ -24,17 +24,17 @@ services:
       SESSION_COOKIE_SECURE: "${SESSION_COOKIE_SECURE:-false}"
       ADMIN_PANEL_URL: "${ADMIN_PANEL_URL:-}"
       OPENROUTER_KEY: "${OPENROUTER_KEY:-}"
-    # Render the reviewed YAML into the writable /app/data volume at every API
-    # start. Docker Compose already injects .env via env_file, so the renderer
-    # reads the process environment and the private host .env is never mounted
-    # into the LibreChat container.
+    # Render the reviewed YAML into container-local /tmp at every API start.
+    # The image's runtime user can write there without weakening permissions on
+    # the persistent /app/data volume or on the private host .env. Docker Compose
+    # already injects .env via env_file, so the renderer reads process environment.
     command:
       - sh
       - -lc
       - >-
         python3 /app/render-librechat-config.py
         --template /app/librechat.template.yaml
-        --output /app/data/librechat.runtime.yaml
+        --output /tmp/librechat.runtime.yaml
         && exec npm run backend
     group_add:
       - "100"
