@@ -1,14 +1,3 @@
-2026-09-07 13:23:54 Retrying deployment at bc1f390f; last successful deployment was c1236564
-2026-09-07 13:25:23 Synology Admin Settings privileged worker ready
-2026-09-07 13:25:25 Compose validation passed
-2026-09-07 13:26:46 Image pull completed
-2026-09-07 13:27:01 Compose update completed
-2026-09-07 13:28:21 ERROR: LibreChat health check failed after 60 seconds
-2026-09-07 13:28:21 Collecting deployment diagnostics for stage health_check
-2026-09-07 13:32:41 Sanitised GitHub telemetry published
-2026-09-07 13:33:15 LibreChat deployment check started
-2026-09-07 13:33:15 Cloudflare tunnel integration enabled
-2026-09-07 13:33:15 Synology Admin Settings integration enabled
 2026-09-07 13:35:36 Retrying deployment at bc1f390f; last successful deployment was c1236564
 2026-09-07 13:37:08 Synology Admin Settings privileged worker ready
 2026-09-07 13:37:09 Compose validation passed
@@ -38,3 +27,14 @@
 2026-09-07 14:03:48 Compose update completed
 2026-09-07 14:04:55 ERROR: LibreChat health check failed after 60 seconds
 2026-09-07 14:04:55 Collecting deployment diagnostics for stage health_check
+2026-09-07 14:10:17 Sanitised GitHub telemetry published
+2026-09-07 14:10:53 LibreChat deployment check started
+2026-09-07 14:10:54 Cloudflare tunnel integration enabled
+2026-09-07 14:10:54 Synology Admin Settings integration enabled
+2026-09-07 14:15:02 Retrying deployment at bc1f390f; last successful deployment was c1236564
+2026-09-07 14:16:08 Synology Admin Settings privileged worker ready
+2026-09-07 14:16:09 Compose validation passed
+2026-09-07 14:16:52 Image pull completed
+2026-09-07 14:16:53 Compose update completed
+2026-09-07 14:18:15 ERROR: LibreChat health check failed after 60 seconds
+2026-09-07 14:18:15 Collecting deployment diagnostics for stage health_check
