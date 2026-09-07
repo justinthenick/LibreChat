@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "job_id": "sem-b039-o001-production-handoff-g37-001",
+  "benchmark": "Benchmark 039 — O001 BA Supervisor to Release Assurance Selective Handoff",
+  "benchmark_path": "custom/ba-agent/benchmarks/039-o001-ba-release-handoff",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-07T08:16:26Z",
+  "baseline_result": "results/b039-g37-o001-ba-release-handoff-v01-ab-001-gemini-3.7-flash-baseline-01.md",
+  "skill_result": "results/b039-g37-o001-ba-release-handoff-v01-ab-001-gemini-3.7-flash-skill-01.md",
+  "skill_path": "custom/ba-agent/production/workflows/ba-to-release-assurance.json",
+  "skill_sha256": "b38e942f02340f873bdb0f1ce2e9e20c293b319f002e30b1a738b9b7ddfe3764",
+  "generation_metadata": {
+    "baseline": {
+      "api_key_source": "GOOGLE_KEY",
+      "benchmark": "Benchmark 039 — O001 BA Supervisor to Release Assurance Selective Handoff",
+      "benchmark_dir": "039-o001-ba-release-handoff",
+      "ended_at": "2026-09-07T08:12:43Z",
+      "error": null,
+      "finish_reason": "STOP",
+      "github_source": {
+        "branch": "feature/ba-agent-v0.1",
+        "refreshed": false,
+        "repo": "justinthenick/LibreChat"
+      },
+      "http_status": 200,
+      "input_sha256": "a6bce9f002bc27fc4005a090f9a8722dd8351a65a04a0ab4f97fe05d03140a8b",
+      "iteration": 1,
+      "max_output_tokens": 8192,
+      "mode": "baseline",
+      "model": "gemini-3.7-flash",
+      "prompt_sha256": "ede9f4807efe78d1513784ff4543838492eff51848978c6d45c79cf525a61a40",
+      "provider": "gemini",
+      "runner_python": "3.8.12",
+      "schema": 2,
+      "skill_path": null,
+      "skill_sha256": null,
+      "skill_version": null,
+      "started_at": "2026-09-07T08:12:39Z",
+      "status": "success",
+      "temperature": 0.0,
+      "usage": {
+        "candidatesTokenCount": 490,
+        "promptTokenCount": 818,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 818
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 706,
+        "totalTokenCount": 2014
+      }
+    },
+    "skill": {
+      "api_key_source": "GOOGLE_KEY",
+      "benchmark": "Benchmark 039 — O001 BA Supervisor to Release Assurance Selective Handoff",
+      "benchmark_dir": "039-o001-ba-release-handoff",
+      "ended_at": "2026-09-07T08:12:49Z",
+      "error": null,
+      "finish_reason": "STOP",
+      "github_source": {
+        "branch": "feature/ba-agent-v0.1",
+        "refreshed": false,
+        "repo": "justinthenick/LibreChat"
+      },
+      "http_status": 200,
+      "input_sha256": "a6bce9f002bc27fc4005a090f9a8722dd8351a65a04a0ab4f97fe05d03140a8b",
+      "iteration": 1,
+      "max_output_tokens": 8192,
+      "mode": "skill",
+      "model": "gemini-3.7-flash",
+      "prompt_sha256": "ede9f4807efe78d1513784ff4543838492eff51848978c6d45c79cf525a61a40",
+      "provider": "gemini",
+      "runner_python": "3.8.12",
+      "schema": 2,
+      "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/production/workflows/ba-to-release-assurance.json",
+      "skill_sha256": "b38e942f02340f873bdb0f1ce2e9e20c293b319f002e30b1a738b9b7ddfe3764",
+      "skill_version": null,
+      "started_at": "2026-09-07T08:12:43Z",
+      "status": "success",
+      "temperature": 0.0,
+      "usage": {
+        "candidatesTokenCount": 553,
+        "promptTokenCount": 1356,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1356
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 1068,
+        "totalTokenCount": 2977
+      }
+    }
+  },
+  "evaluation": {
+    "baseline": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Routing correctness",
+          "score": 35,
+          "max": 35,
+          "rationale": "Correctly routed Case A to RETAIN_BA and Case B to HANDOFF_RELEASE_ASSURANCE."
+        },
+        {
+          "criterion": "Minimum-scope discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Respected the boundaries of Case A without expanding into test cases or unnecessary workflows."
+        },
+        {
+          "criterion": "Handoff completeness",
+          "score": 20,
+          "max": 20,
+          "rationale": "Preserved all material evidence dimensions in the Case B handoff packet (traceability, test execution, defect/risk, change record, rollback, observability, pilot limits, change authority)."
+        },
+        {
+          "criterion": "Evidence-state preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "Exact preservation of Candidate, Unknown, Draft, OPEN, NOT RUN, and pilot-only qualifiers."
+        },
+        {
+          "criterion": "Provenance / non-invention",
+          "score": 10,
+          "max": 10,
+          "rationale": "No invented approvals, dates, or owners; prohibited upgrades checks correctly returned NONE."
+        }
+      ],
+      "summary": "Baseline executed the routing and handoff cleanly, preserving all evidence states and boundaries without invention."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Routing correctness",
+          "score": 35,
+          "max": 35,
+          "rationale": "Correctly routed Case A to RETAIN_BA and Case B to HANDOFF_RELEASE_ASSURANCE."
+        },
+        {
+          "criterion": "Minimum-scope discipline",
+          "score": 15,
+          "max": 15,
+          "rationale": "Maintained proper scope discipline for Case A without triggering downstream test derivation or release assurance."
+        },
+        {
+          "criterion": "Handoff completeness",
+          "score": 20,
+          "max": 20,
+          "rationale": "Complete handoff packet for Case B covering traceability, DEF-91 risk ownership gap, CHG-2107 draft state, Candidate window, rollback duration gap, monitoring response gap, pilot limitations, and Change Authority status."
+        },
+        {
+          "criterion": "Evidence-state preservation",
+          "score": 20,
+          "max": 20,
+          "rationale": "All evidence states (Candidate, Unknown, Draft, OPEN, NOT RUN, pilot-only) were strictly preserved without unauthorized upgrades."
+        },
+        {
+          "criterion": "Provenance / non-invention",
+          "score": 10,
+          "max": 10,
+          "rationale": "No unsupported facts or approvals were fabricated; prohibited upgrades checks were correctly marked NONE."
+        }
+      ],
+      "summary": "Skill performed with high rigor, accurately identifying routing boundaries and structuring a complete, state-preserved handoff packet."
+    },
+    "defects": [],
+    "summary": "Both baseline and skill achieved perfect scores. Both correctly routed Case A to RETAIN_BA and Case B to HANDOFF_RELEASE_ASSURANCE while strictly preserving all evidence states and avoiding any factual invention or scope creep."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 4027,
+    "candidatesTokenCount": 851,
+    "totalTokenCount": 5682,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 4027
+      }
+    ],
+    "thoughtsTokenCount": 804,
+    "serviceTier": "standard"
+  }
+}
