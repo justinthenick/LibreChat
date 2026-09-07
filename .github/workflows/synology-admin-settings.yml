@@ -10,6 +10,7 @@ on:
       - 'feature/synology-ui-settings-v0.1'
       - 'feature/admin-settings-v2-agent-runtime'
       - 'fix/synology-render-env-permissions'
+      - 'fix/synology-runtime-yaml-permissions'
     paths:
       - 'deploy/synology/**'
       - '.github/workflows/synology-admin-settings.yml'
@@ -80,5 +81,11 @@ jobs:
           grep -q 'fetch: false' /tmp/librechat.process-env.yaml
           ! grep -q '\./\.env:/app/\.env' deploy/synology/docker-compose.yml
           ! grep -q -- '--env-file /app/.env' deploy/synology/docker-compose.yml
+      - name: Validate runtime config path is writable-by-design
+        run: |
+          grep -q 'CONFIG_PATH: /tmp/librechat.runtime.yaml' deploy/synology/docker-compose.yml
+          grep -q -- '--output /tmp/librechat.runtime.yaml' deploy/synology/docker-compose.yml
+          ! grep -q 'CONFIG_PATH: /app/data/librechat.runtime.yaml' deploy/synology/docker-compose.yml
+          ! grep -q -- '--output /app/data/librechat.runtime.yaml' deploy/synology/docker-compose.yml
       - name: Validate shell syntax
         run: sh -n deploy/synology/autodeploy.sh
