@@ -14,8 +14,13 @@ const {
 const connect = require('./connect');
 
 const MANIFEST_DIR = process.argv[2] || process.env.PRODUCTION_AGENTS_DIR || '/app/production-agents';
+const WORKFLOW_FILE =
+  process.env.PRODUCTION_AGENT_WORKFLOW_FILE ||
+  path.join(MANIFEST_DIR, 'workflows', 'ba-to-release-assurance.json');
 const ALLOWED_MANIFESTS = ['ba-supervisor.json', 'release-change-assurance.json'];
-const EXPECTED_AGENT_IDS = new Set(['agent_ba_supervisor_v01', 'agent_release_change_assurance_v01']);
+const BA_AGENT_ID = 'agent_ba_supervisor_v01';
+const RELEASE_AGENT_ID = 'agent_release_change_assurance_v01';
+const EXPECTED_AGENT_IDS = new Set([BA_AGENT_ID, RELEASE_AGENT_ID]);
 const ALLOWED_ARTIFACT_MODES = new Set(['default', 'code', 'artifacts']);
 
 function parseAllowedModels(raw) {
@@ -62,6 +67,40 @@ function loadManifest(filename) {
   return manifest;
 }
 
+function loadWorkflow() {
+  const fullPath = path.resolve(WORKFLOW_FILE);
+  const root = path.resolve(MANIFEST_DIR) + path.sep;
+  if (!fullPath.startsWith(root)) {
+    throw new Error(`Workflow path escaped production directory: ${WORKFLOW_FILE}`);
+  }
+  const workflow = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+  if (workflow.status !== 'validated-for-production-activation' || workflow.enabled !== true) {
+    throw new Error('BA to Release / Change Assurance workflow is not validated and enabled');
+  }
+  if (workflow.pattern !== 'conditional_handoff') {
+    throw new Error(`Unsupported production workflow pattern: ${workflow.pattern}`);
+  }
+  if (workflow.from_agent !== BA_AGENT_ID || workflow.to_agent !== RELEASE_AGENT_ID) {
+    throw new Error(
+      `Unexpected production handoff ${workflow.from_agent} -> ${workflow.to_agent}`,
+    );
+  }
+  return workflow;
+}
+
+function desiredEdges(manifestId, workflow) {
+  if (manifestId !== workflow.from_agent) {
+    return [];
+  }
+  return [
+    {
+      from: workflow.from_agent,
+      to: workflow.to_agent,
+      edgeType: 'handoff',
+    },
+  ];
+}
+
 async function resolveOwner(User) {
   const requestedEmail = String(process.env.PRODUCTION_AGENT_OWNER_EMAIL || '').trim().toLowerCase();
   if (requestedEmail) {
@@ -87,7 +126,7 @@ async function resolveOwner(User) {
   return admins[0];
 }
 
-function desiredAgent(manifest, author) {
+function desiredAgent(manifest, author, workflow) {
   const skillIds = manifest.skills.map((skill) => String(skill.id));
   return {
     id: manifest.id,
@@ -102,12 +141,21 @@ function desiredAgent(manifest, author) {
     skills_enabled: manifest.skills_enabled === true,
     memory_scope: manifest.memory_scope || 'agent',
     artifacts: manifest.artifacts,
+    edges: desiredEdges(manifest.id, workflow),
     conversation_starters: Array.isArray(manifest.conversation_starters)
       ? manifest.conversation_starters.map(String)
       : [],
-    category: manifest.id === 'agent_ba_supervisor_v01' ? 'business-analysis' : 'release-assurance',
+    category: manifest.id === BA_AGENT_ID ? 'business-analysis' : 'release-assurance',
     author,
   };
+}
+
+function normalizePersistedEdges(agent) {
+  return (agent.edges || []).map((edge) => ({
+    from: String(edge.from || ''),
+    to: String(edge.to || ''),
+    edgeType: String(edge.edgeType || ''),
+  }));
 }
 
 async function ensureOwnerPermissions({ grantPermission, agent, ownerId }) {
@@ -135,6 +183,7 @@ async function seed() {
     throw new Error(`Production agent manifest directory not found: ${MANIFEST_DIR}`);
   }
 
+  const workflow = loadWorkflow();
   await initializeDeploymentSkills({ projectRoot: path.resolve(__dirname, '..') });
   await connect();
 
@@ -149,7 +198,7 @@ async function seed() {
     const manifest = loadManifest(filename);
     const existing = await db.getAgent({ id: manifest.id });
     const ownerId = existing?.author?.toString() || defaultOwnerId;
-    const desired = desiredAgent(manifest, ownerId);
+    const desired = desiredAgent(manifest, ownerId, workflow);
 
     let agent;
     let outcome;
@@ -190,6 +239,14 @@ async function seed() {
       throw new Error(`${manifest.id} did not retain artifact mode ${manifest.artifacts}`);
     }
 
+    const expectedEdges = desiredEdges(manifest.id, workflow);
+    const persistedEdges = normalizePersistedEdges(agent);
+    if (JSON.stringify(persistedEdges) !== JSON.stringify(expectedEdges)) {
+      throw new Error(
+        `${manifest.id} handoff edges differ from validated production workflow; refusing production seed`,
+      );
+    }
+
     await ensureOwnerPermissions({ grantPermission, agent, ownerId });
     results.push({
       id: manifest.id,
@@ -197,10 +254,11 @@ async function seed() {
       owner: ownerId,
       model: agent.model,
       artifacts: agent.artifacts,
+      edges: persistedEdges,
     });
   }
 
-  console.log(JSON.stringify({ ok: true, agents: results }, null, 2));
+  console.log(JSON.stringify({ ok: true, workflow: workflow.id, agents: results }, null, 2));
   return results;
 }
 
@@ -221,4 +279,13 @@ if (require.main === module) {
     });
 }
 
-module.exports = { seed, loadManifest, desiredAgent, parseAllowedModels, chooseModel, normalizeProvider };
+module.exports = {
+  seed,
+  loadManifest,
+  loadWorkflow,
+  desiredEdges,
+  desiredAgent,
+  parseAllowedModels,
+  chooseModel,
+  normalizeProvider,
+};
