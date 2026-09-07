@@ -17,6 +17,7 @@ services:
       LIBRECHAT_TEMP_CREDENTIALS_PATH: /app/data/.env.temp
       RAG_API_URL: http://rag_api:8000
       DEPLOYMENT_SKILLS_DIR: /app/deployment-skills
+      PRODUCTION_AGENTS_DIR: /app/production-agents
       DOMAIN_CLIENT: "${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${LIBRECHAT_PORT:-3200}"
       DOMAIN_SERVER: "${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${LIBRECHAT_PORT:-3200}"
       NO_INDEX: "${NO_INDEX:-true}"
@@ -24,10 +25,10 @@ services:
       SESSION_COOKIE_SECURE: "${SESSION_COOKIE_SECURE:-false}"
       ADMIN_PANEL_URL: "${ADMIN_PANEL_URL:-}"
       OPENROUTER_KEY: "${OPENROUTER_KEY:-}"
-    # Render the reviewed YAML into container-local /tmp at every API start.
-    # The image's runtime user can write there without weakening permissions on
-    # the persistent /app/data volume or on the private host .env. Docker Compose
-    # already injects .env via env_file, so the renderer reads process environment.
+    # Render the reviewed YAML and seed the validated production agents before
+    # starting the backend. Because npm run backend is reached only if the seed
+    # exits successfully, the NAS /api/config health gate cannot report success
+    # while the production-agent seed is missing or invalid.
     command:
       - sh
       - -lc
@@ -35,12 +36,15 @@ services:
         python3 /app/render-librechat-config.py
         --template /app/librechat.template.yaml
         --output /tmp/librechat.runtime.yaml
+        && node /app/config/seed-production-agents.js /app/production-agents
         && exec npm run backend
     group_add:
       - "100"
     volumes:
       - ./librechat.yaml:/app/librechat.template.yaml:ro
       - ./render-librechat-config.py:/app/render-librechat-config.py:ro
+      - /volume1/docker/librechat/config/seed-production-agents.js:/app/config/seed-production-agents.js:ro
+      - /volume1/docker/librechat/custom/ba-agent/production:/app/production-agents:ro
       - /volume1/docker/librechat/custom/ba-agent/skills:/app/deployment-skills:ro
       - /volume1/docker/librechat/workspace:/workspace
       - librechat-data:/app/data
