@@ -67,6 +67,13 @@ function loadManifest(filename) {
   return manifest;
 }
 
+function requireStringArray(value, label) {
+  if (!Array.isArray(value) || value.length === 0 || value.some((item) => typeof item !== 'string' || !item.trim())) {
+    throw new Error(`Production workflow ${label} must be a non-empty string array`);
+  }
+  return value;
+}
+
 function loadWorkflow() {
   const fullPath = path.resolve(WORKFLOW_FILE);
   const root = path.resolve(MANIFEST_DIR) + path.sep;
@@ -85,7 +92,42 @@ function loadWorkflow() {
       `Unexpected production handoff ${workflow.from_agent} -> ${workflow.to_agent}`,
     );
   }
+  requireStringArray(workflow.handoff_when, 'handoff_when');
+  requireStringArray(workflow.do_not_handoff_when, 'do_not_handoff_when');
+  const contract = workflow.handoff_contract;
+  if (!contract || typeof contract !== 'object') {
+    throw new Error('Production workflow handoff_contract is required');
+  }
+  requireStringArray(contract.must_pass, 'handoff_contract.must_pass');
+  requireStringArray(contract.must_not_pass_as_fact, 'handoff_contract.must_not_pass_as_fact');
+  if (typeof contract.return_to_supervisor !== 'string' || !contract.return_to_supervisor.trim()) {
+    throw new Error('Production workflow handoff_contract.return_to_supervisor is required');
+  }
   return workflow;
+}
+
+function bulletList(values) {
+  return values.map((value) => `- ${value}`).join('\n');
+}
+
+function buildHandoffDescription(workflow) {
+  return [
+    'Transfer to Release / Change Assurance only when at least one validated handoff condition applies:',
+    bulletList(workflow.handoff_when),
+    'Do not transfer when any validated exclusion applies:',
+    bulletList(workflow.do_not_handoff_when),
+  ].join('\n');
+}
+
+function buildHandoffPrompt(workflow) {
+  const contract = workflow.handoff_contract;
+  return [
+    'Pass a structured assurance handoff packet. It must include:',
+    bulletList(contract.must_pass),
+    'Do not pass any of the following as fact:',
+    bulletList(contract.must_not_pass_as_fact),
+    `Return contract: ${contract.return_to_supervisor}`,
+  ].join('\n');
 }
 
 function desiredEdges(manifestId, workflow) {
@@ -97,6 +139,8 @@ function desiredEdges(manifestId, workflow) {
       from: workflow.from_agent,
       to: workflow.to_agent,
       edgeType: 'handoff',
+      description: buildHandoffDescription(workflow),
+      prompt: buildHandoffPrompt(workflow),
     },
   ];
 }
@@ -155,6 +199,8 @@ function normalizePersistedEdges(agent) {
     from: String(edge.from || ''),
     to: String(edge.to || ''),
     edgeType: String(edge.edgeType || ''),
+    description: String(edge.description || ''),
+    prompt: String(edge.prompt || ''),
   }));
 }
 
@@ -283,6 +329,8 @@ module.exports = {
   seed,
   loadManifest,
   loadWorkflow,
+  buildHandoffDescription,
+  buildHandoffPrompt,
   desiredEdges,
   desiredAgent,
   parseAllowedModels,
