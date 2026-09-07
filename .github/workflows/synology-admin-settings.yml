@@ -9,6 +9,7 @@ on:
     branches:
       - 'feature/synology-ui-settings-v0.1'
       - 'feature/admin-settings-v2-agent-runtime'
+      - 'fix/synology-render-env-permissions'
     paths:
       - 'deploy/synology/**'
       - '.github/workflows/synology-admin-settings.yml'
@@ -68,5 +69,16 @@ jobs:
           # these OCR placeholders must survive this renderer unchanged.
           grep -Fq "apiKey: '\${OCR_API_KEY}'" /tmp/librechat.runtime.yaml
           grep -Fq "baseURL: '\${OCR_BASEURL}'" /tmp/librechat.runtime.yaml
+      - name: Validate production renderer uses injected environment
+        run: |
+          ALLOWED_MODELS='openai/gpt-5,anthropic/claude-sonnet-4.5' \
+            python deploy/synology/render-librechat-config.py \
+              --template deploy/synology/librechat.yaml \
+              --output /tmp/librechat.process-env.yaml
+          grep -q "- 'openai/gpt-5'" /tmp/librechat.process-env.yaml
+          grep -q "- 'anthropic/claude-sonnet-4.5'" /tmp/librechat.process-env.yaml
+          grep -q 'fetch: false' /tmp/librechat.process-env.yaml
+          ! grep -q '\./\.env:/app/\.env' deploy/synology/docker-compose.yml
+          ! grep -q -- '--env-file /app/.env' deploy/synology/docker-compose.yml
       - name: Validate shell syntax
         run: sh -n deploy/synology/autodeploy.sh
