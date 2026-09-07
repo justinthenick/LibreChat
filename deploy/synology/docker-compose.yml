@@ -2,7 +2,10 @@ version: "3.7"
 
 services:
   api:
-    image: registry.librechat.ai/danny-avila/librechat:latest
+    # Pinned upstream commit includes deployment-skill external IDs and native
+    # agent handoff edges required by the validated production-agent seeder.
+    # Do not replace with a moving latest/stable tag without revalidating these contracts.
+    image: librechat/lc-dev:cdd4c09076aa43ae9d94bba8f43c55ee35c181d5
     container_name: librechat
     restart: unless-stopped
     ports:
@@ -111,7 +114,7 @@ services:
     volumes:
       - rag-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U librechat -d librechat_rag"]
+      test: ["CMD-SHELL", "pg_isready -U librechat -d librechat"]
       interval: 10s
       timeout: 5s
       retries: 12
