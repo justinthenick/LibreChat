@@ -1,30 +1,3 @@
-2026-09-08 06:50:09 LibreChat deployment check started
-2026-09-08 06:50:09 Cloudflare tunnel integration enabled
-2026-09-08 06:50:09 Synology Admin Settings integration enabled
-2026-09-08 06:54:25 No deployment change; healthy deployment already recorded at 934b4285
-2026-09-08 06:55:02 LibreChat deployment check started
-2026-09-08 06:55:02 Cloudflare tunnel integration enabled
-2026-09-08 06:55:02 Synology Admin Settings integration enabled
-2026-09-08 06:59:20 No deployment change; healthy deployment already recorded at 934b4285
-2026-09-08 07:00:02 LibreChat deployment check started
-2026-09-08 07:00:02 Cloudflare tunnel integration enabled
-2026-09-08 07:00:02 Synology Admin Settings integration enabled
-2026-09-08 07:03:17 No deployment change; healthy deployment already recorded at 934b4285
-2026-09-08 07:05:08 LibreChat deployment check started
-2026-09-08 07:05:08 Cloudflare tunnel integration enabled
-2026-09-08 07:05:08 Synology Admin Settings integration enabled
-2026-09-08 07:08:32 No deployment change; healthy deployment already recorded at 934b4285
-2026-09-08 07:10:05 LibreChat deployment check started
-2026-09-08 07:10:05 Cloudflare tunnel integration enabled
-2026-09-08 07:10:05 Synology Admin Settings integration enabled
-2026-09-08 07:11:59 No deployment change; healthy deployment already recorded at 934b4285
-2026-09-08 07:15:01 LibreChat deployment check started
-2026-09-08 07:15:01 Cloudflare tunnel integration enabled
-2026-09-08 07:15:01 Synology Admin Settings integration enabled
-2026-09-08 07:16:46 No deployment change; healthy deployment already recorded at 934b4285
-2026-09-08 07:20:01 LibreChat deployment check started
-2026-09-08 07:20:01 Cloudflare tunnel integration enabled
-2026-09-08 07:20:01 Synology Admin Settings integration enabled
 2026-09-08 07:21:52 No deployment change; healthy deployment already recorded at 934b4285
 2026-09-08 07:25:06 LibreChat deployment check started
 2026-09-08 07:25:06 Cloudflare tunnel integration enabled
@@ -38,3 +11,30 @@
 2026-09-08 07:31:15 MCP workspace mount passed write/read/delete check
 2026-09-08 07:31:15 Cloudflare tunnel connector registered
 2026-09-08 07:31:17 Synology Admin Settings panel and worker healthy
+2026-09-08 07:38:35 Sanitised GitHub telemetry published
+2026-09-08 07:39:22 Deployment healthy at 835bdf4e54294470ac2ffcb4d40b3a0e47a79548
+2026-09-08 07:39:47 LibreChat deployment check started
+2026-09-08 07:39:47 Cloudflare tunnel integration enabled
+2026-09-08 07:39:47 Synology Admin Settings integration enabled
+2026-09-08 07:45:15 No deployment change; healthy deployment already recorded at 835bdf4e
+2026-09-08 07:45:52 LibreChat deployment check started
+2026-09-08 07:45:53 Cloudflare tunnel integration enabled
+2026-09-08 07:45:53 Synology Admin Settings integration enabled
+2026-09-08 07:49:13 No deployment change; healthy deployment already recorded at 835bdf4e
+2026-09-08 07:50:02 LibreChat deployment check started
+2026-09-08 07:50:02 Cloudflare tunnel integration enabled
+2026-09-08 07:50:02 Synology Admin Settings integration enabled
+2026-09-08 07:53:15 No deployment change; healthy deployment already recorded at 835bdf4e
+2026-09-08 07:55:07 LibreChat deployment check started
+2026-09-08 07:55:07 Cloudflare tunnel integration enabled
+2026-09-08 07:55:07 Synology Admin Settings integration enabled
+2026-09-08 07:58:09 Recorded deployment at 835bdf4e is not healthy; reconciling runtime state
+2026-09-08 07:58:09 Reconciling unhealthy deployment at 835bdf4e
+2026-09-08 07:59:48 Synology Admin Settings privileged worker ready
+2026-09-08 07:59:50 Compose validation passed
+2026-09-08 08:01:37 Image pull completed
+2026-09-08 08:01:39 Compose update completed
+2026-09-08 08:01:39 LibreChat health check passed
+2026-09-08 08:01:39 MCP workspace mount passed write/read/delete check
+2026-09-08 08:01:39 Cloudflare tunnel connector registered
+2026-09-08 08:01:40 Synology Admin Settings panel and worker healthy
