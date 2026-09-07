@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "enabled": true,
+  "note": "Semantic gates for production-agent activation candidates. Kept separate from historical autonomous Skill queues so production gates cannot trigger automatic Skill revision.",
+  "jobs": [
+    {
+      "id": "sem-b039-o001-production-handoff-g37-001",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/039-o001-ba-release-handoff",
+      "baseline_result": "results/b039-g37-o001-ba-release-handoff-v01-ab-001-gemini-3.7-flash-baseline-01.md",
+      "skill_result": "results/b039-g37-o001-ba-release-handoff-v01-ab-001-gemini-3.7-flash-skill-01.md",
+      "skill_metadata": "results/b039-g37-o001-ba-release-handoff-v01-ab-001-gemini-3.7-flash-skill-01.json",
+      "generation_model": "gemini-3.7-flash",
+      "evaluator_model": "gemini-3.7-flash",
+      "fallback_models": ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"],
+      "min_score": 90,
+      "max_baseline_gap": 10,
+      "zero_critical_required": true,
+      "allow_auto_revision": false,
+      "autonomy_reason": "production_ba_to_release_handoff_activation_gate"
+    }
+  ]
+}
