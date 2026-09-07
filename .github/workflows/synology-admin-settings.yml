@@ -38,15 +38,25 @@ jobs:
             deploy/synology/test_manage_env.py \
             deploy/synology/test_admin_settings_worker.py \
             deploy/synology/test_admin_settings_panel.py
-      - name: Validate rendered default LibreChat config
+      - name: Validate rendered default LibreChat config and capabilities
         run: |
           tmp_env="$(mktemp)"
-          printf 'MODEL_PREFILTER_ENABLED=false\nALLOWED_MODELS=\n' > "$tmp_env"
+          printf 'ALLOWED_MODELS=\nTAVILY_API_KEY=\n' > "$tmp_env"
           python deploy/synology/render-librechat-config.py \
             --env-file "$tmp_env" \
             --template deploy/synology/librechat.yaml \
             --output /tmp/librechat.runtime.yaml
           grep -q 'fetch: true' /tmp/librechat.runtime.yaml
           grep -q 'capabilities:' /tmp/librechat.runtime.yaml
+          grep -q -- '- execute_code' /tmp/librechat.runtime.yaml
+          grep -q -- '- web_search' /tmp/librechat.runtime.yaml
+          grep -q -- '- memory' /tmp/librechat.runtime.yaml
+          grep -q -- '- actions' /tmp/librechat.runtime.yaml
+          grep -q -- '- run_in_background' /tmp/librechat.runtime.yaml
+          grep -q 'webSearch: true' /tmp/librechat.runtime.yaml
+          grep -q 'runCode: true' /tmp/librechat.runtime.yaml
+          grep -q 'memories: true' /tmp/librechat.runtime.yaml
+          grep -q '^memory:' /tmp/librechat.runtime.yaml
+          grep -q 'searchProvider: tavily' /tmp/librechat.runtime.yaml
       - name: Validate shell syntax
         run: sh -n deploy/synology/autodeploy.sh
