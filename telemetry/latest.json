@@ -1,25 +1,25 @@
 {
   "schema": 1,
-  "timestamp": "2026-09-07T20:59:29+1000",
+  "timestamp": "2026-09-07T21:21:49+1000",
   "result": "failure",
   "stage": "compose_up",
-  "commit": "710b7258bdfa2a094cb45411f6362c8c651aff01",
+  "commit": "e3202b6b4cca3f588e0d2c926f28be9f88a8d609",
   "runtime": {
-    "librechat_container": "exited",
-    "librechat_exit_code": "137",
-    "librechat_restart_count": "66",
+    "librechat_container": "running",
+    "librechat_exit_code": "0",
+    "librechat_restart_count": "0",
     "mongodb_container": "running",
     "http_health": "fail",
-    "workspace": "fail",
+    "workspace": "pass",
     "cloudflare_tunnel": "connected",
     "volume1_used_percent": "18"
   },
   "last_failure": {
-    "timestamp": "2026-09-07T20:59:29+1000",
-    "commit": "710b7258bdfa2a094cb45411f6362c8c651aff01",
+    "timestamp": "2026-09-07T21:21:49+1000",
+    "commit": "e3202b6b4cca3f588e0d2c926f28be9f88a8d609",
     "stage": "compose_up",
-    "librechat_container": "exited",
-    "librechat_exit_code": "137",
+    "librechat_container": "running",
+    "librechat_exit_code": "0",
     "cloudflare_tunnel": "connected",
     "volume1_used_percent": "18"
   }
