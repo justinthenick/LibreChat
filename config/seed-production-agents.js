@@ -16,6 +16,7 @@ const connect = require('./connect');
 const MANIFEST_DIR = process.argv[2] || process.env.PRODUCTION_AGENTS_DIR || '/app/production-agents';
 const ALLOWED_MANIFESTS = ['ba-supervisor.json', 'release-change-assurance.json'];
 const EXPECTED_AGENT_IDS = new Set(['agent_ba_supervisor_v01', 'agent_release_change_assurance_v01']);
+const ALLOWED_ARTIFACT_MODES = new Set(['default', 'code', 'artifacts']);
 
 function parseAllowedModels(raw) {
   return String(raw || '')
@@ -54,6 +55,9 @@ function loadManifest(filename) {
   }
   if (!Array.isArray(manifest.tools)) {
     throw new Error(`${manifest.id} tools must be an array`);
+  }
+  if (!ALLOWED_ARTIFACT_MODES.has(manifest.artifacts)) {
+    throw new Error(`${manifest.id} has unsupported artifact mode: ${manifest.artifacts}`);
   }
   return manifest;
 }
@@ -97,6 +101,7 @@ function desiredAgent(manifest, author) {
     skills: skillIds,
     skills_enabled: manifest.skills_enabled === true,
     memory_scope: manifest.memory_scope || 'agent',
+    artifacts: manifest.artifacts,
     conversation_starters: Array.isArray(manifest.conversation_starters)
       ? manifest.conversation_starters.map(String)
       : [],
@@ -181,9 +186,18 @@ async function seed() {
     if (agent.memory_scope !== 'agent') {
       throw new Error(`${manifest.id} did not retain isolated agent memory scope`);
     }
+    if (agent.artifacts !== manifest.artifacts) {
+      throw new Error(`${manifest.id} did not retain artifact mode ${manifest.artifacts}`);
+    }
 
     await ensureOwnerPermissions({ grantPermission, agent, ownerId });
-    results.push({ id: manifest.id, outcome, owner: ownerId, model: agent.model });
+    results.push({
+      id: manifest.id,
+      outcome,
+      owner: ownerId,
+      model: agent.model,
+      artifacts: agent.artifacts,
+    });
   }
 
   console.log(JSON.stringify({ ok: true, agents: results }, null, 2));
