@@ -47,9 +47,15 @@ jobs:
               assert data['id'] == agent_id
               assert data['status'] == 'validated-for-independent-use'
               assert data['memory_scope'] == 'agent'
+              assert data['artifacts'] == 'default'
               assert data['skills_enabled'] is True
               assert data['skills']
               assert set(['file_search', 'execute_code', 'web_search']).issubset(data['tools'])
+              assert 'web_fetch' not in data['tools'], 'unsupported standalone web_fetch tool must not be invented'
+              policy = data.get('capability_policy', {})
+              assert 'ocr' in policy
+              assert 'web_fetch' in policy
+              assert 'artifacts' in policy
           workflow = json.loads((root / 'workflows/ba-to-release-assurance.json').read_text())
           assert workflow['enabled'] is False, 'cross-agent handoff must remain gated until O001 passes'
           assert workflow['status'] == 'benchmark-required-before-activation'
