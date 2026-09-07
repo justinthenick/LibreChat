@@ -1,22 +1,23 @@
 {
-  "schema": 5,
+  "schema": 6,
   "title": "LibreChat Synology Admin Settings",
   "groups": [
-    {"id": "address", "label": "Address and access"},
-    {"id": "application", "label": "Application behaviour"},
-    {"id": "models", "label": "Model catalogue"},
-    {"id": "authentication", "label": "Authentication"},
-    {"id": "providers", "label": "AI provider credentials"},
-    {"id": "integrations", "label": "Deployment integrations"},
-    {"id": "security", "label": "Locked security material"},
-    {"id": "internal", "label": "Internal values"}
+    {"id":"address","label":"Address and access"},
+    {"id":"application","label":"Application behaviour"},
+    {"id":"models","label":"Model catalogue"},
+    {"id":"authentication","label":"Authentication"},
+    {"id":"providers","label":"AI provider credentials"},
+    {"id":"capabilities","label":"Agent capability services"},
+    {"id":"integrations","label":"Deployment integrations"},
+    {"id":"security","label":"Locked security material"},
+    {"id":"internal","label":"Internal values"}
   ],
   "settings": [
     {"key":"NAS_HOST","label":"LibreChat host","group":"address","class":"editable","control":"text","validation":{"type":"host"},"restart":"recreate","services":["api"],"description":"Browser-visible hostname or IP address used to construct LibreChat URLs."},
     {"key":"LIBRECHAT_SCHEME","label":"LibreChat scheme","group":"address","class":"editable","control":"select","options":["http","https"],"restart":"recreate","services":["api"]},
     {"key":"LIBRECHAT_PORT","label":"LibreChat host port","group":"address","class":"editable","control":"number","validation":{"type":"integer","minimum":1,"maximum":65535},"restart":"recreate","services":["api"]},
-    {"key":"ADMIN_SETTINGS_PORT","label":"Admin settings port","group":"address","class":"editable","control":"number","required":false,"ui_hidden":true,"validation":{"type":"integer","minimum":1,"maximum":65535},"restart":"recreate","services":["admin-settings"],"description":"LAN port used by the Synology Admin Settings panel. Change with the host CLI because changing it from the panel would interrupt the active session."},
-    {"key":"ADMIN_PANEL_URL","label":"Synology admin panel URL","group":"address","class":"editable","control":"text","required":false,"validation":{"type":"url","schemes":["http","https"],"allow_empty":true},"restart":"recreate","services":["api"],"description":"URL exposed through LibreChat's admin-only Admin panel link."},
+    {"key":"ADMIN_SETTINGS_PORT","label":"Admin settings port","group":"address","class":"editable","control":"number","required":false,"ui_hidden":true,"validation":{"type":"integer","minimum":1,"maximum":65535},"restart":"recreate","services":["admin-settings"]},
+    {"key":"ADMIN_PANEL_URL","label":"Synology admin panel URL","group":"address","class":"editable","control":"text","required":false,"validation":{"type":"url","schemes":["http","https"],"allow_empty":true},"restart":"recreate","services":["api"]},
     {"key":"DOMAIN_CLIENT","label":"Client URL","group":"address","class":"derived","derive":"${LIBRECHAT_SCHEME}://${NAS_HOST}:${LIBRECHAT_PORT}","restart":"recreate","services":["api"]},
     {"key":"DOMAIN_SERVER","label":"Server URL","group":"address","class":"derived","derive":"${LIBRECHAT_SCHEME}://${NAS_HOST}:${LIBRECHAT_PORT}","restart":"recreate","services":["api"]},
 
@@ -24,10 +25,10 @@
     {"key":"SEARCH","label":"Enable LibreChat search integration","group":"application","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
     {"key":"SESSION_COOKIE_SECURE","label":"Secure session cookie","group":"application","class":"editable","control":"boolean","restart":"recreate","services":["api"],"warning":"Enable when the browser reaches LibreChat over HTTPS."},
 
-    {"key":"ALLOWED_MODELS","label":"Allowed OpenRouter models / pre-filter","group":"models","class":"editable","control":"text","required":false,"restart":"recreate","services":["api"],"description":"Comma-separated OpenRouter model IDs. A non-empty list restricts the catalogue to exactly these models; clear the field to fetch the full OpenRouter catalogue. Existing ALLOWED_MODELS values from the earlier pre-filter are preserved."},
+    {"key":"ALLOWED_MODELS","label":"Allowed OpenRouter models / pre-filter","group":"models","class":"editable","control":"text","required":false,"restart":"recreate","services":["api"],"description":"Comma-separated OpenRouter model IDs. Non-empty restricts the catalogue to exactly these models; clear to fetch the full OpenRouter catalogue."},
 
     {"key":"ALLOW_EMAIL_LOGIN","label":"Allow email login","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
-    {"key":"ALLOW_REGISTRATION","label":"Allow new registrations","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"],"warning":"Normally disable after the intended accounts have been created."},
+    {"key":"ALLOW_REGISTRATION","label":"Allow new registrations","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
     {"key":"ALLOW_SOCIAL_LOGIN","label":"Allow social login","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
     {"key":"ALLOW_SOCIAL_REGISTRATION","label":"Allow social registration","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
     {"key":"ALLOW_UNVERIFIED_EMAIL_LOGIN","label":"Allow unverified email login","group":"authentication","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
@@ -36,7 +37,7 @@
     {"key":"OPENAI_API_KEY","label":"OpenAI API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
     {"key":"ANTHROPIC_API_KEY","label":"Anthropic API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
     {"key":"GOOGLE_KEY","label":"Google / Gemini chat API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
-    {"key":"GEMINI_API_KEY","label":"Gemini tools / image API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"],"description":"Optional dedicated Gemini tool key. GOOGLE_KEY remains the shared Google chat endpoint credential."},
+    {"key":"GEMINI_API_KEY","label":"Gemini tools / image API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
     {"key":"OPENROUTER_KEY","label":"OpenRouter API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api","rag_api"]},
     {"key":"DEEPSEEK_API_KEY","label":"DeepSeek API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
     {"key":"MISTRAL_API_KEY","label":"Mistral API key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
@@ -58,12 +59,18 @@
     {"key":"BEDROCK_AWS_SECRET_ACCESS_KEY","label":"AWS Bedrock secret access key","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
     {"key":"BEDROCK_AWS_SESSION_TOKEN","label":"AWS Bedrock session token","group":"providers","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
 
+    {"key":"TAVILY_API_KEY","label":"Tavily web search API key","group":"capabilities","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"],"description":"Used by the enabled Agent web_search capability for search and page extraction."},
+    {"key":"LIBRECHAT_CODE_API_KEY","label":"LibreChat code execution API key","group":"capabilities","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
+    {"key":"LIBRECHAT_CODE_BASEURL","label":"LibreChat code execution base URL","group":"capabilities","class":"editable","control":"text","required":false,"validation":{"type":"url","schemes":["http","https"],"allow_empty":true},"restart":"recreate","services":["api"]},
+    {"key":"CODE_ENV_API_KEY","label":"Code environment API key","group":"capabilities","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
+    {"key":"CODE_ENV_BASEURL","label":"Code environment base URL","group":"capabilities","class":"editable","control":"text","required":false,"validation":{"type":"url","schemes":["http","https"],"allow_empty":true},"restart":"recreate","services":["api"]},
+
     {"key":"GITHUB_DEPLOY_STATUS_TOKEN","label":"GitHub deployment status token","group":"integrations","class":"replace_only_secret","control":"secret","required":false,"restart":"none","services":[]},
     {"key":"GITHUB_TELEMETRY_TOKEN","label":"GitHub telemetry token","group":"integrations","class":"replace_only_secret","control":"secret","required":false,"restart":"none","services":[]},
     {"key":"CLOUDFLARE_TUNNEL_TOKEN","label":"Cloudflare tunnel token","group":"integrations","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["cloudflared"]},
 
-    {"key":"ADMIN_SETTINGS_ACCESS_TOKEN","label":"Admin settings recovery token","group":"security","class":"replace_only_secret","control":"secret","required":false,"ui_hidden":true,"restart":"none","services":[],"description":"Host recovery credential retained for bootstrap/emergency access. Normal browser login uses a password-backed session."},
-    {"key":"RAG_DB_PASSWORD","label":"RAG database password","group":"security","class":"locked_secret","ui_hidden":true,"description":"Private PostgreSQL/pgvector credential. Rotate only with a coordinated database credential change."},
+    {"key":"ADMIN_SETTINGS_ACCESS_TOKEN","label":"Admin settings recovery token","group":"security","class":"replace_only_secret","control":"secret","required":false,"ui_hidden":true,"restart":"none","services":[]},
+    {"key":"RAG_DB_PASSWORD","label":"RAG database password","group":"security","class":"locked_secret","ui_hidden":true},
     {"key":"JWT_SECRET","label":"JWT secret","group":"security","class":"locked_secret","ui_hidden":true},
     {"key":"JWT_REFRESH_SECRET","label":"JWT refresh secret","group":"security","class":"locked_secret","ui_hidden":true},
     {"key":"CREDS_KEY","label":"Credential encryption key","group":"security","class":"locked_secret","ui_hidden":true},
