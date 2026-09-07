@@ -13,6 +13,7 @@ on:
       - 'feature/ba-release-production-agents-v0.1'
       - 'fix/synology-production-agent-runtime-wiring'
       - 'fix/synology-pin-compatible-librechat-image'
+      - 'fix/production-agent-openrouter-endpoint'
     paths:
       - 'custom/ba-agent/production/**'
       - 'custom/ba-agent/benchmarks/039-o001-ba-release-handoff/**'
@@ -113,6 +114,13 @@ jobs:
           assert "to: workflow.to_agent" in seeder
           assert 'edges: desiredEdges(manifest.id, workflow)' in seeder
           assert 'handoff edges differ from validated production workflow' in seeder
+
+          # The pinned runtime indexes model catalogues by the configured custom
+          # endpoint name. Persisting the internal provider id `openrouter`
+          # causes seeded agents to look up a non-existent catalogue key.
+          assert "const OPENROUTER_ENDPOINT_NAME = 'OpenRouter';" in seeder
+          assert 'return OPENROUTER_ENDPOINT_NAME;' in seeder
+          assert 'Providers.OPENROUTER' not in seeder
 
           compatible_image = 'image: librechat/lc-dev:cdd4c09076aa43ae9d94bba8f43c55ee35c181d5'
           assert compatible_image in compose, (
