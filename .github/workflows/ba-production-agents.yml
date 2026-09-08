@@ -48,8 +48,10 @@ jobs:
           }
           files = sorted(p.name for p in root.glob('*.json'))
           assert files == sorted(expected), f'unexpected production agent manifests: {files}'
+          manifests = {}
           for filename, agent_id in expected.items():
               data = json.loads((root / filename).read_text())
+              manifests[agent_id] = data
               assert data['id'] == agent_id
               assert data['status'] == 'validated-for-independent-use'
               assert data['memory_scope'] == 'agent'
@@ -62,6 +64,27 @@ jobs:
               assert 'ocr' in policy
               assert 'web_fetch' in policy
               assert 'artifacts' in policy
+
+          supervisor = manifests['agent_ba_supervisor_v01']
+          release = manifests['agent_release_change_assurance_v01']
+          assert supervisor['version'] == '0.1.1'
+          assert release['version'] == '0.1.1'
+          assert supervisor['subagents']['enabled'] is True
+          assert supervisor['subagents']['agent_ids'] == ['agent_release_change_assurance_v01']
+          assert 'subagents' not in release, 'Release Assurance must not recursively expose production subagents'
+
+          supervisor_instructions = supervisor['instructions']
+          assert 'execute it through to a consolidated answer in the same turn' in supervisor_instructions
+          assert 'Do not stop between already-requested stages merely to ask whether to continue' in supervisor_instructions
+          assert 'invoke the Release / Change Assurance subagent' in supervisor_instructions
+          assert 'Do not substitute prepare-solution-change-readiness' in supervisor_instructions
+          assert 'must not be promoted into mandatory gates' in supervisor_instructions
+          assert 'release/change is merely future context' in supervisor_instructions
+
+          release_instructions = release['instructions']
+          assert 'must not be converted into a mandatory release gate' in release_instructions
+          assert 'Test or UAT success does not by itself prove production behaviour' in release_instructions
+          assert 'Distinguish a source-evidenced stop condition from a missing-evidence gap' in release_instructions
 
           workflow = json.loads((root / 'workflows/ba-to-release-assurance.json').read_text())
           assert workflow['enabled'] is True, 'O001 passed; production workflow policy must be activated'
@@ -114,6 +137,8 @@ jobs:
           assert "to: workflow.to_agent" in seeder
           assert 'edges: desiredEdges(manifest.id, workflow)' in seeder
           assert 'handoff edges differ from validated production workflow' in seeder
+          assert 'subagents: manifest.subagents' in seeder
+          assert 'BA Supervisor validated production subagent wiring was not persisted' in seeder
 
           # The pinned runtime indexes model catalogues by the configured custom
           # endpoint name. Persisting the internal provider id `openrouter`
