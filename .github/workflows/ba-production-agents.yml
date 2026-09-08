@@ -14,6 +14,7 @@ on:
       - 'fix/synology-production-agent-runtime-wiring'
       - 'fix/synology-pin-compatible-librechat-image'
       - 'fix/production-agent-openrouter-endpoint'
+      - 'fix/ba-chain-preload-regression'
     paths:
       - 'custom/ba-agent/production/**'
       - 'custom/ba-agent/benchmarks/039-o001-ba-release-handoff/**'
@@ -67,14 +68,20 @@ jobs:
 
           supervisor = manifests['agent_ba_supervisor_v01']
           release = manifests['agent_release_change_assurance_v01']
-          assert supervisor['version'] == '0.1.1'
+          assert supervisor['version'] == '0.1.2'
           assert release['version'] == '0.1.1'
           assert supervisor['subagents']['enabled'] is True
           assert supervisor['subagents']['agent_ids'] == ['agent_release_change_assurance_v01']
           assert 'subagents' not in release, 'Release Assurance must not recursively expose production subagents'
 
           supervisor_instructions = supervisor['instructions']
-          assert 'execute it through to a consolidated answer in the same turn' in supervisor_instructions
+          assert 'decide the complete minimum chain before producing substantive user-visible content' in supervisor_instructions
+          assert 'Invoke every selected skill consecutively in dependency order before emitting' in supervisor_instructions
+          assert 'Treat the loaded skill instructions as cumulative constraints for one consolidated answer' in supervisor_instructions
+          assert 'Do not emit a complete intermediate analysis and only then load the next already-required skill' in supervisor_instructions
+          assert 'do not replace them with a vague summary that loses traceability' in supervisor_instructions
+          assert 'Do not create new actors, benefits, non-functional requirements, assumptions' in supervisor_instructions
+          assert 'None identified from supplied evidence or Unknown' in supervisor_instructions
           assert 'Do not stop between already-requested stages merely to ask whether to continue' in supervisor_instructions
           assert 'invoke the Release / Change Assurance subagent' in supervisor_instructions
           assert 'Do not substitute prepare-solution-change-readiness' in supervisor_instructions
