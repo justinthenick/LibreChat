@@ -1,4 +1,4 @@
-version: 1.3.13
+version: 1.3.14
 
 cache: false
 
@@ -31,25 +31,16 @@ interface:
   marketplace:
     use: false
 
-# Memory is enabled globally. In the deployed LibreChat build, `memory` is not
-# a valid endpoints.agents.capabilities enum value, so it must not be listed
-# there. Agent-level memory isolation remains a manifest concern for production
-# agents rather than an endpoint capability token.
 memory:
   disabled: false
 
-# Tavily is the initial managed web-search backend. LibreChat's supported page-
-# fetch/extraction path is the web_search scraper provider rather than a separate
-# web_fetch Agent capability/tool in this checkout.
+# Tavily is the managed web-search + page-extraction backend.
 webSearch:
   searchProvider: tavily
   scraperProvider: tavily
   rerankerType: none
   tavilyApiKey: '${TAVILY_API_KEY}'
 
-# OCR is an Agent endpoint capability with its own top-level runtime service
-# configuration. The Mistral OCR strategy becomes operational when the managed
-# OCR service credential/base URL are configured in Admin Settings.
 ocr:
   apiKey: '${OCR_API_KEY}'
   baseURL: '${OCR_BASEURL}'
@@ -66,10 +57,6 @@ mcpServers:
     timeout: 120000
 
 endpoints:
-  # Pin only capability enum values accepted by the deployed LibreChat build.
-  # Unsupported pseudo-capabilities such as memory, run_in_background and
-  # ask_user_question must not be advertised here because schema validation is
-  # fatal and prevents the API from starting.
   agents:
     capabilities:
       - deferred_tools
@@ -84,6 +71,32 @@ endpoints:
       - skills
       - tools
       - chain
+      - stateful_code_sessions
+    # Retain LibreChat's human-in-the-loop machinery for attached execution.
+    # `bypass` lets the user choose Ask / Accept edits / Full access per turn;
+    # the worker sandbox remains an independent enforcement boundary.
+    toolApproval:
+      enabled: true
+      mode: bypass
+    statefulCodeSessions:
+      allowedEnvironments:
+        - conversation
+      environments:
+        - id: justin-wsl
+          name: 'Justin WSL Code Worker'
+          type: attached
+          baseURL: 'http://librechat-codeapi:3112/v1'
+          default: true
+          workerId: justin-wsl
+          owner: deployment
+          configSchema:
+            permissions:
+              fileWrite:
+                allowed: [ask, allow]
+                default: ask
+              commandExecution:
+                allowed: [ask, allow]
+                default: ask
     skills:
       maxCatalogSkills: 100
 
