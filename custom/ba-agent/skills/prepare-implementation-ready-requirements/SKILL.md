@@ -1,24 +1,30 @@
 ---
 name: prepare-implementation-ready-requirements
-description: Use when one request explicitly asks to analyse raw requirements and continue through implementation-ready delivery decomposition and acceptance criteria in the same response. Combines the validated analysis, decomposition and acceptance-criteria disciplines without inventing missing business or solution facts.
-always-apply: false
-user-invocable: true
-disable-model-invocation: false
+description: Ambient BA orchestration guard for the requirements lifecycle. When one request explicitly asks to analyse raw requirements and continue through implementation-ready delivery decomposition and acceptance criteria, execute all three stages in one response without inventing missing business or solution facts. For stage-specific requests, defer to the appropriate validated component skill.
+always-apply: true
+user-invocable: false
+disable-model-invocation: true
 ---
 
 # Prepare Implementation-Ready Requirements
 
-Version: **0.1.0**
+Version: **0.1.1**
 
 ## Purpose
 
-Execute the complete Business Analysis chain in one model-invoked skill when the user explicitly wants all three outcomes together:
+This skill is **pre-primed by the runtime** for BA Supervisor turns. It removes the model-routing decision that live regression testing proved unreliable.
+
+When the user's current request explicitly wants all three outcomes together:
 
 1. requirements analysis;
 2. delivery decomposition; and
-3. acceptance-criteria elaboration.
+3. acceptance-criteria elaboration;
 
-This is an **orchestration skill**, not a replacement for the independently validated `analyze-requirements`, `decompose-requirements`, or `elaborate-acceptance-criteria` skills. Use those individual skills when only one stage is requested. This skill exists because the runtime model-invoked `skill` tool loads one skill per call; a single composite load makes an already-selected three-stage route atomic and prevents the chain from terminating between skill calls.
+execute the complete Business Analysis chain directly from these already-loaded instructions. **Do not invoke `analyze-requirements`, `decompose-requirements`, `elaborate-acceptance-criteria`, or this skill via the `skill` tool for that combined request.** Return one consolidated answer containing all three stages.
+
+When the user's request is stage-specific rather than a combined lifecycle request, this ambient skill does not expand scope. Use the independently validated component skill selected by the BA Supervisor for analysis-only, decomposition-only, or acceptance-criteria-only work.
+
+This is an **orchestration guard**, not a replacement for the independently validated component skills. It is always applied only because the pinned runtime cannot deterministically force the model to choose the composite skill from the model-visible catalogue.
 
 ## Core principle
 
