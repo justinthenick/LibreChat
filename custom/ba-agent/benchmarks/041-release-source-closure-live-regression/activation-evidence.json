@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "benchmark": "Benchmark 041 — Release Source-Closure Live Regression",
+  "generation_job": "b041-g37-release-source-closure-v031-ab-001",
+  "semantic_job": "sem-b041-release-source-closure-g37-001",
+  "generation_model": "gemini-3.7-flash",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-08T21:50:26Z",
+  "baseline_final_score": 95,
+  "skill_final_score": 100,
+  "baseline_gap": 5,
+  "critical_penalties": 0,
+  "defects": 0,
+  "gate_passed": true,
+  "tested_skill_version": "0.3.1",
+  "tested_skill_sha256": "5aa1ddb972c93075bb653b2ed5f4da50e3c296466e1a385462084c39f1f19b7b",
+  "source_lab_branch": "feature/ba-agent-v0.1",
+  "source_lab_commit": "1a90cd3c65921aef478f7b8477d1a61db4f93f7a",
+  "source_evaluation_path": "custom/ba-agent/benchmarks/041-release-source-closure-live-regression/results/sem-b041-release-source-closure-g37-001-semantic-evaluation.md",
+  "activation_note": "Release / Change Assurance source-closure correction is promoted only after reproducing the exact live LibreChat failure. validate-release-evidence v0.3.1 scored 100/100 with zero critical penalties and PASS; baseline scored 95/100."
+}
