@@ -1,0 +1,234 @@
+{
+  "schema": 1,
+  "job_id": "sem-b041-release-source-closure-g37-001",
+  "benchmark": "Benchmark 041 — Release Source-Closure Live Regression",
+  "benchmark_path": "custom/ba-agent/benchmarks/041-release-source-closure-live-regression",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-08T21:50:26Z",
+  "baseline_result": "results/b041-g37-release-source-closure-v031-ab-001-gemini-3.7-flash-baseline-01.md",
+  "skill_result": "results/b041-g37-release-source-closure-v031-ab-001-gemini-3.7-flash-skill-01.md",
+  "skill_path": "custom/ba-agent/skills/validate-release-evidence/SKILL.md",
+  "skill_sha256": "5aa1ddb972c93075bb653b2ed5f4da50e3c296466e1a385462084c39f1f19b7b",
+  "generation_metadata": {
+    "baseline": {
+      "api_key_source": "GOOGLE_KEY",
+      "benchmark": "Benchmark 041 — Release Source-Closure Live Regression",
+      "benchmark_dir": "041-release-source-closure-live-regression",
+      "ended_at": "2026-09-08T21:48:23Z",
+      "error": null,
+      "finish_reason": "STOP",
+      "github_source": {
+        "branch": "feature/ba-agent-v0.1",
+        "refreshed": false,
+        "repo": "justinthenick/LibreChat"
+      },
+      "http_status": 200,
+      "input_sha256": "23b0b7dbe7097c4163f527f1e38a256395d0ab38df4f5c4da557ea372eeeda88",
+      "iteration": 1,
+      "max_output_tokens": 8192,
+      "mode": "baseline",
+      "model": "gemini-3.7-flash",
+      "prompt_sha256": "9f1ead231afd991a3f2e829219aa0af666db540828e455849c3027f6cf562492",
+      "provider": "gemini",
+      "runner_python": "3.8.12",
+      "schema": 2,
+      "skill_path": null,
+      "skill_sha256": null,
+      "skill_version": null,
+      "started_at": "2026-09-08T21:48:18Z",
+      "status": "success",
+      "temperature": 0.0,
+      "usage": {
+        "candidatesTokenCount": 399,
+        "promptTokenCount": 521,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 521
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 828,
+        "totalTokenCount": 1748
+      }
+    },
+    "skill": {
+      "api_key_source": "GOOGLE_KEY",
+      "benchmark": "Benchmark 041 — Release Source-Closure Live Regression",
+      "benchmark_dir": "041-release-source-closure-live-regression",
+      "ended_at": "2026-09-08T21:48:29Z",
+      "error": null,
+      "finish_reason": "STOP",
+      "github_source": {
+        "branch": "feature/ba-agent-v0.1",
+        "refreshed": false,
+        "repo": "justinthenick/LibreChat"
+      },
+      "http_status": 200,
+      "input_sha256": "23b0b7dbe7097c4163f527f1e38a256395d0ab38df4f5c4da557ea372eeeda88",
+      "iteration": 1,
+      "max_output_tokens": 8192,
+      "mode": "skill",
+      "model": "gemini-3.7-flash",
+      "prompt_sha256": "9f1ead231afd991a3f2e829219aa0af666db540828e455849c3027f6cf562492",
+      "provider": "gemini",
+      "runner_python": "3.8.12",
+      "schema": 2,
+      "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/validate-release-evidence/SKILL.md",
+      "skill_sha256": "5aa1ddb972c93075bb653b2ed5f4da50e3c296466e1a385462084c39f1f19b7b",
+      "skill_version": "0.3.1",
+      "started_at": "2026-09-08T21:48:23Z",
+      "status": "success",
+      "temperature": 0.0,
+      "usage": {
+        "candidatesTokenCount": 1217,
+        "promptTokenCount": 3714,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3714
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 400,
+        "totalTokenCount": 5331
+      }
+    }
+  },
+  "evaluation": {
+    "baseline": {
+      "raw_score": 95,
+      "critical_penalties": [],
+      "final_score": 95,
+      "criteria": [
+        {
+          "criterion": "1. Correct decision frame",
+          "score": 10,
+          "max": 10,
+          "rationale": "Explicitly frames the assessment as pre-deployment release readiness."
+        },
+        {
+          "criterion": "2. Final GO / NO-GO semantics",
+          "score": 20,
+          "max": 20,
+          "rationale": "Accurately concludes that neither GO nor NO-GO is established from the supplied evidence."
+        },
+        {
+          "criterion": "3. Implementation provenance",
+          "score": 10,
+          "max": 10,
+          "rationale": "Correctly classifies implementation completion as reported / partially evidenced status assertion lacking underlying completion artifacts."
+        },
+        {
+          "criterion": "4. Test + UAT provenance and sufficiency",
+          "score": 15,
+          "max": 15,
+          "rationale": "Classifies test deployment as reported/partially evidenced and marks 8-sample UAT sufficiency as Unknown."
+        },
+        {
+          "criterion": "5. Future-phase discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Treats planned deployment and unperformed production verification as future-phase states, not current blockers."
+        },
+        {
+          "criterion": "6. Authority discipline",
+          "score": 5,
+          "max": 10,
+          "rationale": "Acknowledges Change Authority is unknown, but lists 'Identification and sign-off from the Change Authority' under Next Evidence Required without noting that no supplied policy mandates this gate."
+        },
+        {
+          "criterion": "7. Strict source closure",
+          "score": 20,
+          "max": 20,
+          "rationale": "Adheres strictly to source closure without introducing unsourced rollback, monitoring, runbooks, or security/NFR gates."
+        },
+        {
+          "criterion": "8. Handoff / next evidence discipline",
+          "score": 5,
+          "max": 5,
+          "rationale": "Limits next evidence strictly to dimensions raised in the source text."
+        }
+      ],
+      "summary": "Baseline performed exceptionally well with strict source closure and accurate provenance classification, dropping points only for framing Change Authority sign-off as required next evidence without explicit policy conditioning."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "1. Correct decision frame",
+          "score": 10,
+          "max": 10,
+          "rationale": "Explicitly establishes the pre-deployment go/no-go readiness decision frame."
+        },
+        {
+          "criterion": "2. Final GO / NO-GO semantics",
+          "score": 20,
+          "max": 20,
+          "rationale": "States that GO/NO-GO approval status is Unknown / not established from supplied evidence, explaining both the absence of GO criteria and NO-GO blockers."
+        },
+        {
+          "criterion": "3. Implementation provenance",
+          "score": 10,
+          "max": 10,
+          "rationale": "Properly categorizes implementation complete as a bare reported status assertion in a Partially evidenced state."
+        },
+        {
+          "criterion": "4. Test + UAT provenance and sufficiency",
+          "score": 15,
+          "max": 15,
+          "rationale": "Correctly treats test deployment and 8-sample UAT as reported assertions and identifies acceptance sufficiency as unestablished."
+        },
+        {
+          "criterion": "5. Future-phase discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Strictly identifies production deployment and verification as future-phase events that cannot be present blockers."
+        },
+        {
+          "criterion": "6. Authority discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Maintains authority as unevidenced without turning it into a mandatory gate or unconditional required record."
+        },
+        {
+          "criterion": "7. Strict source closure",
+          "score": 20,
+          "max": 20,
+          "rationale": "Maintains complete source closure with no hallucinated operational or assurance dimensions."
+        },
+        {
+          "criterion": "8. Handoff / next evidence discipline",
+          "score": 5,
+          "max": 5,
+          "rationale": "Explicitly states that no mandatory next-evidence requirements are established by policy and appropriately conditions potential evidence needs on local governance."
+        }
+      ],
+      "summary": "Skill output achieves full compliance across all rubric criteria, providing rigorous source closure, correct provenance grading, future-phase discipline, and conditional next-evidence framing."
+    },
+    "defects": [],
+    "summary": "Both models demonstrated strong discipline against hallucinating generic release requirements. Skill earned a perfect score by explicitly conditioning authority and verification needs on unsupplied governance policies, whereas Baseline slightly over-committed to authority sign-off in its next-evidence list."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 4549,
+    "candidatesTokenCount": 1245,
+    "totalTokenCount": 7281,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 4549
+      }
+    ],
+    "thoughtsTokenCount": 1487,
+    "serviceTier": "standard"
+  }
+}
