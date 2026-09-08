@@ -22,6 +22,7 @@ const RELEASE_AGENT_ID = 'agent_release_change_assurance_v01';
 const EXPECTED_AGENT_IDS = new Set([BA_AGENT_ID, RELEASE_AGENT_ID]);
 const ALLOWED_ARTIFACT_MODES = new Set(['default', 'code', 'artifacts']);
 const OPENROUTER_ENDPOINT_NAME = 'OpenRouter';
+const CODE_ENVIRONMENT_ID = 'justin-wsl';
 
 function parseAllowedModels(raw) {
   return String(raw || '')
@@ -37,9 +38,9 @@ function chooseModel() {
 function normalizeProvider(value) {
   const normalized = String(value || '').trim().toLowerCase();
   if (normalized === 'openrouter') {
-    // Agent.provider is an endpoint lookup key in the pinned LibreChat runtime.
-    // Keep it aligned with the configured custom endpoint name so model
-    // validation resolves modelsConfig.OpenRouter instead of modelsConfig.openrouter.
+    // Agent.provider is the configured endpoint lookup key. Keep exact casing
+    // aligned with endpoints.custom.name so model validation resolves the
+    // OpenRouter catalogue deterministically across pinned runtime upgrades.
     return OPENROUTER_ENDPOINT_NAME;
   }
   throw new Error(`Unsupported production-agent provider: ${value}`);
@@ -66,6 +67,17 @@ function loadManifest(filename) {
   }
   if (!ALLOWED_ARTIFACT_MODES.has(manifest.artifacts)) {
     throw new Error(`${manifest.id} has unsupported artifact mode: ${manifest.artifacts}`);
+  }
+  if (manifest.stateful_code_sessions !== true) {
+    throw new Error(`${manifest.id} must opt into stateful code sessions`);
+  }
+  if (manifest.stateful_code_environment !== 'conversation') {
+    throw new Error(`${manifest.id} must isolate code execution by conversation`);
+  }
+  if (manifest.code_environment_id !== CODE_ENVIRONMENT_ID) {
+    throw new Error(
+      `${manifest.id} must use deployment-owned code environment ${CODE_ENVIRONMENT_ID}`,
+    );
   }
   return manifest;
 }
@@ -142,6 +154,9 @@ function desiredAgent(manifest, author, workflow) {
     tools: manifest.tools.map(String),
     skills: skillIds,
     skills_enabled: manifest.skills_enabled === true,
+    stateful_code_sessions: manifest.stateful_code_sessions === true,
+    stateful_code_environment: manifest.stateful_code_environment,
+    code_environment_id: manifest.code_environment_id,
     memory_scope: manifest.memory_scope || 'agent',
     artifacts: manifest.artifacts,
     edges: desiredEdges(manifest.id, workflow),
@@ -235,6 +250,15 @@ async function seed() {
         throw new Error(`${manifest.id} is missing required tool ${tool}`);
       }
     }
+    if (agent.stateful_code_sessions !== true) {
+      throw new Error(`${manifest.id} did not retain stateful code sessions`);
+    }
+    if (agent.stateful_code_environment !== manifest.stateful_code_environment) {
+      throw new Error(`${manifest.id} did not retain conversation-isolated code execution`);
+    }
+    if (agent.code_environment_id !== manifest.code_environment_id) {
+      throw new Error(`${manifest.id} did not retain attached code environment ${CODE_ENVIRONMENT_ID}`);
+    }
     if (agent.memory_scope !== 'agent') {
       throw new Error(`${manifest.id} did not retain isolated agent memory scope`);
     }
@@ -257,6 +281,7 @@ async function seed() {
       owner: ownerId,
       model: agent.model,
       artifacts: agent.artifacts,
+      code_environment_id: agent.code_environment_id,
       edges: persistedEdges,
     });
   }
