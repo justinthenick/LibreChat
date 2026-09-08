@@ -17,6 +17,7 @@ const MANIFEST_DIR = process.argv[2] || process.env.PRODUCTION_AGENTS_DIR || '/a
 const ALLOWED_MANIFESTS = ['ba-supervisor.json', 'release-change-assurance.json'];
 const EXPECTED_AGENT_IDS = new Set(['agent_ba_supervisor_v01', 'agent_release_change_assurance_v01']);
 const ALLOWED_ARTIFACT_MODES = new Set(['default', 'code', 'artifacts']);
+const EXPECTED_SUBAGENT_IDS = new Set(['agent_release_change_assurance_v01']);
 
 function parseAllowedModels(raw) {
   return String(raw || '')
@@ -35,6 +36,28 @@ function normalizeProvider(value) {
     return Providers.OPENROUTER;
   }
   throw new Error(`Unsupported production-agent provider: ${value}`);
+}
+
+function validateSubagents(manifest) {
+  if (manifest.id !== 'agent_ba_supervisor_v01') {
+    if (manifest.subagents != null) {
+      throw new Error(`${manifest.id} must not declare production subagents`);
+    }
+    return;
+  }
+
+  if (manifest.subagents?.enabled !== true) {
+    throw new Error('BA Supervisor must enable its validated Release / Change Assurance subagent');
+  }
+  const agentIds = Array.isArray(manifest.subagents.agent_ids)
+    ? manifest.subagents.agent_ids.map(String)
+    : [];
+  if (
+    agentIds.length !== EXPECTED_SUBAGENT_IDS.size ||
+    agentIds.some((id) => !EXPECTED_SUBAGENT_IDS.has(id))
+  ) {
+    throw new Error('BA Supervisor production subagent allowlist differs from validated workflow');
+  }
 }
 
 function loadManifest(filename) {
@@ -59,6 +82,7 @@ function loadManifest(filename) {
   if (!ALLOWED_ARTIFACT_MODES.has(manifest.artifacts)) {
     throw new Error(`${manifest.id} has unsupported artifact mode: ${manifest.artifacts}`);
   }
+  validateSubagents(manifest);
   return manifest;
 }
 
@@ -102,6 +126,7 @@ function desiredAgent(manifest, author) {
     skills_enabled: manifest.skills_enabled === true,
     memory_scope: manifest.memory_scope || 'agent',
     artifacts: manifest.artifacts,
+    subagents: manifest.subagents,
     conversation_starters: Array.isArray(manifest.conversation_starters)
       ? manifest.conversation_starters.map(String)
       : [],
@@ -189,6 +214,21 @@ async function seed() {
     if (agent.artifacts !== manifest.artifacts) {
       throw new Error(`${manifest.id} did not retain artifact mode ${manifest.artifacts}`);
     }
+    if (manifest.id === 'agent_ba_supervisor_v01') {
+      const persistedSubagentIds = Array.isArray(agent.subagents?.agent_ids)
+        ? agent.subagents.agent_ids.map(String).sort()
+        : [];
+      const expectedSubagentIds = [...EXPECTED_SUBAGENT_IDS].sort();
+      if (
+        agent.subagents?.enabled !== true ||
+        persistedSubagentIds.length !== expectedSubagentIds.length ||
+        expectedSubagentIds.some((id, index) => id !== persistedSubagentIds[index])
+      ) {
+        throw new Error('BA Supervisor validated production subagent wiring was not persisted');
+      }
+    } else if (agent.subagents != null) {
+      throw new Error(`${manifest.id} unexpectedly retained production subagents`);
+    }
 
     await ensureOwnerPermissions({ grantPermission, agent, ownerId });
     results.push({
@@ -197,6 +237,7 @@ async function seed() {
       owner: ownerId,
       model: agent.model,
       artifacts: agent.artifacts,
+      subagents: agent.subagents,
     });
   }
 
@@ -221,4 +262,12 @@ if (require.main === module) {
     });
 }
 
-module.exports = { seed, loadManifest, desiredAgent, parseAllowedModels, chooseModel, normalizeProvider };
+module.exports = {
+  seed,
+  loadManifest,
+  desiredAgent,
+  parseAllowedModels,
+  chooseModel,
+  normalizeProvider,
+  validateSubagents,
+};
