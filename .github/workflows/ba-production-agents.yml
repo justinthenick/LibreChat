@@ -4,7 +4,9 @@ on:
   pull_request:
     paths:
       - 'custom/ba-agent/production/**'
+      - 'custom/ba-agent/skills/validate-release-evidence/**'
       - 'custom/ba-agent/benchmarks/039-o001-ba-release-handoff/**'
+      - 'custom/ba-agent/benchmarks/040-release-decision-semantics/**'
       - 'config/seed-production-agents.js'
       - '.github/workflows/ba-production-agents.yml'
   push:
@@ -12,7 +14,9 @@ on:
       - 'feature/ba-release-production-agents-v0.1'
     paths:
       - 'custom/ba-agent/production/**'
+      - 'custom/ba-agent/skills/validate-release-evidence/**'
       - 'custom/ba-agent/benchmarks/039-o001-ba-release-handoff/**'
+      - 'custom/ba-agent/benchmarks/040-release-decision-semantics/**'
       - 'config/seed-production-agents.js'
       - '.github/workflows/ba-production-agents.yml'
 
@@ -29,7 +33,7 @@ jobs:
           python-version: '3.11'
       - name: Validate seeder JavaScript syntax
         run: node --check config/seed-production-agents.js
-      - name: Validate production manifests and bounded scope
+      - name: Validate promoted production manifests and semantics
         run: |
           python - <<'PY'
           import hashlib
@@ -63,7 +67,7 @@ jobs:
           supervisor = manifests['agent_ba_supervisor_v01']
           release = manifests['agent_release_change_assurance_v01']
           assert supervisor['version'] == '0.1.1'
-          assert release['version'] == '0.1.1'
+          assert release['version'] == '0.1.2'
           assert supervisor['subagents']['enabled'] is True
           assert supervisor['subagents']['agent_ids'] == ['agent_release_change_assurance_v01']
           assert 'subagents' not in release, 'Release Assurance must not recursively expose production subagents'
@@ -77,9 +81,37 @@ jobs:
           assert 'release/change is merely future context' in supervisor_instructions
 
           release_instructions = release['instructions']
-          assert 'must not be converted into a mandatory release gate' in release_instructions
-          assert 'Test or UAT success does not by itself prove production behaviour' in release_instructions
-          assert 'Distinguish a source-evidenced stop condition from a missing-evidence gap' in release_instructions
+          assert 'First identify the decision phase' in release_instructions
+          assert 'pre-deployment go/no-go readiness' in release_instructions
+          assert 'not-yet-run post-deployment verification do not by themselves count against pre-deployment go/no-go readiness' in release_instructions
+          assert 'bare stakeholder or status assertion' in release_instructions
+          assert 'Failed result as Failed' in release_instructions
+          assert 'applicable release-blocking gate' in release_instructions
+          assert 'Missing evidence alone is not automatically NO-GO' in release_instructions
+          assert 'Unknown authority' in release_instructions
+
+          skill_path = Path('custom/ba-agent/skills/validate-release-evidence/SKILL.md')
+          candidate_skill = skill_path.read_text()
+          assert 'Version: **0.3.0**' in candidate_skill
+          assert 'Provenance strength' in candidate_skill
+          assert 'Claim evidence versus decision sufficiency' in candidate_skill
+          assert 'Future-phase discipline' in candidate_skill
+          assert 'Failed does not automatically mean NO-GO' in candidate_skill
+          assert 'applicable release-blocking gate' in candidate_skill
+          assert 'bare stakeholder/status assertion' in candidate_skill
+          assert 'Missing evidence alone is not automatically NO-GO' in candidate_skill
+          assert 'Unknown` Change Authority' in candidate_skill
+
+          b040_evidence = json.loads(Path('custom/ba-agent/benchmarks/040-release-decision-semantics/activation-evidence.json').read_text())
+          assert b040_evidence['gate_passed'] is True
+          assert b040_evidence['baseline_final_score'] == 100
+          assert b040_evidence['skill_final_score'] == 100
+          assert b040_evidence['baseline_gap'] == 0
+          assert b040_evidence['critical_penalties'] == 0
+          assert b040_evidence['defects'] == 0
+          assert b040_evidence['tested_skill_version'] == '0.3.0'
+          actual_skill_hash = hashlib.sha256(skill_path.read_bytes()).hexdigest()
+          assert actual_skill_hash == b040_evidence['tested_skill_sha256'], 'promoted Skill differs from B040-tested candidate'
 
           seeder = Path('config/seed-production-agents.js').read_text()
           assert 'subagents: manifest.subagents' in seeder
@@ -120,7 +152,7 @@ jobs:
               'activated workflow semantics differ from the O001-tested policy'
           )
           PY
-      - name: Validate Benchmark 039 gate package
+      - name: Validate Benchmark 039 activation evidence
         run: |
           python - <<'PY'
           import json
@@ -143,4 +175,55 @@ jobs:
           assert evidence['workflow_final_score'] == 100
           assert evidence['baseline_gap'] == 0
           assert evidence['critical_penalties'] == 0
+          PY
+      - name: Validate Benchmark 040 activation evidence
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('custom/ba-agent/benchmarks/040-release-decision-semantics')
+          required = [
+              'benchmark.json', 'input.md', 'prompt.md', 'gold-standard.md',
+              'scoring-rubric.md', 'activation-evidence.json'
+          ]
+          for name in required:
+              assert (root / name).is_file(), f'missing Benchmark 040 {name}'
+
+          benchmark = json.loads((root / 'benchmark.json').read_text())
+          assert benchmark['skill'] == '../../skills/validate-release-evidence/SKILL.md'
+
+          input_text = (root / 'input.md').read_text()
+          prompt = (root / 'prompt.md').read_text()
+          gold = (root / 'gold-standard.md').read_text()
+          rubric = (root / 'scoring-rubric.md').read_text()
+
+          assert 'no underlying uat report' in input_text.lower()
+          assert 'diagnostic compatibility check reports **FAILED**' in input_text
+          assert 'does **not** identify this diagnostic' in input_text
+          assert 'pre-deployment go/no-go readiness' in prompt
+          assert 'reported / Partially evidenced' in prompt
+          assert 'applicable release-blocking gate' in prompt
+          assert 'neither is established' in gold
+          assert 'release-gate applicability is Not established' in gold
+          assert 'reported / Partially evidenced' in gold
+          assert 'Production deployment and production verification are future-phase activities' in gold
+          assert 'Unknown authority vs blocker' in gold
+          assert 'Automatic fail conditions' in rubric
+          assert 'PASS: 90/100 or higher' in rubric
+          assert 'optional-browser diagnostic failed without establishing that diagnostic as an applicable release-blocking gate' in rubric
+          assert 'upgrades the bare “8 sample inspections passed” status assertion to Verified' in rubric
+
+          evidence = json.loads((root / 'activation-evidence.json').read_text())
+          assert evidence['semantic_job'] == 'sem-b040-release-decision-semantics-g37-001'
+          assert evidence['generation_model'] == 'gemini-3.7-flash'
+          assert evidence['evaluator_model'] == 'gemini-3.7-flash'
+          assert evidence['baseline_final_score'] == 100
+          assert evidence['skill_final_score'] == 100
+          assert evidence['baseline_gap'] == 0
+          assert evidence['critical_penalties'] == 0
+          assert evidence['gate_passed'] is True
+          assert evidence['source_lab_branch'] == 'feature/ba-agent-v0.1'
+          assert evidence['source_lab_commit'] == 'a86c1648f03e04b8e25fb66e9825668635c9c5e7'
+          assert evidence['source_evaluation_path'].endswith('sem-b040-release-decision-semantics-g37-001-semantic-evaluation.md')
           PY
