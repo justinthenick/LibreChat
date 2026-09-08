@@ -1,9 +1,9 @@
 version: "3.7"
 
-# Synology-specific deployment of LibreChat-AI/code-interpreter.
-# Source is checked out separately at the exact commit pinned by
-# manage-code-interpreter.sh. Nothing in this stack is published on a host port.
-# Only the Code API gateway joins LibreChat's existing Docker network.
+# Synology control-plane deployment for LibreChat-AI/code-interpreter.
+# The NAS has no /dev/kvm, so it NEVER executes model-generated code locally.
+# Code execution is dispatched through the hardened paired remote bridge to a
+# separate worker (initially WSL2 on Justin's Windows machine).
 services:
   codeapi:
     build:
@@ -16,13 +16,19 @@ services:
       - /volume1/docker/librechat-code-interpreter-data/codeapi.env
     environment:
       SERVICE_PORT: "3112"
-      SANDBOX_ENDPOINT: http://sandbox:2000/api/v2
       EGRESS_GATEWAY_URL: http://egress:3190
       FILE_SERVER_URL: http://files:3000
       TOOL_CALL_SERVER_URL: http://tools:3033
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      CODEAPI_EXECUTION_PROFILE: default
+      CODEAPI_SANDBOX_BACKEND: remote-bridge
+      CODEAPI_EXECUTION_PROFILE: stateful
+      CODEAPI_RUNTIME_SESSION_MODE: affinity
+    # Loopback-only host listener. A remote worker reaches this through an SSH
+    # tunnel (or a separately reviewed TLS/private-network route), never by a
+    # publicly exposed NAS port.
+    ports:
+      - "127.0.0.1:3112:3112"
     depends_on:
       - redis
       - tools
@@ -33,6 +39,8 @@ services:
           - librechat-codeapi
 
   worker:
+    # This is the trusted BullMQ/service worker, NOT the code-execution worker.
+    # It dispatches queued jobs to the outbound-connected remote bridge worker.
     build:
       context: /volume1/docker/librechat-code-interpreter
       dockerfile: service/Dockerfile
@@ -42,17 +50,18 @@ services:
     env_file:
       - /volume1/docker/librechat-code-interpreter-data/codeapi.env
     environment:
-      SANDBOX_ENDPOINT: http://sandbox:2000/api/v2
       EGRESS_GATEWAY_URL: http://egress:3190
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       PYTHON_CONCURRENCY: "1"
-      OTHER_CONCURRENCY: "2"
+      OTHER_CONCURRENCY: "1"
       WORKER_HEALTH_PORT: "3113"
-      CODEAPI_EXECUTION_PROFILE: default
+      CODEAPI_SANDBOX_BACKEND: remote-bridge
+      CODEAPI_EXECUTION_PROFILE: stateful
+      CODEAPI_RUNTIME_SESSION_MODE: affinity
     depends_on:
       - redis
-      - sandbox
+      - egress
     networks:
       - codeapi
 
@@ -97,56 +106,6 @@ services:
       REDIS_PORT: "6379"
     depends_on:
       - redis
-    networks:
-      - codeapi
-
-  sandbox:
-    # Hardened path only: libkrun microVM + NsJail in the guest.  We do not
-    # silently fall back to sandbox-runner-false because that shares the NAS
-    # kernel and upstream explicitly classifies it as a development mode.
-    build:
-      context: /volume1/docker/librechat-code-interpreter
-      dockerfile: api/Dockerfile
-      target: sandbox-runner-true
-    container_name: librechat-codeapi-sandbox
-    restart: unless-stopped
-    privileged: false
-    devices:
-      - /dev/kvm:/dev/kvm
-    env_file:
-      - /volume1/docker/librechat-code-interpreter-data/codeapi.env
-    environment:
-      KVM_ENABLED: "true"
-      LAUNCHER_PACKAGES_HOST: /disabled-host-packages
-      EGRESS_GATEWAY_URL: http://egress:3190
-      SANDBOX_EXECUTE_BODY_LIMIT: 50mb
-      SANDBOX_PACKAGES_DIRECTORY: /pkgs
-      SANDBOX_LOG_LEVEL: INFO
-      SANDBOX_OUTPUT_MAX_SIZE: "65536"
-      SANDBOX_MAX_CONCURRENT_JOBS: "1"
-      SANDBOX_PER_JOB_UIDS: "true"
-      SANDBOX_JOB_UID_BASE: "200000"
-      SANDBOX_JOB_GID_BASE: "200000"
-      SANDBOX_WORKSPACE_REAPER_MAX_AGE_SECONDS: "3600"
-      SANDBOX_RUN_TIMEOUT: "300000"
-      SANDBOX_RUN_CPU_TIME: "300000"
-      SANDBOX_COMPILE_TIMEOUT: "30000"
-      LAUNCHER_VCPUS: "2"
-      LAUNCHER_RAM_MIB: "2048"
-      LAUNCHER_LOG_LEVEL: "2"
-      SANDBOX_ALLOWED_LOCAL_NETWORK_PORT: "3190"
-      SANDBOX_FORWARD_TARGET: egress:3190
-      SANDBOX_REQUIRE_EGRESS_MANIFEST: "true"
-      SANDBOX_RUNNER_CLOCK_SKEW_LIVENESS_LIMIT_SECONDS: "10"
-      SANDBOX_RUNNER_HEALTHCHECK_TIMEOUT_SECONDS: "2"
-    depends_on:
-      - egress
-    healthcheck:
-      test: ["CMD", "/usr/local/bin/sandbox-runner-healthcheck.sh"]
-      interval: 5s
-      timeout: 3s
-      retries: 60
-      start_period: 20s
     networks:
       - codeapi
 
@@ -201,13 +160,12 @@ services:
       - codeapi
 
 networks:
-  # User code is confined to this internal network and can reach only the
-  # upstream egress gateway. The gateway itself mediates file/tool traffic.
+  # No user-generated code runs on this network. It contains only the trusted
+  # Code API control plane and its internal services.
   codeapi:
     driver: bridge
     internal: true
-  # COMPOSE_PROJECT_NAME=librechat makes the existing base network name
-  # deterministic on the NAS. Only the Code API gateway is attached here.
+  # Existing LibreChat network. Only Code API joins it.
   librechat:
     external:
       name: librechat_librechat
