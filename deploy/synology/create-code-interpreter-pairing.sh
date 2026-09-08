@@ -36,11 +36,11 @@ RESPONSE="$(docker run --rm --network host \
   ')"
 
 # Print only the one-time enrollment material. Never print the administrator token.
-printf '%s' "$RESPONSE" | python3 - "$ENDPOINT" "$WORKER_ID" <<'PY'
+python3 - "$ENDPOINT" "$WORKER_ID" "$RESPONSE" <<'PY'
 import json, sys
-endpoint, worker_id = sys.argv[1], sys.argv[2]
+endpoint, worker_id, raw = sys.argv[1], sys.argv[2], sys.argv[3]
 try:
-    payload = json.load(sys.stdin)
+    payload = json.loads(raw)
 except Exception as exc:
     raise SystemExit(f'Could not parse pairing response: {exc}')
 code = payload.get('code') or payload.get('pairingCode') or payload.get('pairing_code')
