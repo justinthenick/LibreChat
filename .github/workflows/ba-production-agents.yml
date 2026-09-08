@@ -4,7 +4,9 @@ on:
   pull_request:
     paths:
       - 'custom/ba-agent/production/**'
+      - 'custom/ba-agent/skills/validate-release-evidence/**'
       - 'custom/ba-agent/benchmarks/039-o001-ba-release-handoff/**'
+      - 'custom/ba-agent/benchmarks/040-release-decision-semantics/**'
       - 'config/seed-production-agents.js'
       - '.github/workflows/ba-production-agents.yml'
   push:
@@ -12,7 +14,9 @@ on:
       - 'feature/ba-release-production-agents-v0.1'
     paths:
       - 'custom/ba-agent/production/**'
+      - 'custom/ba-agent/skills/validate-release-evidence/**'
       - 'custom/ba-agent/benchmarks/039-o001-ba-release-handoff/**'
+      - 'custom/ba-agent/benchmarks/040-release-decision-semantics/**'
       - 'config/seed-production-agents.js'
       - '.github/workflows/ba-production-agents.yml'
 
@@ -63,7 +67,7 @@ jobs:
           supervisor = manifests['agent_ba_supervisor_v01']
           release = manifests['agent_release_change_assurance_v01']
           assert supervisor['version'] == '0.1.1'
-          assert release['version'] == '0.1.1'
+          assert release['version'] == '0.1.2'
           assert supervisor['subagents']['enabled'] is True
           assert supervisor['subagents']['agent_ids'] == ['agent_release_change_assurance_v01']
           assert 'subagents' not in release, 'Release Assurance must not recursively expose production subagents'
@@ -77,9 +81,20 @@ jobs:
           assert 'release/change is merely future context' in supervisor_instructions
 
           release_instructions = release['instructions']
+          assert 'First identify the decision phase' in release_instructions
+          assert 'pre-deployment go/no-go readiness' in release_instructions
+          assert 'A future production deployment and not-yet-run post-deployment verification do not by themselves count against pre-deployment go/no-go readiness' in release_instructions
           assert 'must not be converted into a mandatory release gate' in release_instructions
           assert 'Test or UAT success does not by itself prove production behaviour' in release_instructions
           assert 'Distinguish a source-evidenced stop condition from a missing-evidence gap' in release_instructions
+          assert 'do not return NO-GO unless supplied evidence demonstrates a failed condition or explicit source-backed gate' in release_instructions
+
+          skill = Path('custom/ba-agent/skills/validate-release-evidence/SKILL.md').read_text()
+          assert 'Version: **0.3.0**' in skill
+          assert 'Claim evidence versus decision sufficiency' in skill
+          assert 'Future-phase discipline' in skill
+          assert 'Unknown` Change Authority' in skill
+          assert 'Missing evidence alone is not automatically NO-GO' in skill
 
           seeder = Path('config/seed-production-agents.js').read_text()
           assert 'subagents: manifest.subagents' in seeder
@@ -143,4 +158,36 @@ jobs:
           assert evidence['workflow_final_score'] == 100
           assert evidence['baseline_gap'] == 0
           assert evidence['critical_penalties'] == 0
+          PY
+      - name: Validate Benchmark 040 regression package
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('custom/ba-agent/benchmarks/040-release-decision-semantics')
+          required = [
+              'benchmark.json', 'input.md', 'prompt.md', 'gold-standard.md',
+              'scoring-rubric.md'
+          ]
+          for name in required:
+              assert (root / name).is_file(), f'missing Benchmark 040 {name}'
+
+          benchmark = json.loads((root / 'benchmark.json').read_text())
+          assert benchmark['skill'] == '../../skills/validate-release-evidence/SKILL.md'
+
+          prompt = (root / 'prompt.md').read_text()
+          gold = (root / 'gold-standard.md').read_text()
+          rubric = (root / 'scoring-rubric.md').read_text()
+
+          assert 'pre-deployment go/no-go readiness' in prompt
+          assert '8 sample inspections passed' in prompt
+          assert 'Change Authority: Unknown' in prompt or 'Change Authority' in prompt
+          assert 'neither is established' in gold
+          assert 'Future-phase discipline' in gold
+          assert 'Unknown authority vs blocker' in gold
+          assert 'Automatic fail conditions' in rubric
+          assert 'PASS: 90/100 or higher' in rubric
+          assert 'declares NO-GO solely because production verification has not yet occurred' in rubric
+          assert 'claims GO based on the 8 sample inspections' in rubric
           PY
