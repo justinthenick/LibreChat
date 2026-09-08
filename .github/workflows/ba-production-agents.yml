@@ -184,7 +184,7 @@ jobs:
           gold = (root / 'gold-standard.md').read_text()
           rubric = (root / 'scoring-rubric.md').read_text()
 
-          assert 'no underlying UAT report' in input_text
+          assert 'no underlying uat report' in input_text.lower()
           assert 'diagnostic compatibility check reports **FAILED**' in input_text
           assert 'does **not** identify this diagnostic' in input_text
           assert 'pre-deployment go/no-go readiness' in prompt
