@@ -2,10 +2,10 @@ version: "3.7"
 
 services:
   api:
-    # Pinned upstream commit includes deployment-skill external IDs and native
-    # agent handoff edges required by the validated production-agent seeder.
-    # Do not replace with a moving latest/stable tag without revalidating these contracts.
-    image: librechat/lc-dev:cdd4c09076aa43ae9d94bba8f43c55ee35c181d5
+    # Immutable fork image built from the reviewed atomic multi-skill runtime overlay.
+    # It preserves the deployment-skill external IDs and native handoff contracts
+    # from the previously validated runtime while adding bounded skillNames loading.
+    image: ghcr.io/justinthenick/lc-dev:a6d0dba72117df93ce8681ca9cc86c78f7b61ddd
     container_name: librechat
     restart: unless-stopped
     ports:
