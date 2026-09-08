@@ -6,40 +6,36 @@ DEPLOY_DIR="$REPO_DIR/deploy/synology"
 LIBRECHAT_ENV="$DEPLOY_DIR/.env"
 SOURCE_DIR="/volume1/docker/librechat-code-interpreter"
 DATA_DIR="/volume1/docker/librechat-code-interpreter-data"
-CODEAPI_ENV="$DATA_DIR/codeapi.env"
+MASTER_ENV="$DATA_DIR/codeapi.env"
 MANAGER="$DEPLOY_DIR/manage-code-interpreter.sh"
 NODE_IMAGE="node:22-alpine"
+EXPECTED_LIBRECHAT_IMAGE="librechat/lc-dev:f50c40e2f583b03262d600299e94e85411785fe3"
+WORKER_ID="justin-wsl"
 COMPOSE_HTTP_TIMEOUT="${COMPOSE_HTTP_TIMEOUT:-300}"
 export COMPOSE_HTTP_TIMEOUT
 
 log() { printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
 
 if [ "$(id -u)" -ne 0 ]; then
-  echo "Run this bootstrap with sudo/root so it can manage Docker, /dev/kvm and private env files." >&2
+  echo "Run this bootstrap with sudo/root so it can manage Docker and private env files." >&2
   exit 1
 fi
 
 [ -f "$LIBRECHAT_ENV" ] || { echo "Missing $LIBRECHAT_ENV" >&2; exit 1; }
-[ -x "$MANAGER" ] || [ -f "$MANAGER" ] || { echo "Missing $MANAGER" >&2; exit 1; }
+[ -f "$MANAGER" ] || { echo "Missing $MANAGER" >&2; exit 1; }
 docker info >/dev/null 2>&1 || { echo "Docker daemon unavailable" >&2; exit 1; }
-
-# Do not weaken isolation automatically. Upstream explicitly classifies the
-# direct NsJail path as a development mode because it shares the host kernel.
-if [ ! -c /dev/kvm ]; then
-  echo "ERROR: /dev/kvm is not available on this NAS." >&2
-  echo "Refusing to enable the weaker host-kernel NsJail fallback automatically." >&2
-  exit 1
-fi
-
-if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
-  echo "ERROR: /dev/kvm exists but is not usable by the deployment task." >&2
-  exit 1
-fi
-
 docker network inspect librechat_librechat >/dev/null 2>&1 || {
   echo "ERROR: LibreChat Docker network librechat_librechat is missing." >&2
   exit 1
 }
+
+CURRENT_IMAGE="$(docker inspect -f '{{.Config.Image}}' librechat 2>/dev/null || true)"
+if [ "$CURRENT_IMAGE" != "$EXPECTED_LIBRECHAT_IMAGE" ]; then
+  echo "ERROR: LibreChat runtime is $CURRENT_IMAGE" >&2
+  echo "Remote Code Bridge requires the validated attached-environment runtime $EXPECTED_LIBRECHAT_IMAGE" >&2
+  echo "Deploy the feature PR first, then rerun this bootstrap." >&2
+  exit 1
+fi
 
 log "Preparing pinned Code Interpreter source"
 sh "$MANAGER" source
@@ -50,16 +46,22 @@ STAMP="$(date -u '+%Y%m%dT%H%M%SZ')"
 LIBRECHAT_BACKUP="$LIBRECHAT_ENV.before-codeapi-$STAMP"
 cp -p "$LIBRECHAT_ENV" "$LIBRECHAT_BACKUP"
 chmod 0600 "$LIBRECHAT_BACKUP"
-CODEAPI_EXISTED=0
-CODEAPI_BACKUP=""
-if [ -f "$CODEAPI_ENV" ]; then
-  CODEAPI_EXISTED=1
-  CODEAPI_BACKUP="$CODEAPI_ENV.before-bootstrap-$STAMP"
-  cp -p "$CODEAPI_ENV" "$CODEAPI_BACKUP"
-  chmod 0600 "$CODEAPI_BACKUP"
-else
-  : > "$CODEAPI_ENV"
-  chmod 0600 "$CODEAPI_ENV"
+
+# Preserve every existing Code Interpreter private file so a failed bootstrap
+# can restore the exact previous control-plane state.
+BACKUP_DIR="$DATA_DIR/backup-$STAMP"
+mkdir -p "$BACKUP_DIR"
+chmod 0700 "$BACKUP_DIR"
+for F in codeapi.env api.env worker.env egress.env tools.env files.env redis.env minio.env; do
+  if [ -f "$DATA_DIR/$F" ]; then
+    cp -p "$DATA_DIR/$F" "$BACKUP_DIR/$F"
+    chmod 0600 "$BACKUP_DIR/$F"
+  fi
+done
+
+if [ ! -f "$MASTER_ENV" ]; then
+  : > "$MASTER_ENV"
+  chmod 0600 "$MASTER_ENV"
 fi
 
 ROLLBACK_NEEDED=1
@@ -70,12 +72,14 @@ rollback() {
     log "Bootstrap failed; restoring previous private configuration"
     cp -p "$LIBRECHAT_BACKUP" "$LIBRECHAT_ENV" || true
     chmod 0600 "$LIBRECHAT_ENV" 2>/dev/null || true
-    if [ "$CODEAPI_EXISTED" = "1" ] && [ -n "$CODEAPI_BACKUP" ]; then
-      cp -p "$CODEAPI_BACKUP" "$CODEAPI_ENV" || true
-      chmod 0600 "$CODEAPI_ENV" 2>/dev/null || true
-    else
-      rm -f "$CODEAPI_ENV" 2>/dev/null || true
-    fi
+    for F in codeapi.env api.env worker.env egress.env tools.env files.env redis.env minio.env; do
+      if [ -f "$BACKUP_DIR/$F" ]; then
+        cp -p "$BACKUP_DIR/$F" "$DATA_DIR/$F" || true
+        chmod 0600 "$DATA_DIR/$F" 2>/dev/null || true
+      else
+        rm -f "$DATA_DIR/$F" 2>/dev/null || true
+      fi
+    done
     sh "$MANAGER" down >/dev/null 2>&1 || true
     cd "$DEPLOY_DIR" || true
     docker-compose -f docker-compose.yml up -d --no-deps --force-recreate api >/dev/null 2>&1 || true
@@ -86,9 +90,8 @@ rollback() {
 trap rollback EXIT INT TERM
 
 log "Generating/reusing LibreChat JWT and execution-manifest keypairs"
-# This is the upstream Code Interpreter helper from the exact pinned source.
-# The source tree is read-only in the helper container; only the two private env
-# files are writable. It never prints private key material.
+# Upstream helper: creates LibreChat's Ed25519 JWT signer and Code API's public
+# verifier plus the execution-manifest keypair. It never prints private keys.
 docker run --rm \
   -v "$SOURCE_DIR:/codeapi:ro" \
   -v "$REPO_DIR:/librechat" \
@@ -99,9 +102,9 @@ docker run --rm \
     --codeapi-env /codeapi-data/codeapi.env \
     --base-url http://librechat-codeapi:3112/v1
 
-# Add production-only service credentials that upstream's local helper does not
-# generate. Values are retained on reruns; missing secrets are generated once.
-python3 - "$LIBRECHAT_ENV" "$CODEAPI_ENV" <<'PY'
+# Add remote-bridge policy and generate production-only internal credentials.
+# Then fan the master file out into least-privilege per-service env files.
+python3 - "$LIBRECHAT_ENV" "$MASTER_ENV" "$DATA_DIR" "$WORKER_ID" <<'PY'
 import os
 import re
 import secrets
@@ -109,19 +112,20 @@ import sys
 from pathlib import Path
 
 librechat_path = Path(sys.argv[1])
-codeapi_path = Path(sys.argv[2])
+master_path = Path(sys.argv[2])
+data_dir = Path(sys.argv[3])
+worker_id = sys.argv[4]
 
 def read(path):
     return path.read_text(encoding='utf-8') if path.exists() else ''
 
-def value(text, key):
-    m = re.search(r'^' + re.escape(key) + r'=(.*)$', text, flags=re.M)
-    if not m:
-        return ''
-    raw = m.group(1).strip()
-    if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in ('"', "'"):
-        raw = raw[1:-1]
-    return raw
+def parse(text):
+    out = {}
+    for line in text.splitlines():
+        m = re.match(r'^([A-Za-z_][A-Za-z0-9_]*)=(.*)$', line)
+        if m:
+            out[m.group(1)] = m.group(2)
+    return out
 
 def set_values(path, updates):
     text = read(path)
@@ -137,27 +141,36 @@ def set_values(path, updates):
     path.write_text(text, encoding='utf-8')
     os.chmod(path, 0o600)
 
-code_text = read(codeapi_path)
+def raw_value(values, key):
+    return values.get(key, '')
 
-def keep_or_random(key, nbytes=32):
-    current = value(code_text, key)
+def keep_or_random(values, key, nbytes=32):
+    current = raw_value(values, key).strip()
     return current if current else secrets.token_hex(nbytes)
 
-redis_password = keep_or_random('REDIS_PASSWORD')
-minio_password = value(code_text, 'MINIO_ROOT_PASSWORD') or value(code_text, 'MINIO_SECRET_KEY') or secrets.token_hex(32)
+master = parse(read(master_path))
+redis_password = keep_or_random(master, 'REDIS_PASSWORD')
+minio_password = raw_value(master, 'MINIO_ROOT_PASSWORD').strip() or raw_value(master, 'MINIO_SECRET_KEY').strip() or secrets.token_hex(32)
+bridge_token = keep_or_random(master, 'CODEAPI_BRIDGE_TOKEN')
+internal_token = keep_or_random(master, 'CODEAPI_INTERNAL_SERVICE_TOKEN')
+egress_secret = keep_or_random(master, 'CODEAPI_EGRESS_GRANT_SECRET')
 
-code_updates = {
+master_updates = {
     'LOCAL_MODE': 'false',
     'CODEAPI_HARDENED_SANDBOX_MODE': 'true',
     'CODEAPI_ALLOW_AUTH_PROVIDER_NONE': 'false',
-    'CODEAPI_EXECUTION_PROFILE': 'default',
-    'CODEAPI_TENANT_ISOLATION_STRICT': 'false',
-    'CODEAPI_BRIDGE_TOKEN': keep_or_random('CODEAPI_BRIDGE_TOKEN'),
+    'CODEAPI_SANDBOX_BACKEND': 'remote-bridge',
+    'CODEAPI_EXECUTION_PROFILE': 'stateful',
+    'CODEAPI_RUNTIME_SESSION_MODE': 'affinity',
+    'CODEAPI_BRIDGE_TOKEN': bridge_token,
     'CODEAPI_BRIDGE_AUTH_MODE': 'paired',
-    'CODEAPI_BRIDGE_DYNAMIC_WORKERS': 'true',
-    'CODEAPI_INTERNAL_SERVICE_TOKEN': keep_or_random('CODEAPI_INTERNAL_SERVICE_TOKEN'),
-    'CODEAPI_EGRESS_GRANT_SECRET': keep_or_random('CODEAPI_EGRESS_GRANT_SECRET'),
+    'CODEAPI_BRIDGE_DYNAMIC_WORKERS': 'false',
+    'CODEAPI_BRIDGE_WORKER_ID': worker_id,
+    'CODEAPI_INTERNAL_SERVICE_TOKEN': internal_token,
+    'CODEAPI_EGRESS_GRANT_SECRET': egress_secret,
     'CODEAPI_EGRESS_LEDGER_REQUIRED': 'true',
+    'PTC_MODE': 'replay',
+    'JOB_TIMEOUT': '300000',
     'REDIS_PASSWORD': redis_password,
     'MINIO_ROOT_USER': 'codeapi',
     'MINIO_ROOT_PASSWORD': minio_password,
@@ -167,33 +180,93 @@ code_updates = {
     'MINIO_ENDPOINT': 'minio',
     'MINIO_PORT': '9000',
     'MINIO_USE_SSL': 'false',
-    'KVM_ENABLED': 'true',
-    'SANDBOX_REQUIRE_EGRESS_MANIFEST': 'true',
-    'SANDBOX_MAX_CONCURRENT_JOBS': '1',
     'PYTHON_CONCURRENCY': '1',
-    'OTHER_CONCURRENCY': '2',
+    'OTHER_CONCURRENCY': '1',
 }
-set_values(codeapi_path, code_updates)
-set_values(librechat_path, {'CODE_INTERPRETER_ENABLED': 'true'})
+set_values(master_path, master_updates)
+master = parse(read(master_path))
+
+# Fail if upstream helper did not produce the auth/signing material we require.
+required = [
+    'CODEAPI_AUTH_PROVIDER', 'CODEAPI_JWT_ISSUER', 'CODEAPI_JWT_AUDIENCE',
+    'CODEAPI_JWT_ALLOWED_ALGS', 'CODEAPI_JWT_JWKS_JSON',
+    'CODEAPI_JWT_SINGLE_TENANT_ID', 'CODEAPI_EXECUTION_MANIFEST_PRIVATE_KEY',
+]
+missing = [key for key in required if not master.get(key, '').strip()]
+if missing:
+    raise SystemExit('Missing upstream Code API auth material: ' + ', '.join(missing))
+
+def write_env(name, keys, extras=None):
+    values = {key: master[key] for key in keys if key in master and master[key] != ''}
+    if extras:
+        values.update(extras)
+    target = data_dir / name
+    target.write_text(''.join(f'{key}={value}\n' for key, value in values.items()), encoding='utf-8')
+    os.chmod(target, 0o600)
+
+common_control = [
+    'LOCAL_MODE', 'CODEAPI_HARDENED_SANDBOX_MODE', 'CODEAPI_SANDBOX_BACKEND',
+    'CODEAPI_EXECUTION_PROFILE', 'CODEAPI_RUNTIME_SESSION_MODE',
+    'CODEAPI_BRIDGE_TOKEN', 'CODEAPI_BRIDGE_AUTH_MODE',
+    'CODEAPI_BRIDGE_DYNAMIC_WORKERS', 'CODEAPI_BRIDGE_WORKER_ID',
+    'CODEAPI_INTERNAL_SERVICE_TOKEN', 'PTC_MODE', 'JOB_TIMEOUT', 'REDIS_PASSWORD',
+]
+write_env('api.env', common_control + [
+    'CODEAPI_AUTH_PROVIDER', 'CODEAPI_ALLOW_AUTH_PROVIDER_NONE',
+    'CODEAPI_JWT_ISSUER', 'CODEAPI_JWT_AUDIENCE', 'CODEAPI_JWT_ALLOWED_ALGS',
+    'CODEAPI_JWT_CLOCK_SKEW_SECONDS', 'CODEAPI_JWT_MAX_TTL_SECONDS',
+    'CODEAPI_JWT_KEY_CACHE_TTL_SECONDS', 'CODEAPI_JWT_JWKS_JSON',
+    'CODEAPI_JWT_SINGLE_TENANT_ID',
+])
+write_env('worker.env', common_control + [
+    'CODEAPI_JWT_SINGLE_TENANT_ID', 'CODEAPI_EXECUTION_MANIFEST_PRIVATE_KEY',
+    'PYTHON_CONCURRENCY', 'OTHER_CONCURRENCY',
+])
+write_env('egress.env', [
+    'CODEAPI_HARDENED_SANDBOX_MODE', 'CODEAPI_EGRESS_GRANT_SECRET',
+    'CODEAPI_EGRESS_LEDGER_REQUIRED', 'CODEAPI_INTERNAL_SERVICE_TOKEN', 'REDIS_PASSWORD',
+])
+write_env('tools.env', ['CODEAPI_INTERNAL_SERVICE_TOKEN', 'REDIS_PASSWORD'])
+write_env('files.env', [
+    'CODEAPI_INTERNAL_SERVICE_TOKEN', 'REDIS_PASSWORD', 'MINIO_BUCKET',
+    'MINIO_ENDPOINT', 'MINIO_PORT', 'MINIO_USE_SSL', 'MINIO_ACCESS_KEY', 'MINIO_SECRET_KEY',
+])
+write_env('redis.env', ['REDIS_PASSWORD'])
+write_env('minio.env', ['MINIO_ROOT_USER', 'MINIO_ROOT_PASSWORD'])
+
+# Keep stateless code deliberately unusable. Production agents are explicitly
+# bound to the attached stateful environment instead.
+set_values(librechat_path, {
+    'CODE_INTERPRETER_ENABLED': 'true',
+    'LIBRECHAT_CODE_BASEURL': 'http://127.0.0.1:9',
+    'LIBRECHAT_CODE_BASEURL_STATEFUL': 'http://librechat-codeapi:3112/v1',
+})
 PY
 
-chmod 0600 "$LIBRECHAT_ENV" "$CODEAPI_ENV"
+chmod 0600 "$LIBRECHAT_ENV" "$DATA_DIR"/*.env
 
-# Fail before building anything if the helper did not leave the expected auth
-# contract on both sides. Values are never echoed.
-grep -q '^LIBRECHAT_CODE_BASEURL=http://librechat-codeapi:3112/v1$' "$LIBRECHAT_ENV"
+# Verify only state, never values.
 grep -q '^CODEAPI_AUTH_PROVIDER=librechat-jwt$' "$LIBRECHAT_ENV"
 grep -q '^CODEAPI_JWT_PRIVATE_JWK_JSON=.' "$LIBRECHAT_ENV"
-grep -q '^CODEAPI_AUTH_PROVIDER=librechat-jwt$' "$CODEAPI_ENV"
-grep -q '^CODEAPI_JWT_JWKS_JSON=.' "$CODEAPI_ENV"
-grep -q '^CODEAPI_EXECUTION_MANIFEST_PRIVATE_KEY=.' "$CODEAPI_ENV"
-grep -q '^SANDBOX_EXECUTION_MANIFEST_PUBLIC_KEY=.' "$CODEAPI_ENV"
+grep -q '^LIBRECHAT_CODE_BASEURL_STATEFUL=http://librechat-codeapi:3112/v1$' "$LIBRECHAT_ENV"
+grep -q '^CODEAPI_SANDBOX_BACKEND=remote-bridge$' "$MASTER_ENV"
+grep -q '^CODEAPI_EXECUTION_PROFILE=stateful$' "$MASTER_ENV"
+grep -q '^CODEAPI_BRIDGE_WORKER_ID=justin-wsl$' "$MASTER_ENV"
+grep -q '^CODEAPI_EGRESS_GRANT_SECRET=.' "$DATA_DIR/egress.env"
+if grep -q '^CODEAPI_EGRESS_GRANT_SECRET=' "$DATA_DIR/api.env" "$DATA_DIR/worker.env"; then
+  echo "ERROR: egress grant secret leaked into API/worker env" >&2
+  exit 1
+fi
+if grep -q '^CODEAPI_EXECUTION_MANIFEST_PRIVATE_KEY=' "$DATA_DIR/api.env"; then
+  echo "ERROR: execution-manifest private key leaked into API env" >&2
+  exit 1
+fi
 
-log "Building/starting self-hosted Code Interpreter"
+log "Building/starting self-hosted Code Interpreter remote-bridge control plane"
 sh "$MANAGER" reconcile
 
-# LibreChat must be recreated after the signer/base URL were added to .env.
-log "Recreating LibreChat API with self-hosted Code Interpreter configuration"
+# LibreChat must be recreated after the signer/stateful base URL were added.
+log "Recreating LibreChat API with remote Code Interpreter configuration"
 cd "$DEPLOY_DIR"
 docker-compose -f docker-compose.yml up -d --no-deps --force-recreate api
 
@@ -216,7 +289,8 @@ sh "$MANAGER" check
 
 ROLLBACK_NEEDED=0
 trap - EXIT INT TERM
-log "Self-hosted Code Interpreter is ready"
-printf '%s\n' "CODE_INTERPRETER=READY"
-printf '%s\n' "LibreChat base URL: http://librechat-codeapi:3112/v1 (Docker-internal only)"
-printf '%s\n' "Private env backup: $LIBRECHAT_BACKUP"
+log "Remote Code Interpreter control plane is ready"
+printf '%s\n' "CODE_INTERPRETER_CONTROL_PLANE=READY"
+printf '%s\n' "REMOTE_WORKER_ID=$WORKER_ID"
+printf '%s\n' "Worker endpoint is NAS loopback 127.0.0.1:3112; use an SSH tunnel from WSL2"
+printf '%s\n' "Private LibreChat env backup: $LIBRECHAT_BACKUP"
