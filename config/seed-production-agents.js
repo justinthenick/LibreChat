@@ -20,6 +20,7 @@ const ALLOWED_MANIFESTS = ['ba-supervisor.json', 'release-change-assurance.json'
 const BA_AGENT_ID = 'agent_ba_supervisor_v01';
 const RELEASE_AGENT_ID = 'agent_release_change_assurance_v01';
 const EXPECTED_AGENT_IDS = new Set([BA_AGENT_ID, RELEASE_AGENT_ID]);
+const EXPECTED_SUBAGENT_IDS = new Set([RELEASE_AGENT_ID]);
 const ALLOWED_ARTIFACT_MODES = new Set(['default', 'code', 'artifacts']);
 const OPENROUTER_ENDPOINT_NAME = 'OpenRouter';
 
@@ -37,12 +38,31 @@ function chooseModel() {
 function normalizeProvider(value) {
   const normalized = String(value || '').trim().toLowerCase();
   if (normalized === 'openrouter') {
-    // Agent.provider is an endpoint lookup key in the pinned LibreChat runtime.
-    // Keep it aligned with the configured custom endpoint name so model
-    // validation resolves modelsConfig.OpenRouter instead of modelsConfig.openrouter.
     return OPENROUTER_ENDPOINT_NAME;
   }
   throw new Error(`Unsupported production-agent provider: ${value}`);
+}
+
+function validateSubagents(manifest) {
+  if (manifest.id !== BA_AGENT_ID) {
+    if (manifest.subagents != null) {
+      throw new Error(`${manifest.id} must not declare production subagents`);
+    }
+    return;
+  }
+
+  if (manifest.subagents?.enabled !== true) {
+    throw new Error('BA Supervisor must enable its validated Release / Change Assurance subagent');
+  }
+  const agentIds = Array.isArray(manifest.subagents.agent_ids)
+    ? manifest.subagents.agent_ids.map(String)
+    : [];
+  if (
+    agentIds.length !== EXPECTED_SUBAGENT_IDS.size ||
+    agentIds.some((id) => !EXPECTED_SUBAGENT_IDS.has(id))
+  ) {
+    throw new Error('BA Supervisor production subagent allowlist differs from validated workflow');
+  }
 }
 
 function loadManifest(filename) {
@@ -67,6 +87,7 @@ function loadManifest(filename) {
   if (!ALLOWED_ARTIFACT_MODES.has(manifest.artifacts)) {
     throw new Error(`${manifest.id} has unsupported artifact mode: ${manifest.artifacts}`);
   }
+  validateSubagents(manifest);
   return manifest;
 }
 
@@ -145,6 +166,7 @@ function desiredAgent(manifest, author, workflow) {
     memory_scope: manifest.memory_scope || 'agent',
     artifacts: manifest.artifacts,
     edges: desiredEdges(manifest.id, workflow),
+    subagents: manifest.subagents,
     conversation_starters: Array.isArray(manifest.conversation_starters)
       ? manifest.conversation_starters.map(String)
       : [],
@@ -250,6 +272,22 @@ async function seed() {
       );
     }
 
+    if (manifest.id === BA_AGENT_ID) {
+      const persistedSubagentIds = Array.isArray(agent.subagents?.agent_ids)
+        ? agent.subagents.agent_ids.map(String).sort()
+        : [];
+      const expectedSubagentIds = [...EXPECTED_SUBAGENT_IDS].sort();
+      if (
+        agent.subagents?.enabled !== true ||
+        persistedSubagentIds.length !== expectedSubagentIds.length ||
+        expectedSubagentIds.some((id, index) => id !== persistedSubagentIds[index])
+      ) {
+        throw new Error('BA Supervisor validated production subagent wiring was not persisted');
+      }
+    } else if (agent.subagents != null) {
+      throw new Error(`${manifest.id} unexpectedly retained production subagents`);
+    }
+
     await ensureOwnerPermissions({ grantPermission, agent, ownerId });
     results.push({
       id: manifest.id,
@@ -258,6 +296,7 @@ async function seed() {
       model: agent.model,
       artifacts: agent.artifacts,
       edges: persistedEdges,
+      subagents: agent.subagents,
     });
   }
 
@@ -291,4 +330,5 @@ module.exports = {
   parseAllowedModels,
   chooseModel,
   normalizeProvider,
+  validateSubagents,
 };
