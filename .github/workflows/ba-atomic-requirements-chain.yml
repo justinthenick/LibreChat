@@ -11,6 +11,7 @@ on:
       - 'fix/ba-single-requirements-capability'
       - 'fix/ba-evidence-discipline'
       - 'fix/ba-evidence-discipline-v022'
+      - 'fix/ba-evidence-discipline-v023'
       - 'server/synology'
     paths:
       - 'custom/ba-agent/skills/prepare-implementation-ready-requirements/**'
@@ -63,6 +64,10 @@ jobs:
           assert 'Do NOT invoke `prepare-implementation-ready-requirements`, `analyze-requirements`, `decompose-requirements` or `elaborate-acceptance-criteria` through the skill tool' in instructions
           assert 'Execute exactly the requirements stages the user asks for' in instructions
           assert 'do not stop after analysis or ask whether to continue' in instructions
+          assert 'SOURCE-CLOSURE CONTRACT' in instructions
+          assert 'every substantive requirement, condition, ambiguity, Decision Item, backlog item, acceptance criterion and open question must map to an explicit source fact' in instructions
+          assert 'UI versus API-only is one unresolved channel decision, not two candidate requirements' in instructions
+          assert 'If the source creates N unresolved dimensions, output no more than N unresolved dimensions' in instructions
 
           required_skill_guards = [
               'Execute **exactly the stage or stages requested by the user**',
@@ -87,6 +92,11 @@ jobs:
               'Do not infer implementation mechanics such as `status is updated`, `state transition`, database changes or matching/lookup behaviour when the source only says the inspections are paused',
               'When the source establishes only `provide a list of inspection IDs` plus `pause those inspections`, the confirmed criterion must stay at that same abstraction',
               'No generic Not Established catalogue was emitted',
+              'Every substantive output item must close back to at least one source atom',
+              'If an item cannot be mapped to a source atom, **omit it**',
+              'When the source says the delivery channel is undecided between UI and API-only, represent that as **one** unresolved channel decision',
+              'Completeness means complete traceability to the source, not coverage of every engineering topic',
+              'exactly two open questions corresponding to those two unresolved dimensions',
           ]
           for guard in required_skill_guards:
               assert guard in skill, f'missing lifecycle guard: {guard}'
@@ -98,6 +108,7 @@ jobs:
           assert '# Stage 1 — Requirements analysis' in skill
           assert '# Stage 2 — Delivery decomposition' in skill
           assert '# Stage 3 — Acceptance criteria' in skill
+          assert 'Version: **0.2.3**' in skill
 
           assert re.search(r'^name:\s*prepare-implementation-ready-requirements\s*$', skill, re.M)
           assert re.search(r'^always-apply:\s*true\s*$', skill, re.M)
