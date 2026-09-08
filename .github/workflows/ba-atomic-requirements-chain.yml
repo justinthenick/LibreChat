@@ -8,7 +8,7 @@ on:
       - '.github/workflows/ba-atomic-requirements-chain.yml'
   push:
     branches:
-      - 'fix/ba-composite-requirements-chain'
+      - 'fix/ba-always-apply-composite'
       - 'server/synology'
     paths:
       - 'custom/ba-agent/skills/prepare-implementation-ready-requirements/**'
@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Validate atomic composite routing contract
+      - name: Validate pre-primed atomic composite routing contract
         run: |
           python - <<'PY'
           import hashlib
@@ -41,23 +41,22 @@ jobs:
 
           manifest = json.loads(Path('custom/ba-agent/production/ba-supervisor.json').read_text())
           configured = {entry['name']: entry['id'] for entry in manifest['skills']}
-          assert configured.get(skill_name) == expected_id, (
-              f'atomic orchestration skill id mismatch: {configured.get(skill_name)} != {expected_id}'
-          )
+          assert configured.get(skill_name) == expected_id
 
           instructions = manifest['instructions']
-          assert f'invoke `{skill_name}` exactly once' in instructions
-          assert 'Do NOT first invoke `analyze-requirements`, `decompose-requirements` or `elaborate-acceptance-criteria`' in instructions
+          assert f'`{skill_name}` is pre-primed automatically' in instructions
+          assert 'follow that already-loaded composite instruction body directly' in instructions
+          assert f'Do NOT invoke `{skill_name}`, `analyze-requirements`, `decompose-requirements` or `elaborate-acceptance-criteria` through the skill tool for that combined request' in instructions
+          assert 'Do not stop after analysis or ask whether to continue' in instructions
           assert 'For analysis-only requests use `analyze-requirements`' in instructions
           assert 'for decomposition-only requests' in instructions
           assert 'for acceptance-criteria-only requests' in instructions
 
-          # The three independently validated component skills remain present and unchanged in routing scope.
+          # Independently validated component skills remain available for stage-specific work.
           assert configured['analyze-requirements'] == '9c7101672db2ea43ed85d8f2'
           assert configured['decompose-requirements'] == 'f7a4a53d103858849057d1c3'
           assert configured['elaborate-acceptance-criteria'] == '950ef322da7a9972f5b91fcf'
 
-          # Composite must directly guard the defects observed in the live bulk-pause regressions.
           required_skill_guards = [
               'does not prove users currently perform each item manually',
               'Do not invent benefits such as productivity',
@@ -68,16 +67,19 @@ jobs:
               'The UI/API decision may remain a separate Decision Item without preventing behavioural decomposition',
               'Do not invent skip/error/idempotent behaviour',
               'The response reaches all three requested stages in one consolidated answer',
+              'Do not invoke `analyze-requirements`, `decompose-requirements`, `elaborate-acceptance-criteria`, or this skill via the `skill` tool for that combined request',
           ]
           for guard in required_skill_guards:
               assert guard in skill, f'missing composite guard: {guard}'
 
-          # Frontmatter stays model-invocable and non-ambient.
+          # Deterministic orchestration: prime the body before generation and remove the
+          # composite from both user and model invocation paths. Agent-scoped always-apply
+          # resolution keeps this ambient behavior confined to agents that allowlist the ID.
           assert re.search(r'^name:\s*prepare-implementation-ready-requirements\s*$', skill, re.M)
-          assert re.search(r'^always-apply:\s*false\s*$', skill, re.M)
-          assert re.search(r'^disable-model-invocation:\s*false\s*$', skill, re.M)
+          assert re.search(r'^always-apply:\s*true\s*$', skill, re.M)
+          assert re.search(r'^user-invocable:\s*false\s*$', skill, re.M)
+          assert re.search(r'^disable-model-invocation:\s*true\s*$', skill, re.M)
 
-          # This workaround must remain deployable with the pinned image: deployment skills are mounted at runtime.
           compose = Path('deploy/synology/docker-compose.yml').read_text()
           assert 'DEPLOYMENT_SKILLS_DIR: /app/deployment-skills' in compose
           assert '/volume1/docker/librechat/custom/ba-agent/skills:/app/deployment-skills:ro' in compose
