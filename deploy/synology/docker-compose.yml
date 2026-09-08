@@ -2,10 +2,11 @@ version: "3.7"
 
 services:
   api:
-    # Pinned upstream commit includes deployment-skill external IDs and native
-    # agent handoff edges required by the validated production-agent seeder.
-    # Do not replace with a moving latest/stable tag without revalidating these contracts.
-    image: librechat/lc-dev:cdd4c09076aa43ae9d94bba8f43c55ee35c181d5
+    # Pinned upstream commit includes deployment-skill external IDs, native
+    # agent handoff edges, and attached stateful Code Interpreter environments.
+    # This pin is coordinated with the reviewed remote-bridge Code Interpreter
+    # source pin; do not replace it with a moving latest/stable tag.
+    image: librechat/lc-dev:f50c40e2f583b03262d600299e94e85411785fe3
     container_name: librechat
     restart: unless-stopped
     ports:
