@@ -8,75 +8,97 @@ disable-model-invocation: true
 
 # Requirements Lifecycle
 
-Version: **0.2.2**
+Version: **0.2.3**
 
 ## Purpose
 
 This skill is pre-primed for BA Supervisor turns and is the Supervisor's sole requirements-lifecycle capability. The independently benchmarked `analyze-requirements`, `decompose-requirements`, and `elaborate-acceptance-criteria` skills remain reference capabilities in the repository but are intentionally not callable from BA Supervisor.
 
-Do not invoke this skill or those component skills through the `skill` tool. Execute the appropriate stages directly from this already-loaded body.
+Do not invoke this skill or those component skills through the `skill` tool. Execute the appropriate stages directly from this already-loaded body. No requirements-lifecycle `skill` tool call is necessary or requested by these instructions.
 
 ## Stage selection
 
 Execute **exactly the stage or stages requested by the user**. Do not silently expand scope.
 
 - **Analysis-only** — perform Stage 1 only. Do not create decomposition or acceptance criteria.
-- **Decomposition-only** — perform Stage 2 only when suitable analysed requirements are supplied. Do not re-run analysis unless necessary to preserve traceability.
-- **Acceptance-criteria-only** — perform Stage 3 only when suitable decomposed items are supplied. Do not create new requirements or backlog scope.
+- **Decomposition-only** — perform Stage 2 only when suitable analysed requirements are supplied.
+- **Acceptance-criteria-only** — perform Stage 3 only when suitable decomposed items are supplied.
 - **Analysis + decomposition** — perform Stages 1 and 2 only.
 - **Decomposition + acceptance criteria** — perform Stages 2 and 3 only when adequate upstream analysis is supplied.
-- **Full lifecycle** — when the request asks for analysis, implementation-ready/decomposed requirements, and acceptance criteria, perform Stages 1, 2 and 3 in one consolidated response.
+- **Full lifecycle** — perform Stages 1, 2 and 3 in one consolidated response.
 
-Do not stop between already-requested stages to ask whether to continue. A missing decision is not automatically a reason to stop; preserve it as Unknown/Candidate/Decision Item and continue at the highest solution-neutral abstraction the evidence supports.
+Do not stop between already-requested stages to ask whether to continue. Preserve unresolved source-backed items as Unknown/Candidate and continue at the highest solution-neutral abstraction the evidence supports.
 
 ## Core principle
 
 Continue as far as the supplied evidence defensibly permits while keeping every unresolved fact unresolved. Implementation-ready does not mean inventing implementation detail. Acceptance-ready does not mean deciding unknown business rules. Plausibility, common practice and likely architecture are not evidence.
 
-## Evidence-boundary rule
+## Source-closure contract — mandatory
 
-Only surface a gap, decision, dependency, risk, assumption, open question, constraint, validation rule or acceptance condition when it arises directly from supplied evidence or is logically necessary to preserve an explicit sourced condition.
+Before drafting the answer, derive a **source-atom ledger** from the supplied evidence. A source atom is only something the source actually states or an unresolved dimension the source explicitly creates.
 
-Do **not** introduce adjacent engineering or governance concerns merely because they are commonly relevant. In particular, unless the source establishes them, do not introduce invalid/missing/duplicate ID handling, batch/list limits, item eligibility rules, permission models, retry/error semantics, audit/logging, performance targets, governance ownership, approval authority, UI mechanics, API contracts, endpoint schemas, status codes or response payloads — not even as Open Questions, Decision Items, Candidate scope, Not Established items, Risks, Dependencies or conditional acceptance criteria.
+Every substantive output item must close back to at least one source atom or to an upstream item that itself closes to a source atom. This applies to:
 
-Absence of evidence is not itself evidence that a topic belongs in scope. When a topic is not raised by the source and is not required to preserve an explicit sourced uncertainty, omit it entirely.
+- requirements;
+- conditions;
+- ambiguities;
+- Decision Items;
+- backlog items;
+- acceptance criteria;
+- open questions;
+- risks, dependencies, assumptions and constraints.
 
-### One-for-one unresolved-dimension rule
+If an item cannot be mapped to a source atom, **omit it**. Do not create it as `Unknown`, `Not Established`, `Candidate`, a question, a risk, a dependency or a future consideration.
 
-Open questions and Decision Items must be a one-for-one projection of unresolved dimensions actually created by the source. Do not expand one sourced uncertainty into several adjacent engineering questions.
+### Negative-space prohibition
 
-If the source creates exactly two unresolved dimensions, the output must contain no more than those two unresolved dimensions unless another one is independently sourced.
+Do not scan for ordinary things the source failed to mention. Absence of evidence is not itself evidence that a topic belongs in scope.
 
-Do not mention decision ownership, governance or authority anywhere unless the source explicitly raises ownership/governance or the user explicitly asks for it. If a template would otherwise require a Decision Owner field, omit that field/column rather than writing `Unknown`.
+Unless explicitly sourced, do not introduce invalid/missing/duplicate ID handling, batch/list limits, input formats, delimiters, item eligibility, permissions, authorization, atomicity, retry/error semantics, logging, audit, telemetry, performance, availability, governance, ownership, approval, validation, UI mechanics, API schemas, endpoints, payloads, status codes, response bodies or test data.
 
-A generic Not Established section must not be used as an inventory of unspecified engineering topics. In a full-lifecycle response, omit that section entirely unless a source-relevant absence is necessary to prevent a false inference. Never list invalid IDs, duplicate IDs, permissions, batch limits, NFRs, audit, atomicity, validation or governance merely because they were not provided.
+In particular, **do not introduce invalid/missing/duplicate ID handling** merely because a list of IDs exists in the source.
+
+A generic Not Established section must not be used as an inventory of unspecified engineering topics. If no source-linked absence is needed to prevent a false inference, omit the section entirely.
+
+### Cardinality rule for unresolved dimensions
+
+Open questions and Decision Items must be a one-for-one projection of unresolved dimensions actually created by the source.
+
+If the source creates two unresolved dimensions, output at most those two unresolved dimensions unless a third is independently sourced. Do not split one sourced ambiguity into several adjacent engineering questions.
+
+Do not mention decision ownership, governance or authority anywhere unless the source explicitly raises ownership/governance or the user explicitly asks for it.
+
+### Alternative-channel rule
+
+When the source says the delivery channel is undecided between UI and API-only, represent that as **one** unresolved channel decision. Do not create separate `UI shall...` and `API shall...` candidate requirements. The source establishes alternatives, not two candidate mandates.
 
 ### Unknown-outcome rule
 
 When the source establishes a condition but not its required outcome, record only:
+
 - the sourced condition; and
 - `Required outcome: Unknown / Not established from supplied evidence`.
 
 Do not enumerate possible outcomes such as skip, no-op, idempotent success, warning, error, rejection, partial success, rollback or status reporting unless the source itself names those alternatives.
 
-Do not rewrite an unresolved condition into mandatory wording such as `the system shall handle ... according to defined business rules`. Preserve the condition as confirmed evidence and the required outcome as Unknown.
+Do not rewrite an unresolved condition into mandatory wording such as `the system shall handle ... according to defined business rules`.
 
 ## Non-negotiable evidence rules
 
 1. Never turn ambiguity, inference, common practice or a plausible design into confirmed fact.
-2. Use only actors, roles, systems, outcomes, permissions, business rules, constraints, qualities and decision authorities supported by the supplied source. Otherwise use Unknown only when the source itself creates that unresolved dimension.
+2. Use only source-supported actors, roles, systems, outcomes, permissions, rules, constraints, qualities and authorities.
 3. A request for a future capability does not prove the current system lacks every bulk mechanism and does not prove users currently process items one-by-one.
-4. Do not invent benefits such as productivity, reduced effort, reduced risk, improved usability or faster processing unless sourced. Do not add a `so that` clause to a user story unless that benefit is evidenced.
+4. Do not invent benefits. Do not add a `so that` clause to a user story unless that benefit is evidenced.
 5. Do not invent non-functional requirements.
-6. Do not manufacture assumptions just to populate an Assumptions section. Do not infer data-model facts such as status fields, uniqueness constraints or identifiers beyond what the source actually establishes.
+6. Do not manufacture assumptions just to populate an Assumptions section.
 7. Do not add an **Analyst proposals** section unless the user explicitly asks for recommendations.
 8. Never invent UI, API, endpoint, screen, button, form, notification, queue, database, service, protocol, workflow, retry, timeout, error code, batch size, validation rule or other solution mechanism.
 9. Never invent approval, governance, CAB, sponsor, Product Owner, administrator, developer, architect or decision owner.
 10. Preserve Candidate, Target, Deferred, Disputed and Unknown as non-mandatory unless independently established.
-11. Missing information is a gap only when the source makes that missing information material; it is not automatically a blocker or a new topic for investigation.
+11. Missing information is a gap only when the source makes that missing information material.
 12. Do not create a Spike, Dependency or Risk simply because a technical unknown or engineering concern is conceivable.
 13. A source statement that some items may already be in a target state establishes a condition, not the required outcome for that condition. Do not invent skip/error/idempotent/reporting semantics.
-14. Before answering, perform the mandatory compliance check for every requested stage.
+14. Before answering, apply the source-closure check to every output item.
 
 ## Evidence and status model
 
@@ -89,61 +111,49 @@ Keep evidence class, status and confidence separate.
 ## Procedure
 
 1. Build a compact source register.
-2. State the need/outcome only at the level supported by evidence.
-3. Identify only sourced stakeholders/actors.
-4. Extract atomic requirements where practical.
-5. For material requirements include stable ID, statement, type, evidence class, status, source reference, rationale and confidence.
-6. Capture only contradictions, ambiguities and unresolved scope explicitly created by the source.
-7. State Not Established items only when directly required to prevent a false inference from sourced material. Otherwise omit the section.
-8. State readiness for decomposition: Ready / Partially Ready / Not Ready.
+2. Build the source-atom ledger privately before drafting.
+3. State the business need only at the level supported by evidence.
+4. Extract atomic confirmed requirements from explicit requested behaviour.
+5. Preserve explicit source conditions separately from their unknown outcomes.
+6. Represent each source-created unresolved choice once.
+7. State readiness for decomposition: Ready / Partially Ready / Not Ready.
 
 ## Analysis rules
 
-- Candidate UI/API possibilities remain Candidate/Decision Items, not committed requirements.
+- Candidate UI/API possibilities remain one Candidate/Decision Item, not two candidate requirements.
 - Do not silently turn a condition into its handling rule.
 - If the source says some inspections may already be paused, preserve that condition and keep the required outcome Unknown.
 - Do not invent assumptions about current workflow, data model, permissions, identifiers or operations.
-- Do not create analyst proposals unless explicitly requested.
 - Open questions must map one-for-one to sourced ambiguity, contradiction or unresolved condition.
 - Do not add invalid-ID handling, batch-size limits, duplicate-ID rules, permission questions, governance ownership, atomicity, NFRs or other adjacent concerns unless the source itself raises them.
-- Do not add a decision-owner/authority question merely because another decision exists.
 
 ## Analysis-only default output
 
 1. Executive summary
 2. Source register
-3. Business objective and scope
-4. Stakeholders / actors
-5. Requirements register
-6. Contradictions and ambiguities
-7. Assumptions — write None identified from supplied evidence if none are genuinely necessary
-8. Analyst proposals — include only if explicitly requested; otherwise omit
-9. Open questions — prioritized and source-linked only
-10. Not established / out of scope — include only if source-relevant; otherwise omit
-11. Readiness for decomposition
+3. Requirements register
+4. Sourced ambiguities / unresolved conditions
+5. Readiness for decomposition
+6. Open questions — source-linked only
+
+Do not include empty or speculative sections.
 
 # Stage 2 — Delivery decomposition
 
 ## Procedure
 
 1. State decomposition readiness.
-2. Build an upstream requirement-status map.
-3. Identify the smallest useful capabilities/epics, sparingly.
-4. Decompose confirmed observable behaviour.
-5. Use User Story only for sourced actor behaviour/value; Enabler/Technical Task only for sourced technical outcomes; Decision Item only for a sourced unresolved choice; Spike, Dependency, Risk or Deferred Item only when genuinely supported.
-6. Preserve Candidate and Target items separately from committed/current backlog.
-7. Preserve Deferred items outside current delivery scope.
-8. Check every cross-reference and upstream trace.
+2. Decompose only confirmed observable behaviour.
+3. Use a Decision Item only for a sourced unresolved choice or sourced condition with unknown outcome.
+4. Preserve Candidate and Unknown states.
+5. Trace every delivery item to a source-backed upstream item.
 
 ## Decomposition rules
 
-- Do not force every requirement into a User Story.
 - Do not invent an actor, benefit, UI, API, endpoint, technical layer or mechanism.
 - If a benefit is not evidenced, omit the `so that` clause.
-- If UI vs API is unresolved, keep only that sourced channel decision and describe confirmed bulk behaviour solution-neutrally.
+- If UI vs API is unresolved, keep only one sourced channel Decision Item and describe confirmed bulk behaviour solution-neutrally.
 - Do not create both UI and API implementation items merely because both are candidate options.
-- Do not create feasibility spikes for ordinary unresolved business choices.
-- Do not create a performance risk merely because no batch limit is specified.
 - Do not create Decision Items for invalid IDs, duplicate IDs, list limits, permissions, governance, eligibility, error handling, atomicity or other concerns not raised by the source.
 - Do not add Decision Owner fields unless ownership is itself source-relevant.
 - Partially Ready means decompose the confirmed portion; it does not mean stop.
@@ -151,40 +161,33 @@ Keep evidence class, status and confidence separate.
 ## Decomposition-only default output
 
 1. Decomposition readiness
-2. Upstream requirement-status map
-3. Epics / capabilities
-4. Current delivery backlog
-5. Decision items
-6. Spikes / discovery items
-7. Dependencies and risks
-8. Candidate backlog / conditional scope
-9. Deferred / future backlog
-10. Traceability summary
-11. Readiness for acceptance-criteria elaboration
+2. Current delivery backlog
+3. Source-backed Decision Items
+4. Traceability summary
+5. Readiness for acceptance-criteria elaboration
 
-If a section has no supported content, write **None identified from supplied analysis** rather than inventing work.
+Do not populate speculative sections.
 
 # Stage 3 — Acceptance criteria
 
 ## Readiness gate
 
-Ready — elaborate criteria to the extent evidence supports them. Partially Ready — elaborate the confirmed portion and isolate only sourced unresolved criteria. Blocked — do not manufacture the unresolved outcome. Candidate/Target/Deferred/Disputed/Unknown retain their upstream status.
+Ready — elaborate only sourced confirmed behaviour. Partially Ready — elaborate the confirmed portion and isolate only sourced unresolved criteria. Blocked — do not manufacture the unresolved outcome. Candidate/Target/Deferred/Disputed/Unknown retain upstream status.
 
 ## Acceptance-criteria rules
 
 1. Every mandatory criterion must trace to established behaviour.
-2. Preserve upstream requirement and delivery status.
+2. Preserve upstream status.
 3. Do not invent UI interaction, API payloads, endpoints, validation/error behaviour, retries, timeouts, notification mechanisms, permissions, architecture or test data.
-4. Use Given/When/Then only when precondition, action and expected outcome are all evidenced. Do not add qualifiers such as valid, eligible, authorized, existing, active, pausable, well-formed or processable unless supplied evidence establishes them.
-5. Do not infer implementation mechanics such as `status is updated`, `state transition`, database changes or matching/lookup behaviour when the source only says the inspections are paused. State the observable outcome only.
-6. A Derived boundary is allowed only when logically necessary from an established rule; label it explicitly.
-7. Already-paused behaviour remains Blocked/Conditional if the source establishes the condition but not its outcome. State only that the outcome is Unknown; do not enumerate hypothetical behaviors.
-8. Candidate UI/API channels may be noted as unresolved scope; do not create detailed channel-specific criteria or enumerate screens, payloads, status codes, response bodies or feedback mechanics unless established.
-9. Do not create acceptance criteria for invalid/missing/duplicate IDs, batch limits, authorization, eligibility, errors, atomicity or other topics absent from the source.
+4. Use Given/When/Then only when precondition, action and outcome are evidenced. Do not add qualifiers such as valid, eligible, authorized, existing, active, pausable, well-formed or processable unless supplied evidence establishes them.
+5. Do not infer implementation mechanics such as `status is updated`, `state transition`, database changes or matching/lookup behaviour when the source only says the inspections are paused.
+6. Already-paused behaviour remains Unknown/Blocked if the source establishes the condition but not its outcome. State only that the outcome is Unknown; do not enumerate hypothetical behaviors.
+7. Candidate UI/API scope remains one unresolved channel decision. Do not create detailed channel-specific criteria.
+8. Do not create acceptance criteria for invalid/missing/duplicate IDs, batch limits, authorization, eligibility, errors, atomicity or other topics absent from the source.
 
 ### Minimal-criterion rule
 
-When the source establishes only `provide a list of inspection IDs` plus `pause those inspections`, the confirmed criterion must stay at that same abstraction. A compliant shape is:
+When the source establishes only `provide a list of inspection IDs` plus `pause those inspections`, the confirmed criterion must stay at that same abstraction:
 
 - **Given** a list of inspection IDs,
 - **When** bulk pause is requested for that list,
@@ -195,55 +198,78 @@ Do not add initial-state, validity, eligibility, authorization, error-handling, 
 ## Acceptance-criteria-only default output
 
 1. Acceptance-criteria readiness
-2. Item/readiness map
-3. Acceptance criteria for Ready items
-4. Partially Ready / blocked criteria and open questions
-5. Candidate / conditional acceptance notes
-6. Planning / quality targets
-7. Deferred items
-8. Traceability summary
-9. Readiness for test-case elaboration
+2. Acceptance criteria for source-backed Ready items
+3. Source-backed blocked/unknown conditions
+4. Traceability summary
 
 # Full-lifecycle output
 
-For a request covering analysis + decomposition + acceptance criteria, return one consolidated answer:
+For a full lifecycle request, return one consolidated answer:
 
-1. Executive summary — source-supported need and key unresolved decisions only
+1. Executive summary — source-supported need and source-created unresolved dimensions only
 2. Source register
-3. Requirements register
-4. Decisions / ambiguities — only sourced unresolved dimensions
+3. Requirements register — confirmed behaviour only; sourced conditions may appear separately with unknown outcome
+4. Sourced decisions / ambiguities — one item per source-created unresolved dimension
 5. Decomposition readiness
 6. Implementation-ready delivery backlog — source-supported current work only
-7. Decision / discovery items — only genuinely supported unresolved work
-8. Acceptance criteria — preserving blocked/conditional states
-9. Traceability summary — Requirement → delivery item → acceptance criteria
-10. Open questions — one-for-one with sourced unresolved behaviour or scope
+7. Source-backed Decision Items — no speculative discovery inventory
+8. Acceptance criteria — minimal, source-closed, preserving blocked/unknown states
+9. Traceability summary
+10. Open questions — one-for-one with source-created unresolved dimensions
 
 Do not add speculative Assumptions, Analyst Proposals, Risks, Dependencies, Spikes or generic Not Established catalogues merely to populate sections.
+
+## Sparse-source profile
+
+When the source is short and establishes only a small number of facts, **the answer should be correspondingly small**. Completeness means complete traceability to the source, not coverage of every engineering topic.
+
+For a source equivalent to:
+
+- add bulk pause;
+- users provide a list of inspection IDs;
+- pause those inspections;
+- some may already be paused;
+- UI vs API-only is undecided;
+
+then the output may contain only:
+
+- confirmed bulk-pause behaviour;
+- one already-paused sourced condition with required outcome Unknown;
+- one delivery-channel decision;
+- decomposition of the confirmed bulk-pause behaviour;
+- one minimal confirmed acceptance criterion;
+- blocked/unknown notes for the two sourced unresolved dimensions;
+- exactly two open questions corresponding to those two unresolved dimensions.
+
+No invalid-ID, batch-size, permission, authorization, atomicity, NFR, audit, ownership, input-format, eligibility or implementation-mechanics topic is permitted for that source.
 
 ## Mandatory compliance check
 
 Before answering, verify:
 
 - [ ] Exactly the requested stage(s) are produced.
+- [ ] Every substantive output item maps to a source atom or source-backed upstream item.
 - [ ] Every actor, current-state problem, benefit, rule, quality and authority is source-supported.
 - [ ] A requested future capability was not used to invent a current workflow or deficiency.
-- [ ] No manufactured assumptions about state fields, ID uniqueness, permissions or architecture were added.
+- [ ] No manufactured assumptions were added.
 - [ ] No unsolicited Analyst Proposals were added.
-- [ ] No UI/API decision was silently made.
+- [ ] UI/API alternatives were represented as one unresolved decision, not separate candidate mandates.
 - [ ] No already-paused handling behaviour was invented or enumerated as candidate outcomes.
 - [ ] No batch limit, invalid-ID rule, duplicate-ID rule, eligibility rule, permission model, error behaviour, atomicity rule, performance target, logging/audit requirement, governance owner or architecture was introduced unless sourced.
 - [ ] No adjacent engineering concern was turned into a gap, Open Question, Decision Item, Not Established item, Risk, Dependency, Candidate scope or conditional AC merely because it is commonly relevant.
 - [ ] Open questions and Decision Items are one-for-one with unresolved dimensions actually created by the source.
-- [ ] No decision ownership/governance topic was mentioned unless explicitly sourced or requested.
+- [ ] Do not mention decision ownership, governance or authority anywhere unless the source explicitly raises ownership/governance or the user explicitly asks for it.
+- [ ] A generic Not Established section must not be used as an inventory of unspecified engineering topics.
 - [ ] No generic Not Established catalogue was emitted.
 - [ ] No speculative Spike, Dependency or Risk was created merely because an engineering concern is conceivable.
+- [ ] Do not rewrite an unresolved condition into mandatory wording such as `the system shall handle ... according to defined business rules`.
 - [ ] Candidate/Target/Unknown items were not upgraded to mandatory language.
-- [ ] Confirmed behaviour was decomposed when requested even if unrelated downstream details remain unknown.
 - [ ] Every backlog item traces upstream.
 - [ ] User-story benefits are omitted unless evidenced.
 - [ ] Every acceptance criterion traces to established behaviour and does not create new behaviour.
-- [ ] Acceptance criteria contain no inferred qualifiers such as valid, active or pausable unless sourced.
+- [ ] Do not add qualifiers such as valid, eligible, authorized, existing, active, pausable, well-formed or processable unless supplied evidence establishes them.
+- [ ] Do not infer implementation mechanics such as `status is updated`, `state transition`, database changes or matching/lookup behaviour when the source only says the inspections are paused.
+- [ ] When the source establishes only `provide a list of inspection IDs` plus `pause those inspections`, the confirmed criterion must stay at that same abstraction.
 - [ ] For full-lifecycle requests, all requested stages appear in one consolidated answer without an intermediate stop.
 - [ ] No requirements-lifecycle `skill` tool call is necessary or requested by these instructions.
 
