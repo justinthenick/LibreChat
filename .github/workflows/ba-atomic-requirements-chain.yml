@@ -10,6 +10,7 @@ on:
     branches:
       - 'fix/ba-single-requirements-capability'
       - 'fix/ba-evidence-discipline'
+      - 'fix/ba-evidence-discipline-v022'
       - 'server/synology'
     paths:
       - 'custom/ba-agent/skills/prepare-implementation-ready-requirements/**'
@@ -77,8 +78,15 @@ jobs:
               'No requirements-lifecycle `skill` tool call is necessary or requested by these instructions',
               'do not introduce invalid/missing/duplicate ID handling',
               'Absence of evidence is not itself evidence that a topic belongs in scope',
-              'Do not add qualifiers such as valid, eligible, authorized, existing, well-formed or processable unless supplied evidence establishes them',
+              'Do not add qualifiers such as valid, eligible, authorized, existing, active, pausable, well-formed or processable unless supplied evidence establishes them',
               'No adjacent engineering concern was turned into a gap, Open Question, Decision Item, Not Established item, Risk, Dependency, Candidate scope or conditional AC merely because it is commonly relevant',
+              'Open questions and Decision Items must be a one-for-one projection of unresolved dimensions actually created by the source',
+              'Do not mention decision ownership, governance or authority anywhere unless the source explicitly raises ownership/governance or the user explicitly asks for it',
+              'A generic Not Established section must not be used as an inventory of unspecified engineering topics',
+              'Do not rewrite an unresolved condition into mandatory wording such as `the system shall handle ... according to defined business rules`',
+              'Do not infer implementation mechanics such as `status is updated`, `state transition`, database changes or matching/lookup behaviour when the source only says the inspections are paused',
+              'When the source establishes only `provide a list of inspection IDs` plus `pause those inspections`, the confirmed criterion must stay at that same abstraction',
+              'No generic Not Established catalogue was emitted',
           ]
           for guard in required_skill_guards:
               assert guard in skill, f'missing lifecycle guard: {guard}'
