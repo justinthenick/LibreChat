@@ -33,7 +33,7 @@ jobs:
           python-version: '3.11'
       - name: Validate seeder JavaScript syntax
         run: node --check config/seed-production-agents.js
-      - name: Validate validated production manifests and candidate separation
+      - name: Validate promoted production manifests and semantics
         run: |
           python - <<'PY'
           import hashlib
@@ -67,9 +67,7 @@ jobs:
           supervisor = manifests['agent_ba_supervisor_v01']
           release = manifests['agent_release_change_assurance_v01']
           assert supervisor['version'] == '0.1.1'
-          # B040 is a candidate benchmark. Production remains at the last validated version
-          # until semantic model-scored evidence is recorded.
-          assert release['version'] == '0.1.1'
+          assert release['version'] == '0.1.2'
           assert supervisor['subagents']['enabled'] is True
           assert supervisor['subagents']['agent_ids'] == ['agent_release_change_assurance_v01']
           assert 'subagents' not in release, 'Release Assurance must not recursively expose production subagents'
@@ -82,7 +80,18 @@ jobs:
           assert 'must not be promoted into mandatory gates' in supervisor_instructions
           assert 'release/change is merely future context' in supervisor_instructions
 
-          candidate_skill = Path('custom/ba-agent/skills/validate-release-evidence/SKILL.md').read_text()
+          release_instructions = release['instructions']
+          assert 'First identify the decision phase' in release_instructions
+          assert 'pre-deployment go/no-go readiness' in release_instructions
+          assert 'not-yet-run post-deployment verification do not by themselves count against pre-deployment go/no-go readiness' in release_instructions
+          assert 'bare stakeholder or status assertion' in release_instructions
+          assert 'Failed result as Failed' in release_instructions
+          assert 'applicable release-blocking gate' in release_instructions
+          assert 'Missing evidence alone is not automatically NO-GO' in release_instructions
+          assert 'Unknown authority' in release_instructions
+
+          skill_path = Path('custom/ba-agent/skills/validate-release-evidence/SKILL.md')
+          candidate_skill = skill_path.read_text()
           assert 'Version: **0.3.0**' in candidate_skill
           assert 'Provenance strength' in candidate_skill
           assert 'Claim evidence versus decision sufficiency' in candidate_skill
@@ -92,6 +101,17 @@ jobs:
           assert 'bare stakeholder/status assertion' in candidate_skill
           assert 'Missing evidence alone is not automatically NO-GO' in candidate_skill
           assert 'Unknown` Change Authority' in candidate_skill
+
+          b040_evidence = json.loads(Path('custom/ba-agent/benchmarks/040-release-decision-semantics/activation-evidence.json').read_text())
+          assert b040_evidence['gate_passed'] is True
+          assert b040_evidence['baseline_final_score'] == 100
+          assert b040_evidence['skill_final_score'] == 100
+          assert b040_evidence['baseline_gap'] == 0
+          assert b040_evidence['critical_penalties'] == 0
+          assert b040_evidence['defects'] == 0
+          assert b040_evidence['tested_skill_version'] == '0.3.0'
+          actual_skill_hash = hashlib.sha256(skill_path.read_bytes()).hexdigest()
+          assert actual_skill_hash == b040_evidence['tested_skill_sha256'], 'promoted Skill differs from B040-tested candidate'
 
           seeder = Path('config/seed-production-agents.js').read_text()
           assert 'subagents: manifest.subagents' in seeder
@@ -156,7 +176,7 @@ jobs:
           assert evidence['baseline_gap'] == 0
           assert evidence['critical_penalties'] == 0
           PY
-      - name: Validate Benchmark 040 candidate package structure
+      - name: Validate Benchmark 040 activation evidence
         run: |
           python - <<'PY'
           import json
@@ -165,16 +185,10 @@ jobs:
           root = Path('custom/ba-agent/benchmarks/040-release-decision-semantics')
           required = [
               'benchmark.json', 'input.md', 'prompt.md', 'gold-standard.md',
-              'scoring-rubric.md'
+              'scoring-rubric.md', 'activation-evidence.json'
           ]
           for name in required:
               assert (root / name).is_file(), f'missing Benchmark 040 {name}'
-
-          # Structural validation is deliberately not semantic validation.
-          # Do not add activation-evidence.json until an actual model-scored B040 run passes.
-          assert not (root / 'activation-evidence.json').exists(), (
-              'B040 activation evidence must come from a real semantic run, not structural CI'
-          )
 
           benchmark = json.loads((root / 'benchmark.json').read_text())
           assert benchmark['skill'] == '../../skills/validate-release-evidence/SKILL.md'
@@ -199,4 +213,17 @@ jobs:
           assert 'PASS: 90/100 or higher' in rubric
           assert 'optional-browser diagnostic failed without establishing that diagnostic as an applicable release-blocking gate' in rubric
           assert 'upgrades the bare “8 sample inspections passed” status assertion to Verified' in rubric
+
+          evidence = json.loads((root / 'activation-evidence.json').read_text())
+          assert evidence['semantic_job'] == 'sem-b040-release-decision-semantics-g37-001'
+          assert evidence['generation_model'] == 'gemini-3.7-flash'
+          assert evidence['evaluator_model'] == 'gemini-3.7-flash'
+          assert evidence['baseline_final_score'] == 100
+          assert evidence['skill_final_score'] == 100
+          assert evidence['baseline_gap'] == 0
+          assert evidence['critical_penalties'] == 0
+          assert evidence['gate_passed'] is True
+          assert evidence['source_lab_branch'] == 'feature/ba-agent-v0.1'
+          assert evidence['source_lab_commit'] == 'a86c1648f03e04b8e25fb66e9825668635c9c5e7'
+          assert evidence['source_evaluation_path'].endswith('sem-b040-release-decision-semantics-g37-001-semantic-evaluation.md')
           PY
