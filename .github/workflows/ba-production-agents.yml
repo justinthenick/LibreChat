@@ -170,6 +170,9 @@ jobs:
           assert 'loaded in dependency order' in overlay
           assert 'BA_ATOMIC_MULTI_SKILL_TEST_V1' in overlay
 
+          atomic_image = 'image: ghcr.io/justinthenick/lc-dev:a6d0dba72117df93ce8681ca9cc86c78f7b61ddd'
+          assert atomic_image in compose, 'Synology must pin the exact reviewed atomic multi-skill runtime image'
+          assert 'image: librechat/lc-dev:cdd4c09076aa43ae9d94bba8f43c55ee35c181d5' not in compose
           assert 'image: registry.librechat.ai/danny-avila/librechat:latest' not in compose
           assert 'DEPLOYMENT_SKILLS_DIR: /app/deployment-skills' in compose
           assert 'PRODUCTION_AGENTS_DIR: /app/production-agents' in compose
