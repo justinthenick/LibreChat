@@ -8,7 +8,7 @@ on:
       - '.github/workflows/ba-atomic-requirements-chain.yml'
   push:
     branches:
-      - 'fix/ba-always-apply-composite'
+      - 'fix/ba-single-requirements-capability'
       - 'server/synology'
     paths:
       - 'custom/ba-agent/skills/prepare-implementation-ready-requirements/**'
@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Validate pre-primed atomic composite routing contract
+      - name: Validate deterministic single requirements capability
         run: |
           python - <<'PY'
           import hashlib
@@ -43,42 +43,62 @@ jobs:
           configured = {entry['name']: entry['id'] for entry in manifest['skills']}
           assert configured.get(skill_name) == expected_id
 
+          # The requirements lifecycle is deterministic: one always-primed capability,
+          # and no model-callable component skills remain on BA Supervisor.
+          component_names = [
+              'analyze-requirements',
+              'decompose-requirements',
+              'elaborate-acceptance-criteria',
+          ]
+          for name in component_names:
+              assert name not in configured, f'{name} must not remain callable from BA Supervisor'
+              assert (Path('custom/ba-agent/skills') / name / 'SKILL.md').is_file(), (
+                  f'independently benchmarked reference skill missing: {name}'
+              )
+
           instructions = manifest['instructions']
           assert f'`{skill_name}` is pre-primed automatically' in instructions
-          assert 'follow that already-loaded composite instruction body directly' in instructions
-          assert f'Do NOT invoke `{skill_name}`, `analyze-requirements`, `decompose-requirements` or `elaborate-acceptance-criteria` through the skill tool for that combined request' in instructions
-          assert 'Do not stop after analysis or ask whether to continue' in instructions
-          assert 'For analysis-only requests use `analyze-requirements`' in instructions
-          assert 'for decomposition-only requests' in instructions
-          assert 'for acceptance-criteria-only requests' in instructions
-
-          # Independently validated component skills remain available for stage-specific work.
-          assert configured['analyze-requirements'] == '9c7101672db2ea43ed85d8f2'
-          assert configured['decompose-requirements'] == 'f7a4a53d103858849057d1c3'
-          assert configured['elaborate-acceptance-criteria'] == '950ef322da7a9972f5b91fcf'
+          assert 'is the sole requirements-lifecycle capability exposed by this Supervisor' in instructions
+          assert 'Follow its already-loaded stage-selection rules directly' in instructions
+          assert 'Do NOT invoke `prepare-implementation-ready-requirements`, `analyze-requirements`, `decompose-requirements` or `elaborate-acceptance-criteria` through the skill tool' in instructions
+          assert 'Execute exactly the requirements stages the user asks for' in instructions
+          assert 'do not stop after analysis or ask whether to continue' in instructions
 
           required_skill_guards = [
-              'does not prove users currently perform each item manually',
-              'Do not invent benefits such as productivity',
-              'Do not invent non-functional requirements',
+              'Execute **exactly the stage or stages requested by the user**',
+              'does not prove the current system lacks every bulk mechanism',
+              'Do not add a `so that` clause to a user story unless that benefit is evidenced',
+              'Do not manufacture assumptions just to populate an Assumptions section',
+              'Do not add an **Analyst proposals** section unless the user explicitly asks for recommendations',
               'Never invent UI, API, endpoint, screen, button',
               'Never invent approval, governance, CAB, sponsor, Product Owner, administrator, developer, architect or decision owner',
-              'does **not** establish whether already-paused items must be skipped, accepted, rejected or reported',
-              'The UI/API decision may remain a separate Decision Item without preventing behavioural decomposition',
-              'Do not invent skip/error/idempotent behaviour',
-              'The response reaches all three requested stages in one consolidated answer',
-              'Do not invoke `analyze-requirements`, `decompose-requirements`, `elaborate-acceptance-criteria`, or this skill via the `skill` tool for that combined request',
+              'Do not create a Spike, Dependency or Risk simply because a technical unknown or engineering concern is conceivable',
+              'does not prove users currently process items one-by-one',
+              'Do not invent skip/error/idempotent/reporting semantics',
+              'No requirements-lifecycle `skill` tool call is necessary or requested by these instructions',
           ]
           for guard in required_skill_guards:
-              assert guard in skill, f'missing composite guard: {guard}'
+              assert guard in skill, f'missing lifecycle guard: {guard}'
 
-          # Deterministic orchestration: prime the body before generation and remove the
-          # composite from both user and model invocation paths. Agent-scoped always-apply
-          # resolution keeps this ambient behavior confined to agents that allowlist the ID.
+          # Stage-specific behavior must remain available inside the same deterministic body.
+          assert '**Analysis-only** — perform Stage 1 only' in skill
+          assert '**Decomposition-only**' in skill
+          assert '**Acceptance-criteria-only**' in skill
+          assert '**Full lifecycle**' in skill
+          assert '# Stage 1 — Requirements analysis' in skill
+          assert '# Stage 2 — Delivery decomposition' in skill
+          assert '# Stage 3 — Acceptance criteria' in skill
+
+          # Prime before generation and remove both manual/model invocation paths.
           assert re.search(r'^name:\s*prepare-implementation-ready-requirements\s*$', skill, re.M)
           assert re.search(r'^always-apply:\s*true\s*$', skill, re.M)
           assert re.search(r'^user-invocable:\s*false\s*$', skill, re.M)
           assert re.search(r'^disable-model-invocation:\s*true\s*$', skill, re.M)
+
+          # Other downstream capabilities stay callable.
+          assert configured['derive-test-cases'] == '0fbc78469a3d76551ca0fb31'
+          assert configured['prepare-solution-change-readiness'] == 'a7bcbb732fdc5f370e0e710c'
+          assert configured['assess-itil-alignment'] == '4388c6e1d8daec32d2207f47'
 
           compose = Path('deploy/synology/docker-compose.yml').read_text()
           assert 'DEPLOYMENT_SKILLS_DIR: /app/deployment-skills' in compose
