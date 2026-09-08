@@ -1,17 +1,3 @@
-2026-09-08 14:45:03 LibreChat deployment check started
-2026-09-08 14:45:03 Cloudflare tunnel integration enabled
-2026-09-08 14:45:03 Synology Admin Settings integration enabled
-2026-09-08 14:47:10 No deployment change; healthy deployment already recorded at 835bdf4e
-2026-09-08 14:50:17 LibreChat deployment check started
-2026-09-08 14:50:17 Cloudflare tunnel integration enabled
-2026-09-08 14:50:17 Synology Admin Settings integration enabled
-2026-09-08 14:53:13 No deployment change; healthy deployment already recorded at 835bdf4e
-2026-09-08 14:55:13 LibreChat deployment check started
-2026-09-08 14:55:13 Cloudflare tunnel integration enabled
-2026-09-08 14:55:13 Synology Admin Settings integration enabled
-2026-09-08 14:58:17 No deployment change; healthy deployment already recorded at 835bdf4e
-2026-09-08 15:00:02 LibreChat deployment check started
-2026-09-08 15:00:02 Cloudflare tunnel integration enabled
 2026-09-08 15:00:02 Synology Admin Settings integration enabled
 2026-09-08 15:02:45 No deployment change; healthy deployment already recorded at 835bdf4e
 2026-09-08 15:05:01 LibreChat deployment check started
@@ -38,3 +24,17 @@
 2026-09-08 15:34:20 MCP workspace mount passed write/read/delete check
 2026-09-08 15:34:20 Cloudflare tunnel connector registered
 2026-09-08 15:34:21 Synology Admin Settings panel and worker healthy
+2026-09-08 15:37:41 Sanitised GitHub telemetry published
+2026-09-08 15:38:02 Deployment healthy at b600c7a5df99ab89742272bd7d029df34aeadd91
+2026-09-08 15:38:22 LibreChat deployment check started
+2026-09-08 15:38:22 Cloudflare tunnel integration enabled
+2026-09-08 15:38:22 Synology Admin Settings integration enabled
+2026-09-08 15:39:37 Change detected: b600c7a5 -> 26b065e7
+2026-09-08 15:40:56 Synology Admin Settings privileged worker ready
+2026-09-08 15:40:57 Compose validation passed
+2026-09-08 15:41:23 Image pull completed
+2026-09-08 15:41:25 Compose update completed
+2026-09-08 15:41:25 LibreChat health check passed
+2026-09-08 15:41:25 MCP workspace mount passed write/read/delete check
+2026-09-08 15:41:25 Cloudflare tunnel connector registered
+2026-09-08 15:41:27 Synology Admin Settings panel and worker healthy
