@@ -184,7 +184,7 @@ jobs:
           assert '8 sample inspections passed' in prompt
           assert 'Change Authority: Unknown' in prompt or 'Change Authority' in prompt
           assert 'neither is established' in gold
-          assert 'Future-phase discipline' in gold
+          assert 'Production deployment and production verification are future-phase activities' in gold
           assert 'Unknown authority vs blocker' in gold
           assert 'Automatic fail conditions' in rubric
           assert 'PASS: 90/100 or higher' in rubric
