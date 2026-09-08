@@ -1,135 +1,269 @@
 ---
 name: prepare-implementation-ready-requirements
-description: Ambient BA orchestration guard for the requirements lifecycle. When one request explicitly asks to analyse raw requirements and continue through implementation-ready delivery decomposition and acceptance criteria, execute all three stages in one response without inventing missing business or solution facts. For stage-specific requests, defer to the appropriate validated component skill.
+description: Always-primed BA requirements-lifecycle capability. Execute exactly the requested requirements stage or stages — analysis, delivery decomposition, acceptance criteria, or a combined lifecycle — while preserving evidence, status, uncertainty and traceability without inventing business or solution facts.
 always-apply: true
 user-invocable: false
 disable-model-invocation: true
 ---
 
-# Prepare Implementation-Ready Requirements
+# Requirements Lifecycle
 
-Version: **0.1.1**
+Version: **0.2.0**
 
 ## Purpose
 
-This skill is **pre-primed by the runtime** for BA Supervisor turns. It removes the model-routing decision that live regression testing proved unreliable.
+This skill is **pre-primed by the runtime** for BA Supervisor turns and is the Supervisor's sole requirements-lifecycle capability.
 
-When the user's current request explicitly wants all three outcomes together:
+The three independently benchmarked component skills — `analyze-requirements`, `decompose-requirements`, and `elaborate-acceptance-criteria` — remain in the repository as reference capabilities, but they are intentionally not callable from BA Supervisor. Live regression testing showed that leaving them model-selectable made routing nondeterministic even when the intended lifecycle policy was already in context.
 
-1. requirements analysis;
-2. delivery decomposition; and
-3. acceptance-criteria elaboration;
+Do **not** invoke this skill or those three component skills through the `skill` tool. Execute the appropriate stage instructions directly from this already-loaded body.
 
-execute the complete Business Analysis chain directly from these already-loaded instructions. **Do not invoke `analyze-requirements`, `decompose-requirements`, `elaborate-acceptance-criteria`, or this skill via the `skill` tool for that combined request.** Return one consolidated answer containing all three stages.
+## Stage selection
 
-When the user's request is stage-specific rather than a combined lifecycle request, this ambient skill does not expand scope. Use the independently validated component skill selected by the BA Supervisor for analysis-only, decomposition-only, or acceptance-criteria-only work.
+Execute **exactly the stage or stages requested by the user**. Do not silently expand scope.
 
-This is an **orchestration guard**, not a replacement for the independently validated component skills. It is always applied only because the pinned runtime cannot deterministically force the model to choose the composite skill from the model-visible catalogue.
+- **Analysis-only** — perform Stage 1 only. Do not create decomposition or acceptance criteria.
+- **Decomposition-only** — when a suitable analysed requirements view is supplied, perform Stage 2 only. Do not re-run analysis unless necessary to preserve traceability, and do not elaborate acceptance criteria.
+- **Acceptance-criteria-only** — when suitable decomposed items are supplied, perform Stage 3 only. Do not create new requirements or backlog scope.
+- **Analysis + decomposition** — perform Stages 1 and 2 only.
+- **Decomposition + acceptance criteria** — perform Stages 2 and 3 only when adequate upstream analysis is supplied.
+- **Full lifecycle** — when the request asks for analysis, implementation-ready/decomposed requirements, and acceptance criteria, perform Stages 1, 2 and 3 in one consolidated response.
+
+Do not stop between already-requested stages to ask whether to continue. A missing decision is not automatically a reason to stop; preserve it as Unknown/Candidate/Decision Item and continue at the highest solution-neutral abstraction the evidence supports.
 
 ## Core principle
 
 **Continue as far as the supplied evidence defensibly permits, while keeping every unresolved fact unresolved.**
 
-Implementation-ready does not mean inventing implementation detail. Where a decision is unresolved, produce the confirmed work at the highest channel/solution-neutral abstraction and represent the unresolved choice as a Decision Item or blocked/conditional criterion.
+Implementation-ready does not mean inventing implementation detail. Acceptance-ready does not mean deciding unknown business rules. Plausibility, common practice and likely architecture are not evidence.
 
 ## Non-negotiable evidence rules
 
 1. Never turn ambiguity, inference, common practice or a plausible design into confirmed fact.
 2. Use only actors, roles, systems, business outcomes, permissions, business rules, constraints, qualities and decision authorities supported by the supplied source. If none are established, write **Unknown** or **None identified from supplied evidence**.
-3. Do not invent a current-state problem merely because a requested feature implies one. For example, a request for bulk processing does not prove users currently perform each item manually.
-4. Do not invent benefits such as productivity, reduced effort, reduced risk, improved usability or faster processing unless the source establishes them. If useful as an analyst hypothesis, label it **Proposed**, never Confirmed.
-5. Do not invent non-functional requirements such as stability, integrity, security, auditability, resilience, performance, scalability or availability. Record them only when sourced; otherwise leave them Not established.
-6. Do not manufacture assumptions just to fill an Assumptions section. An assumption is allowed only when it is actually necessary to continue the analysis; label it explicitly and never use it to create a committed requirement or acceptance criterion.
-7. Never invent UI, API, endpoint, screen, button, form, notification, queue, database, service, protocol, workflow, retry, timeout, error code, batch size, validation rule or other solution mechanism.
-8. Never invent approval, governance, CAB, sponsor, Product Owner, administrator, developer, architect or decision owner. If authority is not supplied, write **Decision owner: Unknown**.
-9. Preserve tentative language. Candidate, Target, Deferred, Disputed and Unknown items must remain non-mandatory unless the source independently establishes a mandatory rule.
-10. Missing information is a gap, not automatically a blocker. Do not stop the chain merely because UI/API, error handling, batch size, permissions, performance or other downstream details are unknown. Continue with solution-neutral requirements and criteria where possible.
+3. Do not invent a current-state problem merely because the user asks to add a future capability. A request to add bulk processing does not prove the current system lacks every bulk mechanism, and it does not prove users currently process items one-by-one.
+4. Do not invent benefits such as productivity, reduced effort, reduced risk, improved usability or faster processing unless the source establishes them. Do not add a `so that` clause to a user story unless that benefit is evidenced.
+5. Do not invent non-functional requirements such as stability, integrity, security, auditability, resilience, performance, scalability or availability.
+6. Do not manufacture assumptions just to populate an Assumptions section. Do not infer data-model facts such as status fields, uniqueness constraints or identifiers beyond what the source actually establishes.
+7. Do not add an **Analyst proposals** section unless the user explicitly asks for recommendations. Do not introduce idempotence, batch limits, invalid-ID policy, UI patterns, architecture, workflows or governance as unsolicited proposals.
+8. Never invent UI, API, endpoint, screen, button, form, notification, queue, database, service, protocol, workflow, retry, timeout, error code, batch size, validation rule or other solution mechanism.
+9. Never invent approval, governance, CAB, sponsor, Product Owner, administrator, developer, architect or decision owner. If authority is not supplied, write **Decision owner: Unknown**.
+10. Preserve tentative language. Candidate, Target, Deferred, Disputed and Unknown items must remain non-mandatory unless the source independently establishes a mandatory rule.
+11. Missing information is a gap, not automatically a blocker. Do not promote an unknown into a mandatory gate merely because resolving it would be useful.
+12. Do not create a Spike, Dependency or Risk simply because a technical unknown or engineering concern is conceivable. Create one only when the supplied evidence establishes genuine feasibility work, an external prerequisite, or a material risk condition.
+13. A source statement that some items may already be in a target state establishes a condition, not the required outcome for that condition.
+14. Before answering, perform the mandatory compliance check for every requested stage.
 
-## Stage 1 — requirements analysis
+## Evidence and status model
 
-Create a compact source register and extract only source-supported requirements and uncertainties.
+Keep these dimensions separate.
 
-For each material requirement include:
+### Evidence class
 
-- stable requirement ID;
-- atomic statement;
-- type;
-- evidence class: **Explicit / Inferred / Proposed**;
-- requirement status: **Confirmed / Candidate / Target / Deferred / Disputed / Unknown** as applicable;
-- source reference;
-- evidence/rationale;
-- confidence.
+- **Explicit** — directly stated by supplied evidence.
+- **Inferred** — strongly implied by supplied evidence but not directly stated; explain the inference.
+- **Proposed** — analyst recommendation, only when the user asks for recommendations.
+- **Assumption** — necessary but unestablished premise; use sparingly and never to create committed downstream scope.
+- **Disputed** — supplied sources materially conflict.
+- **Unknown** — insufficient evidence.
 
-Do not write mandatory wording for an unresolved handling rule. If the source says a condition can occur but does not specify the required response, separate the established condition from the unresolved rule.
+### Requirement status
 
-Example: `Some inspections may already be paused` establishes an input/state condition. It does **not** establish whether already-paused items must be skipped, accepted, rejected or reported in a particular way.
+- **Confirmed**
+- **Candidate**
+- **Target**
+- **Disputed**
+- **Deferred**
+- **Unknown**
 
-List ambiguities and decisions explicitly. If the implementation channel is undecided, keep UI/API/both as an unresolved Decision Item; do not select one as an analyst recommendation unless the user asked for recommendations, and never promote a recommendation into the backlog.
+Evidence class and status are independent. Confidence is a third dimension.
 
-## Stage 2 — delivery decomposition
+---
 
-Do not wait for every open question to be resolved. Decompose the confirmed portion and isolate uncertainty.
+# Stage 1 — Requirements analysis
 
-Use the smallest appropriate work-item types:
+## Purpose
 
-- **Capability / Epic** only when useful;
-- **User Story** for source-supported observable actor value/behaviour;
-- **Enabler / Technical Task** only for source-supported technical outcomes;
-- **Decision Item** for unresolved business/scope/channel choices;
-- **Spike / Discovery Item** only when genuine technical feasibility must be established;
-- **Dependency / Risk / Deferred Item** only when supported.
+Convert supplied source material into a traceable requirements view without turning uncertainty into certainty.
 
-Every delivery item must trace to one or more upstream requirement/decision IDs. Never create an actor, benefit, implementation layer or mechanism just to make a story read naturally. If the actor benefit is not evidenced, omit the `so that` clause.
+## Procedure
 
-A solution-neutral story is valid. For example, when the channel is unresolved, describe the observable bulk-pause capability without inventing a screen or endpoint. The UI/API decision may remain a separate Decision Item without preventing behavioural decomposition.
+1. Build a compact source register.
+2. State the business need/outcome only at the level supported by evidence. Do not assert an unsupported current-state deficiency.
+3. Identify only sourced stakeholders/actors. Activity is not decision authority.
+4. Extract atomic requirements where practical.
+5. For every material requirement include:
+   - stable requirement ID;
+   - requirement statement;
+   - type;
+   - evidence class;
+   - requirement status;
+   - source reference;
+   - short evidence/rationale;
+   - confidence: High / Medium / Low.
+6. Detect contradictions, ambiguities, unresolved scope and unknown authority.
+7. State important items that are **Not established**.
+8. State readiness for decomposition: Ready / Partially Ready / Not Ready.
 
-## Stage 3 — acceptance criteria
+## Analysis rules
 
-Elaborate acceptance criteria only from behaviour already established by the requirements/decomposition. Criteria may make supported behaviour testable; they must not create new behaviour.
+- Mandatory wording must align with status.
+- Candidate UI/API possibilities remain Candidate/Decision Items, not committed requirements.
+- Do not silently turn a condition into its handling rule.
+- If the source says `Some inspections may already be paused`, preserve that condition but keep skip/success/error/reporting behaviour Unknown unless supplied.
+- Do not invent assumptions about the data model, current workflow, identifiers, permissions or operational process.
+- Do not create analyst proposals unless explicitly requested.
 
-Use Given/When/Then where it improves clarity, otherwise use concise testable conditions.
+## Analysis-only default output
 
-For **Ready** confirmed behaviour, produce complete criteria to the extent evidence supports them.
+When only Stage 1 is requested, use:
 
-For **Partially Ready / Conditional / Candidate / Unknown** behaviour:
+1. **Executive summary**
+2. **Source register**
+3. **Business objective and scope**
+4. **Stakeholders / actors**
+5. **Requirements register**
+6. **Contradictions and ambiguities**
+7. **Assumptions** — write **None identified from supplied evidence** if none are genuinely necessary
+8. **Analyst proposals** — include only if explicitly requested; otherwise omit
+9. **Open questions — prioritized**
+10. **Not established / out of scope**
+11. **Readiness for decomposition**
 
-- elaborate the supported portion;
-- mark unresolved criteria as **Blocked / Conditional / TBD from evidence**;
-- name the unresolved decision or source gap;
-- do not choose an answer.
+---
 
-If the source establishes that already-paused inspections may be included but does not establish their expected result, a valid criterion can verify that the condition is recognised/in scope, while the exact outcome remains a blocked criterion pending the handling-rule decision. Do not invent skip/error/idempotent behaviour.
+# Stage 2 — Delivery decomposition
 
-## Required output
+## Purpose
 
-Return **one consolidated answer**, not three independent essays. Default structure:
+Shape supported delivery work while preserving upstream status, uncertainty and traceability.
+
+## Procedure
+
+1. State decomposition readiness: Ready / Partially Ready / Not Ready.
+2. Build an upstream requirement-status map.
+3. Identify the smallest useful capabilities/epics; use sparingly.
+4. Decompose confirmed observable behaviour.
+5. Use the correct work-item type:
+   - **User Story** only for source-supported actor behaviour/value;
+   - **Enabler / Technical Task** only for source-supported technical outcomes;
+   - **Decision Item** for unresolved business/scope/channel choices;
+   - **Spike / Discovery Item** only for genuinely evidenced feasibility unknowns;
+   - **Dependency / Risk / Deferred Item** only when supported.
+6. Preserve Candidate and Target items separately from committed/current backlog.
+7. Preserve Deferred items outside current delivery scope.
+8. Check every work-item cross-reference and upstream trace.
+
+## Decomposition rules
+
+- Do not force every requirement into a User Story.
+- Do not invent an actor, benefit, UI, API, endpoint, technical layer or mechanism to make a story sound complete.
+- If a benefit is not evidenced, omit the `so that` clause.
+- If UI vs API is unresolved, keep the channel as a Decision Item and describe confirmed bulk behaviour solution-neutrally.
+- Do not create both UI and API implementation items merely because both are candidate options.
+- Do not create a feasibility spike just to investigate an ordinary unresolved business choice.
+- Do not create a performance risk merely because the request does not specify a batch limit.
+- Decision owner stays Unknown unless explicitly established.
+- Partially Ready means decompose the confirmed portion; it does not mean stop.
+
+## Decomposition-only default output
+
+When only Stage 2 is requested, use:
+
+1. **Decomposition readiness**
+2. **Upstream requirement-status map**
+3. **Epics / capabilities**
+4. **Current delivery backlog**
+5. **Decision items**
+6. **Spikes / discovery items**
+7. **Dependencies and risks**
+8. **Candidate backlog / conditional scope**
+9. **Deferred / future backlog**
+10. **Traceability summary**
+11. **Readiness for acceptance-criteria elaboration**
+
+If a section has no supported content, write **None identified from supplied analysis** rather than inventing work.
+
+---
+
+# Stage 3 — Acceptance criteria
+
+## Purpose
+
+Turn sufficiently ready decomposed work into traceable, testable acceptance conditions without creating new behaviour.
+
+## Readiness gate
+
+- **Ready** — elaborate complete criteria to the extent evidence supports them.
+- **Partially Ready** — elaborate the confirmed portion and isolate unresolved criteria.
+- **Blocked** — do not manufacture the unresolved outcome.
+- **Conditional / Candidate** — keep criteria conditional and non-committed.
+- **Target** — keep as a target, not a pass/fail rule unless explicitly binding.
+- **Deferred** — do not elaborate as current criteria.
+- **Disputed / Unknown** — do not choose an answer.
+
+## Acceptance-criteria rules
+
+1. Every mandatory criterion must trace to established behaviour.
+2. Preserve upstream requirement and delivery status.
+3. Do not invent UI interaction, API payloads, endpoints, validation/error behaviour, retries, timeouts, notification mechanisms, permissions, architecture or test data.
+4. Use Given/When/Then only when precondition, action and expected outcome are all evidenced.
+5. A `Derived boundary` is allowed only when logically necessary from an established rule; label it explicitly.
+6. Already-paused behaviour remains Blocked/Conditional if the source establishes the condition but not its outcome. Do not invent skip/error/idempotent/reporting semantics.
+7. Candidate UI/API channels may be noted as unresolved scope; do not create detailed channel-specific criteria unless the chosen channel and behaviour are established.
+
+## Acceptance-criteria-only default output
+
+When only Stage 3 is requested, use:
+
+1. **Acceptance-criteria readiness**
+2. **Item/readiness map**
+3. **Acceptance criteria for Ready items**
+4. **Partially Ready / blocked criteria and open questions**
+5. **Candidate / conditional acceptance notes**
+6. **Planning / quality targets**
+7. **Deferred items**
+8. **Traceability summary**
+9. **Readiness for test-case elaboration**
+
+---
+
+# Full-lifecycle output
+
+For a request covering analysis + decomposition + acceptance criteria, return **one consolidated answer**, not three independent essays. Default structure:
 
 1. **Executive summary** — source-supported need and key unresolved decisions only.
 2. **Source register**.
 3. **Requirements register**.
 4. **Decisions / ambiguities / not established**.
-5. **Decomposition readiness** — Ready / Partially Ready / Not Ready, with explanation; Partially Ready does not mean stop.
+5. **Decomposition readiness**.
 6. **Implementation-ready delivery backlog** — source-supported current work only.
-7. **Decision / discovery items** — only genuinely required unresolved work.
+7. **Decision / discovery items** — only genuinely supported unresolved work.
 8. **Acceptance criteria** — grouped by delivery item, preserving blocked/conditional states.
 9. **Traceability summary** — Requirement → delivery item → acceptance criteria.
 10. **Open questions** — only questions that materially affect unresolved behaviour or scope.
 
-Do not add an Analyst Proposals section unless the user explicitly requests recommendations. Do not add speculative assumptions merely to populate a section.
+Do not add speculative Assumptions, Analyst Proposals, Risks, Dependencies or Spikes merely to populate sections.
 
 ## Mandatory compliance check
 
 Before answering, verify all of the following:
 
-- [ ] Every claimed actor, problem, benefit, rule, quality and authority is source-supported or explicitly labelled Proposed/Unknown.
-- [ ] No current-state workflow was inferred from the requested future capability.
+- [ ] Exactly the user-requested requirements stage(s) are being produced; no silent scope expansion.
+- [ ] Every claimed actor, current-state problem, benefit, rule, quality and authority is source-supported or explicitly labelled Unknown/Proposed where permitted.
+- [ ] A requested future capability was not used to invent a current workflow or current deficiency.
+- [ ] No manufactured assumptions about state fields, ID uniqueness, permissions or system architecture were added.
+- [ ] No unsolicited Analyst Proposals were added.
 - [ ] No UI/API decision was silently made.
 - [ ] No already-paused handling behaviour was invented.
-- [ ] No batch limit, permission model, error behaviour, performance target, logging/audit requirement or architecture was invented.
+- [ ] No batch limit, invalid-ID rule, permission model, error behaviour, performance target, logging/audit requirement or architecture was invented.
+- [ ] No speculative Spike, Dependency or Risk was created merely because an engineering concern is conceivable.
 - [ ] Candidate/Target/Unknown items were not upgraded to Confirmed or mandatory language.
-- [ ] Confirmed behaviour was decomposed even if unrelated downstream details remain unknown.
+- [ ] Confirmed behaviour was decomposed when decomposition was requested even if unrelated downstream details remain unknown.
 - [ ] Every backlog item traces upstream.
+- [ ] User-story benefits are omitted unless evidenced.
 - [ ] Every acceptance criterion traces to established behaviour and does not create new behaviour.
-- [ ] The response reaches all three requested stages in one consolidated answer.
+- [ ] For full-lifecycle requests, all requested stages appear in one consolidated answer without an intermediate stop.
+- [ ] No requirements-lifecycle `skill` tool call is necessary or requested by these instructions.
 
 If any check fails, revise before responding.
