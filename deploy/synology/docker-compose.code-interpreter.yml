@@ -4,6 +4,10 @@ version: "3.7"
 # The NAS has no /dev/kvm, so it NEVER executes model-generated code locally.
 # Code execution is dispatched through the hardened paired remote bridge to a
 # separate worker (initially WSL2 on Justin's Windows machine).
+#
+# Private env is split per service because hardened Code API explicitly rejects
+# egress-grant material in API/worker processes and execution-signing private
+# material does not belong in unrelated services.
 services:
   codeapi:
     build:
@@ -13,7 +17,7 @@ services:
     container_name: librechat-codeapi
     restart: unless-stopped
     env_file:
-      - /volume1/docker/librechat-code-interpreter-data/codeapi.env
+      - /volume1/docker/librechat-code-interpreter-data/api.env
     environment:
       SERVICE_PORT: "3112"
       EGRESS_GATEWAY_URL: http://egress:3190
@@ -48,7 +52,7 @@ services:
     container_name: librechat-codeapi-worker
     restart: unless-stopped
     env_file:
-      - /volume1/docker/librechat-code-interpreter-data/codeapi.env
+      - /volume1/docker/librechat-code-interpreter-data/worker.env
     environment:
       EGRESS_GATEWAY_URL: http://egress:3190
       REDIS_HOST: redis
@@ -73,7 +77,7 @@ services:
     container_name: librechat-codeapi-egress
     restart: unless-stopped
     env_file:
-      - /volume1/docker/librechat-code-interpreter-data/codeapi.env
+      - /volume1/docker/librechat-code-interpreter-data/egress.env
     environment:
       SERVICE_NAME: egress-gateway
       EGRESS_GATEWAY_PORT: "3190"
@@ -97,7 +101,7 @@ services:
     container_name: librechat-codeapi-tools
     restart: unless-stopped
     env_file:
-      - /volume1/docker/librechat-code-interpreter-data/codeapi.env
+      - /volume1/docker/librechat-code-interpreter-data/tools.env
     environment:
       TOOL_CALL_SERVER_PORT: "3033"
       TOOL_CALL_REQUEST_TIMEOUT: "300000"
@@ -117,7 +121,7 @@ services:
     container_name: librechat-codeapi-files
     restart: unless-stopped
     env_file:
-      - /volume1/docker/librechat-code-interpreter-data/codeapi.env
+      - /volume1/docker/librechat-code-interpreter-data/files.env
     environment:
       FILE_SERVER_PORT: "3000"
       MINIO_BUCKET: codeapi
@@ -137,7 +141,7 @@ services:
     container_name: librechat-codeapi-redis
     restart: unless-stopped
     env_file:
-      - /volume1/docker/librechat-code-interpreter-data/codeapi.env
+      - /volume1/docker/librechat-code-interpreter-data/redis.env
     command: ["sh", "-lc", "exec redis-server --requirepass \"$$REDIS_PASSWORD\""]
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
@@ -152,7 +156,7 @@ services:
     container_name: librechat-codeapi-minio
     restart: unless-stopped
     env_file:
-      - /volume1/docker/librechat-code-interpreter-data/codeapi.env
+      - /volume1/docker/librechat-code-interpreter-data/minio.env
     command: server /data --console-address ":9001"
     volumes:
       - codeapi-minio-data:/data
