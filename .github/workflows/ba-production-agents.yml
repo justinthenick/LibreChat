@@ -6,8 +6,10 @@ on:
       - 'custom/ba-agent/production/**'
       - 'custom/ba-agent/benchmarks/039-o001-ba-release-handoff/**'
       - 'config/seed-production-agents.js'
+      - 'config/patch-atomic-skill-chain.js'
       - 'deploy/synology/docker-compose.yml'
       - '.github/workflows/ba-production-agents.yml'
+      - '.github/workflows/ba-runtime-image.yml'
   push:
     branches:
       - 'feature/ba-release-production-agents-v0.1'
@@ -15,12 +17,15 @@ on:
       - 'fix/synology-pin-compatible-librechat-image'
       - 'fix/production-agent-openrouter-endpoint'
       - 'fix/ba-chain-preload-regression'
+      - 'fix/atomic-multiskill-loader'
     paths:
       - 'custom/ba-agent/production/**'
       - 'custom/ba-agent/benchmarks/039-o001-ba-release-handoff/**'
       - 'config/seed-production-agents.js'
+      - 'config/patch-atomic-skill-chain.js'
       - 'deploy/synology/docker-compose.yml'
       - '.github/workflows/ba-production-agents.yml'
+      - '.github/workflows/ba-runtime-image.yml'
 
 jobs:
   validate:
@@ -35,6 +40,15 @@ jobs:
           python-version: '3.11'
       - name: Validate seeder JavaScript syntax
         run: node --check config/seed-production-agents.js
+      - name: Validate atomic multi-skill overlay syntax and anchors
+        run: |
+          node --check config/patch-atomic-skill-chain.js
+          node config/patch-atomic-skill-chain.js --tests
+          grep -q 'BA_ATOMIC_MULTI_SKILL_V1' packages/api/src/agents/skills.ts
+          grep -q 'BA_ATOMIC_MULTI_SKILL_V1' packages/api/src/agents/handlers.ts
+          grep -q 'BA_ATOMIC_MULTI_SKILL_TEST_V1' packages/api/src/agents/handlers.spec.ts
+          grep -q 'skillNames' packages/api/src/agents/skills.ts
+          grep -q 'loaded in dependency order' packages/api/src/agents/handlers.ts
       - name: Validate production manifests and bounded scope
         run: |
           python - <<'PY'
@@ -68,21 +82,20 @@ jobs:
 
           supervisor = manifests['agent_ba_supervisor_v01']
           release = manifests['agent_release_change_assurance_v01']
-          assert supervisor['version'] == '0.1.2'
+          assert supervisor['version'] == '0.1.3'
           assert release['version'] == '0.1.1'
           assert supervisor['subagents']['enabled'] is True
           assert supervisor['subagents']['agent_ids'] == ['agent_release_change_assurance_v01']
           assert 'subagents' not in release, 'Release Assurance must not recursively expose production subagents'
 
           supervisor_instructions = supervisor['instructions']
-          assert 'decide the complete minimum chain before producing substantive user-visible content' in supervisor_instructions
-          assert 'Invoke every selected skill consecutively in dependency order before emitting' in supervisor_instructions
-          assert 'Treat the loaded skill instructions as cumulative constraints for one consolidated answer' in supervisor_instructions
-          assert 'Do not emit a complete intermediate analysis and only then load the next already-required skill' in supervisor_instructions
-          assert 'do not replace them with a vague summary that loses traceability' in supervisor_instructions
+          assert 'When exactly one validated skill is required' in supervisor_instructions
+          assert 'invoke the skill tool with skillName' in supervisor_instructions
+          assert 'invoke the skill tool exactly once using skillNames' in supervisor_instructions
+          assert 'Do not split an already-selected multi-skill chain into separate skill tool calls' in supervisor_instructions
+          assert 'atomic multi-skill loader resolves the complete list before injecting any skill' in supervisor_instructions
           assert 'Do not create new actors, benefits, non-functional requirements, assumptions' in supervisor_instructions
           assert 'None identified from supplied evidence or Unknown' in supervisor_instructions
-          assert 'Do not stop between already-requested stages merely to ask whether to continue' in supervisor_instructions
           assert 'invoke the Release / Change Assurance subagent' in supervisor_instructions
           assert 'Do not substitute prepare-solution-change-readiness' in supervisor_instructions
           assert 'must not be promoted into mandatory gates' in supervisor_instructions
@@ -138,6 +151,7 @@ jobs:
 
           seeder = Path('config/seed-production-agents.js').read_text()
           compose = Path('deploy/synology/docker-compose.yml').read_text()
+          overlay = Path('config/patch-atomic-skill-chain.js').read_text()
 
           assert "edgeType: 'handoff'" in seeder
           assert "from: workflow.from_agent" in seeder
@@ -146,22 +160,17 @@ jobs:
           assert 'handoff edges differ from validated production workflow' in seeder
           assert 'subagents: manifest.subagents' in seeder
           assert 'BA Supervisor validated production subagent wiring was not persisted' in seeder
-
-          # The pinned runtime indexes model catalogues by the configured custom
-          # endpoint name. Persisting the internal provider id `openrouter`
-          # causes seeded agents to look up a non-existent catalogue key.
           assert "const OPENROUTER_ENDPOINT_NAME = 'OpenRouter';" in seeder
           assert 'return OPENROUTER_ENDPOINT_NAME;' in seeder
           assert 'Providers.OPENROUTER' not in seeder
 
-          compatible_image = 'image: librechat/lc-dev:cdd4c09076aa43ae9d94bba8f43c55ee35c181d5'
-          assert compatible_image in compose, (
-              'Synology API image must stay pinned to the runtime commit validated for '
-              'deployment-skill external IDs and native handoff edges'
-          )
-          assert 'image: registry.librechat.ai/danny-avila/librechat:latest' not in compose, (
-              'stable latest lacks the deployment-skill external-ID contract required by the seeder'
-          )
+          assert 'BA_ATOMIC_MULTI_SKILL_V1' in overlay
+          assert 'skillNames' in overlay
+          assert 'Resolve and validate the complete chain first' in overlay
+          assert 'loaded in dependency order' in overlay
+          assert 'BA_ATOMIC_MULTI_SKILL_TEST_V1' in overlay
+
+          assert 'image: registry.librechat.ai/danny-avila/librechat:latest' not in compose
           assert 'DEPLOYMENT_SKILLS_DIR: /app/deployment-skills' in compose
           assert 'PRODUCTION_AGENTS_DIR: /app/production-agents' in compose
           assert '/volume1/docker/librechat/config/seed-production-agents.js:/app/config/seed-production-agents.js:ro' in compose
