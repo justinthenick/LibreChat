@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "benchmark": "Benchmark 040 — Release Decision Semantics",
+  "generation_job": "b040-g37-release-decision-semantics-v03-ab-001",
+  "semantic_job": "sem-b040-release-decision-semantics-g37-001",
+  "generation_model": "gemini-3.7-flash",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-08T12:02:23Z",
+  "baseline_final_score": 100,
+  "skill_final_score": 100,
+  "baseline_gap": 0,
+  "critical_penalties": 0,
+  "defects": 0,
+  "gate_passed": true,
+  "tested_skill_version": "0.3.0",
+  "tested_skill_sha256": "ed578bbb25c521b31bb6390c358227745396c3ff82009745a8ee40163ce25dee",
+  "source_lab_branch": "feature/ba-agent-v0.1",
+  "source_lab_commit": "a86c1648f03e04b8e25fb66e9825668635c9c5e7",
+  "source_evaluation_path": "custom/ba-agent/benchmarks/040-release-decision-semantics/results/sem-b040-release-decision-semantics-g37-001-semantic-evaluation.md",
+  "activation_note": "Release / Change Assurance v0.1.2 promotion is based on a genuine B040 semantic evaluation: baseline 100/100, skill 100/100, zero critical penalties, gate PASS. Production semantics preserve the tested pre-deployment decision framing, provenance discipline, failed-evidence-vs-gate distinction, future-phase discipline and Unknown-authority handling."
+}
