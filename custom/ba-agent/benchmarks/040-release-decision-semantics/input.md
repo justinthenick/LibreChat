@@ -9,7 +9,7 @@ A change is planned for production deployment on Friday.
 Supplied facts and assertions:
 - Implementation status summary: **Complete**. No implementation completion artifact is supplied.
 - Test deployment: development reports deployment succeeded in the test environment. No deployment log or independent execution record is supplied.
-- UAT status summary: **8 sample inspections passed**. No underlying UAT report, named test results, screenshots or execution records are supplied.
+- UAT status summary: **8 sample inspections passed**. no underlying UAT report, named test results, screenshots or execution records are supplied.
 - No evidence is supplied that the 8 samples constitute the complete required acceptance scope.
 - A diagnostic compatibility check reports **FAILED** for an optional legacy browser. The supplied packet does **not** identify this diagnostic, that browser, or its result as an acceptance criterion, release gate or supported production requirement.
 - Production deployment: **planned for Friday; not yet executed**.
