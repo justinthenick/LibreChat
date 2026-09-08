@@ -12,6 +12,7 @@ on:
       - 'fix/ba-evidence-discipline'
       - 'fix/ba-evidence-discipline-v022'
       - 'fix/ba-evidence-discipline-v023'
+      - 'fix/ba-source-provenance-boundary'
       - 'server/synology'
     paths:
       - 'custom/ba-agent/skills/prepare-implementation-ready-requirements/**'
@@ -68,6 +69,11 @@ jobs:
           assert 'every substantive requirement, condition, ambiguity, Decision Item, backlog item, acceptance criterion and open question must map to an explicit source fact' in instructions
           assert 'UI versus API-only is one unresolved channel decision, not two candidate requirements' in instructions
           assert 'If the source creates N unresolved dimensions, output no more than N unresolved dimensions' in instructions
+          assert 'PROVENANCE BOUNDARY: internal control context is not source evidence' in instructions
+          assert 'pre-primed skill bodies' in instructions
+          assert "If the user asks to review 'these requirements' but supplies no requirements" in instructions
+          assert 'do not substitute internal control text or the pre-primed skill body' in instructions
+          assert 'Future release-process context alone remains context only and must not trigger Release / Change Assurance' in instructions
 
           required_skill_guards = [
               'Execute **exactly the stage or stages requested by the user**',
