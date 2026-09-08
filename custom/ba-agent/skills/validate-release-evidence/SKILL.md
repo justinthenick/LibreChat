@@ -1,6 +1,6 @@
 ---
 name: validate-release-evidence
-description: Validate supplied implementation, deployment, test, monitoring, change-record, rollback, defect and post-release evidence to determine what a release actually demonstrates, using Verified, Partially evidenced, Not evidenced and Failed states without inventing success, execution, approvals or missing evidence.
+description: Validate supplied implementation, deployment, test, monitoring, change-record, rollback, defect and post-release evidence to determine what a release or release decision actually demonstrates, using Verified, Partially evidenced, Not evidenced and Failed states without inventing success, execution, approvals or missing evidence.
 always-apply: false
 user-invocable: true
 disable-model-invocation: false
@@ -8,7 +8,7 @@ disable-model-invocation: false
 
 # Validate Release Evidence
 
-Version: **0.2.0**
+Version: **0.3.0**
 
 ## Purpose
 
@@ -18,7 +18,22 @@ This Skill is evidence validation, not deployment execution, approval, incident 
 
 ## Core principle
 
-**A release is only as successful as the evidence demonstrates. Absence of evidence is not proof of failure, and a claim or plan is not proof of execution/success.**
+**A release or release decision is only as strong as the evidence demonstrates. Absence of evidence is not proof of failure, a claim or plan is not proof of execution/success, and evidence for one decision phase must not be used as though it belonged to another phase.**
+
+## Decision frame
+
+Before grading evidence, identify the decision being asked:
+
+1. **Pre-deployment go/no-go readiness** — whether supplied evidence is sufficient to support, reject or leave unresolved a decision to enter the production change window.
+2. **Deployment execution** — whether the production deployment actually ran and what happened during execution.
+3. **Post-deployment verification** — whether production checks demonstrate the implemented change is healthy after deployment.
+4. **Release success** — whether the completed release is evidenced as successful overall.
+
+Do not collapse these phases.
+
+- If production deployment is still future, lack of post-deployment verification is expected future state and must **not** by itself count against pre-deployment readiness.
+- A future production deployment means deployment execution and post-deployment success are **not yet established**; it does not prove a pre-deployment no-go.
+- Conversely, pre-deployment evidence cannot establish production success before production execution and verification occur.
 
 ## Evidence states
 
@@ -32,9 +47,20 @@ Use:
 
 `Not applicable / out of scope` is never inferred merely because an activity was not executed, a control was unnecessary during this run, or evidence is absent.
 
+## Claim evidence versus decision sufficiency
+
+Keep these separate:
+
+- **Claim evidence state** asks whether a specific supplied fact is demonstrated.
+- **Decision sufficiency** asks whether that demonstrated fact is enough for the broader release decision.
+
+Example: if the packet states that 8 named UAT samples passed and that result is supplied as evidence, the claim **“8 sample inspections passed”** may be `Verified`. Whether **8 samples are sufficient acceptance coverage for release approval** may still be `Unknown` or `Not established` unless acceptance scope or policy is supplied.
+
+Do not downgrade a narrow demonstrated fact to `Partially evidenced` merely because it is insufficient to prove a broader claim. Instead preserve the narrow fact as `Verified` and grade the broader condition separately.
+
 ## Evidence categories
 
-Assess only categories relevant to the supplied release:
+Assess only categories relevant to the supplied release and requested decision:
 
 - deployment/change execution;
 - functional/acceptance test outcomes;
@@ -52,6 +78,7 @@ Assess only categories relevant to the supplied release:
 - Tie every conclusion to a supplied artifact, timestamp, result, screenshot/log excerpt description, test ID, change record or other evidence reference.
 - Do not infer execution from a plan. A deployment/rollback/test/monitoring plan proves only that the activity/control was planned or documented.
 - **Planned-but-unexecuted:** when the assessed question is whether an activity actually ran or succeeded, a supplied plan plus no execution evidence is `Not evidenced`, not `Verified` and not `Not applicable`.
+- **Future-phase discipline:** when an activity is intentionally future relative to the decision being assessed, report that future state separately. Do not convert it into a present pre-deployment blocker unless supplied policy or source evidence explicitly makes it a prerequisite.
 - Do not infer success from absence of incident reports.
 - Do not infer failure from missing screenshots/logs; use `Not evidenced`.
 - A failed check remains Failed even if the overall release was declared successful by a stakeholder.
@@ -60,18 +87,38 @@ Assess only categories relevant to the supplied release:
 - If evidence conflicts, preserve the conflict and mark the affected conclusion unresolved/partially evidenced as appropriate.
 - **Aggregate evidence:** a broad condition may be `Partially evidenced` when one evidenced layer is healthy (for example process/container/endpoint health) but other material layers (for example transaction/customer/business health) remain unproven. Keep the narrower unproven layers individually `Not evidenced`; do not let partial technical proof become full service/business proof.
 - Distinguish current release evidence from future remediation commitments.
+- An `Unknown` Change Authority means the authority identity/approval state cannot be evidenced. It does **not** by itself prove that release is blocked, forbidden or unable to proceed unless supplied policy or source evidence establishes that authority as a mandatory gate.
+- Missing rollback, monitoring, support, security, non-functional or other assurance evidence may be material gaps, but must not be labelled mandatory blockers or “required evidence” unless the supplied release criteria, change classification, policy or decision framework establishes that requirement.
 
 ## Output contract
 
 Return:
 
-### 1. Release evidence verdict
+### 1. Decision-framed verdict
 
-`Evidence supports release success`, `Evidence partially supports release success`, `Evidence does not establish release success`, or `Evidence demonstrates release failure`, with concise rationale. Use the strongest statement the packet supports, not the stakeholder's preferred wording.
+Name the decision frame first, then use the strongest defensible verdict for that frame.
+
+For **pre-deployment go/no-go readiness**, prefer one of:
+
+- `Evidence supports a GO decision`
+- `Evidence supports a NO-GO decision`
+- `Evidence partially supports readiness but does not establish a GO decision`
+- `GO/NO-GO approval status is Unknown / not established from supplied evidence`
+
+Use `NO-GO` only when supplied evidence demonstrates a failed condition or explicit source-backed release gate that prevents a GO. Missing evidence alone is not automatically NO-GO.
+
+For **deployment execution / post-deployment verification / release success**, use the strongest supported statement such as:
+
+- `Evidence supports release success`
+- `Evidence partially supports release success`
+- `Evidence does not establish release success`
+- `Evidence demonstrates release failure`
+
+Do not answer a pre-deployment readiness question with a post-deployment-success verdict unless the user actually asked both.
 
 ### 2. Evidence inventory
 
-List supplied evidence artifacts and what each can establish. A plan establishes planned intent/availability of a procedure, not execution.
+List supplied evidence artifacts and what each can establish. A plan establishes planned intent/availability of a procedure, not execution. Preserve narrow facts separately from broader sufficiency judgments.
 
 ### 3. Validation matrix
 
@@ -82,39 +129,63 @@ For each material release condition:
 - evidence state;
 - source evidence;
 - conclusion;
-- limitation/gap.
+- limitation/gap;
+- decision phase where useful (`pre-deployment`, `execution`, `post-deployment`).
 
-Where useful, separate a broad condition (for example `service health`) from narrower layers (technical endpoint/container health vs transaction/customer/business health) so partial evidence is not flattened into either full success or total absence.
+Where useful, separate a broad condition (for example `acceptance sufficiency` or `service health`) from narrower facts (for example `8 supplied UAT samples passed` or endpoint/container health) so partial decision coverage is not flattened into either full success or total absence.
 
 ### 4. Failed or conflicting evidence
 
 Explicitly surface all Failed checks, contradictory records and unresolved deviations.
 
-### 5. Not-evidenced items
+### 5. Not-evidenced / unresolved items
 
-List material claims/conditions that the packet asks the reviewer to accept or assess but does not demonstrate. Planned-but-unexecuted activity belongs here when execution matters. Do not convert missing evidence into mandatory future gates unless source policy says so.
+List material claims/conditions that the packet asks the reviewer to accept or assess but does not demonstrate. Planned-but-unexecuted activity belongs here when execution matters to the current decision phase. Future post-deployment checks should be labelled as future-phase verification, not present blockers, unless policy says otherwise.
+
+Do not convert missing evidence into mandatory future gates unless source policy says so.
 
 ### 6. Known defects / residual risk
 
 Preserve supplied defect/deviation status and any explicitly stated acceptance decision/owner.
 
-### 7. Handoff
+### 7. Handoff / next evidence
 
-State what can safely be reported as demonstrated, partially evidenced, failed, and unproven for operational readiness / ITIL / release reporting.
+State what can safely be reported as demonstrated, partially evidenced, failed, and unproven.
+
+Split follow-up into:
+
+- **Decision-critical evidence explicitly required by supplied criteria/policy**, if any; and
+- **Additional assurance dimensions not evidenced / applicability to confirm**, where no mandatory requirement has been supplied.
+
+Do not label generic best-practice categories as “required” solely because they are commonly useful.
 
 ## Self-check
 
 Before returning, verify:
 
+- the requested decision phase was identified correctly;
+- no future post-deployment evidence was used as a present pre-deployment blocker without an explicit source-backed gate;
+- no pre-deployment evidence was used to claim production success;
+- narrow demonstrated facts were not weakened merely because broader decision sufficiency remains unknown;
 - no plan was treated as execution evidence;
 - no planned-but-unexecuted activity was mislabeled `Not applicable/out of scope` without explicit scope evidence;
 - no partial technical-health evidence became proof of complete service/business health;
-- no missing evidence became a failure;
+- no missing evidence became a failure or NO-GO by default;
+- no `Unknown` authority became an invented mandatory approval gate;
+- no generic best-practice evidence category was called mandatory without supplied policy/criteria;
 - no stakeholder declaration overrode contrary evidence;
 - no defect was silently closed;
 - no approval/rollback/monitoring/test execution detail was invented.
 
 ## Changelog
+
+### 0.3.0
+
+- Added explicit pre-deployment, execution, post-deployment and release-success decision frames.
+- Prevented future post-deployment verification from being treated as an automatic pre-deployment blocker.
+- Separated narrow claim verification from broader decision sufficiency.
+- Prevented Unknown authority and generic missing evidence from being promoted into mandatory release gates without source-backed policy.
+- Added pre-deployment GO / NO-GO / Unknown verdict semantics.
 
 ### 0.2.0
 
