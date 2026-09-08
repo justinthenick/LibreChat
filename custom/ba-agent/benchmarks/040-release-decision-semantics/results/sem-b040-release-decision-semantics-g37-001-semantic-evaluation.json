@@ -1,0 +1,234 @@
+{
+  "schema": 1,
+  "job_id": "sem-b040-release-decision-semantics-g37-001",
+  "benchmark": "Benchmark 040 — Release Decision Semantics",
+  "benchmark_path": "custom/ba-agent/benchmarks/040-release-decision-semantics",
+  "evaluator_model": "gemini-3.7-flash",
+  "evaluated_at": "2026-09-08T12:02:19Z",
+  "baseline_result": "results/b040-g37-release-decision-semantics-v03-ab-001-gemini-3.7-flash-baseline-01.md",
+  "skill_result": "results/b040-g37-release-decision-semantics-v03-ab-001-gemini-3.7-flash-skill-01.md",
+  "skill_path": "custom/ba-agent/skills/validate-release-evidence/SKILL.md",
+  "skill_sha256": "ed578bbb25c521b31bb6390c358227745396c3ff82009745a8ee40163ce25dee",
+  "generation_metadata": {
+    "baseline": {
+      "api_key_source": "GOOGLE_KEY",
+      "benchmark": "Benchmark 040 — Release Decision Semantics",
+      "benchmark_dir": "040-release-decision-semantics",
+      "ended_at": "2026-09-08T12:00:17Z",
+      "error": null,
+      "finish_reason": "STOP",
+      "github_source": {
+        "branch": "feature/ba-agent-v0.1",
+        "refreshed": false,
+        "repo": "justinthenick/LibreChat"
+      },
+      "http_status": 200,
+      "input_sha256": "e6d1042921b81270565b611f9c32ef377665fcaa06d2bcc9db4d352c838ea08e",
+      "iteration": 1,
+      "max_output_tokens": 8192,
+      "mode": "baseline",
+      "model": "gemini-3.7-flash",
+      "prompt_sha256": "e0b0b546e7ac828aa8ebd162869a64d4e72b3844956cb485d8327acf265b905b",
+      "provider": "gemini",
+      "runner_python": "3.8.12",
+      "schema": 2,
+      "skill_path": null,
+      "skill_sha256": null,
+      "skill_version": null,
+      "started_at": "2026-09-08T12:00:10Z",
+      "status": "success",
+      "temperature": 0.0,
+      "usage": {
+        "candidatesTokenCount": 636,
+        "promptTokenCount": 623,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 623
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 801,
+        "totalTokenCount": 2060
+      }
+    },
+    "skill": {
+      "api_key_source": "GOOGLE_KEY",
+      "benchmark": "Benchmark 040 — Release Decision Semantics",
+      "benchmark_dir": "040-release-decision-semantics",
+      "ended_at": "2026-09-08T12:00:25Z",
+      "error": null,
+      "finish_reason": "STOP",
+      "github_source": {
+        "branch": "feature/ba-agent-v0.1",
+        "refreshed": false,
+        "repo": "justinthenick/LibreChat"
+      },
+      "http_status": 200,
+      "input_sha256": "e6d1042921b81270565b611f9c32ef377665fcaa06d2bcc9db4d352c838ea08e",
+      "iteration": 1,
+      "max_output_tokens": 8192,
+      "mode": "skill",
+      "model": "gemini-3.7-flash",
+      "prompt_sha256": "e0b0b546e7ac828aa8ebd162869a64d4e72b3844956cb485d8327acf265b905b",
+      "provider": "gemini",
+      "runner_python": "3.8.12",
+      "schema": 2,
+      "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/validate-release-evidence/SKILL.md",
+      "skill_sha256": "ed578bbb25c521b31bb6390c358227745396c3ff82009745a8ee40163ce25dee",
+      "skill_version": "0.3.0",
+      "started_at": "2026-09-08T12:00:17Z",
+      "status": "success",
+      "temperature": 0.0,
+      "usage": {
+        "candidatesTokenCount": 1765,
+        "promptTokenCount": 3195,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3195
+          }
+        ],
+        "serviceTier": "standard",
+        "thoughtsTokenCount": 376,
+        "totalTokenCount": 5336
+      }
+    }
+  },
+  "evaluation": {
+    "baseline": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Correct decision frame",
+          "score": 15,
+          "max": 15,
+          "rationale": "Explicitly frames the assessment as pre-deployment go/no-go readiness prior to Friday execution."
+        },
+        {
+          "criterion": "GO / NO-GO semantics",
+          "score": 20,
+          "max": 20,
+          "rationale": "Correctly concludes that neither GO nor NO-GO is established based on the supplied evidence."
+        },
+        {
+          "criterion": "UAT provenance and sufficiency",
+          "score": 15,
+          "max": 15,
+          "rationale": "Treats the 8 sample inspections as a partially evidenced assertion without underlying logs, and keeps acceptance scope sufficiency unknown."
+        },
+        {
+          "criterion": "Failed evidence vs gate applicability",
+          "score": 15,
+          "max": 15,
+          "rationale": "Preserves the diagnostic failure as Failed while noting that gate applicability is not established, refusing to default to NO-GO."
+        },
+        {
+          "criterion": "Future-phase discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Treats production deployment and post-deployment verification as future lifecycle phases rather than present blockers."
+        },
+        {
+          "criterion": "Authority discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Identifies Change Authority as Unknown without fabricating mandatory approval rules or treating it as a blocker."
+        },
+        {
+          "criterion": "Generic-gap discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Recognizes rollback, monitoring, and security as unmandated omissions rather than inventing mandatory blocking criteria."
+        },
+        {
+          "criterion": "Evidence-state clarity",
+          "score": 5,
+          "max": 5,
+          "rationale": "Clearly breaks down items into Verified, Reported/Partially Evidenced, Failed, Future-Phase, and Unknown."
+        }
+      ],
+      "summary": "Baseline meets all rubric requirements cleanly, correctly concluding that neither GO nor NO-GO is established without converting missing artifacts or non-gating failures into mandatory blockers."
+    },
+    "skill": {
+      "raw_score": 100,
+      "critical_penalties": [],
+      "final_score": 100,
+      "criteria": [
+        {
+          "criterion": "Correct decision frame",
+          "score": 15,
+          "max": 15,
+          "rationale": "Explicitly identifies the decision frame as pre-deployment go/no-go readiness."
+        },
+        {
+          "criterion": "GO / NO-GO semantics",
+          "score": 20,
+          "max": 20,
+          "rationale": "Concludes that GO/NO-GO approval status is Unknown/not established from the supplied evidence."
+        },
+        {
+          "criterion": "UAT provenance and sufficiency",
+          "score": 15,
+          "max": 15,
+          "rationale": "Classifies the 8 sample inspections as partially evidenced/reported and explicitly separates narrow test claims from unknown acceptance scope sufficiency."
+        },
+        {
+          "criterion": "Failed evidence vs gate applicability",
+          "score": 15,
+          "max": 15,
+          "rationale": "Preserves the failed compatibility check as a technical failure while clearly noting gate applicability is not established."
+        },
+        {
+          "criterion": "Future-phase discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Maintains strict future-phase discipline for production deployment execution and post-deployment verification."
+        },
+        {
+          "criterion": "Authority discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Reports Change Authority as Unknown without creating an artificial approval blocker."
+        },
+        {
+          "criterion": "Generic-gap discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Appropriately categorizes rollback, telemetry, and operational checks as unevidenced additional assurance dimensions whose necessity must be confirmed by local authority, rather than mandatory gates."
+        },
+        {
+          "criterion": "Evidence-state clarity",
+          "score": 5,
+          "max": 5,
+          "rationale": "Provides an exhaustive, highly structured evidence inventory and validation matrix clearly distinguishing demonstrated, reported, and not-evidenced states."
+        }
+      ],
+      "summary": "The skill output follows the required release evidence validation structure rigorously, correctly arriving at an Unknown/neither GO nor NO-GO verdict while maintaining precise evidence provenance and gating discipline."
+    },
+    "defects": [],
+    "summary": "Both baseline and skill performed exceptionally well, achieving perfect rubric scores. Both correctly deduced that neither GO nor NO-GO is established, preserved the diagnostic failure without inventing gating rules, maintained future-phase discipline, and separated narrow reported claims from acceptance sufficiency."
+  },
+  "gate": {
+    "passed": true,
+    "min_score": 90,
+    "max_baseline_gap": 10,
+    "zero_critical_required": true,
+    "reasons": []
+  },
+  "usage": {
+    "promptTokenCount": 5795,
+    "candidatesTokenCount": 1226,
+    "totalTokenCount": 7863,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 5795
+      }
+    ],
+    "thoughtsTokenCount": 842,
+    "serviceTier": "standard"
+  }
+}
