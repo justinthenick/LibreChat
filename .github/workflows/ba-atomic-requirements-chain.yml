@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - 'fix/ba-single-requirements-capability'
+      - 'fix/ba-evidence-discipline'
       - 'server/synology'
     paths:
       - 'custom/ba-agent/skills/prepare-implementation-ready-requirements/**'
@@ -43,8 +44,6 @@ jobs:
           configured = {entry['name']: entry['id'] for entry in manifest['skills']}
           assert configured.get(skill_name) == expected_id
 
-          # The requirements lifecycle is deterministic: one always-primed capability,
-          # and no model-callable component skills remain on BA Supervisor.
           component_names = [
               'analyze-requirements',
               'decompose-requirements',
@@ -76,11 +75,14 @@ jobs:
               'does not prove users currently process items one-by-one',
               'Do not invent skip/error/idempotent/reporting semantics',
               'No requirements-lifecycle `skill` tool call is necessary or requested by these instructions',
+              'do not introduce invalid/missing/duplicate ID handling',
+              'Absence of evidence is not itself evidence that a topic belongs in scope',
+              'Do not add qualifiers such as valid, eligible, authorized, existing, well-formed or processable unless supplied evidence establishes them',
+              'No adjacent engineering concern was turned into a gap, Open Question, Decision Item, Not Established item, Risk, Dependency, Candidate scope or conditional AC merely because it is commonly relevant',
           ]
           for guard in required_skill_guards:
               assert guard in skill, f'missing lifecycle guard: {guard}'
 
-          # Stage-specific behavior must remain available inside the same deterministic body.
           assert '**Analysis-only** — perform Stage 1 only' in skill
           assert '**Decomposition-only**' in skill
           assert '**Acceptance-criteria-only**' in skill
@@ -89,13 +91,11 @@ jobs:
           assert '# Stage 2 — Delivery decomposition' in skill
           assert '# Stage 3 — Acceptance criteria' in skill
 
-          # Prime before generation and remove both manual/model invocation paths.
           assert re.search(r'^name:\s*prepare-implementation-ready-requirements\s*$', skill, re.M)
           assert re.search(r'^always-apply:\s*true\s*$', skill, re.M)
           assert re.search(r'^user-invocable:\s*false\s*$', skill, re.M)
           assert re.search(r'^disable-model-invocation:\s*true\s*$', skill, re.M)
 
-          # Other downstream capabilities stay callable.
           assert configured['derive-test-cases'] == '0fbc78469a3d76551ca0fb31'
           assert configured['prepare-solution-change-readiness'] == 'a7bcbb732fdc5f370e0e710c'
           assert configured['assess-itil-alignment'] == '4388c6e1d8daec32d2207f47'
