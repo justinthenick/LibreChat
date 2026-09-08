@@ -70,20 +70,24 @@ preflight() {
     log "ERROR: LibreChat Docker network $SHARED_NETWORK does not exist"
     return 1
   }
-  if [ ! -c /dev/kvm ]; then
-    log "ERROR: /dev/kvm is unavailable. Refusing weaker host-kernel NsJail fallback."
+  # The NAS deliberately has no local sandbox requirement. User-generated code
+  # is executed only by the separately paired remote bridge worker.
+  grep -q '^CODEAPI_SANDBOX_BACKEND=remote-bridge$' "$ENV_FILE" || {
+    log "ERROR: Code Interpreter backend is not pinned to remote-bridge"
     return 1
-  fi
-  if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
-    # The deployment runs as root on Synology, so this normally succeeds. Keep
-    # the explicit check because a device can exist but still be unusable.
-    log "ERROR: /dev/kvm exists but is not readable/writable by the deployment task"
+  }
+  grep -q '^CODEAPI_EXECUTION_PROFILE=stateful$' "$ENV_FILE" || {
+    log "ERROR: Code Interpreter execution profile is not stateful"
     return 1
-  fi
+  }
+  grep -q '^CODEAPI_BRIDGE_AUTH_MODE=paired$' "$ENV_FILE" || {
+    log "ERROR: Code Interpreter bridge authentication is not paired"
+    return 1
+  }
 }
 
 images_ready() {
-  for SERVICE in codeapi worker egress tools sandbox files; do
+  for SERVICE in codeapi worker egress tools files; do
     ID="$(code_compose images -q "$SERVICE" 2>/dev/null | head -n 1 || true)"
     [ -n "$ID" ] || return 1
   done
@@ -91,7 +95,7 @@ images_ready() {
 }
 
 build_images() {
-  log "Building pinned Code Interpreter images; the first KVM build can take a while"
+  log "Building pinned Code Interpreter control-plane images"
   code_compose build
   printf '%s\n' "$SOURCE_SHA" > "$BUILD_MARKER.tmp"
   chmod 0600 "$BUILD_MARKER.tmp"
@@ -109,17 +113,14 @@ check() {
     librechat-codeapi-worker \
     librechat-codeapi-egress \
     librechat-codeapi-tools \
-    librechat-codeapi-sandbox \
     librechat-codeapi-files \
     librechat-codeapi-redis \
     librechat-codeapi-minio; do
     container_running "$C" || return 1
   done
 
-  [ "$(docker inspect -f '{{.State.Health.Status}}' librechat-codeapi-sandbox 2>/dev/null || true)" = "healthy" ] || return 1
-
-  # Validate the exact network path LibreChat will use. The health route does
-  # not require a model-generated token; execution itself remains JWT gated.
+  # Validate the exact Docker-internal path LibreChat uses. Remote worker
+  # readiness is checked separately because the worker may intentionally be off.
   docker exec librechat node -e '
     const http=require("http");
     const r=http.get("http://librechat-codeapi:3112/v1/health",x=>process.exit(x.statusCode>=200&&x.statusCode<300?0:1));
@@ -128,12 +129,25 @@ check() {
   ' >/dev/null 2>&1
 }
 
+worker_ready() {
+  # The fixed worker registration is intentionally checked through Code API,
+  # not by reaching into Redis directly. A missing/offline worker is a safe
+  # unavailable state, not a reason to weaken execution policy.
+  TOKEN="$(sed -n 's/^CODEAPI_BRIDGE_TOKEN=//p' "$ENV_FILE" | head -n 1)"
+  [ -n "$TOKEN" ] || return 1
+  docker run --rm --network host \
+    -e CODEAPI_BRIDGE_TOKEN="$TOKEN" \
+    curlimages/curl:8.10.1 \
+    -fsS -H "Authorization: Bearer $TOKEN" \
+    http://127.0.0.1:3112/v1/bridge/workers >/dev/null 2>&1
+}
+
 wait_ready() {
   COUNT=0
   until check; do
     COUNT=$((COUNT+1))
     if [ "$COUNT" -ge 36 ]; then
-      log "ERROR: Code Interpreter did not become healthy after 180 seconds"
+      log "ERROR: Code Interpreter control plane did not become healthy after 180 seconds"
       return 1
     fi
     sleep 5
@@ -150,10 +164,10 @@ reconcile() {
   if ! images_ready; then
     build_images
   fi
-  log "Reconciling Code Interpreter containers"
+  log "Reconciling Code Interpreter remote-bridge control plane"
   code_compose up -d --remove-orphans
   wait_ready
-  log "Code Interpreter healthy at source $SOURCE_SHA"
+  log "Code Interpreter control plane healthy at source $SOURCE_SHA"
 }
 
 status() {
@@ -163,7 +177,8 @@ status() {
   else
     printf 'source_checkout=missing\n'
   fi
-  if check; then printf 'runtime=healthy\n'; else printf 'runtime=not_ready\n'; fi
+  if check; then printf 'control_plane=healthy\n'; else printf 'control_plane=not_ready\n'; fi
+  if worker_ready; then printf 'remote_worker_endpoint=reachable\n'; else printf 'remote_worker_endpoint=not_verified\n'; fi
 }
 
 down() {
