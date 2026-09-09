@@ -1,0 +1,228 @@
+{
+  "schema": 1,
+  "job_id": "b042-v024-cross-model-eval-g38-002",
+  "benchmark": "Benchmark 042 — Multi-Source BA Model Comparison",
+  "benchmark_path": "custom/ba-agent/benchmarks/042-multisource-ba-model-comparison",
+  "evaluated_at": "2026-09-09T08:55:54Z",
+  "evaluator_model": "gemini-3.8-flash",
+  "left_result": "results/b042-g37-multisource-ba-v024-009-gemini-3.7-flash-skill-01.md",
+  "right_result": "results/b042-g38-multisource-ba-v024-008-gemini-3.8-flash-skill-01.md",
+  "left_metadata": {
+    "api_key_source": "GOOGLE_KEY",
+    "benchmark": "Benchmark 042 — Multi-Source BA Model Comparison",
+    "benchmark_dir": "042-multisource-ba-model-comparison",
+    "ended_at": "2026-09-09T08:48:14Z",
+    "error": null,
+    "finish_reason": "STOP",
+    "github_source": {
+      "branch": "feature/ba-agent-v0.1",
+      "refreshed": false,
+      "repo": "justinthenick/LibreChat"
+    },
+    "http_status": 200,
+    "input_sha256": "1432330128630c368efc83ea65458ebec990d731cc2dd0b11d77148c13b21af3",
+    "iteration": 1,
+    "max_output_tokens": 16384,
+    "mode": "skill",
+    "model": "gemini-3.7-flash",
+    "prompt_sha256": "327f4aeb1a6fd16d585800b3706194285a459265cd69d02950e95b5d07b717e1",
+    "provider": "gemini",
+    "runner_python": "3.8.12",
+    "schema": 2,
+    "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/prepare-implementation-ready-requirements/SKILL.md",
+    "skill_sha256": "a38fda060b2ccaec03fe137dbde1049985dd6971a7dbc2a41ec81d762a037c99",
+    "skill_version": "0.2.4",
+    "started_at": "2026-09-09T08:47:47Z",
+    "status": "success",
+    "temperature": 0.0,
+    "usage": {
+      "candidatesTokenCount": 7449,
+      "promptTokenCount": 5986,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 5986
+        }
+      ],
+      "serviceTier": "standard",
+      "thoughtsTokenCount": 1147,
+      "totalTokenCount": 14582
+    }
+  },
+  "right_metadata": {
+    "api_key_source": "GOOGLE_KEY",
+    "benchmark": "Benchmark 042 — Multi-Source BA Model Comparison",
+    "benchmark_dir": "042-multisource-ba-model-comparison",
+    "ended_at": "2026-09-09T08:43:15Z",
+    "error": null,
+    "finish_reason": "STOP",
+    "github_source": {
+      "branch": "feature/ba-agent-v0.1",
+      "refreshed": false,
+      "repo": "justinthenick/LibreChat"
+    },
+    "http_status": 200,
+    "input_sha256": "1432330128630c368efc83ea65458ebec990d731cc2dd0b11d77148c13b21af3",
+    "iteration": 1,
+    "max_output_tokens": 16384,
+    "mode": "skill",
+    "model": "gemini-3.8-flash",
+    "prompt_sha256": "327f4aeb1a6fd16d585800b3706194285a459265cd69d02950e95b5d07b717e1",
+    "provider": "gemini",
+    "runner_python": "3.8.12",
+    "schema": 2,
+    "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/prepare-implementation-ready-requirements/SKILL.md",
+    "skill_sha256": "a38fda060b2ccaec03fe137dbde1049985dd6971a7dbc2a41ec81d762a037c99",
+    "skill_version": "0.2.4",
+    "started_at": "2026-09-09T08:42:40Z",
+    "status": "success",
+    "temperature": 0.0,
+    "usage": {
+      "candidatesTokenCount": 8382,
+      "promptTokenCount": 5986,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 5986
+        }
+      ],
+      "serviceTier": "standard",
+      "thoughtsTokenCount": 1825,
+      "totalTokenCount": 16193
+    }
+  },
+  "skill_path": "custom/ba-agent/skills/prepare-implementation-ready-requirements/SKILL.md",
+  "skill_sha256": "a38fda060b2ccaec03fe137dbde1049985dd6971a7dbc2a41ec81d762a037c99",
+  "evaluation": {
+    "left": {
+      "model": "gemini-3.7-flash",
+      "score": 100,
+      "automatic_fail": false,
+      "criteria": [
+        {
+          "criterion": "Multi-source utilization",
+          "score": 20,
+          "max": 20,
+          "rationale": "All four sources are materially used. SRC-XLS-01 is treated as a first-class operational decision and configuration source across taxonomy, routing, flags, approvals, and lead times."
+        },
+        {
+          "criterion": "Cross-source contradiction detection",
+          "score": 20,
+          "max": 20,
+          "rationale": "Correctly preserves all four contradictions (lead times G1, MOP/SWMS G2, Standard Change state paths G3, CyberKey Field 69 display syntax G4) without silently resolving any of them."
+        },
+        {
+          "criterion": "Unresolved-dimension recall and cardinality",
+          "score": 15,
+          "max": 15,
+          "rationale": "Captures all four process map annotations (flagged users, post-visit quota/auto-close, approval trigger system, minor date change state) without inventing answers or adjacent engineering questions."
+        },
+        {
+          "criterion": "Source-closure / no invented benefits or governance",
+          "score": 15,
+          "max": 15,
+          "rationale": "No invented governance bodies, decision owners, NFRs, security, performance, API, or database requirements. Benefits reflect supplied text only."
+        },
+        {
+          "criterion": "XLS-derived operational requirements",
+          "score": 10,
+          "max": 10,
+          "rationale": "Surfaces four-tier taxonomy, mapped assignment routing, PSN Helpdesk fallback, Standard Change availability boolean, SAR boolean, PSN impact values, initial risk, and approval matrix."
+        },
+        {
+          "criterion": "Decomposition and acceptance-criteria discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Backlog items remain solution-neutral. Acceptance criteria are elaborated strictly for confirmed requirements, while blocked/disputed items have no executable criteria forcing an unresolved outcome."
+        },
+        {
+          "criterion": "RTM and status preservation",
+          "score": 5,
+          "max": 5,
+          "rationale": "Comprehensive RTM tracing source to requirement, backlog/decision ID, and status, preserving Disputed and Unknown states."
+        },
+        {
+          "criterion": "Readiness assessment",
+          "score": 5,
+          "max": 5,
+          "rationale": "Accurately partitions implementation-ready capabilities from blocked/disputed areas and target-state concepts without manufacturing generic engineering blockers."
+        }
+      ],
+      "violations": [],
+      "summary": "Flawless execution meeting all benchmark constraints, fully operationalizing the Excel catalog, preserving all four contradictions and four process-map open questions, and maintaining strict source closure."
+    },
+    "right": {
+      "model": "gemini-3.8-flash",
+      "score": 100,
+      "automatic_fail": false,
+      "criteria": [
+        {
+          "criterion": "Multi-source utilization",
+          "score": 20,
+          "max": 20,
+          "rationale": "Exemplary utilization of all four sources, explicitly operationalizing the Excel workbook fields, technical column names, booleans, and approval structures alongside DOC, MAP, and PPT artifacts."
+        },
+        {
+          "criterion": "Cross-source contradiction detection",
+          "score": 20,
+          "max": 20,
+          "rationale": "Identifies and isolates all four source contradictions (G1 lead-time formula vs static days, G2 global vs activity document mandates, G3 Standard Change state progressions, G4 Field 69 syntax contradiction) with explicit callouts."
+        },
+        {
+          "criterion": "Unresolved-dimension recall and cardinality",
+          "score": 15,
+          "max": 15,
+          "rationale": "Preserves the four process-map annotations exactly (AMB-03/DEC-07 through AMB-06/DEC-10) with exact sourced wording and zero invented answers or scope creep."
+        },
+        {
+          "criterion": "Source-closure / no invented benefits or governance",
+          "score": 15,
+          "max": 15,
+          "rationale": "Strictly avoids inventing governance authorities, decision assignees, technical NFRs, API/data layers, or generic unsourced business benefits."
+        },
+        {
+          "criterion": "XLS-derived operational requirements",
+          "score": 10,
+          "max": 10,
+          "rationale": "Fully captures four-tier taxonomy, assignment routing, Helpdesk fallback, Standard/SAR booleans, permitted PSN impact values, initial risk, and the non-Standard approval matrix."
+        },
+        {
+          "criterion": "Decomposition and acceptance-criteria discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "User stories remain strictly solution-neutral; acceptance criteria are provided exclusively for confirmed logic and intentionally omitted/blocked for disputed items."
+        },
+        {
+          "criterion": "RTM and status preservation",
+          "score": 5,
+          "max": 5,
+          "rationale": "Detailed traceability matrix maintaining Disputed, Unknown, Partially Ready, and Target statuses downstream into backlog items."
+        },
+        {
+          "criterion": "Readiness assessment",
+          "score": 5,
+          "max": 5,
+          "rationale": "Delineates ready items from unresolved decisions with complete precision and no generic engineering blockers."
+        }
+      ],
+      "violations": [],
+      "summary": "Outstanding benchmark performance with exceptional structural clarity, cleanly partitioning contradictions, ambiguities, and decision items while preserving all evidentiary boundaries."
+    },
+    "preferred_model": "gemini-3.8-flash",
+    "decision_rule_met": true,
+    "rationale": "Both models achieved perfect scores of 100 with zero automatic-fail violations. Gemini 3.8 Flash is preferred under the tie-breaker decision rule because it demonstrates materially better structural discipline in contradiction and ambiguity preservation: it formally categorizes contradictions (CON-01..04), ambiguities (AMB-01..07), and decision items (DEC-01..10), explicitly tracing blocked backlog items directly to their corresponding blocking decision records in both the backlog and RTM."
+  },
+  "usage": {
+    "promptTokenCount": 21044,
+    "candidatesTokenCount": 1539,
+    "totalTokenCount": 25341,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 21044
+      }
+    ],
+    "thoughtsTokenCount": 2758,
+    "serviceTier": "standard"
+  }
+}
