@@ -1,0 +1,217 @@
+{
+  "checks": [
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 3912
+          }
+        ]
+      },
+      "index": 1,
+      "label": "Autodeploy shells",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 3912
+          },
+          {
+            "cmdline": "/usr/bin/python3 /volume1/docker/librechat/deploy/synology/admin-settings-worker.py --env-file /volume1/docker/librechat/deploy/synology/.env --schema /volume1/docker/librechat/deploy/synology/admin-settings.schema.json --state-dir /volume1/docker/librechat/admin-settings-state --socket /volume1/docker/librechat/admin-settings-state/worker.sock --socket-group 100 serve ",
+            "pid": 7975
+          },
+          {
+            "cmdline": "/usr/local/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 3210 -container-ip 172.21.0.5 -container-port 3210 ",
+            "pid": 8559
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id afe797e565c36ab43430c4e85b239ca5a050db97614ba1baa434069a05fedd4a -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 8774
+          },
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/publish-telemetry.sh success complete 8bf2d889335cc2778d6aaa5a7b3c2d8953506876 ",
+            "pid": 9808
+          },
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/publish-telemetry.sh success complete 8bf2d889335cc2778d6aaa5a7b3c2d8953506876 ",
+            "pid": 11145
+          },
+          {
+            "cmdline": "docker run --rm -e GH_TOKEN=[REDACTED_GITHUB_TOKEN] -e GH_URL=https://api.github.com/repos/justinthenick/LibreChat/contents/telemetry/latest.log?ref=nas-status -e GH_METHOD=GET --entrypoint sh curlimages/curl:8.10.1 -c \n        curl -fsS --connect-timeout 5 --max-time 20 -X \"$GH_METHOD\" \\\n          -H \"Accept: application/vnd.github+json\" \\\n          -H \"Authorization: Bearer $GH_TOKEN\" \\\n          -H \"X-GitHub-Api-Version: 20",
+            "pid": 11146
+          },
+          {
+            "cmdline": "/bin/sh /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh ",
+            "pid": 11533
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id af7304fb4ac6530b7888008753657e96e835785a9c3015bac85bea69dd488b5e -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 14481
+          },
+          {
+            "cmdline": "/var/packages/Docker/target/usr/bin/dockerd --config-file /var/packages/Docker/etc/dockerd.json ",
+            "pid": 14563
+          },
+          {
+            "cmdline": "containerd --config /var/run/docker/containerd/containerd.toml --log-level info ",
+            "pid": 14895
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id 04834909af0486ffe81ec0d060900f6d0bd25443e3a11b7ea85de8ef10e31696 -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 17725
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id 8f18a8d949192d4b951796794e30d4ad4a987fbdfbfa9a017c2e9ead67185971 -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 18117
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id 00f546f35c2aac479484476e1e0d8fe3cd8b0420dae23095170ffb311a909bbd -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 19751
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id 686b1506d1596b1bb2197829c9bfd1fbc349e8baba3ba2138384f8c4069ddaac -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 25300
+          },
+          {
+            "cmdline": "/usr/local/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 3200 -container-ip 172.21.0.6 -container-port 3080 ",
+            "pid": 29583
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id 76e7c763105c8508d6e25ca6839a5fa57d2a1fd9fe17a1d4e7edcb8815d04940 -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 29604
+          }
+        ]
+      },
+      "index": 2,
+      "label": "Docker commands",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": []
+      },
+      "index": 3,
+      "label": "Compose commands",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": []
+      },
+      "index": 4,
+      "label": "Seeder process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "/usr/bin/synonode /usr/syno/sbin/synoscgi_socket.js ",
+            "pid": 8213
+          },
+          {
+            "cmdline": "node /app/node_modules/.bin/cross-env NODE_ENV=production node api/server/index.js ",
+            "pid": 30061
+          },
+          {
+            "cmdline": "node api/server/index.js ",
+            "pid": 30068
+          }
+        ]
+      },
+      "index": 5,
+      "label": "Node process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "docker run --rm -e GH_TOKEN=[REDACTED_GITHUB_TOKEN] -e GH_URL=https://api.github.com/repos/justinthenick/LibreChat/contents/telemetry/latest.log?ref=nas-status -e GH_METHOD=GET --entrypoint sh curlimages/curl:8.10.1 -c \n        curl -fsS --connect-timeout 5 --max-time 20 -X \"$GH_METHOD\" \\\n          -H \"Accept: application/vnd.github+json\" \\\n          -H \"Authorization: Bearer $GH_TOKEN\" \\\n          -H \"X-GitHub-Api-Version: 20",
+            "pid": 11146
+          }
+        ]
+      },
+      "index": 6,
+      "label": "Curl process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/publish-telemetry.sh success complete 8bf2d889335cc2778d6aaa5a7b3c2d8953506876 ",
+            "pid": 9808
+          },
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/publish-telemetry.sh success complete 8bf2d889335cc2778d6aaa5a7b3c2d8953506876 ",
+            "pid": 11145
+          }
+        ]
+      },
+      "index": 7,
+      "label": "Telemetry publisher",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "docker run --rm -e GH_TOKEN=[REDACTED_GITHUB_TOKEN] -e GH_URL=https://api.github.com/repos/justinthenick/LibreChat/contents/telemetry/latest.log?ref=nas-status -e GH_METHOD=GET --entrypoint sh curlimages/curl:8.10.1 -c \n        curl -fsS --connect-timeout 5 --max-time 20 -X \"$GH_METHOD\" \\\n          -H \"Accept: application/vnd.github+json\" \\\n          -H \"Authorization: Bearer $GH_TOKEN\" \\\n          -H \"X-GitHub-Api-Version: 20",
+            "pid": 11146
+          }
+        ]
+      },
+      "index": 8,
+      "label": "Git process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": []
+      },
+      "index": 9,
+      "label": "Systemctl process",
+      "status": "ok",
+      "type": "lock_status"
+    }
+  ],
+  "ended_at": "2026-09-09T11:53:12Z",
+  "hostname": "NAS",
+  "overall": "ok",
+  "recipe": "custom/ba-agent/diagnostics/librechat-deploy-child-processes.json",
+  "recipe_name": "LibreChat deployment child process diagnosis",
+  "request_id": "librechat-deploy-status-hang-20260909-2152-001",
+  "schema": 1,
+  "started_at": "2026-09-09T11:53:12Z"
+}
