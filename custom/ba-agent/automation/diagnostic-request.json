@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "enabled": true,
+  "enabled": false,
   "request_id": "librechat-deploy-status-hang-20260909-2152-001",
   "recipe": "custom/ba-agent/diagnostics/librechat-deploy-child-processes.json"
 }
