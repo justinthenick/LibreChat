@@ -1,0 +1,107 @@
+{
+  "checks": [
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-ba-benchmark-worker.lock",
+        "matching_processes": [
+          {
+            "cmdline": "/bin/sh /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh ",
+            "pid": 14155
+          }
+        ]
+      },
+      "index": 1,
+      "label": "Main scheduler lock and wrapper",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "enabled_remote_jobs": 31,
+        "known_local_jobs": 120,
+        "pending_job_count": 0,
+        "pending_job_ids": [],
+        "targets": {
+          "b043-g37-source-closure-generalization-v024-001": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          },
+          "b043-g38-source-closure-generalization-v024-002": {
+            "known_locally": true,
+            "pending": false,
+            "remote_enabled": true
+          }
+        }
+      },
+      "index": 2,
+      "label": "B043 queue versus worker state",
+      "status": "ok",
+      "type": "queue_compare"
+    },
+    {
+      "data": {
+        "jobs": {
+          "b043-g37-source-closure-generalization-v024-001": {
+            "attempted_at_epoch": 1788951433,
+            "auto_fallback": false,
+            "benchmark": "custom/ba-agent/benchmarks/043-source-closure-generalization",
+            "comparison_group": "b043-v024-model-comparison-001",
+            "fallback_models": [],
+            "max_output_tokens": 16384,
+            "mode": "skill",
+            "model": "gemini-3.7-flash",
+            "operational_status": null,
+            "output_tail": "[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/043-source-closure-generalization/results/b043-g37-source-closure-generalization-v024-001-gemini-3.7-flash-skill-01.md\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: a6a5b1581ccb79ee60e5b235ce969abf7e9e63f1\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "source_refresh": "authenticated",
+            "status": "completed"
+          },
+          "b043-g38-source-closure-generalization-v024-002": {
+            "attempted_at_epoch": 1788951458,
+            "auto_fallback": false,
+            "benchmark": "custom/ba-agent/benchmarks/043-source-closure-generalization",
+            "comparison_group": "b043-v024-model-comparison-001",
+            "fallback_models": [],
+            "max_output_tokens": 16384,
+            "mode": "skill",
+            "model": "gemini-3.8-flash",
+            "operational_status": null,
+            "output_tail": "[success] skill 1 -> /volume1/docker/librechat-ba-lab/custom/ba-agent/benchmarks/043-source-closure-generalization/results/b043-g38-source-closure-generalization-v024-002-gemini-3.8-flash-skill-01.md\nPublished 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 680169318497c7432e18725a92834d283444c2a0\n",
+            "return_code": 0,
+            "runner": "benchmark",
+            "source_refresh": "authenticated",
+            "status": "completed"
+          }
+        },
+        "known_job_count": 120,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json"
+      },
+      "index": 3,
+      "label": "B043 worker records",
+      "status": "ok",
+      "type": "worker_state"
+    },
+    {
+      "data": {
+        "lines": 160,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/scheduler.log",
+        "text": "Published 3 result files to justinthenick/LibreChat@feature/ba-agent-v0.1.\nLast GitHub commit: 680169318497c7432e18725a92834d283444c2a0\n[worker] finished b043-g38-source-closure-generalization-v024-002 rc=0\n2026-09-09 20:58:08 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:08 phase=benchmark[1] end rc=0\n2026-09-09 20:58:08 phase=dynamic[1] start\n2026-09-09 20:58:08 bounded start timeout=600s command=/usr/bin/python3\n[dynamic-worker] no new jobs\n2026-09-09 20:58:09 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:09 phase=dynamic[1] end rc=0\n2026-09-09 20:58:09 phase=controller[1] start\n2026-09-09 20:58:09 bounded start timeout=600s command=/usr/bin/python3\n[controller] no deterministic transition required\n2026-09-09 20:58:10 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:10 phase=controller[1] end rc=0\n2026-09-09 20:58:10 phase=semantic-eval[1] start\n2026-09-09 20:58:10 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 20:58:11 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:11 phase=semantic-eval[1] end rc=0\n2026-09-09 20:58:11 phase=production-semantic-eval[1] start\n2026-09-09 20:58:11 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 20:58:11 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:11 phase=production-semantic-eval[1] end rc=0\n2026-09-09 20:58:11 phase=model-comparison[1] start\n2026-09-09 20:58:11 bounded start timeout=600s command=/usr/bin/python3\n[model-comparison] no comparison transition required\n2026-09-09 20:58:12 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:12 phase=model-comparison[1] end rc=0\n2026-09-09 20:58:12 phase=semantic-revise[1] start\n2026-09-09 20:58:12 bounded start timeout=600s command=/usr/bin/python3\n[semantic-reviser] no semantic transition required\n2026-09-09 20:58:14 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:14 phase=semantic-revise[1] end rc=0\n2026-09-09 20:58:14 autonomy burst cycle 1/4 end benchmark_rc=0 dynamic_rc=0 controller_rc=0 semantic_eval_rc=0 production_semantic_eval_rc=0 model_comparison_rc=0 semantic_revise_rc=0\n2026-09-09 20:58:14 autonomy burst cycle 2/4 start\n2026-09-09 20:58:14 phase=benchmark[2] start\n2026-09-09 20:58:14 bounded start timeout=600s command=/usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] no new jobs\n2026-09-09 20:58:15 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:15 phase=benchmark[2] end rc=0\n2026-09-09 20:58:15 phase=dynamic[2] start\n2026-09-09 20:58:15 bounded start timeout=600s command=/usr/bin/python3\n[dynamic-worker] no new jobs\n2026-09-09 20:58:16 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:16 phase=dynamic[2] end rc=0\n2026-09-09 20:58:16 phase=controller[2] start\n2026-09-09 20:58:16 bounded start timeout=600s command=/usr/bin/python3\n[controller] no deterministic transition required\n2026-09-09 20:58:17 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:17 phase=controller[2] end rc=0\n2026-09-09 20:58:17 phase=semantic-eval[2] start\n2026-09-09 20:58:17 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 20:58:17 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:17 phase=semantic-eval[2] end rc=0\n2026-09-09 20:58:17 phase=production-semantic-eval[2] start\n2026-09-09 20:58:17 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 20:58:18 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:18 phase=production-semantic-eval[2] end rc=0\n2026-09-09 20:58:18 phase=model-comparison[2] start\n2026-09-09 20:58:18 bounded start timeout=600s command=/usr/bin/python3\n[model-comparison] no comparison transition required\n2026-09-09 20:58:19 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:19 phase=model-comparison[2] end rc=0\n2026-09-09 20:58:19 phase=semantic-revise[2] start\n2026-09-09 20:58:19 bounded start timeout=600s command=/usr/bin/python3\n[semantic-reviser] no semantic transition required\n2026-09-09 20:58:19 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:19 phase=semantic-revise[2] end rc=0\n2026-09-09 20:58:19 autonomy burst cycle 2/4 end benchmark_rc=0 dynamic_rc=0 controller_rc=0 semantic_eval_rc=0 production_semantic_eval_rc=0 model_comparison_rc=0 semantic_revise_rc=0\n2026-09-09 20:58:19 autonomy burst cycle 3/4 start\n2026-09-09 20:58:19 phase=benchmark[3] start\n2026-09-09 20:58:20 bounded start timeout=600s command=/usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] no new jobs\n2026-09-09 20:58:20 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:20 phase=benchmark[3] end rc=0\n2026-09-09 20:58:20 phase=dynamic[3] start\n2026-09-09 20:58:20 bounded start timeout=600s command=/usr/bin/python3\n[dynamic-worker] no new jobs\n2026-09-09 20:58:21 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:21 phase=dynamic[3] end rc=0\n2026-09-09 20:58:21 phase=controller[3] start\n2026-09-09 20:58:21 bounded start timeout=600s command=/usr/bin/python3\n[controller] no deterministic transition required\n2026-09-09 20:58:24 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:24 phase=controller[3] end rc=0\n2026-09-09 20:58:24 phase=semantic-eval[3] start\n2026-09-09 20:58:24 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 20:58:25 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:25 phase=semantic-eval[3] end rc=0\n2026-09-09 20:58:25 phase=production-semantic-eval[3] start\n2026-09-09 20:58:25 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 20:58:25 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:25 phase=production-semantic-eval[3] end rc=0\n2026-09-09 20:58:25 phase=model-comparison[3] start\n2026-09-09 20:58:25 bounded start timeout=600s command=/usr/bin/python3\n[model-comparison] no comparison transition required\n2026-09-09 20:58:26 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:26 phase=model-comparison[3] end rc=0\n2026-09-09 20:58:26 phase=semantic-revise[3] start\n2026-09-09 20:58:26 bounded start timeout=600s command=/usr/bin/python3\n[semantic-reviser] no semantic transition required\n2026-09-09 20:58:27 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:27 phase=semantic-revise[3] end rc=0\n2026-09-09 20:58:27 autonomy burst cycle 3/4 end benchmark_rc=0 dynamic_rc=0 controller_rc=0 semantic_eval_rc=0 production_semantic_eval_rc=0 model_comparison_rc=0 semantic_revise_rc=0\n2026-09-09 20:58:27 autonomy burst cycle 4/4 start\n2026-09-09 20:58:27 phase=benchmark[4] start\n2026-09-09 20:58:27 bounded start timeout=600s command=/usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] no new jobs\n2026-09-09 20:58:27 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:27 phase=benchmark[4] end rc=0\n2026-09-09 20:58:27 phase=dynamic[4] start\n2026-09-09 20:58:28 bounded start timeout=600s command=/usr/bin/python3\n[dynamic-worker] no new jobs\n2026-09-09 20:58:28 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:28 phase=dynamic[4] end rc=0\n2026-09-09 20:58:28 phase=controller[4] start\n2026-09-09 20:58:28 bounded start timeout=600s command=/usr/bin/python3\n[controller] no deterministic transition required\n2026-09-09 20:58:29 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:29 phase=controller[4] end rc=0\n2026-09-09 20:58:29 phase=semantic-eval[4] start\n2026-09-09 20:58:29 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 20:58:30 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:30 phase=semantic-eval[4] end rc=0\n2026-09-09 20:58:30 phase=production-semantic-eval[4] start\n2026-09-09 20:58:30 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 20:58:31 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:31 phase=production-semantic-eval[4] end rc=0\n2026-09-09 20:58:31 phase=model-comparison[4] start\n2026-09-09 20:58:31 bounded start timeout=600s command=/usr/bin/python3\n[model-comparison] no comparison transition required\n2026-09-09 20:58:31 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:31 phase=model-comparison[4] end rc=0\n2026-09-09 20:58:31 phase=semantic-revise[4] start\n2026-09-09 20:58:31 bounded start timeout=600s command=/usr/bin/python3\n[semantic-reviser] no semantic transition required\n2026-09-09 20:58:32 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 20:58:32 phase=semantic-revise[4] end rc=0\n2026-09-09 20:58:32 autonomy burst cycle 4/4 end benchmark_rc=0 dynamic_rc=0 controller_rc=0 semantic_eval_rc=0 production_semantic_eval_rc=0 model_comparison_rc=0 semantic_revise_rc=0\n2026-09-09 20:58:32 bounded start timeout=90s command=/usr/bin/python3"
+      },
+      "index": 4,
+      "label": "Recent scheduler log",
+      "status": "ok",
+      "type": "tail"
+    }
+  ],
+  "ended_at": "2026-09-09T10:58:38Z",
+  "hostname": "NAS",
+  "overall": "ok",
+  "recipe": "custom/ba-agent/diagnostics/b043-cycle.json",
+  "recipe_name": "B043 held-out generalization execution diagnosis",
+  "request_id": "b043-v024-cycle-20260909-2040-001",
+  "schema": 1,
+  "started_at": "2026-09-09T10:58:33Z"
+}
