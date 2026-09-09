@@ -1,0 +1,223 @@
+{
+  "checks": [
+    {
+      "data": {
+        "executable": "/usr/bin/python3",
+        "version": "3.8.12"
+      },
+      "index": 1,
+      "label": "Python runtime",
+      "status": "ok",
+      "type": "python_info"
+    },
+    {
+      "data": {
+        "exists": true,
+        "is_dir": false,
+        "is_file": true,
+        "mtime_epoch": 1788944049,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh",
+        "size": 8998
+      },
+      "index": 2,
+      "label": "Scheduler wrapper",
+      "status": "ok",
+      "type": "path_exists"
+    },
+    {
+      "data": {
+        "exists": true,
+        "is_dir": false,
+        "is_file": true,
+        "mtime_epoch": 1788944049,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/tools/bounded_exec.py",
+        "size": 2426
+      },
+      "index": 3,
+      "label": "Bounded executor",
+      "status": "ok",
+      "type": "path_exists"
+    },
+    {
+      "data": {
+        "path": "/volume1/docker/librechat/deploy/synology/.env",
+        "present": {
+          "GITHUB_TELEMETRY_TOKEN": true,
+          "GOOGLE_KEY": true
+        }
+      },
+      "index": 4,
+      "label": "Lab credential presence only",
+      "status": "ok",
+      "type": "env_presence"
+    },
+    {
+      "data": {
+        "lock_exists": false,
+        "lock_path": "/tmp/librechat-ba-benchmark-worker.lock",
+        "matching_processes": [
+          {
+            "cmdline": "/bin/sh /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh ",
+            "pid": 11534
+          }
+        ]
+      },
+      "index": 5,
+      "label": "Main scheduler lock and wrapper process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lock_exists": false,
+        "lock_path": "/tmp/librechat-ba-benchmark-worker.lock",
+        "matching_processes": []
+      },
+      "index": 6,
+      "label": "Benchmark phase process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lock_exists": false,
+        "lock_path": "/tmp/librechat-ba-benchmark-worker.lock",
+        "matching_processes": []
+      },
+      "index": 7,
+      "label": "Dynamic phase process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lock_exists": false,
+        "lock_path": "/tmp/librechat-ba-benchmark-worker.lock",
+        "matching_processes": []
+      },
+      "index": 8,
+      "label": "Semantic evaluator phase process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lock_exists": false,
+        "lock_path": "/tmp/librechat-ba-benchmark-worker.lock",
+        "matching_processes": []
+      },
+      "index": 9,
+      "label": "Cross-model evaluator phase process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lock_exists": false,
+        "lock_path": "/tmp/librechat-ba-benchmark-worker.lock",
+        "matching_processes": []
+      },
+      "index": 10,
+      "label": "Semantic reviser phase process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "enabled_remote_jobs": 29,
+        "known_local_jobs": 118,
+        "pending_job_count": 0,
+        "pending_job_ids": [],
+        "targets": {}
+      },
+      "index": 11,
+      "label": "Execution queue versus benchmark worker state",
+      "status": "ok",
+      "type": "queue_compare"
+    },
+    {
+      "data": {
+        "exists": true,
+        "is_dir": false,
+        "is_file": true,
+        "mtime_epoch": 1788673598,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/dynamic-worker-state.json",
+        "size": 7771
+      },
+      "index": 12,
+      "label": "Dynamic worker state",
+      "status": "ok",
+      "type": "path_exists"
+    },
+    {
+      "data": {
+        "exists": true,
+        "is_dir": false,
+        "is_file": true,
+        "mtime_epoch": 1788944068,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/semantic-evaluator-state.json",
+        "size": 202108
+      },
+      "index": 13,
+      "label": "Semantic evaluator state",
+      "status": "ok",
+      "type": "path_exists"
+    },
+    {
+      "data": {
+        "exists": false,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/model-comparison-evaluator-state.json"
+      },
+      "index": 14,
+      "label": "Cross-model evaluator state",
+      "status": "ok",
+      "type": "path_exists"
+    },
+    {
+      "data": {
+        "exists": true,
+        "is_dir": false,
+        "is_file": true,
+        "mtime_epoch": 1788944068,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/semantic-reviser-state.json",
+        "size": 77
+      },
+      "index": 15,
+      "label": "Semantic revision state",
+      "status": "ok",
+      "type": "path_exists"
+    },
+    {
+      "data": {
+        "free_bytes": 4690750361600,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent",
+        "total_bytes": 5729142775808,
+        "used_bytes": 1038392414208,
+        "used_percent": 18.12
+      },
+      "index": 16,
+      "label": "Lab filesystem usage",
+      "status": "ok",
+      "type": "disk_usage"
+    },
+    {
+      "data": {
+        "lines": 180,
+        "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/scheduler.log",
+        "text": "2026-09-09 18:53:29 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:53:29 phase=production-semantic-eval[4] end rc=0\n2026-09-09 18:53:29 phase=semantic-revise[4] start\n2026-09-09 18:53:30 bounded start timeout=600s command=/usr/bin/python3\n[semantic-reviser] no semantic transition required\n2026-09-09 18:53:30 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:53:30 phase=semantic-revise[4] end rc=0\n2026-09-09 18:53:30 autonomy burst cycle 4/4 end benchmark_rc=0 dynamic_rc=0 controller_rc=0 semantic_eval_rc=0 production_semantic_eval_rc=0 semantic_revise_rc=0\n2026-09-09 18:53:30 bounded start timeout=90s command=/usr/bin/python3\n[diagnostic] request b042-v024-cycle-20260909-1840-001 already published\n2026-09-09 18:53:31 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:53:31 autonomy poll end sync_rc=0 benchmark_rc=0 dynamic_rc=0 controller_rc=0 semantic_eval_rc=0 production_semantic_eval_rc=0 semantic_revise_rc=0 pre_diagnostic_rc=0 post_diagnostic_rc=0 timed_out=0 rc=0\n2026-09-09 18:54:04 bounded start timeout=90s command=/usr/bin/python3\n[diagnostic] request b042-v024-cycle-20260909-1840-001 already published\n2026-09-09 18:54:04 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:04 autonomy poll start pid=10957 python=/usr/bin/python3 burst_cycles=4 phase_timeout=600s pre_diagnostic_rc=0\n2026-09-09 18:54:04 bounded start timeout=240s command=/usr/bin/python3\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/agent_pipeline_runner.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/dynamic_agent_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/benchmark_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/autonomy_controller.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/lab_common.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_evaluator.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/semantic_reviser.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/diagnostic_worker.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/bounded_exec.py\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh\nsynced /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/bootstrap_nas.py\nAuthenticated tool sync complete.\n2026-09-09 18:54:09 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:09 autonomy burst cycle 1/4 start\n2026-09-09 18:54:09 phase=benchmark[1] start\n2026-09-09 18:54:09 bounded start timeout=600s command=/usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] no new jobs\n2026-09-09 18:54:10 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:10 phase=benchmark[1] end rc=0\n2026-09-09 18:54:10 phase=dynamic[1] start\n2026-09-09 18:54:10 bounded start timeout=600s command=/usr/bin/python3\n[dynamic-worker] no new jobs\n2026-09-09 18:54:11 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:11 phase=dynamic[1] end rc=0\n2026-09-09 18:54:11 phase=controller[1] start\n2026-09-09 18:54:11 bounded start timeout=600s command=/usr/bin/python3\n[controller] no deterministic transition required\n2026-09-09 18:54:12 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:12 phase=controller[1] end rc=0\n2026-09-09 18:54:12 phase=semantic-eval[1] start\n2026-09-09 18:54:12 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 18:54:12 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:12 phase=semantic-eval[1] end rc=0\n2026-09-09 18:54:12 phase=production-semantic-eval[1] start\n2026-09-09 18:54:12 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 18:54:13 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:13 phase=production-semantic-eval[1] end rc=0\n2026-09-09 18:54:13 phase=semantic-revise[1] start\n2026-09-09 18:54:13 bounded start timeout=600s command=/usr/bin/python3\n[semantic-reviser] no semantic transition required\n2026-09-09 18:54:14 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:14 phase=semantic-revise[1] end rc=0\n2026-09-09 18:54:14 autonomy burst cycle 1/4 end benchmark_rc=0 dynamic_rc=0 controller_rc=0 semantic_eval_rc=0 production_semantic_eval_rc=0 semantic_revise_rc=0\n2026-09-09 18:54:14 autonomy burst cycle 2/4 start\n2026-09-09 18:54:14 phase=benchmark[2] start\n2026-09-09 18:54:14 bounded start timeout=600s command=/usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] no new jobs\n2026-09-09 18:54:15 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:15 phase=benchmark[2] end rc=0\n2026-09-09 18:54:15 phase=dynamic[2] start\n2026-09-09 18:54:15 bounded start timeout=600s command=/usr/bin/python3\n[dynamic-worker] no new jobs\n2026-09-09 18:54:15 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:15 phase=dynamic[2] end rc=0\n2026-09-09 18:54:15 phase=controller[2] start\n2026-09-09 18:54:15 bounded start timeout=600s command=/usr/bin/python3\n[controller] no deterministic transition required\n2026-09-09 18:54:16 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:16 phase=controller[2] end rc=0\n2026-09-09 18:54:16 phase=semantic-eval[2] start\n2026-09-09 18:54:16 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 18:54:18 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:18 phase=semantic-eval[2] end rc=0\n2026-09-09 18:54:18 phase=production-semantic-eval[2] start\n2026-09-09 18:54:18 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 18:54:19 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:19 phase=production-semantic-eval[2] end rc=0\n2026-09-09 18:54:19 phase=semantic-revise[2] start\n2026-09-09 18:54:19 bounded start timeout=600s command=/usr/bin/python3\n[semantic-reviser] no semantic transition required\n2026-09-09 18:54:20 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:20 phase=semantic-revise[2] end rc=0\n2026-09-09 18:54:20 autonomy burst cycle 2/4 end benchmark_rc=0 dynamic_rc=0 controller_rc=0 semantic_eval_rc=0 production_semantic_eval_rc=0 semantic_revise_rc=0\n2026-09-09 18:54:20 autonomy burst cycle 3/4 start\n2026-09-09 18:54:20 phase=benchmark[3] start\n2026-09-09 18:54:20 bounded start timeout=600s command=/usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] no new jobs\n2026-09-09 18:54:20 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:20 phase=benchmark[3] end rc=0\n2026-09-09 18:54:20 phase=dynamic[3] start\n2026-09-09 18:54:20 bounded start timeout=600s command=/usr/bin/python3\n[dynamic-worker] no new jobs\n2026-09-09 18:54:21 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:21 phase=dynamic[3] end rc=0\n2026-09-09 18:54:21 phase=controller[3] start\n2026-09-09 18:54:21 bounded start timeout=600s command=/usr/bin/python3\n[controller] no deterministic transition required\n2026-09-09 18:54:22 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:22 phase=controller[3] end rc=0\n2026-09-09 18:54:22 phase=semantic-eval[3] start\n2026-09-09 18:54:22 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 18:54:23 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:23 phase=semantic-eval[3] end rc=0\n2026-09-09 18:54:23 phase=production-semantic-eval[3] start\n2026-09-09 18:54:23 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 18:54:23 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:23 phase=production-semantic-eval[3] end rc=0\n2026-09-09 18:54:23 phase=semantic-revise[3] start\n2026-09-09 18:54:24 bounded start timeout=600s command=/usr/bin/python3\n[semantic-reviser] no semantic transition required\n2026-09-09 18:54:24 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:24 phase=semantic-revise[3] end rc=0\n2026-09-09 18:54:24 autonomy burst cycle 3/4 end benchmark_rc=0 dynamic_rc=0 controller_rc=0 semantic_eval_rc=0 production_semantic_eval_rc=0 semantic_revise_rc=0\n2026-09-09 18:54:24 autonomy burst cycle 4/4 start\n2026-09-09 18:54:24 phase=benchmark[4] start\n2026-09-09 18:54:24 bounded start timeout=600s command=/usr/bin/python3\n[worker] repo=justinthenick/LibreChat branch=feature/ba-agent-v0.1 jobs=custom/ba-agent/automation/jobs.json\n[worker] root=/volume1/docker/librechat-ba-lab env=/volume1/docker/librechat/deploy/synology/.env\n[worker] state=/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json\n[worker] authenticated GitHub reads enabled\n[worker] no new jobs\n2026-09-09 18:54:25 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:25 phase=benchmark[4] end rc=0\n2026-09-09 18:54:25 phase=dynamic[4] start\n2026-09-09 18:54:25 bounded start timeout=600s command=/usr/bin/python3\n[dynamic-worker] no new jobs\n2026-09-09 18:54:26 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:26 phase=dynamic[4] end rc=0\n2026-09-09 18:54:26 phase=controller[4] start\n2026-09-09 18:54:26 bounded start timeout=600s command=/usr/bin/python3\n[controller] no deterministic transition required\n2026-09-09 18:54:26 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:26 phase=controller[4] end rc=0\n2026-09-09 18:54:26 phase=semantic-eval[4] start\n2026-09-09 18:54:26 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 18:54:27 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:27 phase=semantic-eval[4] end rc=0\n2026-09-09 18:54:27 phase=production-semantic-eval[4] start\n2026-09-09 18:54:27 bounded start timeout=600s command=/usr/bin/python3\n[semantic-evaluator] no semantic transition required\n2026-09-09 18:54:28 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:28 phase=production-semantic-eval[4] end rc=0\n2026-09-09 18:54:28 phase=semantic-revise[4] start\n2026-09-09 18:54:28 bounded start timeout=600s command=/usr/bin/python3\n[semantic-reviser] no semantic transition required\n2026-09-09 18:54:28 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:28 phase=semantic-revise[4] end rc=0\n2026-09-09 18:54:28 autonomy burst cycle 4/4 end benchmark_rc=0 dynamic_rc=0 controller_rc=0 semantic_eval_rc=0 production_semantic_eval_rc=0 semantic_revise_rc=0\n2026-09-09 18:54:29 bounded start timeout=90s command=/usr/bin/python3\n[diagnostic] request b042-v024-cycle-20260909-1840-001 already published\n2026-09-09 18:54:29 bounded end rc=0 command=/usr/bin/python3\n2026-09-09 18:54:29 autonomy poll end sync_rc=0 benchmark_rc=0 dynamic_rc=0 controller_rc=0 semantic_eval_rc=0 production_semantic_eval_rc=0 semantic_revise_rc=0 pre_diagnostic_rc=0 post_diagnostic_rc=0 timed_out=0 rc=0\n2026-09-09 18:55:02 bounded start timeout=90s command=/usr/bin/python3"
+      },
+      "index": 17,
+      "label": "Recent scheduler cycle log",
+      "status": "ok",
+      "type": "tail"
+    }
+  ],
+  "ended_at": "2026-09-09T08:55:04Z",
+  "hostname": "NAS",
+  "overall": "ok",
+  "recipe": "custom/ba-agent/diagnostics/cycle-health.json",
+  "recipe_name": "BA lab cycle health and stall diagnosis",
+  "request_id": "cycle-health-model-compare-20260909-1852-001",
+  "schema": 1,
+  "started_at": "2026-09-09T08:55:03Z"
+}
