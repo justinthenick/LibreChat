@@ -19,6 +19,7 @@ WORKER="$ROOT/custom/ba-agent/tools/benchmark_worker.py"
 DYNAMIC_WORKER="$ROOT/custom/ba-agent/tools/dynamic_agent_worker.py"
 CONTROLLER="$ROOT/custom/ba-agent/tools/autonomy_controller.py"
 SEM_EVAL="$ROOT/custom/ba-agent/tools/semantic_evaluator.py"
+MODEL_COMPARE="$ROOT/custom/ba-agent/tools/model_comparison_evaluator.py"
 SEM_REVISE="$ROOT/custom/ba-agent/tools/semantic_reviser.py"
 DIAG_WORKER="$ROOT/custom/ba-agent/tools/diagnostic_worker.py"
 PROD_SEM_QUEUE="custom/ba-agent/automation/semantic-production-gates.json"
@@ -128,6 +129,7 @@ LAST_DYNAMIC_RC=0
 LAST_CTRL_RC=0
 LAST_SEM_EVAL_RC=0
 LAST_PROD_SEM_EVAL_RC=0
+LAST_MODEL_COMPARE_RC=0
 LAST_SEM_REVISE_RC=0
 TIMED_OUT=0
 cycle=1
@@ -170,6 +172,14 @@ while [ "$cycle" -le "$MAX_BURST_CYCLES" ]; do
     if [ "$LAST_PROD_SEM_EVAL_RC" -eq 124 ]; then TIMED_OUT=1; break; fi
   fi
 
+  LAST_MODEL_COMPARE_RC=0
+  if [ -f "$MODEL_COMPARE" ]; then
+    run_phase "model-comparison[$cycle]" "$PYTHON_BIN" "$MODEL_COMPARE" --env-file "$ENV_FILE"
+    LAST_MODEL_COMPARE_RC=$?
+    if [ "$RC" -eq 0 ] && [ "$LAST_MODEL_COMPARE_RC" -ne 0 ]; then RC=$LAST_MODEL_COMPARE_RC; fi
+    if [ "$LAST_MODEL_COMPARE_RC" -eq 124 ]; then TIMED_OUT=1; break; fi
+  fi
+
   LAST_SEM_REVISE_RC=0
   if [ -f "$SEM_REVISE" ]; then
     run_phase "semantic-revise[$cycle]" "$PYTHON_BIN" "$SEM_REVISE" --env-file "$ENV_FILE"
@@ -178,8 +188,8 @@ while [ "$cycle" -le "$MAX_BURST_CYCLES" ]; do
     if [ "$LAST_SEM_REVISE_RC" -eq 124 ]; then TIMED_OUT=1; break; fi
   fi
 
-  printf '%s autonomy burst cycle %s/%s end benchmark_rc=%s dynamic_rc=%s controller_rc=%s semantic_eval_rc=%s production_semantic_eval_rc=%s semantic_revise_rc=%s\n' \
-    "$(date '+%Y-%m-%d %H:%M:%S')" "$cycle" "$MAX_BURST_CYCLES" "$LAST_BENCH_RC" "$LAST_DYNAMIC_RC" "$LAST_CTRL_RC" "$LAST_SEM_EVAL_RC" "$LAST_PROD_SEM_EVAL_RC" "$LAST_SEM_REVISE_RC" >> "$LOG_FILE"
+  printf '%s autonomy burst cycle %s/%s end benchmark_rc=%s dynamic_rc=%s controller_rc=%s semantic_eval_rc=%s production_semantic_eval_rc=%s model_comparison_rc=%s semantic_revise_rc=%s\n' \
+    "$(date '+%Y-%m-%d %H:%M:%S')" "$cycle" "$MAX_BURST_CYCLES" "$LAST_BENCH_RC" "$LAST_DYNAMIC_RC" "$LAST_CTRL_RC" "$LAST_SEM_EVAL_RC" "$LAST_PROD_SEM_EVAL_RC" "$LAST_MODEL_COMPARE_RC" "$LAST_SEM_REVISE_RC" >> "$LOG_FILE"
   cycle=$((cycle + 1))
 done
 
@@ -192,6 +202,6 @@ fi
 
 # Diagnostics are observability-only. Semantic evaluation/revision failures and
 # hard phase timeouts are real engineering-cycle failures and surface in RC.
-printf '%s autonomy poll end sync_rc=%s benchmark_rc=%s dynamic_rc=%s controller_rc=%s semantic_eval_rc=%s production_semantic_eval_rc=%s semantic_revise_rc=%s pre_diagnostic_rc=%s post_diagnostic_rc=%s timed_out=%s rc=%s\n' \
-  "$(date '+%Y-%m-%d %H:%M:%S')" "$SYNC_RC" "$LAST_BENCH_RC" "$LAST_DYNAMIC_RC" "$LAST_CTRL_RC" "$LAST_SEM_EVAL_RC" "$LAST_PROD_SEM_EVAL_RC" "$LAST_SEM_REVISE_RC" "$PRE_DIAG_RC" "$POST_DIAG_RC" "$TIMED_OUT" "$RC" >> "$LOG_FILE"
+printf '%s autonomy poll end sync_rc=%s benchmark_rc=%s dynamic_rc=%s controller_rc=%s semantic_eval_rc=%s production_semantic_eval_rc=%s model_comparison_rc=%s semantic_revise_rc=%s pre_diagnostic_rc=%s post_diagnostic_rc=%s timed_out=%s rc=%s\n' \
+  "$(date '+%Y-%m-%d %H:%M:%S')" "$SYNC_RC" "$LAST_BENCH_RC" "$LAST_DYNAMIC_RC" "$LAST_CTRL_RC" "$LAST_SEM_EVAL_RC" "$LAST_PROD_SEM_EVAL_RC" "$LAST_MODEL_COMPARE_RC" "$LAST_SEM_REVISE_RC" "$PRE_DIAG_RC" "$POST_DIAG_RC" "$TIMED_OUT" "$RC" >> "$LOG_FILE"
 exit "$RC"
