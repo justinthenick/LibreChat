@@ -20,7 +20,7 @@
       "jobs_path": "custom/ba-agent/automation/jobs.json",
       "state_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json",
       "job_ids": [
-        "b042-g37-multisource-ba-v024-007",
+        "b042-g37-multisource-ba-v024-009",
         "b042-g38-multisource-ba-v024-008"
       ]
     },
@@ -29,7 +29,7 @@
       "label": "B042 v0.2.4 worker records",
       "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json",
       "job_ids": [
-        "b042-g37-multisource-ba-v024-007",
+        "b042-g37-multisource-ba-v024-009",
         "b042-g38-multisource-ba-v024-008"
       ]
     },
