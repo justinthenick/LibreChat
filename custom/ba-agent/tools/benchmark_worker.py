@@ -60,7 +60,7 @@ def merged_environment(env_file):
 def github_request(url, token=None, accept="application/vnd.github+json"):
     headers = {
         "Accept": accept,
-        "User-Agent": "ba-agent-benchmark-worker/2.0",
+        "User-Agent": "ba-agent-benchmark-worker/2.1",
         "X-GitHub-Api-Version": "2022-11-28",
     }
     if token:
@@ -158,6 +158,9 @@ def validate_job(job):
     temperature = float(job.get("temperature", 0.0))
     if temperature < 0.0 or temperature > 2.0:
         raise WorkerError("Job {} temperature must be 0..2".format(job_id))
+    max_output_tokens = int(job.get("max_output_tokens") or 8192)
+    if max_output_tokens < 1024 or max_output_tokens > 32768:
+        raise WorkerError("Job {} max_output_tokens must be 1024..32768".format(job_id))
 
     normalized = {
         "id": job_id,
@@ -166,6 +169,7 @@ def validate_job(job):
         "runner": runner,
         "repeat": repeat,
         "temperature": temperature,
+        "max_output_tokens": max_output_tokens,
         "enabled": bool(job.get("enabled", True)),
         "auto_fallback": bool(job.get("auto_fallback", False)),
         "comparison_group": str(job.get("comparison_group") or "").strip() or None,
@@ -271,6 +275,7 @@ def run_job(root, env_file, token_env, repo, branch, job):
             "--mode", job["mode"],
             "--repeat", str(job["repeat"]),
             "--temperature", str(job["temperature"]),
+            "--max-output-tokens", str(job["max_output_tokens"]),
             "--run-id", job["id"],
             "--env-file", str(env_file),
             "--publish-github",
@@ -280,7 +285,9 @@ def run_job(root, env_file, token_env, repo, branch, job):
         ]
         label = job["mode"]
 
-    print("[worker] starting {}: {} {} {}".format(job["id"], job["model"], label, job["benchmark"]))
+    print("[worker] starting {}: {} {} {} max_output_tokens={}".format(
+        job["id"], job["model"], label, job["benchmark"], job["max_output_tokens"]
+    ))
     proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     output = proc.stdout or ""
     if output:
@@ -359,6 +366,7 @@ def main():
                     "comparison_group": job.get("comparison_group"),
                     "auto_fallback": job.get("auto_fallback", False),
                     "fallback_models": job.get("fallback_models") or [],
+                    "max_output_tokens": job.get("max_output_tokens"),
                 }
                 if job["runner"] == "benchmark":
                     record["mode"] = job["mode"]
