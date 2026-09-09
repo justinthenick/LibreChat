@@ -187,6 +187,14 @@ health_check() {
   ' >/dev/null 2>&1
 }
 
+production_agent_seed() {
+  docker exec librechat sh -lc '
+    test -f /app/config/seed-production-agents.js || exit 1
+    test -d /app/production-agents || exit 1
+    node /app/config/seed-production-agents.js /app/production-agents
+  '
+}
+
 workspace_check() {
   docker exec librechat sh -lc '
     test -d /workspace || exit 1
@@ -365,6 +373,10 @@ FAILED_STAGE="health_check"
 COUNT=0
 until health_check; do COUNT=$((COUNT+1)); if [ "$COUNT" -ge 12 ]; then log "ERROR: LibreChat health check failed after 60 seconds"; collect_diagnostics; exit 1; fi; sleep 5; done
 log "LibreChat health check passed"
+
+FAILED_STAGE="production_agent_seed"
+if ! production_agent_seed >> "$LOG_FILE" 2>&1; then log "ERROR: production agent seed/validation failed"; collect_diagnostics; exit 1; fi
+log "Production agents seeded and validated"
 
 FAILED_STAGE="workspace_check"
 if ! workspace_check; then log "ERROR: LibreChat cannot complete a write/read/delete test in /workspace"; collect_diagnostics; exit 1; fi
