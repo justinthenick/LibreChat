@@ -1,6 +1,6 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "cycle-health-model-compare-20260909-1852-001",
-  "recipe": "custom/ba-agent/diagnostics/cycle-health.json"
+  "request_id": "b043-v024-cycle-20260909-2040-001",
+  "recipe": "custom/ba-agent/diagnostics/b043-cycle.json"
 }
