@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "enabled": true,
-  "note": "Cross-model semantic comparison jobs. B042 v0.2.4 is judged independently by Gemini 3.7 and 3.8 against the same evaluator-only gold standard and rubric. Generation inputs, prompt and Skill hashes must match; generation model IDs may differ by design.",
+  "note": "Cross-model semantic comparison jobs. B042 v0.2.4 and held-out B043 generalization are judged independently by Gemini 3.7 and 3.8 against the same evaluator-only gold standards and rubrics. Generation input, prompt and Skill hashes must match within each pair; generation model IDs may differ by design.",
   "jobs": [
     {
       "id": "b042-v024-cross-model-eval-g37-001",
@@ -22,6 +22,28 @@
       "left_metadata": "results/b042-g37-multisource-ba-v024-009-gemini-3.7-flash-skill-01.json",
       "right_result": "results/b042-g38-multisource-ba-v024-008-gemini-3.8-flash-skill-01.md",
       "right_metadata": "results/b042-g38-multisource-ba-v024-008-gemini-3.8-flash-skill-01.json",
+      "evaluator_model": "gemini-3.8-flash",
+      "max_output_tokens": 8192
+    },
+    {
+      "id": "b043-v024-cross-model-eval-g37-001",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/043-source-closure-generalization",
+      "left_result": "results/b043-g37-source-closure-generalization-v024-001-gemini-3.7-flash-skill-01.md",
+      "left_metadata": "results/b043-g37-source-closure-generalization-v024-001-gemini-3.7-flash-skill-01.json",
+      "right_result": "results/b043-g38-source-closure-generalization-v024-002-gemini-3.8-flash-skill-01.md",
+      "right_metadata": "results/b043-g38-source-closure-generalization-v024-002-gemini-3.8-flash-skill-01.json",
+      "evaluator_model": "gemini-3.7-flash",
+      "max_output_tokens": 8192
+    },
+    {
+      "id": "b043-v024-cross-model-eval-g38-002",
+      "enabled": true,
+      "benchmark": "custom/ba-agent/benchmarks/043-source-closure-generalization",
+      "left_result": "results/b043-g37-source-closure-generalization-v024-001-gemini-3.7-flash-skill-01.md",
+      "left_metadata": "results/b043-g37-source-closure-generalization-v024-001-gemini-3.7-flash-skill-01.json",
+      "right_result": "results/b043-g38-source-closure-generalization-v024-002-gemini-3.8-flash-skill-01.md",
+      "right_metadata": "results/b043-g38-source-closure-generalization-v024-002-gemini-3.8-flash-skill-01.json",
       "evaluator_model": "gemini-3.8-flash",
       "max_output_tokens": 8192
     }
