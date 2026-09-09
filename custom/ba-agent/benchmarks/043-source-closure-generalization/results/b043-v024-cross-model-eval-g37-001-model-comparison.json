@@ -1,0 +1,228 @@
+{
+  "schema": 1,
+  "job_id": "b043-v024-cross-model-eval-g37-001",
+  "benchmark": "Benchmark 043 — Structured Evidence Source-Closure Generalization",
+  "benchmark_path": "custom/ba-agent/benchmarks/043-source-closure-generalization",
+  "evaluated_at": "2026-09-09T10:59:27Z",
+  "evaluator_model": "gemini-3.7-flash",
+  "left_result": "results/b043-g37-source-closure-generalization-v024-001-gemini-3.7-flash-skill-01.md",
+  "right_result": "results/b043-g38-source-closure-generalization-v024-002-gemini-3.8-flash-skill-01.md",
+  "left_metadata": {
+    "api_key_source": "GOOGLE_KEY",
+    "benchmark": "Benchmark 043 — Structured Evidence Source-Closure Generalization",
+    "benchmark_dir": "043-source-closure-generalization",
+    "ended_at": "2026-09-09T10:57:33Z",
+    "error": null,
+    "finish_reason": "STOP",
+    "github_source": {
+      "branch": "feature/ba-agent-v0.1",
+      "refreshed": false,
+      "repo": "justinthenick/LibreChat"
+    },
+    "http_status": 200,
+    "input_sha256": "72a565a6e592d22294c4cd43f55ca6907ed0c7c900dd568f68ded7f46592fd1e",
+    "iteration": 1,
+    "max_output_tokens": 16384,
+    "mode": "skill",
+    "model": "gemini-3.7-flash",
+    "prompt_sha256": "f39fc031327e82c72f5a3a3c31d6765c216b2e3058f8240695834fb42ea06100",
+    "provider": "gemini",
+    "runner_python": "3.8.12",
+    "schema": 2,
+    "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/prepare-implementation-ready-requirements/SKILL.md",
+    "skill_sha256": "a38fda060b2ccaec03fe137dbde1049985dd6971a7dbc2a41ec81d762a037c99",
+    "skill_version": "0.2.4",
+    "started_at": "2026-09-09T10:57:15Z",
+    "status": "success",
+    "temperature": 0.0,
+    "usage": {
+      "candidatesTokenCount": 4745,
+      "promptTokenCount": 5270,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 5270
+        }
+      ],
+      "serviceTier": "standard",
+      "thoughtsTokenCount": 1575,
+      "totalTokenCount": 11590
+    }
+  },
+  "right_metadata": {
+    "api_key_source": "GOOGLE_KEY",
+    "benchmark": "Benchmark 043 — Structured Evidence Source-Closure Generalization",
+    "benchmark_dir": "043-source-closure-generalization",
+    "ended_at": "2026-09-09T10:58:04Z",
+    "error": null,
+    "finish_reason": "STOP",
+    "github_source": {
+      "branch": "feature/ba-agent-v0.1",
+      "refreshed": false,
+      "repo": "justinthenick/LibreChat"
+    },
+    "http_status": 200,
+    "input_sha256": "72a565a6e592d22294c4cd43f55ca6907ed0c7c900dd568f68ded7f46592fd1e",
+    "iteration": 1,
+    "max_output_tokens": 16384,
+    "mode": "skill",
+    "model": "gemini-3.8-flash",
+    "prompt_sha256": "f39fc031327e82c72f5a3a3c31d6765c216b2e3058f8240695834fb42ea06100",
+    "provider": "gemini",
+    "runner_python": "3.8.12",
+    "schema": 2,
+    "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/prepare-implementation-ready-requirements/SKILL.md",
+    "skill_sha256": "a38fda060b2ccaec03fe137dbde1049985dd6971a7dbc2a41ec81d762a037c99",
+    "skill_version": "0.2.4",
+    "started_at": "2026-09-09T10:57:40Z",
+    "status": "success",
+    "temperature": 0.0,
+    "usage": {
+      "candidatesTokenCount": 5541,
+      "promptTokenCount": 5270,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 5270
+        }
+      ],
+      "serviceTier": "standard",
+      "thoughtsTokenCount": 2919,
+      "totalTokenCount": 13730
+    }
+  },
+  "skill_path": "custom/ba-agent/skills/prepare-implementation-ready-requirements/SKILL.md",
+  "skill_sha256": "a38fda060b2ccaec03fe137dbde1049985dd6971a7dbc2a41ec81d762a037c99",
+  "evaluation": {
+    "left": {
+      "model": "gemini-3.7-flash",
+      "score": 100,
+      "automatic_fail": false,
+      "criteria": [
+        {
+          "criterion": "Multi-source utilisation",
+          "score": 10,
+          "max": 10,
+          "rationale": "Materially and accurately utilises all four sources (SRC-DOC-01, SRC-XLS-01, SRC-MAP-01, SRC-PPT-01) with full source attribution."
+        },
+        {
+          "criterion": "Structured operational controls",
+          "score": 20,
+          "max": 20,
+          "rationale": "Fully operationalises taxonomy/mappings (4/4), assignment_queue routing (4/4), Permit option available? (3/3), Remote Review available? (3/3), Evidence Required? (3/3), and Risk Band (3/3)."
+        },
+        {
+          "criterion": "Multiplicity discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Preserves multi-region contractor affiliation as an unknown handling outcome without promoting candidate set-handling policies into confirmed requirements or AC."
+        },
+        {
+          "criterion": "Target-state abstraction discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Retains gate-entry and final-exit events at the target abstraction without introducing unsourced technical transport, polling, API, or reconciliation mechanisms."
+        },
+        {
+          "criterion": "Naming / field-mapping discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Treats business taxonomy labels and technical u_ field names as direct mappings rather than conflicts or decision items."
+        },
+        {
+          "criterion": "Explicit contradiction preservation",
+          "score": 10,
+          "max": 10,
+          "rationale": "Preserves the document-wide evidence upload mandate vs. matrix-level flag contradiction as Disputed, correctly blocking confirmed AC elaboration."
+        },
+        {
+          "criterion": "Unresolved-cardinality / source closure",
+          "score": 5,
+          "max": 5,
+          "rationale": "Captures the exact out-of-hours duty supervisor self-approval TBD question from SRC-MAP-01 and introduces zero negative-space/invented questions."
+        },
+        {
+          "criterion": "Traceability and readiness",
+          "score": 5,
+          "max": 5,
+          "rationale": "End-to-end traceability across sources, requirements, backlog/decision items, and acceptance criteria is clean, complete, and status-disciplined."
+        }
+      ],
+      "violations": [],
+      "summary": "Flawless execution meeting all gold-standard criteria, with strict source closure, excellent operationalisation of tabular data, and precise status preservation."
+    },
+    "right": {
+      "model": "gemini-3.8-flash",
+      "score": 100,
+      "automatic_fail": false,
+      "criteria": [
+        {
+          "criterion": "Multi-source utilisation",
+          "score": 10,
+          "max": 10,
+          "rationale": "Materially and accurately utilises all four sources with precise evidentiary role preservation."
+        },
+        {
+          "criterion": "Structured operational controls",
+          "score": 20,
+          "max": 20,
+          "rationale": "Fully operationalises all matrix controls: taxonomy + mappings (4/4), routing queue (4/4), permit option availability (3/3), remote review availability (3/3), evidence required flag (3/3), and risk band (3/3)."
+        },
+        {
+          "criterion": "Multiplicity discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Preserves multi-region handling outcome as Unknown/Candidate without promoting any candidate set policy to confirmed requirements or AC."
+        },
+        {
+          "criterion": "Target-state abstraction discipline",
+          "score": 20,
+          "max": 20,
+          "rationale": "Maintains gate-entry and crew-exit target items at stated concept abstraction without technical mechanism assumptions."
+        },
+        {
+          "criterion": "Naming / field-mapping discipline",
+          "score": 10,
+          "max": 10,
+          "rationale": "Correctly treats business hierarchy and u_ technical fields as explicit mappings."
+        },
+        {
+          "criterion": "Explicit contradiction preservation",
+          "score": 10,
+          "max": 10,
+          "rationale": "Identifies the evidence requirement contradiction between SRC-DOC-01 and SRC-XLS-01, labels it Disputed, and isolates it from confirmed AC."
+        },
+        {
+          "criterion": "Unresolved-cardinality / source closure",
+          "score": 5,
+          "max": 5,
+          "rationale": "Strictly isolates the single out-of-hours annotation and sourced ambiguities without adding ungrounded engineering questions."
+        },
+        {
+          "criterion": "Traceability and readiness",
+          "score": 5,
+          "max": 5,
+          "rationale": "Exemplary traceability and readiness distinction across confirmed, disputed, unknown, and target items."
+        }
+      ],
+      "violations": [],
+      "summary": "Flawless execution meeting all gold-standard criteria, with exact matrix decomposition into discrete Gherkin scenarios and rigorous status boundaries."
+    },
+    "preferred_model": "none",
+    "decision_rule_met": false,
+    "rationale": "Both models scored 100/100 with zero automatic fail violations. Both demonstrated perfect source closure, exact tabular data operationalisation, rigorous preservation of the evidence contradiction, correct handling of multi-region multiplicity as Unknown, and clean target-state abstraction preservation. Neither model holds a material advantage over the other."
+  },
+  "usage": {
+    "promptTokenCount": 14309,
+    "candidatesTokenCount": 1413,
+    "totalTokenCount": 17478,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 14309
+      }
+    ],
+    "thoughtsTokenCount": 1756,
+    "serviceTier": "standard"
+  }
+}
