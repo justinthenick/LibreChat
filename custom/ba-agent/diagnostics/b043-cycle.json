@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "name": "B043 held-out generalization execution diagnosis",
+  "checks": [
+    {
+      "type": "lock_status",
+      "label": "Main scheduler lock and wrapper",
+      "path": "/tmp/librechat-ba-benchmark-worker.lock",
+      "process_contains": "run_worker_once.sh"
+    },
+    {
+      "type": "queue_compare",
+      "label": "B043 queue versus worker state",
+      "jobs_path": "custom/ba-agent/automation/jobs.json",
+      "state_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json",
+      "job_ids": [
+        "b043-g37-source-closure-generalization-v024-001",
+        "b043-g38-source-closure-generalization-v024-002"
+      ]
+    },
+    {
+      "type": "worker_state",
+      "label": "B043 worker records",
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json",
+      "job_ids": [
+        "b043-g37-source-closure-generalization-v024-001",
+        "b043-g38-source-closure-generalization-v024-002"
+      ]
+    },
+    {
+      "type": "tail",
+      "label": "Recent scheduler log",
+      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/scheduler.log",
+      "lines": 160
+    }
+  ]
+}
