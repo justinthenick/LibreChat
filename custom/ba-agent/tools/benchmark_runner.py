@@ -18,6 +18,7 @@ import os
 from pathlib import Path
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -27,6 +28,7 @@ DEFAULT_GITHUB_REPO = "justinthenick/LibreChat"
 DEFAULT_GITHUB_BRANCH = "feature/ba-agent-v0.1"
 KEY_ENV_CANDIDATES = ("GEMINI_API_KEY", "GOOGLE_KEY", "GOOGLE_API_KEY")
 GITHUB_TOKEN_DEFAULT_ENV = "GITHUB_BA_BENCHMARK_TOKEN"
+GITHUB_PUBLISH_ATTEMPTS = 5
 
 
 class RunnerError(RuntimeError):
@@ -143,7 +145,7 @@ def find_lab_root(start):
 def github_api_request(url, method="GET", token=None, payload=None, timeout=60):
     headers = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "ba-agent-benchmark-runner/2.0",
+        "User-Agent": "ba-agent-benchmark-runner/2.1",
         "X-GitHub-Api-Version": "2022-11-28",
     }
     if token:
@@ -185,26 +187,40 @@ def github_put_text(repo, branch, repo_path, text, token, message):
     encoded_path = urllib.parse.quote(repo_path.strip("/"), safe="/")
     ref = urllib.parse.quote(branch, safe="")
     get_url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(repo, encoded_path, ref)
-    sha = None
-    try:
-        _, existing = github_api_request(get_url, token=token)
-        if isinstance(existing, dict):
-            sha = existing.get("sha")
-    except RunnerError as exc:
-        if "HTTP 404" not in str(exc):
-            raise
-
     put_url = "https://api.github.com/repos/{}/contents/{}".format(repo, encoded_path)
-    payload = {
-        "message": message,
-        "content": base64.b64encode(text.encode("utf-8")).decode("ascii"),
-        "branch": branch,
-    }
-    if sha:
-        payload["sha"] = sha
-    _, result = github_api_request(put_url, method="PUT", token=token, payload=payload)
-    commit = result.get("commit") if isinstance(result, dict) else None
-    return commit.get("sha") if isinstance(commit, dict) else None
+
+    last_error = None
+    for attempt in range(1, GITHUB_PUBLISH_ATTEMPTS + 1):
+        sha = None
+        try:
+            _, existing = github_api_request(get_url, token=token)
+            if isinstance(existing, dict):
+                sha = existing.get("sha")
+        except RunnerError as exc:
+            if "HTTP 404" not in str(exc):
+                raise
+
+        payload = {
+            "message": message,
+            "content": base64.b64encode(text.encode("utf-8")).decode("ascii"),
+            "branch": branch,
+        }
+        if sha:
+            payload["sha"] = sha
+
+        try:
+            _, result = github_api_request(put_url, method="PUT", token=token, payload=payload)
+            commit = result.get("commit") if isinstance(result, dict) else None
+            return commit.get("sha") if isinstance(commit, dict) else None
+        except RunnerError as exc:
+            last_error = exc
+            if "HTTP 409" not in str(exc) or attempt >= GITHUB_PUBLISH_ATTEMPTS:
+                raise
+            # Another lab publisher advanced the same branch between our GET and
+            # PUT. Re-read the target path/branch and retry with short backoff.
+            time.sleep(0.4 * attempt)
+
+    raise last_error or RunnerError("GitHub publish failed without a recorded error")
 
 
 def refresh_from_github(benchmark_dir, repo, branch):
@@ -278,7 +294,7 @@ def gemini_generate(api_key, api_base, model, user_prompt, system_instruction, t
         headers={
             "Content-Type": "application/json",
             "x-goog-api-key": api_key,
-            "User-Agent": "ba-agent-benchmark-runner/2.0",
+            "User-Agent": "ba-agent-benchmark-runner/2.1",
         },
     )
 
