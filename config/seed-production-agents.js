@@ -36,9 +36,9 @@ function chooseModel(manifest) {
   const preferredModel = String(manifest?.preferred_model || '').trim();
 
   if (preferredModel) {
-    if (!allowedModels.includes(preferredModel)) {
+    if (allowedModels.length > 0 && !allowedModels.includes(preferredModel)) {
       throw new Error(
-        `${manifest.id} preferred model ${preferredModel} is not present in ALLOWED_MODELS`,
+        `${manifest.id} preferred model ${preferredModel} is not present in configured ALLOWED_MODELS`,
       );
     }
     return preferredModel;
