@@ -1,6 +1,6 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "b043-v024-cycle-20260909-2040-001",
-  "recipe": "custom/ba-agent/diagnostics/b043-cycle.json"
+  "request_id": "librechat-deploy-lock-20260909-2129-001",
+  "recipe": "custom/ba-agent/diagnostics/librechat-deploy-lock.json"
 }
