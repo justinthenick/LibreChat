@@ -1,0 +1,15 @@
+{
+  "benchmark": "Benchmark 043 — Structured Evidence Source-Closure Generalization",
+  "created_at": "2026-09-09T10:58:04Z",
+  "mode": "skill",
+  "model": "gemini-3.8-flash",
+  "repeat": 1,
+  "runs": [
+    {
+      "markdown": "b043-g38-source-closure-generalization-v024-002-gemini-3.8-flash-skill-01.md",
+      "metadata": "b043-g38-source-closure-generalization-v024-002-gemini-3.8-flash-skill-01.json",
+      "status": "success"
+    }
+  ],
+  "schema": 2
+}
