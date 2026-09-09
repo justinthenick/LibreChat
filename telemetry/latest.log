@@ -1,16 +1,3 @@
-2026-09-09 20:00:06 LibreChat deployment check started
-2026-09-09 20:00:06 Cloudflare tunnel integration enabled
-2026-09-09 20:00:06 Synology Admin Settings integration enabled
-2026-09-09 20:03:00 No deployment change; healthy deployment already recorded at 7c84d156
-2026-09-09 20:05:21 LibreChat deployment check started
-2026-09-09 20:05:21 Cloudflare tunnel integration enabled
-2026-09-09 20:05:21 Synology Admin Settings integration enabled
-2026-09-09 20:08:12 No deployment change; healthy deployment already recorded at 7c84d156
-2026-09-09 20:10:04 LibreChat deployment check started
-2026-09-09 20:10:04 Cloudflare tunnel integration enabled
-2026-09-09 20:10:05 Synology Admin Settings integration enabled
-2026-09-09 20:14:40 No deployment change; healthy deployment already recorded at 7c84d156
-2026-09-09 20:15:13 LibreChat deployment check started
 2026-09-09 20:15:13 Cloudflare tunnel integration enabled
 2026-09-09 20:15:13 Synology Admin Settings integration enabled
 2026-09-09 20:18:39 No deployment change; healthy deployment already recorded at 7c84d156
@@ -38,3 +25,16 @@
 2026-09-09 20:48:44 Cloudflare tunnel integration enabled
 2026-09-09 20:48:44 Synology Admin Settings integration enabled
 2026-09-09 20:53:41 No deployment change; healthy deployment already recorded at 7c84d156
+2026-09-09 21:01:35 Sanitised GitHub telemetry published
+2026-09-09 21:01:38 LibreChat deployment check started
+2026-09-09 21:01:38 Cloudflare tunnel integration enabled
+2026-09-09 21:01:38 Synology Admin Settings integration enabled
+2026-09-09 21:05:07 Change detected: 7c84d156 -> ec64c98b
+2026-09-09 21:09:02 Synology Admin Settings privileged worker ready
+2026-09-09 21:09:05 Compose validation passed
+2026-09-09 21:11:23 Image pull completed
+2026-09-09 21:11:24 Compose update completed
+2026-09-09 21:11:25 LibreChat health check passed
+2026-09-09 21:11:25 MCP workspace mount passed write/read/delete check
+2026-09-09 21:11:25 Cloudflare tunnel connector registered
+2026-09-09 21:11:26 Synology Admin Settings panel and worker healthy
