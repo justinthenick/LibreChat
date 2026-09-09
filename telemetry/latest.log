@@ -1,8 +1,3 @@
-2026-09-10 01:36:11 WARN: sanitised GitHub telemetry publish failed
-2026-09-10 01:36:25 LibreChat deployment check started
-2026-09-10 01:36:25 Cloudflare tunnel integration enabled
-2026-09-10 01:36:25 Synology Admin Settings integration enabled
-2026-09-10 01:41:46 ERROR: could not resolve remote branch server/synology
 2026-09-10 01:43:51 WARN: sanitised GitHub telemetry publish failed
 2026-09-10 01:43:59 LibreChat deployment check started
 2026-09-10 01:43:59 Cloudflare tunnel integration enabled
@@ -38,3 +33,8 @@
 2026-09-10 02:24:35 Cloudflare tunnel integration enabled
 2026-09-10 02:24:35 Synology Admin Settings integration enabled
 2026-09-10 02:29:37 ERROR: could not resolve remote branch server/synology
+2026-09-10 02:36:27 Sanitised GitHub telemetry published
+2026-09-10 02:36:41 LibreChat deployment check started
+2026-09-10 02:36:41 Cloudflare tunnel integration enabled
+2026-09-10 02:36:41 Synology Admin Settings integration enabled
+2026-09-10 02:39:45 No deployment change; healthy deployment already recorded at 8bf2d889
