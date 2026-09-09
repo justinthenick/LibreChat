@@ -143,7 +143,7 @@ post_status() {
   fi
   if ! docker run --rm -e GH_TOKEN="$TOKEN" -e GH_STATE="$STATE" -e GH_SHA="$SHA" -e GH_DESCRIPTION="$DESCRIPTION" -e GH_REPO="$STATUS_REPO" -e GH_CONTEXT="$STATUS_CONTEXT" --entrypoint sh "$STATUS_IMAGE" -c '
       payload=$(printf "{\"state\":\"%s\",\"description\":\"%s\",\"context\":\"%s\"}" "$GH_STATE" "$GH_DESCRIPTION" "$GH_CONTEXT")
-      curl -fsS -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/$GH_REPO/statuses/$GH_SHA" -d "$payload" >/dev/null
+      curl -fsS --connect-timeout 5 --max-time 20 --retry 2 --retry-delay 1 --retry-all-errors -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/$GH_REPO/statuses/$GH_SHA" -d "$payload" >/dev/null
     '; then
     log "WARN: could not report GitHub commit status for $(short_sha "$SHA")"
   fi
