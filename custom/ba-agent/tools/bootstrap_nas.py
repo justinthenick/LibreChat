@@ -51,7 +51,7 @@ def github_fetch_text(repo, branch, repo_path, token):
     url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(repo, encoded_path, ref)
     headers = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "ba-agent-nas-bootstrap/2.0",
+        "User-Agent": "ba-agent-nas-bootstrap/2.1",
         "X-GitHub-Api-Version": "2022-11-28",
         "Authorization": "Bearer {}".format(token),
     }
@@ -107,6 +107,7 @@ def main():
         "custom/ba-agent/tools/autonomy_controller.py",
         "custom/ba-agent/tools/lab_common.py",
         "custom/ba-agent/tools/semantic_evaluator.py",
+        "custom/ba-agent/tools/model_comparison_evaluator.py",
         "custom/ba-agent/tools/semantic_reviser.py",
         "custom/ba-agent/tools/diagnostic_worker.py",
         "custom/ba-agent/tools/bounded_exec.py",
