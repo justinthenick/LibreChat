@@ -1,0 +1,42 @@
+{
+  "api_key_source": "GOOGLE_KEY",
+  "benchmark": "Benchmark 042 — Multi-Source BA Model Comparison",
+  "benchmark_dir": "042-multisource-ba-model-comparison",
+  "ended_at": "2026-09-09T08:43:15Z",
+  "error": null,
+  "finish_reason": "STOP",
+  "github_source": {
+    "branch": "feature/ba-agent-v0.1",
+    "refreshed": false,
+    "repo": "justinthenick/LibreChat"
+  },
+  "http_status": 200,
+  "input_sha256": "1432330128630c368efc83ea65458ebec990d731cc2dd0b11d77148c13b21af3",
+  "iteration": 1,
+  "max_output_tokens": 16384,
+  "mode": "skill",
+  "model": "gemini-3.8-flash",
+  "prompt_sha256": "327f4aeb1a6fd16d585800b3706194285a459265cd69d02950e95b5d07b717e1",
+  "provider": "gemini",
+  "runner_python": "3.8.12",
+  "schema": 2,
+  "skill_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/skills/prepare-implementation-ready-requirements/SKILL.md",
+  "skill_sha256": "a38fda060b2ccaec03fe137dbde1049985dd6971a7dbc2a41ec81d762a037c99",
+  "skill_version": "0.2.4",
+  "started_at": "2026-09-09T08:42:40Z",
+  "status": "success",
+  "temperature": 0.0,
+  "usage": {
+    "candidatesTokenCount": 8382,
+    "promptTokenCount": 5986,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 5986
+      }
+    ],
+    "serviceTier": "standard",
+    "thoughtsTokenCount": 1825,
+    "totalTokenCount": 16193
+  }
+}
