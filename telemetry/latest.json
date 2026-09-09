@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "timestamp": "2026-09-10T00:37:31+1000",
-  "result": "success",
-  "stage": "steady_state_recovered",
+  "timestamp": "2026-09-10T02:29:37+1000",
+  "result": "failure",
+  "stage": "preflight",
   "commit": "8bf2d889335cc2778d6aaa5a7b3c2d8953506876",
   "runtime": {
     "librechat_container": "running",
@@ -11,11 +11,11 @@
     "mongodb_container": "running",
     "http_health": "pass",
     "workspace": "pass",
-    "cloudflare_tunnel": "connected",
+    "cloudflare_tunnel": "running_unregistered",
     "volume1_used_percent": "19"
   },
   "last_failure": {
-    "timestamp": "2026-09-10T00:30:56+1000",
+    "timestamp": "2026-09-10T02:29:37+1000",
     "commit": "8bf2d889335cc2778d6aaa5a7b3c2d8953506876",
     "stage": "preflight",
     "librechat_container": "running",
