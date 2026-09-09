@@ -2,11 +2,12 @@
   "schema": 1,
   "id": "agent_ba_supervisor_v01",
   "name": "BA Supervisor",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "status": "validated-for-independent-use",
   "description": "Business-analysis and change-delivery supervisor that selects and invokes the minimum appropriate validated capabilities while preserving evidence state, authority, dependencies and unresolved unknowns.",
   "provider": "OpenRouter",
-  "model_policy": "first-allowed-model-or-deepseek/deepseek-v3.2",
+  "preferred_model": "google/gemini-3.8-flash",
+  "model_policy": "preferred-model-must-be-allowlisted",
   "skills_enabled": true,
   "skills": [
     {"name":"prepare-implementation-ready-requirements","id":"a285631e35337898e5d79cf8"},
@@ -37,8 +38,8 @@
   ],
   "evidence": {
     "source_agent": "custom/ba-agent/agents/ba-change-delivery-orchestrator/AGENT.md",
-    "benchmark_family": ["032-a001-selective-readiness", "033-a002-architecture-stop-routing", "034-a002-procurement-only-generalization"],
-    "release_evidence": "BA Agent v0.1 semantic gates through B038 green; O001 cross-agent handoff activation passed; live regressions proved model-selected sequential, composite and ambient-plus-callable requirements routing unreliable in the pinned runtime",
+    "benchmark_family": ["032-a001-selective-readiness", "033-a002-architecture-stop-routing", "034-a002-procurement-only-generalization", "042-multisource-ba-model-comparison", "043-source-closure-generalization"],
+    "release_evidence": "BA Agent v0.1 semantic gates through B038 green; O001 cross-agent handoff activation passed; Requirements Lifecycle Skill v0.2.4 passed B042 and held-out B043 dual-judge source-closure gates; Gemini 3.8 Flash selected for production after B042 preference and B043 tie/preference confirmation.",
     "note": "The requirements-lifecycle skill is pre-primed and is the sole requirements capability exposed by BA Supervisor. The independently benchmarked analysis, decomposition and acceptance-criteria component skills remain in the repository but are deliberately not callable from this Supervisor. Release/change assurance remains governed by the separately validated O001 handoff policy."
   }
 }
