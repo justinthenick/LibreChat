@@ -2,87 +2,22 @@
   "schema": 1,
   "name": "BA lab cycle health and stall diagnosis",
   "checks": [
-    {
-      "type": "python_info",
-      "label": "Python runtime"
-    },
-    {
-      "type": "path_exists",
-      "label": "Scheduler wrapper",
-      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh"
-    },
-    {
-      "type": "path_exists",
-      "label": "Bounded executor",
-      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/tools/bounded_exec.py"
-    },
-    {
-      "type": "env_presence",
-      "label": "Lab credential presence only",
-      "path": "/volume1/docker/librechat/deploy/synology/.env",
-      "names": ["GOOGLE_KEY", "GITHUB_TELEMETRY_TOKEN"]
-    },
-    {
-      "type": "lock_status",
-      "label": "Main scheduler lock and wrapper process",
-      "path": "/tmp/librechat-ba-benchmark-worker.lock",
-      "process_contains": "run_worker_once.sh"
-    },
-    {
-      "type": "lock_status",
-      "label": "Benchmark phase process",
-      "path": "/tmp/librechat-ba-benchmark-worker.lock",
-      "process_contains": "benchmark_worker.py"
-    },
-    {
-      "type": "lock_status",
-      "label": "Dynamic phase process",
-      "path": "/tmp/librechat-ba-benchmark-worker.lock",
-      "process_contains": "dynamic_agent_worker.py"
-    },
-    {
-      "type": "lock_status",
-      "label": "Semantic evaluator phase process",
-      "path": "/tmp/librechat-ba-benchmark-worker.lock",
-      "process_contains": "semantic_evaluator.py"
-    },
-    {
-      "type": "lock_status",
-      "label": "Semantic reviser phase process",
-      "path": "/tmp/librechat-ba-benchmark-worker.lock",
-      "process_contains": "semantic_reviser.py"
-    },
-    {
-      "type": "queue_compare",
-      "label": "Execution queue versus benchmark worker state",
-      "jobs_path": "custom/ba-agent/automation/jobs.json",
-      "state_path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json"
-    },
-    {
-      "type": "path_exists",
-      "label": "Dynamic worker state",
-      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/dynamic-worker-state.json"
-    },
-    {
-      "type": "path_exists",
-      "label": "Semantic evaluator state",
-      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/semantic-evaluator-state.json"
-    },
-    {
-      "type": "path_exists",
-      "label": "Semantic revision state",
-      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/semantic-reviser-state.json"
-    },
-    {
-      "type": "disk_usage",
-      "label": "Lab filesystem usage",
-      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent"
-    },
-    {
-      "type": "tail",
-      "label": "Recent scheduler cycle log",
-      "path": "/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/scheduler.log",
-      "lines": 180
-    }
+    {"type":"python_info","label":"Python runtime"},
+    {"type":"path_exists","label":"Scheduler wrapper","path":"/volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh"},
+    {"type":"path_exists","label":"Bounded executor","path":"/volume1/docker/librechat-ba-lab/custom/ba-agent/tools/bounded_exec.py"},
+    {"type":"env_presence","label":"Lab credential presence only","path":"/volume1/docker/librechat/deploy/synology/.env","names":["GOOGLE_KEY","GITHUB_TELEMETRY_TOKEN"]},
+    {"type":"lock_status","label":"Main scheduler lock and wrapper process","path":"/tmp/librechat-ba-benchmark-worker.lock","process_contains":"run_worker_once.sh"},
+    {"type":"lock_status","label":"Benchmark phase process","path":"/tmp/librechat-ba-benchmark-worker.lock","process_contains":"benchmark_worker.py"},
+    {"type":"lock_status","label":"Dynamic phase process","path":"/tmp/librechat-ba-benchmark-worker.lock","process_contains":"dynamic_agent_worker.py"},
+    {"type":"lock_status","label":"Semantic evaluator phase process","path":"/tmp/librechat-ba-benchmark-worker.lock","process_contains":"semantic_evaluator.py"},
+    {"type":"lock_status","label":"Cross-model evaluator phase process","path":"/tmp/librechat-ba-benchmark-worker.lock","process_contains":"model_comparison_evaluator.py"},
+    {"type":"lock_status","label":"Semantic reviser phase process","path":"/tmp/librechat-ba-benchmark-worker.lock","process_contains":"semantic_reviser.py"},
+    {"type":"queue_compare","label":"Execution queue versus benchmark worker state","jobs_path":"custom/ba-agent/automation/jobs.json","state_path":"/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/worker-state.json"},
+    {"type":"path_exists","label":"Dynamic worker state","path":"/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/dynamic-worker-state.json"},
+    {"type":"path_exists","label":"Semantic evaluator state","path":"/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/semantic-evaluator-state.json"},
+    {"type":"path_exists","label":"Cross-model evaluator state","path":"/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/model-comparison-evaluator-state.json"},
+    {"type":"path_exists","label":"Semantic revision state","path":"/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/semantic-reviser-state.json"},
+    {"type":"disk_usage","label":"Lab filesystem usage","path":"/volume1/docker/librechat-ba-lab/custom/ba-agent"},
+    {"type":"tail","label":"Recent scheduler cycle log","path":"/volume1/docker/librechat-ba-lab/custom/ba-agent/automation/scheduler.log","lines":180}
   ]
 }
