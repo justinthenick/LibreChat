@@ -7,7 +7,7 @@
   "description": "Business-analysis and change-delivery supervisor that selects and invokes the minimum appropriate validated capabilities while preserving evidence state, authority, dependencies and unresolved unknowns.",
   "provider": "OpenRouter",
   "preferred_model": "google/gemini-3.8-flash",
-  "model_policy": "preferred-model-must-be-allowlisted",
+  "model_policy": "preferred-model; enforce configured allowlist when present",
   "skills_enabled": true,
   "skills": [
     {"name":"prepare-implementation-ready-requirements","id":"a285631e35337898e5d79cf8"},
