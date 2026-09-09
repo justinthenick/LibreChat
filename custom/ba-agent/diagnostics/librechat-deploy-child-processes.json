@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "name": "LibreChat deployment child process diagnosis",
+  "checks": [
+    {"type":"lock_status","label":"Autodeploy shells","path":"/tmp/librechat-autodeploy.lock","process_contains":"autodeploy.sh"},
+    {"type":"lock_status","label":"Docker commands","path":"/tmp/librechat-autodeploy.lock","process_contains":"docker"},
+    {"type":"lock_status","label":"Compose commands","path":"/tmp/librechat-autodeploy.lock","process_contains":"docker-compose"},
+    {"type":"lock_status","label":"Seeder process","path":"/tmp/librechat-autodeploy.lock","process_contains":"seed-production-agents.js"},
+    {"type":"lock_status","label":"Node process","path":"/tmp/librechat-autodeploy.lock","process_contains":"node"},
+    {"type":"lock_status","label":"Curl process","path":"/tmp/librechat-autodeploy.lock","process_contains":"curl"},
+    {"type":"lock_status","label":"Telemetry publisher","path":"/tmp/librechat-autodeploy.lock","process_contains":"publish-telemetry.sh"},
+    {"type":"lock_status","label":"Git process","path":"/tmp/librechat-autodeploy.lock","process_contains":"git"},
+    {"type":"lock_status","label":"Systemctl process","path":"/tmp/librechat-autodeploy.lock","process_contains":"systemctl"}
+  ]
+}
