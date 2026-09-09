@@ -119,7 +119,7 @@ github_api() {
       -e GH_PAYLOAD="$PAYLOAD" \
       -v "$TMP_DIR:/work:ro" \
       --entrypoint sh "$STATUS_IMAGE" -c '
-        curl -fsS -X "$GH_METHOD" \
+        curl -fsS --connect-timeout 5 --max-time 20 -X "$GH_METHOD" \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer $GH_TOKEN" \
           -H "X-GitHub-Api-Version: 2022-11-28" \
@@ -132,7 +132,7 @@ github_api() {
       -e GH_URL="$URL" \
       -e GH_METHOD="$METHOD" \
       --entrypoint sh "$STATUS_IMAGE" -c '
-        curl -fsS -X "$GH_METHOD" \
+        curl -fsS --connect-timeout 5 --max-time 20 -X "$GH_METHOD" \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer $GH_TOKEN" \
           -H "X-GitHub-Api-Version: 2022-11-28" \
@@ -174,7 +174,7 @@ post_recovery_status() {
     -e GH_CONTEXT="$STATUS_CONTEXT" \
     --entrypoint sh "$STATUS_IMAGE" -c '
       payload=$(printf "{\"state\":\"success\",\"description\":\"Synology deployment healthy after recovery\",\"context\":\"%s\"}" "$GH_CONTEXT")
-      curl -fsS -X POST \
+      curl -fsS --connect-timeout 5 --max-time 20 -X POST \
         -H "Accept: application/vnd.github+json" \
         -H "Authorization: Bearer $GH_TOKEN" \
         -H "X-GitHub-Api-Version: 2022-11-28" \
