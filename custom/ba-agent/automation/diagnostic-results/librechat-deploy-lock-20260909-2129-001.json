@@ -1,0 +1,46 @@
+{
+  "checks": [
+    {
+      "data": {
+        "exists": true,
+        "is_dir": true,
+        "is_file": false,
+        "mtime_epoch": 1788952888,
+        "path": "/tmp/librechat-autodeploy.lock",
+        "size": 60
+      },
+      "index": 1,
+      "label": "Deployment lock directory",
+      "status": "ok",
+      "type": "path_exists"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 26985
+          },
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 31862
+          }
+        ]
+      },
+      "index": 2,
+      "label": "Autodeploy process holding deployment lock",
+      "status": "ok",
+      "type": "lock_status"
+    }
+  ],
+  "ended_at": "2026-09-09T11:31:04Z",
+  "hostname": "NAS",
+  "overall": "ok",
+  "recipe": "custom/ba-agent/diagnostics/librechat-deploy-lock.json",
+  "recipe_name": "LibreChat deployment lock diagnosis",
+  "request_id": "librechat-deploy-lock-20260909-2129-001",
+  "schema": 1,
+  "started_at": "2026-09-09T11:31:04Z"
+}
