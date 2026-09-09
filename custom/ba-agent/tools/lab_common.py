@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -20,6 +21,7 @@ ENV_FILE = "/volume1/docker/librechat/deploy/synology/.env"
 GITHUB_TOKEN_ENV = "GITHUB_TELEMETRY_TOKEN"
 KEY_ENV_CANDIDATES = ("GEMINI_API_KEY", "GOOGLE_KEY", "GOOGLE_API_KEY")
 OPERATIONAL_FAILURES = ("provider_busy", "quota_blocked", "network_error")
+GITHUB_PUBLISH_ATTEMPTS = 5
 
 
 class LabError(RuntimeError):
@@ -69,7 +71,7 @@ def resolve_api_key(env):
 def github_request(url, token, method="GET", payload=None, timeout=60):
     headers = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "ba-agent-semantic-lab/1.0",
+        "User-Agent": "ba-agent-semantic-lab/1.1",
         "X-GitHub-Api-Version": "2022-11-28",
         "Authorization": "Bearer {}".format(token),
     }
@@ -123,17 +125,42 @@ def get_json(repo, branch, path, token, missing_ok=False):
 
 
 def put_text(repo, branch, path, text, token, message, sha=None):
-    url = "https://api.github.com/repos/{}/contents/{}".format(repo, urllib.parse.quote(path.strip("/"), safe="/"))
-    payload = {
-        "message": message,
-        "content": base64.b64encode(text.encode("utf-8")).decode("ascii"),
-        "branch": branch,
-    }
-    if sha:
-        payload["sha"] = sha
-    _, result = github_request(url, token, method="PUT", payload=payload)
-    commit = result.get("commit") if isinstance(result, dict) else None
-    return commit.get("sha") if isinstance(commit, dict) else None
+    encoded = urllib.parse.quote(path.strip("/"), safe="/")
+    url = "https://api.github.com/repos/{}/contents/{}".format(repo, encoded)
+    current_sha = sha
+    last_error = None
+
+    for attempt in range(1, GITHUB_PUBLISH_ATTEMPTS + 1):
+        if attempt > 1 or current_sha is None:
+            try:
+                _, existing = github_request(contents_url(repo, branch, path), token)
+                current_sha = existing.get("sha") if isinstance(existing, dict) else None
+            except LabError as exc:
+                if "GitHub HTTP 404" in str(exc):
+                    current_sha = None
+                else:
+                    raise
+
+        payload = {
+            "message": message,
+            "content": base64.b64encode(text.encode("utf-8")).decode("ascii"),
+            "branch": branch,
+        }
+        if current_sha:
+            payload["sha"] = current_sha
+
+        try:
+            _, result = github_request(url, token, method="PUT", payload=payload)
+            commit = result.get("commit") if isinstance(result, dict) else None
+            return commit.get("sha") if isinstance(commit, dict) else None
+        except LabError as exc:
+            last_error = exc
+            if "GitHub HTTP 409" not in str(exc) or attempt >= GITHUB_PUBLISH_ATTEMPTS:
+                raise
+            current_sha = None
+            time.sleep(0.4 * attempt)
+
+    raise last_error or LabError("GitHub publish failed without a recorded error")
 
 
 def put_json(repo, branch, path, value, token, message, sha=None):
@@ -178,7 +205,7 @@ def gemini(api_key, model, prompt, system_instruction, max_tokens=8192, timeout=
         endpoint,
         data=json.dumps(payload).encode("utf-8"),
         method="POST",
-        headers={"Content-Type": "application/json", "x-goog-api-key": api_key, "User-Agent": "ba-agent-semantic-lab/1.0"},
+        headers={"Content-Type": "application/json", "x-goog-api-key": api_key, "User-Agent": "ba-agent-semantic-lab/1.1"},
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as response:
