@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 043 — Structured Evidence Source-Closure Generalization",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/prepare-implementation-ready-requirements/SKILL.md",
+  "results_dir": "results"
+}
