@@ -109,6 +109,7 @@ def main():
         "custom/ba-agent/tools/semantic_evaluator.py",
         "custom/ba-agent/tools/semantic_reviser.py",
         "custom/ba-agent/tools/diagnostic_worker.py",
+        "custom/ba-agent/tools/bounded_exec.py",
         "custom/ba-agent/tools/bootstrap_nas.py",
         "custom/ba-agent/tools/run_worker_once.sh",
     )
