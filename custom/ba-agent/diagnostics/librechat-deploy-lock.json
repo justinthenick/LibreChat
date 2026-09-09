@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "name": "LibreChat deployment lock diagnosis",
+  "checks": [
+    {
+      "type": "path_exists",
+      "label": "Deployment lock directory",
+      "path": "/tmp/librechat-autodeploy.lock"
+    },
+    {
+      "type": "lock_status",
+      "label": "Autodeploy process holding deployment lock",
+      "path": "/tmp/librechat-autodeploy.lock",
+      "process_contains": "autodeploy.sh"
+    }
+  ]
+}
