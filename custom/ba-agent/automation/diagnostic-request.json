@@ -1,6 +1,6 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "a004-worker-provenance-20260906-012",
-  "recipe": "custom/ba-agent/diagnostics/a004-worker-provenance-20260906-012.json"
+  "request_id": "cycle-health-20260909-1834-001",
+  "recipe": "custom/ba-agent/diagnostics/cycle-health.json"
 }
