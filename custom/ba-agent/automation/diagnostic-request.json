@@ -1,6 +1,6 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "librechat-deploy-postkill-20260909-2142-001",
+  "request_id": "librechat-deploy-status-hang-20260909-2152-001",
   "recipe": "custom/ba-agent/diagnostics/librechat-deploy-child-processes.json"
 }
