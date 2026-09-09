@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "name": "Benchmark 042 — Multi-Source BA Model Comparison",
+  "input": "input.md",
+  "prompt": "prompt.md",
+  "skill": "../../skills/prepare-implementation-ready-requirements/SKILL.md",
+  "results_dir": "results"
+}
