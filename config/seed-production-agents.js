@@ -31,8 +31,20 @@ function parseAllowedModels(raw) {
     .filter(Boolean);
 }
 
-function chooseModel() {
-  return parseAllowedModels(process.env.ALLOWED_MODELS)[0] || 'deepseek/deepseek-v3.2';
+function chooseModel(manifest) {
+  const allowedModels = parseAllowedModels(process.env.ALLOWED_MODELS);
+  const preferredModel = String(manifest?.preferred_model || '').trim();
+
+  if (preferredModel) {
+    if (allowedModels.length > 0 && !allowedModels.includes(preferredModel)) {
+      throw new Error(
+        `${manifest.id} preferred model ${preferredModel} is not present in configured ALLOWED_MODELS`,
+      );
+    }
+    return preferredModel;
+  }
+
+  return allowedModels[0] || 'deepseek/deepseek-v3.2';
 }
 
 function normalizeProvider(value) {
@@ -158,7 +170,7 @@ function desiredAgent(manifest, author, workflow) {
     description: manifest.description,
     instructions: manifest.instructions,
     provider: normalizeProvider(manifest.provider),
-    model: chooseModel(),
+    model: chooseModel(manifest),
     model_parameters: {},
     tools: manifest.tools.map(String),
     skills: skillIds,
@@ -262,6 +274,11 @@ async function seed() {
     }
     if (agent.artifacts !== manifest.artifacts) {
       throw new Error(`${manifest.id} did not retain artifact mode ${manifest.artifacts}`);
+    }
+    if (manifest.preferred_model && agent.model !== manifest.preferred_model) {
+      throw new Error(
+        `${manifest.id} did not retain preferred production model ${manifest.preferred_model}`,
+      );
     }
 
     const expectedEdges = desiredEdges(manifest.id, workflow);
