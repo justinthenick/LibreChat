@@ -28,6 +28,9 @@ services:
       SESSION_COOKIE_SECURE: "${SESSION_COOKIE_SECURE:-false}"
       ADMIN_PANEL_URL: "${ADMIN_PANEL_URL:-}"
       OPENROUTER_KEY: "${OPENROUTER_KEY:-}"
+      CODING_EXECUTOR_HOST: "${CODING_EXECUTOR_HOST:-localhost}"
+      CODING_EXECUTOR_PORT: "${CODING_EXECUTOR_PORT:-8765}"
+      CODING_EXECUTOR_TOKEN: "${CODING_EXECUTOR_TOKEN:-}"
     # Render the reviewed YAML and seed the validated production agents before
     # starting the backend. Because npm run backend is reached only if the seed
     # exits successfully, the NAS /api/config health gate cannot report success
