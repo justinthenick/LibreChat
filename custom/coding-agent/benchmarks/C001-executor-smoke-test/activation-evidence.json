@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "benchmark": "C001",
+  "run_date": "2026-09-12",
+  "generation_model": "google/gemini-3.8-flash",
+  "executor_version": "0.1.0",
+  "executor_branch": "feature/coding-agent-v0.1",
+  "results": {
+    "repository_discovered": true,
+    "exactly_one_task_created": true,
+    "portable_task_path_confirmed": true,
+    "initial_test_exit_code": 1,
+    "initial_test_passed": 1,
+    "initial_test_failed": 1,
+    "changed_files": [
+      "calculator.js"
+    ],
+    "post_change_test_exit_code": 0,
+    "post_change_tests_passed": 2,
+    "forbidden_command_exit_code": 126,
+    "forbidden_command_error": "command_not_allowed",
+    "forbidden_file_absent": true,
+    "task_status": " M calculator.js\n",
+    "git_diff_check_passed": true,
+    "host_git_status_passed": true,
+    "host_git_diff_passed": true,
+    "source_repository_unchanged": true,
+    "committed": false,
+    "pushed": false
+  },
+  "final_score": 100,
+  "critical_penalties": 0,
+  "defects": 0,
+  "gate_passed": true,
+  "privacy_note": "Local username, absolute filesystem paths and per-run task identifiers are intentionally omitted.",
+  "limitation": "C001 validates one synthetic JavaScript repair and the v0.1 isolation boundary; it does not establish compatibility with arbitrary repositories or large builds."
+}
