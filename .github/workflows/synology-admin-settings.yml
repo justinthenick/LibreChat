@@ -44,7 +44,7 @@ jobs:
       - name: Validate rendered default LibreChat config and capabilities
         run: |
           tmp_env="$(mktemp)"
-          printf 'ALLOWED_MODELS=\nTAVILY_API_KEY=\nOCR_API_KEY=\nOCR_BASEURL=\n' > "$tmp_env"
+          printf 'ALLOWED_MODELS=\nTAVILY_API_KEY=\nOCR_API_KEY=\nOCR_BASEURL=\nCODING_EXECUTOR_HOST=192.168.1.129\nCODING_EXECUTOR_PORT=8765\n' > "$tmp_env"
           python deploy/synology/render-librechat-config.py \
             --env-file "$tmp_env" \
             --template deploy/synology/librechat.yaml \
@@ -80,10 +80,13 @@ jobs:
           grep -Fq "apiKey: '\${OCR_API_KEY}'" /tmp/librechat.runtime.yaml
           grep -Fq "baseURL: '\${OCR_BASEURL}'" /tmp/librechat.runtime.yaml
           grep -q '^mcpSettings:' /tmp/librechat.runtime.yaml
-          grep -Fq "'\${CODING_EXECUTOR_HOST}:\${CODING_EXECUTOR_PORT}'" /tmp/librechat.runtime.yaml
+          grep -Fq "'192.168.1.129:8765'" /tmp/librechat.runtime.yaml
           grep -q '^  coding_executor:' /tmp/librechat.runtime.yaml
           grep -q 'type: streamable-http' /tmp/librechat.runtime.yaml
           grep -Fq "Authorization: 'Bearer \${CODING_EXECUTOR_TOKEN}'" /tmp/librechat.runtime.yaml
+          grep -Fq "url: 'http://192.168.1.129:8765/mcp'" /tmp/librechat.runtime.yaml
+          ! grep -Fq '${CODING_EXECUTOR_HOST}' /tmp/librechat.runtime.yaml
+          ! grep -Fq '${CODING_EXECUTOR_PORT}' /tmp/librechat.runtime.yaml
           ! grep -q '@modelcontextprotocol/server-filesystem' /tmp/librechat.runtime.yaml
       - name: Validate production renderer uses injected environment
         run: |
