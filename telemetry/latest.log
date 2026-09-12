@@ -1,15 +1,3 @@
-2026-09-12 20:30:01 LibreChat deployment check started
-2026-09-12 20:30:01 Cloudflare tunnel integration enabled
-2026-09-12 20:30:01 Synology Admin Settings integration enabled
-2026-09-12 20:31:56 No deployment change; healthy deployment already recorded at 575d5e65
-2026-09-12 20:35:03 LibreChat deployment check started
-2026-09-12 20:35:03 Cloudflare tunnel integration enabled
-2026-09-12 20:35:03 Synology Admin Settings integration enabled
-2026-09-12 20:37:10 No deployment change; healthy deployment already recorded at 575d5e65
-2026-09-12 20:40:11 LibreChat deployment check started
-2026-09-12 20:40:11 Cloudflare tunnel integration enabled
-2026-09-12 20:40:11 Synology Admin Settings integration enabled
-2026-09-12 20:44:30 Change detected: 575d5e65 -> 2550d788
 2026-09-12 20:46:57 Synology Admin Settings privileged worker ready
 2026-09-12 20:46:59 Compose validation passed
 2026-09-12 20:47:50 Image pull completed
@@ -38,3 +26,15 @@
 2026-09-12 21:14:38 Compose update completed
 2026-09-12 21:16:09 ERROR: LibreChat health check failed after 60 seconds
 2026-09-12 21:16:09 Collecting deployment diagnostics for stage health_check
+2026-09-12 21:25:14 Sanitised GitHub telemetry published
+2026-09-12 21:26:30 LibreChat deployment check started
+2026-09-12 21:26:31 Cloudflare tunnel integration enabled
+2026-09-12 21:26:31 Synology Admin Settings integration enabled
+2026-09-12 21:29:42 Retrying deployment at 216328b8; last successful deployment was 575d5e65
+2026-09-12 21:31:56 Synology Admin Settings privileged worker ready
+2026-09-12 21:31:57 Compose validation passed
+2026-09-12 21:33:03 Image pull completed
+2026-09-12 21:33:26 Compose update completed
+2026-09-12 21:35:44 LibreChat API recreated for deployed runtime configuration
+2026-09-12 21:37:47 ERROR: LibreChat health check failed after 60 seconds
+2026-09-12 21:37:47 Collecting deployment diagnostics for stage health_check
