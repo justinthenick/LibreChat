@@ -68,7 +68,7 @@ jobs:
 
           supervisor = manifests['agent_ba_supervisor_v01']
           release = manifests['agent_release_change_assurance_v01']
-          assert supervisor['version'] == '0.1.1'
+          assert supervisor['version'] == '0.1.3'
           assert release['version'] == '0.1.3'
           assert supervisor['subagents']['enabled'] is True
           assert supervisor['subagents']['agent_ids'] == ['agent_release_change_assurance_v01']
