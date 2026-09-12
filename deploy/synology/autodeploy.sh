@@ -191,7 +191,10 @@ production_agent_seed() {
   docker exec librechat sh -lc '
     test -f /app/config/seed-production-agents.js || exit 1
     test -d /app/production-agents || exit 1
+    test -f /app/config/seed-coding-agent-pilot.js || exit 1
+    test -d /app/coding-agent-pilot || exit 1
     node /app/config/seed-production-agents.js /app/production-agents
+    node /app/config/seed-coding-agent-pilot.js /app/coding-agent-pilot
   '
 }
 
@@ -231,7 +234,7 @@ admin_panel_check() {
 }
 
 steady_state_check() {
-  health_check && workspace_check && cloudflare_check && admin_worker_check && admin_panel_check
+  health_check && production_agent_seed >/dev/null 2>&1 && workspace_check && cloudflare_check && admin_worker_check && admin_panel_check
 }
 
 configure_admin_worker() {
@@ -388,7 +391,7 @@ log "LibreChat health check passed"
 
 FAILED_STAGE="production_agent_seed"
 if ! production_agent_seed >> "$LOG_FILE" 2>&1; then log "ERROR: production agent seed/validation failed"; collect_diagnostics; exit 1; fi
-log "Production agents seeded and validated"
+log "Production agents and coding-agent pilot seeded and validated"
 
 FAILED_STAGE="workspace_check"
 if ! workspace_check; then log "ERROR: LibreChat cannot complete a write/read/delete test in /workspace"; collect_diagnostics; exit 1; fi
