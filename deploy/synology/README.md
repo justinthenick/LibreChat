@@ -14,8 +14,9 @@ The deployment runs:
 - remote OpenRouter embeddings using `openai/text-embedding-3-small`
 - optional Cloudflare Tunnel overlay
 - optional Synology Admin Settings panel on port `3210`
+- bearer-authenticated remote coding executor MCP hosted in WSL2
 
-Meilisearch, code execution, extra MCP tools, and browser automation remain outside the baseline deployment.
+Meilisearch, unrestricted code execution, additional MCP tools, and browser automation remain outside the baseline deployment.
 
 MongoDB `4.4.18` is used because LibreChat's Docker guidance identifies it as the compatibility option for older CPUs without AVX support. The RAG API uses the lite image so the NAS handles parsing/chunking/storage while embedding inference remains remote.
 
@@ -144,6 +145,31 @@ Verify only its configured state:
 ```bash
 python3 manage-env.py show | grep OPENROUTER_KEY
 ```
+
+## Remote coding executor MCP
+
+The reviewed coding executor runs outside the NAS in WSL2 and is reached over
+Streamable HTTP. LibreChat does not receive the WSL host filesystem or Docker
+socket. The executor exposes only its restricted repository/task tools and
+requires the managed bearer token on every MCP request.
+
+Configure the private runtime values without printing the token:
+
+```bash
+sudo python3 manage-env.py set CODING_EXECUTOR_HOST 192.168.1.129 --yes
+sudo python3 manage-env.py set CODING_EXECUTOR_PORT 8765 --yes
+printf '%s' "$CODING_EXECUTOR_TOKEN" | sudo python3 manage-env.py set-secret CODING_EXECUTOR_TOKEN --stdin --yes
+unset CODING_EXECUTOR_TOKEN
+sudo python3 manage-env.py validate
+sudo python3 manage-env.py compose-check
+```
+
+The WSL executor must be running and reachable from the LibreChat container
+before LibreChat starts or reinitializes MCP. Port 8765 must remain LAN-only and
+Windows Firewall should permit it only from the NAS address.
+
+The configured MCP is hidden from ordinary chat menus. Attach
+`coding_executor` only to the reviewed Software Engineering Agent.
 
 ## Validate and deploy
 
