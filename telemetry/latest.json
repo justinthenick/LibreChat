@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "timestamp": "2026-09-12T20:53:53+1000",
+  "timestamp": "2026-09-12T21:03:18+1000",
   "result": "failure",
   "stage": "health_check",
   "commit": "2550d78855a450b9e607f41ce473560fad7147ba",
   "runtime": {
     "librechat_container": "running",
     "librechat_exit_code": "0",
-    "librechat_restart_count": "3",
+    "librechat_restart_count": "14",
     "mongodb_container": "running",
     "http_health": "fail",
     "workspace": "pass",
@@ -15,7 +15,7 @@
     "volume1_used_percent": "19"
   },
   "last_failure": {
-    "timestamp": "2026-09-12T20:53:53+1000",
+    "timestamp": "2026-09-12T21:03:18+1000",
     "commit": "2550d78855a450b9e607f41ce473560fad7147ba",
     "stage": "health_check",
     "librechat_container": "running",
