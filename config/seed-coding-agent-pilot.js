@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-require('module-alias')({ base: path.resolve(__dirname, 'api') });
+require('module-alias')({ base: path.resolve(__dirname, '..', 'api') });
 
 const {
   AccessRoleIds,
@@ -116,7 +116,7 @@ async function resolveOwner(User) {
     throw new Error('No ADMIN user exists; the coding-agent pilot cannot be given a safe owner');
   }
   if (admins.length > 1) {
-    console.warn(`Multiple ADMIN users exist; assigning coding-agent pilot to the oldest admin (${admins[0]._id})`);
+    console.warn(\n      `Multiple ADMIN users exist; assigning coding-agent pilot to the oldest admin (${admins[0]._id})`,\n    );
   }
   return admins[0];
 }
@@ -212,7 +212,7 @@ async function seed() {
   if (!existing) {
     const sameName = await db.getAgents({ name: manifest.name, author: owner._id });
     if (sameName.length > 1) {
-      throw new Error(`Multiple admin-owned agents are named ${manifest.name}; refusing ambiguous adoption`);
+      throw new Error(\n      `Multiple admin-owned agents are named ${manifest.name}; refusing ambiguous adoption`,\n    );
     }
     existing = sameName[0] || null;
     adoptedManualAgent = Boolean(existing);
@@ -227,7 +227,7 @@ async function seed() {
     if (existing.id === manifest.id) {
       delete updates.id;
     }
-    agent = await db.updateAgent({ _id: existing._id }, updates, { updatingUserId: ownerId });
+    agent = await db.updateAgent(\n      { _id: existing._id },\n      updates,\n      { updatingUserId: ownerId },\n    );
     outcome = adoptedManualAgent ? 'adopted-and-updated' : 'updated';
   } else {
     agent = await db.createAgent(desired);
