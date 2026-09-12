@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "timestamp": "2026-09-12T15:45:34+1000",
+  "timestamp": "2026-09-12T16:09:47+1000",
   "result": "success",
-  "stage": "steady_state_recovered",
+  "stage": "complete",
   "commit": "1b0131dc2fbe32c4a5928bd5b01a5e3c7581e555",
   "runtime": {
     "librechat_container": "running",
     "librechat_exit_code": "0",
-    "librechat_restart_count": "1",
+    "librechat_restart_count": "2",
     "mongodb_container": "running",
     "http_health": "pass",
     "workspace": "pass",
