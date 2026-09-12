@@ -1,5 +1,5 @@
 {
-  "schema": 7,
+  "schema": 8,
   "title": "LibreChat Synology Admin Settings",
   "groups": [
     {"id":"address","label":"Address and access"},
@@ -66,6 +66,9 @@
     {"key":"LIBRECHAT_CODE_BASEURL","label":"LibreChat code execution base URL","group":"capabilities","class":"editable","control":"text","required":false,"validation":{"type":"url","schemes":["http","https"],"allow_empty":true},"restart":"recreate","services":["api"]},
     {"key":"CODE_ENV_API_KEY","label":"Code environment API key","group":"capabilities","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"]},
     {"key":"CODE_ENV_BASEURL","label":"Code environment base URL","group":"capabilities","class":"editable","control":"text","required":false,"validation":{"type":"url","schemes":["http","https"],"allow_empty":true},"restart":"recreate","services":["api"]},
+    {"key":"CODING_EXECUTOR_HOST","label":"Coding executor host","group":"capabilities","class":"editable","control":"text","required":false,"validation":{"type":"host"},"restart":"recreate","services":["api"],"description":"Windows LAN hostname or IP address exposing the restricted WSL coding executor."},
+    {"key":"CODING_EXECUTOR_PORT","label":"Coding executor port","group":"capabilities","class":"editable","control":"number","required":false,"validation":{"type":"integer","minimum":1,"maximum":65535},"restart":"recreate","services":["api"]},
+    {"key":"CODING_EXECUTOR_TOKEN","label":"Coding executor bearer token","group":"capabilities","class":"replace_only_secret","control":"secret","required":false,"restart":"recreate","services":["api"],"description":"Static bearer token shared only between LibreChat and the restricted coding executor."},
 
     {"key":"GITHUB_DEPLOY_STATUS_TOKEN","label":"GitHub deployment status token","group":"integrations","class":"replace_only_secret","control":"secret","required":false,"restart":"none","services":[]},
     {"key":"GITHUB_TELEMETRY_TOKEN","label":"GitHub telemetry token","group":"integrations","class":"replace_only_secret","control":"secret","required":false,"restart":"none","services":[]},

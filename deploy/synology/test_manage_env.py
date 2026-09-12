@@ -34,6 +34,9 @@ class ManageEnvTests(unittest.TestCase):
             "ALLOW_UNVERIFIED_EMAIL_LOGIN=true\n"
             "ALLOW_PASSWORD_RESET=false\n"
             "OPENROUTER_KEY=secret-do-not-print\n"
+            "CODING_EXECUTOR_HOST=localhost\n"
+            "CODING_EXECUTOR_PORT=8765\n"
+            "CODING_EXECUTOR_TOKEN=executor-secret-do-not-print\n"
             "JWT_SECRET=locked-secret\n"
             "UNMANAGED_KEEP_ME=hello\n",
             encoding="utf-8",
@@ -58,6 +61,26 @@ class ManageEnvTests(unittest.TestCase):
         self.assertIn("CONFIGURED", rendered)
         self.assertNotIn("secret-do-not-print", rendered)
         self.assertNotIn("locked-secret", rendered)
+
+    def test_coding_executor_settings_are_managed_and_redacted(self):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            manage_env.command_show(self.schema, self.settings, self.env)
+        rendered = output.getvalue()
+        self.assertIn("CODING_EXECUTOR_HOST", rendered)
+        self.assertIn("CODING_EXECUTOR_PORT", rendered)
+        self.assertIn("CODING_EXECUTOR_TOKEN", rendered)
+        self.assertNotIn("executor-secret-do-not-print", rendered)
+
+    def test_coding_executor_host_and_port_validate(self):
+        self.assertEqual(
+            manage_env.validate_value(self.settings["CODING_EXECUTOR_HOST"], "192.0.2.10"),
+            "192.0.2.10",
+        )
+        self.assertEqual(
+            manage_env.validate_value(self.settings["CODING_EXECUTOR_PORT"], "8765"),
+            "8765",
+        )
 
     def test_set_preserves_unmanaged_lines_and_creates_backup(self):
         rc = manage_env.command_set(self.settings, self.env, "SEARCH", "true", True)
