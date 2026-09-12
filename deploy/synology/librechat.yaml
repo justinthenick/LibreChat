@@ -55,15 +55,23 @@ ocr:
   baseURL: '${OCR_BASEURL}'
   strategy: mistral_ocr
 
+# Permit only the reviewed WSL coding executor through the MCP private-address
+# guard. The bearer token is supplied from the private managed .env and is never
+# stored in this reviewed configuration.
+mcpSettings:
+  allowedAddresses:
+    - '${CODING_EXECUTOR_HOST}:${CODING_EXECUTOR_PORT}'
+
 mcpServers:
-  filesystem:
-    type: stdio
-    command: npx
-    args:
-      - -y
-      - '@modelcontextprotocol/server-filesystem@2026.1.14'
-      - /workspace
-    timeout: 120000
+  coding_executor:
+    type: streamable-http
+    url: 'http://${CODING_EXECUTOR_HOST}:${CODING_EXECUTOR_PORT}/mcp'
+    headers:
+      Authorization: 'Bearer ${CODING_EXECUTOR_TOKEN}'
+    requiresOAuth: false
+    chatMenu: false
+    serverInstructions: true
+    timeout: 300000
 
 endpoints:
   # Pin only capability enum values accepted by the deployed LibreChat build.
