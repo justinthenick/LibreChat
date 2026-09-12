@@ -174,7 +174,13 @@ class WorkspaceManager:
         args = shlex.split(command, posix=True)
         if not args or not any(tuple(args[: len(prefix)]) == prefix for prefix in ALLOWED_COMMANDS):
             allowed = ", ".join(" ".join(prefix) for prefix in ALLOWED_COMMANDS)
-            raise ValueError(f"command is not allowlisted; allowed prefixes: {allowed}")
+            return CommandResult(
+                command=command,
+                exit_code=126,
+                stdout="",
+                stderr=f"command_not_allowed: allowed prefixes: {allowed}",
+                truncated=False,
+            )
         timeout = min(timeout_seconds or self.command_timeout_seconds, self.command_timeout_seconds)
         try:
             result = subprocess.run(
