@@ -7,9 +7,12 @@ services:
       - ./.env
     ports:
       - "${CODING_EXECUTOR_BIND:-0.0.0.0}:${CODING_EXECUTOR_PORT:-8765}:8765"
+    environment:
+      CODING_REPOSITORY_ROOT: "${CODING_REPOSITORY_HOST_PATH}"
+      CODING_TASK_ROOT: "${CODING_TASK_HOST_PATH}"
     volumes:
-      - "${CODING_REPOSITORY_HOST_PATH}:/repos:rw"
-      - "${CODING_TASK_HOST_PATH}:/tasks:rw"
+      - "${CODING_REPOSITORY_HOST_PATH}:${CODING_REPOSITORY_HOST_PATH}:rw"
+      - "${CODING_TASK_HOST_PATH}:${CODING_TASK_HOST_PATH}:rw"
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=256m
