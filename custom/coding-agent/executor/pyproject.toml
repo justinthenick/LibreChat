@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "librechat-coding-executor"
+version = "0.1.0"
+description = "Restricted, worktree-isolated coding MCP executor for LibreChat"
+requires-python = ">=3.11"
+dependencies = [
+  "mcp==2.2.0",
+  "pydantic>=2.11,<3",
+  "uvicorn>=0.35,<1",
+]
+
+[project.scripts]
+coding-executor = "coding_executor.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/coding_executor"]
