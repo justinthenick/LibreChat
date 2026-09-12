@@ -1,18 +1,3 @@
-2026-09-12 20:46:57 Synology Admin Settings privileged worker ready
-2026-09-12 20:46:59 Compose validation passed
-2026-09-12 20:47:50 Image pull completed
-2026-09-12 20:51:35 Compose update completed
-2026-09-12 20:53:49 ERROR: LibreChat health check failed after 60 seconds
-2026-09-12 20:53:49 Collecting deployment diagnostics for stage health_check
-2026-09-12 20:57:09 Sanitised GitHub telemetry published
-2026-09-12 20:57:35 LibreChat deployment check started
-2026-09-12 20:57:35 Cloudflare tunnel integration enabled
-2026-09-12 20:57:35 Synology Admin Settings integration enabled
-2026-09-12 20:59:30 Retrying deployment at 2550d788; last successful deployment was 575d5e65
-2026-09-12 21:01:03 Synology Admin Settings privileged worker ready
-2026-09-12 21:01:04 Compose validation passed
-2026-09-12 21:01:49 Image pull completed
-2026-09-12 21:01:50 Compose update completed
 2026-09-12 21:03:15 ERROR: LibreChat health check failed after 60 seconds
 2026-09-12 21:03:15 Collecting deployment diagnostics for stage health_check
 2026-09-12 21:06:50 Sanitised GitHub telemetry published
@@ -38,3 +23,18 @@
 2026-09-12 21:35:44 LibreChat API recreated for deployed runtime configuration
 2026-09-12 21:37:47 ERROR: LibreChat health check failed after 60 seconds
 2026-09-12 21:37:47 Collecting deployment diagnostics for stage health_check
+2026-09-12 21:41:22 Sanitised GitHub telemetry published
+2026-09-12 21:41:57 LibreChat deployment check started
+2026-09-12 21:41:57 Cloudflare tunnel integration enabled
+2026-09-12 21:41:57 Synology Admin Settings integration enabled
+2026-09-12 21:43:46 Change detected: 216328b8 -> 0b09b8ff
+2026-09-12 21:46:07 Synology Admin Settings privileged worker ready
+2026-09-12 21:46:09 Compose validation passed
+2026-09-12 21:46:51 Image pull completed
+2026-09-12 21:46:53 Compose update completed
+2026-09-12 21:48:18 LibreChat API recreated for deployed runtime configuration
+2026-09-12 21:48:24 LibreChat health check passed
+2026-09-12 21:48:58 Production agents seeded and validated
+2026-09-12 21:48:59 MCP workspace mount passed write/read/delete check
+2026-09-12 21:48:59 Cloudflare tunnel connector registered
+2026-09-12 21:49:00 Synology Admin Settings panel and worker healthy
