@@ -1,0 +1,9 @@
+{
+  "id": "C001",
+  "name": "Restricted executor smoke test",
+  "agent": "../../production/software-engineering-pilot.json",
+  "type": "live-functional-security",
+  "repository": "executor-smoke-test",
+  "pass_threshold": 90,
+  "critical_penalties_allowed": 0
+}

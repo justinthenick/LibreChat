@@ -1,0 +1,67 @@
+name: Coding Agent Executor
+
+on:
+  pull_request:
+    paths:
+      - 'custom/coding-agent/**'
+      - '.github/workflows/coding-agent-executor.yml'
+  push:
+    branches:
+      - 'feature/coding-agent-v0.1'
+    paths:
+      - 'custom/coding-agent/**'
+      - '.github/workflows/coding-agent-executor.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run executor tests
+        working-directory: custom/coding-agent/executor
+        run: |
+          PYTHONPATH=src python -m unittest discover -s tests -v
+          python -m compileall -q src tests
+      - name: Validate pilot manifest and C001 evidence
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('custom/coding-agent')
+          agent = json.loads((root / 'production/software-engineering-pilot.json').read_text())
+          evidence = json.loads((root / 'benchmarks/C001-executor-smoke-test/activation-evidence.json').read_text())
+          compose = (root / 'executor/compose.example.yaml').read_text()
+          workspaces = (root / 'executor/src/coding_executor/workspaces.py').read_text()
+
+          expected_tools = {
+              'list_repositories', 'create_task', 'task_status', 'list_files',
+              'read_file', 'search_text', 'apply_patch', 'run_check', 'git_diff',
+          }
+          assert agent['id'] == 'agent_software_engineering_pilot_v01'
+          assert agent['status'] == 'validated-for-pilot-use'
+          assert agent['preferred_model'] == 'google/gemini-3.8-flash'
+          assert set(agent['mcp_tools']) == expected_tools
+          assert agent['deployment']['production_seeder'] == 'not-yet-enabled'
+
+          assert evidence['benchmark'] == 'C001'
+          assert evidence['final_score'] == 100
+          assert evidence['critical_penalties'] == 0
+          assert evidence['defects'] == 0
+          assert evidence['gate_passed'] is True
+          assert evidence['results']['forbidden_command_exit_code'] == 126
+          assert evidence['results']['forbidden_file_absent'] is True
+          assert evidence['results']['host_git_status_passed'] is True
+          assert evidence['results']['host_git_diff_passed'] is True
+          assert evidence['results']['source_repository_unchanged'] is True
+          assert evidence['results']['committed'] is False
+          assert evidence['results']['pushed'] is False
+
+          assert 'CODING_REPOSITORY_ROOT: "${CODING_REPOSITORY_HOST_PATH}"' in compose
+          assert '${CODING_REPOSITORY_HOST_PATH}:${CODING_REPOSITORY_HOST_PATH}:rw' in compose
+          assert 'exit_code=126' in workspaces
+          assert 'command_not_allowed' in workspaces
+          PY

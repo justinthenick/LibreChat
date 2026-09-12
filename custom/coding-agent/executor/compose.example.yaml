@@ -1,0 +1,31 @@
+services:
+  coding-executor:
+    build: .
+    container_name: librechat-coding-executor
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    ports:
+      - "${CODING_EXECUTOR_BIND:-0.0.0.0}:${CODING_EXECUTOR_PORT:-8765}:8765"
+    environment:
+      CODING_REPOSITORY_ROOT: "${CODING_REPOSITORY_HOST_PATH}"
+      CODING_TASK_ROOT: "${CODING_TASK_HOST_PATH}"
+    volumes:
+      - "${CODING_REPOSITORY_HOST_PATH}:${CODING_REPOSITORY_HOST_PATH}:rw"
+      - "${CODING_TASK_HOST_PATH}:${CODING_TASK_HOST_PATH}:rw"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 2g
+    cpus: 2.0
+    user: "${CODING_UID:-1000}:${CODING_GID:-1000}"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
