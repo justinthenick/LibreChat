@@ -70,8 +70,14 @@ class WorkspaceManagerTest(unittest.TestCase):
         task = self.manager.create_task("demo", "checks", "main")
         result = self.manager.run_check(task["task_id"], "git diff --check")
         self.assertEqual(result.exit_code, 0)
-        with self.assertRaises(ValueError):
-            self.manager.run_check(task["task_id"], "sh -c 'echo unsafe'")
+        marker = Path(task["path"]) / "unsafe-marker"
+        rejected = self.manager.run_check(
+            task["task_id"],
+            "sh -c 'touch unsafe-marker'",
+        )
+        self.assertEqual(rejected.exit_code, 126)
+        self.assertIn("command_not_allowed", rejected.stderr)
+        self.assertFalse(marker.exists())
 
 
 if __name__ == "__main__":
