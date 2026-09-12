@@ -30,8 +30,9 @@ Use the Linux filesystem inside WSL, not `/mnt/c`, for the repositories and work
 1. Copy `.env.example` to `.env`.
 2. Generate the token with `python3 -c "import secrets; print(secrets.token_urlsafe(48))"`.
 3. Replace the example address with the Windows host LAN address that the Synology NAS can reach.
-4. Create `repos` and `tasks`, clone only approved repositories under `repos`, and run `docker compose -f compose.example.yaml up -d --build`.
-5. Confirm `curl http://127.0.0.1:8765/health` returns `{"status":"ok","version":"0.1.0"}`.
+4. Set `CODING_REPOSITORY_HOST_PATH` and `CODING_TASK_HOST_PATH` to their absolute WSL paths. Compose mounts each directory at the identical path inside the container so Git worktree metadata remains usable from both WSL and the executor.
+5. Create `repos` and `tasks`, clone only approved repositories under `repos`, and run `docker compose -f compose.example.yaml up -d --build`.
+6. Confirm `curl http://127.0.0.1:8765/health` returns `{"status":"ok","version":"0.1.0"}`.
 
 Do not expose port 8765 to the public internet. Permit it only from the NAS address in Windows Firewall.
 
@@ -57,3 +58,15 @@ mcpServers:
 ```
 
 Keep this server out of ordinary chat. Attach it only to the reviewed Software Engineering Agent after the executor and connectivity checks pass.
+
+## Human review
+
+Executor-created task worktrees are deliberately left uncommitted. Because host and container paths match, review a task directly in WSL with:
+
+```bash
+git -C ~/coding-agent/tasks/<task-id> status --short
+git -C ~/coding-agent/tasks/<task-id> diff --check
+git -C ~/coding-agent/tasks/<task-id> diff
+```
+
+A rejected command returns exit code `126` and a `command_not_allowed` result without spawning the requested process.
