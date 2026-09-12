@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Render the Synology LibreChat runtime YAML without a YAML dependency.
 
-Only the block between the two MANAGED OPENROUTER MODELS markers is replaced.
-A non-empty ALLOWED_MODELS value enables the pre-filter; clearing it restores
-provider catalogue fetch. This preserves the earlier Synology pre-filter
-contract without maintaining a second boolean that can disagree with the list.
+The block between the two MANAGED OPENROUTER MODELS markers is replaced.
+The non-secret coding-executor host and port are also materialized because
+LibreChat validates MCP private-address exemptions before normal environment
+interpolation. Secret placeholders remain untouched.
 
 Production containers read values from their process environment (populated by
 Docker Compose env_file). --env-file remains available for tests and host-side
@@ -21,6 +21,7 @@ BEGIN = "      # BEGIN MANAGED OPENROUTER MODELS"
 END = "      # END MANAGED OPENROUTER MODELS"
 MODEL_ID = re.compile(r"^[A-Za-z0-9._:/+\-]+$")
 ENV_LINE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
+EXECUTOR_HOST = re.compile(r"^[A-Za-z0-9.-]+$")
 
 
 def parse_env(path):
@@ -87,7 +88,23 @@ def render(template_text, values):
             END,
         ]
 
-    return template_text[:start] + "\n".join(lines) + template_text[end:]
+    rendered = template_text[:start] + "\n".join(lines) + template_text[end:]
+
+    host = values.get("CODING_EXECUTOR_HOST", "localhost").strip()
+    port_text = values.get("CODING_EXECUTOR_PORT", "8765").strip()
+    if not host or not EXECUTOR_HOST.fullmatch(host):
+        raise ValueError("Invalid CODING_EXECUTOR_HOST")
+    try:
+        port = int(port_text)
+    except ValueError:
+        raise ValueError("Invalid CODING_EXECUTOR_PORT")
+    if port < 1 or port > 65535:
+        raise ValueError("Invalid CODING_EXECUTOR_PORT")
+
+    return (
+        rendered.replace("${CODING_EXECUTOR_HOST}", host)
+        .replace("${CODING_EXECUTOR_PORT}", str(port))
+    )
 
 
 def atomic_write(path, text):
