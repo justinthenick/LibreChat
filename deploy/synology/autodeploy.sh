@@ -369,6 +369,18 @@ FAILED_STAGE="compose_up"
 if ! compose up -d --remove-orphans >> "$LOG_FILE" 2>&1; then log "ERROR: Compose update failed"; collect_diagnostics; exit 1; fi
 log "Compose update completed"
 
+# The reviewed runtime YAML and renderer are bind-mounted files. Compose reports
+# the API as up-to-date when only their contents change, leaving the old runtime
+# configuration in memory. Recreate the API on every accepted deployment before
+# health validation so the checked-out configuration is the running one.
+FAILED_STAGE="api_recreate"
+if ! compose up -d --no-deps --force-recreate api >> "$LOG_FILE" 2>&1; then
+  log "ERROR: LibreChat API recreation failed"
+  collect_diagnostics
+  exit 1
+fi
+log "LibreChat API recreated for deployed runtime configuration"
+
 FAILED_STAGE="health_check"
 COUNT=0
 until health_check; do COUNT=$((COUNT+1)); if [ "$COUNT" -ge 12 ]; then log "ERROR: LibreChat health check failed after 60 seconds"; collect_diagnostics; exit 1; fi; sleep 5; done
