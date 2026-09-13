@@ -1,4 +1,4 @@
-# LibreChat coding executor v0.1
+# LibreChat coding executor v0.1.1
 
 This service gives a LibreChat Agent a deliberately narrow coding surface without granting access to the NAS Docker socket or the host filesystem.
 
@@ -33,7 +33,7 @@ Use the Linux filesystem inside WSL, not `/mnt/c`, for the repositories and work
 3. Replace the example address with the Windows host LAN address that the Synology NAS can reach.
 4. Set `CODING_REPOSITORY_HOST_PATH` and `CODING_TASK_HOST_PATH` to their absolute WSL paths. Compose mounts each directory at the identical path inside the container so Git worktree metadata remains usable from both WSL and the executor.
 5. Create `repos` and `tasks`, clone only approved repositories under `repos`, and run `docker compose -f compose.example.yaml up -d --build`.
-6. Confirm `curl http://127.0.0.1:8765/health` returns `{"status":"ok","version":"0.1.0"}`.
+6. Confirm `curl http://127.0.0.1:8765/health` returns `{"status":"ok","version":"0.1.1"}`.
 
 Do not expose port 8765 to the public internet. Permit it only from the NAS address in Windows Firewall.
 
@@ -59,6 +59,26 @@ mcpServers:
 ```
 
 Keep this server out of ordinary chat. Attach it only to the reviewed Software Engineering Agent after the executor and connectivity checks pass.
+
+## Task inventory and cleanup
+
+Task removal is deliberately not exposed through MCP. Run the maintenance command yourself in WSL through the executor container:
+
+```bash
+docker exec librechat-coding-executor coding-executor-tasks inventory
+docker exec librechat-coding-executor coding-executor-tasks remove-clean <task-id> --yes
+```
+
+`inventory` reports clean, dirty and broken task directories plus stale Git worktree registrations. `remove-clean` refuses tasks containing tracked changes, untracked files, ignored files, invalid paths or broken repository attachment. It removes only the clean worktree and retains the `agent/<task-id>` branch.
+
+Stale registrations are reported but never pruned automatically. After confirming the corresponding task directory is genuinely absent, inspect and perform Git's metadata cleanup from WSL:
+
+```bash
+git -C ~/coding-agent/repos/<repository> worktree prune --dry-run --verbose
+git -C ~/coding-agent/repos/<repository> worktree prune --expire now --verbose
+```
+
+Branch deletion remains a separate destructive decision.
 
 ## Human review
 
