@@ -94,6 +94,7 @@ mcpServers:
       GITHUB_ARCHITECT_PAT:
         title: 'GitHub read-only PAT'
         description: 'Fine-grained token scoped to the LibreChat repository with read-only permissions.'
+        sensitive: true
     requiresOAuth: false
     chatMenu: false
     serverInstructions: true
