@@ -1,20 +1,3 @@
-2026-09-13 18:45:06 Cloudflare tunnel integration enabled
-2026-09-13 18:45:06 Synology Admin Settings integration enabled
-2026-09-13 18:49:04 No deployment change; healthy deployment already recorded at d90af0f5
-2026-09-13 18:50:01 LibreChat deployment check started
-2026-09-13 18:50:01 Cloudflare tunnel integration enabled
-2026-09-13 18:50:01 Synology Admin Settings integration enabled
-2026-09-13 18:53:36 No deployment change; healthy deployment already recorded at d90af0f5
-2026-09-13 18:55:04 LibreChat deployment check started
-2026-09-13 18:55:04 Cloudflare tunnel integration enabled
-2026-09-13 18:55:04 Synology Admin Settings integration enabled
-2026-09-13 18:59:01 No deployment change; healthy deployment already recorded at d90af0f5
-2026-09-13 19:00:03 LibreChat deployment check started
-2026-09-13 19:00:03 Cloudflare tunnel integration enabled
-2026-09-13 19:00:03 Synology Admin Settings integration enabled
-2026-09-13 19:04:38 No deployment change; healthy deployment already recorded at d90af0f5
-2026-09-13 19:05:05 LibreChat deployment check started
-2026-09-13 19:05:05 Cloudflare tunnel integration enabled
 2026-09-13 19:05:05 Synology Admin Settings integration enabled
 2026-09-13 19:09:30 No deployment change; healthy deployment already recorded at d90af0f5
 2026-09-13 19:10:03 LibreChat deployment check started
@@ -38,3 +21,20 @@
 2026-09-13 19:36:03 Image pull completed
 2026-09-13 19:37:00 ERROR: Compose update failed
 2026-09-13 19:37:00 Collecting deployment diagnostics for stage compose_up
+2026-09-13 19:42:10 Sanitised GitHub telemetry published
+2026-09-13 19:43:53 LibreChat deployment check started
+2026-09-13 19:43:53 Cloudflare tunnel integration enabled
+2026-09-13 19:43:53 Synology Admin Settings integration enabled
+2026-09-13 19:46:44 Retrying deployment at a7fcf7ac; last successful deployment was d90af0f5
+2026-09-13 19:48:29 Synology Admin Settings privileged worker ready
+2026-09-13 19:48:31 NAS read-only infrastructure worker ready
+2026-09-13 19:48:34 Compose validation passed
+2026-09-13 19:49:55 Image pull completed
+2026-09-13 19:53:12 Compose update completed
+2026-09-13 19:55:11 LibreChat API recreated for deployed runtime configuration
+2026-09-13 19:55:12 LibreChat health check passed
+2026-09-13 19:56:12 Production agents and coding-agent pilot seeded and validated
+2026-09-13 19:56:13 MCP workspace mount passed write/read/delete check
+2026-09-13 19:56:14 Cloudflare tunnel connector registered
+2026-09-13 19:56:18 Synology Admin Settings panel and worker healthy
+2026-09-13 19:56:21 NAS read-only infrastructure worker and MCP bridge healthy
