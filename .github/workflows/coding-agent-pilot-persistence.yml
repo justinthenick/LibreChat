@@ -1,0 +1,76 @@
+name: Coding Agent Pilot Persistence
+
+on:
+  pull_request:
+    paths:
+      - 'config/seed-coding-agent-pilot.js'
+      - 'custom/coding-agent/production/software-engineering-pilot.json'
+      - 'deploy/synology/docker-compose.yml'
+      - 'deploy/synology/autodeploy.sh'
+      - '.github/workflows/coding-agent-pilot-persistence.yml'
+  push:
+    branches:
+      - server/synology
+    paths:
+      - 'config/seed-coding-agent-pilot.js'
+      - 'custom/coding-agent/production/software-engineering-pilot.json'
+      - 'deploy/synology/docker-compose.yml'
+      - 'deploy/synology/autodeploy.sh'
+      - '.github/workflows/coding-agent-pilot-persistence.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate seeder syntax
+        run: node --check config/seed-coding-agent-pilot.js
+
+      - name: Validate persistent pilot contract
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(
+              Path('custom/coding-agent/production/software-engineering-pilot.json').read_text()
+          )
+          expected = {
+              'list_repositories',
+              'create_task',
+              'task_status',
+              'list_files',
+              'read_file',
+              'search_text',
+              'apply_patch',
+              'run_check',
+              'git_diff',
+          }
+          assert manifest['id'] == 'agent_software_engineering_pilot_v01'
+          assert manifest['status'] == 'validated-for-persistent-pilot'
+          assert manifest['preferred_model'] == 'google/gemini-3.8-flash'
+          assert manifest['mcp_server'] == 'coding_executor'
+          assert set(manifest['mcp_tools']) == expected
+          assert len(manifest['mcp_tools']) == len(expected)
+          assert manifest['deployment']['production_seeder'] == 'enabled'
+
+          seeder = Path('config/seed-coding-agent-pilot.js').read_text()
+          compose = Path('deploy/synology/docker-compose.yml').read_text()
+          deploy = Path('deploy/synology/autodeploy.sh').read_text()
+
+          assert 'sys__all__sys_mcp_' not in json.dumps(manifest)
+          assert "${tool}_mcp_${manifest.mcp_server}" in seeder
+          assert 'mcpServerNames: [manifest.mcp_server]' in seeder
+          assert 'seed-coding-agent-pilot.js /app/coding-agent-pilot' in compose
+          assert '/custom/coding-agent/production:/app/coding-agent-pilot:ro' in compose
+          assert 'node /app/config/seed-coding-agent-pilot.js /app/coding-agent-pilot' in deploy
+          assert 'production_agent_seed >/dev/null 2>&1' in deploy
+          print('persistent coding-agent pilot contract OK')
+          PY
+
+      - name: Validate shell syntax
+        run: sh -n deploy/synology/autodeploy.sh

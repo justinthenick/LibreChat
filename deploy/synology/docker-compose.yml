@@ -21,6 +21,7 @@ services:
       RAG_API_URL: http://rag_api:8000
       DEPLOYMENT_SKILLS_DIR: /app/deployment-skills
       PRODUCTION_AGENTS_DIR: /app/production-agents
+      CODING_AGENT_MANIFEST_DIR: /app/coding-agent-pilot
       DOMAIN_CLIENT: "${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${LIBRECHAT_PORT:-3200}"
       DOMAIN_SERVER: "${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${LIBRECHAT_PORT:-3200}"
       NO_INDEX: "${NO_INDEX:-true}"
@@ -43,6 +44,7 @@ services:
         --template /app/librechat.template.yaml
         --output /tmp/librechat.runtime.yaml
         && node /app/config/seed-production-agents.js /app/production-agents
+        && node /app/config/seed-coding-agent-pilot.js /app/coding-agent-pilot
         && exec npm run backend
     group_add:
       - "100"
@@ -50,7 +52,9 @@ services:
       - ./librechat.yaml:/app/librechat.template.yaml:ro
       - ./render-librechat-config.py:/app/render-librechat-config.py:ro
       - /volume1/docker/librechat/config/seed-production-agents.js:/app/config/seed-production-agents.js:ro
+      - /volume1/docker/librechat/config/seed-coding-agent-pilot.js:/app/config/seed-coding-agent-pilot.js:ro
       - /volume1/docker/librechat/custom/ba-agent/production:/app/production-agents:ro
+      - /volume1/docker/librechat/custom/coding-agent/production:/app/coding-agent-pilot:ro
       - /volume1/docker/librechat/custom/ba-agent/skills:/app/deployment-skills:ro
       - /volume1/docker/librechat/workspace:/workspace
       - librechat-data:/app/data
