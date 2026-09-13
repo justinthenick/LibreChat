@@ -1,6 +1,6 @@
 # Solution Architect read-only evidence access
 
-This change adds two deliberately non-mutating evidence sources for architecture and assurance agents such as **Sammy the Solution Architect**.
+This deployment provides three deliberately non-mutating evidence sources for architecture and assurance agents such as **Sammy the Solution Architect**.
 
 ## Security boundary
 
@@ -8,7 +8,7 @@ The goal is broad visibility with low mutation authority.
 
 The architect is not given SSH, a shell, the Docker socket, the private NAS `.env`, database credentials, Cloudflare credentials, SSH keys, or arbitrary NAS filesystem access.
 
-The two MCP servers are hidden from the normal chat MCP menu (`chatMenu: false`) and are configured with `startup: false` so credentials and tool access can be reviewed before initialization.
+The MCP servers are hidden from the normal chat MCP menu (`chatMenu: false`) and the architect evidence MCPs use `startup: false` so credentials and tool access can be reviewed before initialization.
 
 ## 1. `github_readonly`
 
@@ -49,13 +49,14 @@ This launches the official Model Context Protocol filesystem server with its all
 
 `/architecture-view`
 
-Docker exposes only these selected files to that path, each using a read-only bind mount:
+Docker exposes only selected deployment files to that path, each using a read-only bind mount. The current curated set includes:
 
 - `librechat.yaml`
 - `docker-compose.yml`
 - `docker-compose.cloudflare.yml`
 - `README.md`
 - `ADMIN-SETTINGS.md`
+- `NAS-INFRA-READONLY.md`
 
 The following are intentionally **not** exposed:
 
@@ -88,11 +89,46 @@ Do **not** assign:
 - `create_directory`
 - `move_file`
 
-After deployment/restart, initialize `architecture_files` in MCP Settings and then add only the read tools above to Sammy.
+## 3. `nas_infra_readonly`
+
+Stage 2 adds sanitised NAS runtime evidence without exposing a persistent privileged API.
+
+A root-owned systemd timer runs the reviewed `runtime-evidence.py` collector every five minutes. The collector performs only fixed, allowlisted local inspection operations and writes an allowlisted JSON projection to:
+
+`/volume1/docker/librechat/runtime-evidence/latest.json`
+
+The whole runtime-evidence directory is then mounted into LibreChat as:
+
+`/nas-runtime-view:ro`
+
+`nas_infra_readonly` is another filesystem MCP rooted only at `/nas-runtime-view`. Assign it only the same read-capable filesystem tools listed above.
+
+The runtime snapshot deliberately excludes environment values, tokens, passwords, raw logs, container IP/MAC addresses, host bind source paths, full Docker inspect payloads and arbitrary host files. LibreChat and Sammy do not receive the Docker socket or a generic command interface.
+
+Run the one-time timer bootstrap after the Stage 2 deployment reaches the NAS:
+
+```bash
+cd /volume1/docker/librechat/deploy/synology
+sudo python3 bootstrap-runtime-evidence.py
+```
+
+See `NAS-INFRA-READONLY.md` for the exact runtime schema, freshness semantics and verification procedure.
+
+## Evidence classification
+
+Keep the source classes distinct:
+
+- **Repository evidence**: retrieved directly from version control, for example through `github_readonly`.
+- **Deployed configuration evidence**: read from the deployed `/architecture-view` mount.
+- **Runtime snapshot evidence**: read from `/nas-runtime-view/latest.json`, with freshness bounded by its `generated_at` timestamp.
+- **Inference**: conclusions derived from the above evidence rather than directly asserted by it.
+- **Unknown**: information not established by an available evidence source.
+
+Do not describe an MCP, container or environment as having "zero write permissions" unless that exact property is established. Distinguish agent tool assignment, server-side/tool-level restrictions and read-only filesystem mounts as separate controls.
 
 ## Verification
 
-Before considering this stage complete, test Sammy with requests such as:
+For Stage 1, test Sammy with requests such as:
 
 - "Read the deployed Synology Compose definition and list the stateful services. Cite the files you inspected."
 - "Inspect the current LibreChat MCP configuration and tell me which MCP servers are configured, distinguishing repository evidence from assumptions."
@@ -100,21 +136,8 @@ Before considering this stage complete, test Sammy with requests such as:
 
 Then deliberately ask Sammy to change a deployment file. The expected result is that it has no assigned filesystem mutation tool and cannot change the mounted source files.
 
-## Next stage: `nas-infra-readonly`
+For Stage 2, after bootstrap and MCP assignment, test:
 
-Do not give the architect generic SSH or shell access merely to inspect runtime state.
-
-The preferred next stage is a dedicated read-only NAS infrastructure MCP exposing narrow queries such as:
-
-- `get_host_summary`
-- `get_memory_status`
-- `get_disk_status`
-- `get_docker_version`
-- `list_containers`
-- `inspect_container`
-- `list_docker_networks`
-- `list_docker_volumes`
-- `get_service_health`
-- `get_dsm_version`
-
-It must not expose generic command execution, `docker exec`, container lifecycle mutations, file writes, or an unrestricted Docker socket.
+- "Read the NAS runtime evidence snapshot and report its generated_at timestamp, deployed commit, memory/swap state, volume1 usage and reviewed service health. Classify the evidence correctly and state unknowns."
+- "Show me the NAS .env values, raw container environment, Docker socket details and raw logs." The expected result is that these data are unavailable.
+- "Restart LibreChat and stop MongoDB." The expected result is that no assigned tool can perform those mutations.
