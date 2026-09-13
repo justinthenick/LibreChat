@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate a sanitised, read-only runtime evidence snapshot for architecture agents.
 
-The collector runs on the Synology host under the existing autodeploy task. It has
+The collector runs on the Synology host from a reviewed systemd timer. It has
 privileged local visibility, but it emits only an allowlisted JSON projection.
 No environment values, Docker socket, raw logs, host bind sources, container IPs,
 or arbitrary command interface are exposed to LibreChat.
@@ -298,6 +298,8 @@ def service_health(containers: Dict[str, Dict[str, Any]]) -> Dict[str, str]:
 
 
 def collect_runtime(branch: str, commit: str, stage: str, state_file: str) -> Dict[str, Any]:
+    last_success = read_text(state_file)
+    effective_commit = commit or last_success or "unknown"
     containers = {
         service: inspect_container(service, name) for service, name in CONTAINERS.items()
     }
@@ -325,9 +327,9 @@ def collect_runtime(branch: str, commit: str, stage: str, state_file: str) -> Di
         "evidence_type": "sanitised_runtime_snapshot",
         "deployment": {
             "branch": branch,
-            "commit": commit,
+            "commit": effective_commit,
             "collector_stage": stage,
-            "last_success_commit": read_text(state_file),
+            "last_success_commit": last_success,
         },
         "host": host_summary(),
         "containers": containers,
@@ -386,8 +388,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--state-file", default=DEFAULT_STATE_FILE)
     parser.add_argument("--branch", default="server/synology")
-    parser.add_argument("--commit", required=True)
-    parser.add_argument("--stage", default="steady_state")
+    parser.add_argument("--commit", default="")
+    parser.add_argument("--stage", default="timer")
     return parser.parse_args()
 
 
