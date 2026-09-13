@@ -26,6 +26,7 @@ class ManageEnvTests(unittest.TestCase):
             "ADMIN_PANEL_URL=\n"
             "NO_INDEX=true\n"
             "SEARCH=false\n"
+            "SCHEDULES_SINGLE_PROCESS=true\n"
             "SESSION_COOKIE_SECURE=false\n"
             "ALLOW_EMAIL_LOGIN=true\n"
             "ALLOW_REGISTRATION=true\n"
@@ -81,6 +82,29 @@ class ManageEnvTests(unittest.TestCase):
             manage_env.validate_value(self.settings["CODING_EXECUTOR_PORT"], "8765"),
             "8765",
         )
+
+    def test_single_process_scheduler_setting_is_managed(self):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            manage_env.command_show(self.schema, self.settings, self.env)
+        self.assertIn("SCHEDULES_SINGLE_PROCESS", output.getvalue())
+        self.assertEqual(
+            manage_env.validate_value(self.settings["SCHEDULES_SINGLE_PROCESS"], "true"),
+            "true",
+        )
+
+    def test_existing_env_without_scheduler_setting_still_validates(self):
+        self.env.write_text(
+            self.env.read_text(encoding="utf-8").replace(
+                "SCHEDULES_SINGLE_PROCESS=true\n", ""
+            ),
+            encoding="utf-8",
+        )
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            rc = manage_env.command_validate(self.schema, self.settings, self.env)
+        self.assertEqual(rc, 0)
+        self.assertIn("Managed .env validation OK", output.getvalue())
 
     def test_set_preserves_unmanaged_lines_and_creates_backup(self):
         rc = manage_env.command_set(self.settings, self.env, "SEARCH", "true", True)
