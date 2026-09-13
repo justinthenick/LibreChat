@@ -60,6 +60,26 @@ mcpServers:
 
 Keep this server out of ordinary chat. Attach it only to the reviewed Software Engineering Agent after the executor and connectivity checks pass.
 
+## Task inventory and cleanup
+
+Task removal is deliberately not exposed through MCP. Run the maintenance command yourself in WSL through the executor container:
+
+```bash
+docker exec librechat-coding-executor coding-executor-tasks inventory
+docker exec librechat-coding-executor coding-executor-tasks remove-clean <task-id> --yes
+```
+
+`inventory` reports clean, dirty and broken task directories plus stale Git worktree registrations. `remove-clean` refuses tasks containing tracked changes, untracked files, ignored files, invalid paths or broken repository attachment. It removes only the clean worktree and retains the `agent/<task-id>` branch.
+
+Stale registrations are reported but never pruned automatically. After confirming the corresponding task directory is genuinely absent, inspect and perform Git's metadata cleanup from WSL:
+
+```bash
+git -C ~/coding-agent/repos/<repository> worktree prune --dry-run --verbose
+git -C ~/coding-agent/repos/<repository> worktree prune --expire now --verbose
+```
+
+Branch deletion remains a separate destructive decision.
+
 ## Human review
 
 Executor-created task worktrees are deliberately left uncommitted. Because host and container paths match, review a task directly in WSL with:
