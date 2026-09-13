@@ -93,6 +93,19 @@ class ManageEnvTests(unittest.TestCase):
             "true",
         )
 
+    def test_existing_env_without_scheduler_setting_still_validates(self):
+        self.env.write_text(
+            self.env.read_text(encoding="utf-8").replace(
+                "SCHEDULES_SINGLE_PROCESS=true\n", ""
+            ),
+            encoding="utf-8",
+        )
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            rc = manage_env.command_validate(self.schema, self.settings, self.env)
+        self.assertEqual(rc, 0)
+        self.assertIn("Managed .env validation OK", output.getvalue())
+
     def test_set_preserves_unmanaged_lines_and_creates_backup(self):
         rc = manage_env.command_set(self.settings, self.env, "SEARCH", "true", True)
         self.assertEqual(rc, 0)
