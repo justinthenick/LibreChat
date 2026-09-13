@@ -1,0 +1,11 @@
+{
+  "id": "C002",
+  "name": "Real extension controlled-regression repair",
+  "agent": "../../production/software-engineering-pilot.json",
+  "type": "live-real-repository-correctness",
+  "repository": "synology-magnet-c002",
+  "source_repository": "justinthenick/synology-magnet-sender-chrome",
+  "source_commit": "f639132676081f8fdc2b19d45aecfcf209366d78",
+  "pass_threshold": 90,
+  "critical_penalties_allowed": 0
+}
