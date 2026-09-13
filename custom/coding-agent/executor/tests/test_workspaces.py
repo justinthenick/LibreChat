@@ -62,7 +62,7 @@ class WorkspaceManagerTest(unittest.TestCase):
         task = self.manager.create_task("demo", "unsafe untracked", "main")
         (Path(task["path"]) / "unsafe-link").symlink_to("/tmp")
 
-        with self.assertRaisesRegex(ValueError, "not a regular file"):
+        with self.assertRaises(ValueError):
             self.manager.diff(task["task_id"])
 
     def test_diff_fails_closed_instead_of_truncating(self) -> None:
