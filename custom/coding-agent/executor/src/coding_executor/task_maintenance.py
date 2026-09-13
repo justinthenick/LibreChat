@@ -12,14 +12,32 @@ from pathlib import Path
 SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
 
 
+def _child_environment() -> dict[str, str]:
+    return {
+        "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "HOME": "/tmp/coding-agent-home",
+        "CI": "true",
+        "NO_COLOR": "1",
+        "LANG": "C.UTF-8",
+    }
+
+
 def _git(cwd: Path, *args: str) -> str:
     result = subprocess.run(
-        ["git", "-c", "core.hooksPath=/dev/null", *args],
+        [
+            "git",
+            "-c",
+            "core.hooksPath=/dev/null",
+            "-c",
+            "core.fsmonitor=false",
+            *args,
+        ],
         cwd=cwd,
         check=False,
         capture_output=True,
         text=True,
         timeout=60,
+        env=_child_environment(),
     )
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "git command failed")
