@@ -10,7 +10,7 @@ This is deliberately a **sanitised point-in-time evidence pipeline**, not a gene
 
 The data flow is:
 
-`Synology autodeploy task -> runtime-evidence.py -> /volume1/docker/librechat/runtime-evidence/latest.json -> :ro bind mount -> /nas-runtime-view/latest.json -> nas_infra_readonly MCP -> reviewed agent`
+`systemd timer -> runtime-evidence.py -> /volume1/docker/librechat/runtime-evidence/latest.json -> :ro bind mount -> /nas-runtime-view/latest.json -> nas_infra_readonly MCP -> reviewed agent`
 
 `runtime-evidence.py` executes only fixed, allowlisted host inspection operations. It projects the results into a small JSON schema and discards sensitive/raw source material before the file is exposed to LibreChat.
 
@@ -29,6 +29,25 @@ The agent never receives:
 - arbitrary `/volume1` access
 
 The collector may internally use fixed Docker/systemd checks to derive a boolean/status result. Those command surfaces are not exposed to LibreChat or to the agent.
+
+## One-time bootstrap
+
+After the code has reached the NAS, install the reviewed timer once:
+
+```bash
+cd /volume1/docker/librechat/deploy/synology
+sudo python3 bootstrap-runtime-evidence.py
+```
+
+The bootstrap is idempotent. It:
+
+- creates `/volume1/docker/librechat/runtime-evidence` as `root:100` with mode `0750`;
+- installs `librechat-runtime-evidence.service` as a root-owned one-shot collector;
+- installs and enables `librechat-runtime-evidence.timer`;
+- refreshes the snapshot every 300 seconds;
+- runs the collector immediately and validates that `latest.json` was created.
+
+The service loads `runtime-evidence.py` from the deployed checkout on every run, so future code updates are picked up by the next timer invocation without exposing a persistent privileged API.
 
 ## Snapshot contents
 
@@ -56,11 +75,11 @@ A runtime guard refuses to write the snapshot if a forbidden secret-shaped key s
 
 ## Freshness and evidence classification
 
-The snapshot is refreshed by the normal Synology deployment/check workflow. Consumers must use the `generated_at` timestamp to judge freshness.
+The timer refreshes the snapshot every five minutes. Consumers must use the `generated_at` timestamp to judge freshness rather than assuming it is current merely because the MCP is reachable.
 
 This evidence should be classified as **runtime snapshot evidence** or **deployed runtime evidence**. It is not repository evidence, and it is not proof that a value remains unchanged after the timestamp.
 
-If the snapshot is older than the expected deployment-check cadence, report it as stale rather than silently treating it as current.
+If the snapshot is materially older than the five-minute timer cadence, report it as stale and treat the collector/timer state as an unknown to verify.
 
 ## LibreChat MCP
 
@@ -92,7 +111,7 @@ The upstream filesystem MCP can advertise mutation operations, so agent tool ass
 
 ## Verification
 
-After a successful deployment:
+After a successful deployment and one-time bootstrap:
 
 1. Open MCP Settings and initialize `nas_infra_readonly`.
 2. Add it to Sammy with only the read-capable tools above.
@@ -125,4 +144,4 @@ Stage 2 v0.1 does not expose:
 - container lifecycle controls
 - host/service mutation
 
-If a future use case requires truly immediate on-demand runtime queries rather than a scheduled snapshot, implement a separate narrow query service with an explicit allowlist. Do not solve that requirement by exposing the Docker socket or generic shell access to the agent.
+If a future use case requires truly immediate on-demand runtime queries rather than a five-minute snapshot, implement a separate narrow query service with an explicit allowlist. Do not solve that requirement by exposing the Docker socket or generic shell access to the agent.
