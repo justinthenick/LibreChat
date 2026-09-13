@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "benchmark": "C002",
+  "run_date": "2026-09-13",
+  "source_profile": "private real-world Chrome Manifest V3 extension",
+  "generation_model": "google/gemini-3.8-flash",
+  "executor_version": "0.1.0",
+  "results": {
+    "approved_source_baseline_verified": true,
+    "repository_discovered": true,
+    "exactly_one_task_created": true,
+    "repository_instructions_read": true,
+    "initial_test_exit_code": 1,
+    "initial_failures": [
+      "package.json version 1.3.1 does not match manifest version 1.3.0.",
+      "popup.js references missing popup.html ID: send"
+    ],
+    "changed_files": [
+      "package.json",
+      "popup.html"
+    ],
+    "ground_truth_corrections_matched": true,
+    "post_change_test_exit_code": 0,
+    "post_change_validation": "Extension validation passed (8 referenced files checked, 15 popup IDs checked).",
+    "task_status": " M package.json\n M popup.html\n",
+    "git_diff_check_passed": true,
+    "source_and_task_base_match": true,
+    "source_repository_unchanged": true,
+    "committed": false,
+    "pushed": false
+  },
+  "final_score": 100,
+  "critical_penalties": 0,
+  "defects": 0,
+  "gate_passed": true,
+  "limitation": "This result covers one controlled two-regression run against a real Chrome extension and does not establish unrestricted autonomous software-engineering capability.",
+  "privacy_note": "Repository name, commit hashes, local username, absolute filesystem paths, conversation identifiers and per-run task identifiers are intentionally omitted."
+}
