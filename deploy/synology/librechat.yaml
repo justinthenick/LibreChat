@@ -80,6 +80,43 @@ mcpServers:
     serverInstructions: true
     timeout: 300000
 
+  # Solution-architecture evidence source. GitHub's remote MCP server enforces
+  # read-only mode server-side. The fine-grained PAT is user-scoped in LibreChat
+  # rather than placed in the NAS process environment or committed configuration.
+  github_readonly:
+    type: streamable-http
+    url: 'https://api.githubcopilot.com/mcp/'
+    headers:
+      Authorization: 'Bearer {{GITHUB_ARCHITECT_PAT}}'
+      X-MCP-Readonly: 'true'
+      X-MCP-Toolsets: 'repos'
+    customUserVars:
+      GITHUB_ARCHITECT_PAT:
+        title: 'GitHub read-only PAT'
+        description: 'Fine-grained token scoped to the LibreChat repository with read-only permissions.'
+    requiresOAuth: false
+    chatMenu: false
+    serverInstructions: true
+    startup: false
+    timeout: 120000
+
+  # Curated view of deployment configuration for architecture/assurance agents.
+  # Every source file is bind-mounted read-only in docker-compose.yml; the real
+  # private .env, credentials, Docker socket and arbitrary NAS filesystem are not
+  # exposed. Disable all write-capable filesystem tools when assigning this MCP
+  # to an Agent; the read-only bind mounts remain the hard enforcement boundary.
+  architecture_files:
+    type: stdio
+    command: npx
+    args:
+      - -y
+      - '@modelcontextprotocol/server-filesystem@2026.1.14'
+      - /architecture-view
+    chatMenu: false
+    serverInstructions: true
+    startup: false
+    timeout: 120000
+
 endpoints:
   # Pin only capability enum values accepted by the deployed LibreChat build.
   # Unsupported pseudo-capabilities such as memory, run_in_background and
