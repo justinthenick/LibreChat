@@ -25,7 +25,7 @@ jobs:
         run: |
           PYTHONPATH=src python -m unittest discover -s tests -v
           python -m compileall -q src tests
-      - name: Validate pilot manifest and C001 evidence
+      - name: Validate pilot manifest and benchmark contracts
         run: |
           python - <<'PY'
           import json
@@ -35,8 +35,7 @@ jobs:
           agent = json.loads((root / 'production/software-engineering-pilot.json').read_text())
           evidence = json.loads((root / 'benchmarks/C001-executor-smoke-test/activation-evidence.json').read_text())
           compose = (root / 'executor/compose.example.yaml').read_text()
-          workspaces = (root / 'executor/src/coding_executor/workspaces.py').read_text()
-
+          workspaces = (root / 'executor/src/coding_executor/workspaces.py').read_text()\n          c002 = json.loads((root / 'benchmarks/C002-real-extension-regression/benchmark.json').read_text())\n          c002_gold = (root / 'benchmarks/C002-real-extension-regression/gold-standard.md').read_text()\n          promotion = (root / 'executor/PROMOTION.md').read_text()\n
           expected_tools = {
               'list_repositories', 'create_task', 'task_status', 'list_files',
               'read_file', 'search_text', 'apply_patch', 'run_check', 'git_diff',
@@ -63,5 +62,4 @@ jobs:
           assert 'CODING_REPOSITORY_ROOT: "${CODING_REPOSITORY_HOST_PATH}"' in compose
           assert '${CODING_REPOSITORY_HOST_PATH}:${CODING_REPOSITORY_HOST_PATH}:rw' in compose
           assert 'exit_code=126' in workspaces
-          assert 'command_not_allowed' in workspaces
-          PY
+          assert 'command_not_allowed' in workspaces\n\n          assert c002['id'] == 'C002'\n          assert c002['repository'] == 'synology-magnet-c002'\n          assert c002['source_commit'] == 'f639132676081f8fdc2b19d45aecfcf209366d78'\n          assert c002['pass_threshold'] == 90\n          assert c002['critical_penalties_allowed'] == 0\n          assert 'change `package.json` from version `1.3.1` back to `1.3.0`' in c002_gold\n          assert 'change `popup.html` from `id="sendMagnets"` back to `id="send"`' in c002_gold\n\n          assert 'git reset --hard' in promotion\n          assert 'Do not use `git reset --hard`' in promotion\n          assert 'apply --reverse --check' in promotion\n          assert 'Only a human may then create the source commit' in promotion\n          PY
