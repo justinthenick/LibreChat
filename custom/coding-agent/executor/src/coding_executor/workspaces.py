@@ -200,7 +200,7 @@ class WorkspaceManager:
 
     def diff(self, task_id: str) -> str:
         task = self._task(task_id)
-        sections = [self._git(task, "diff", "--no-ext-diff", "--binary", "--").stdout]
+        sections = [self._git(task, "diff", "--no-ext-diff", "--no-textconv", "--binary", "--").stdout]
         untracked = self._git(
             task,
             "ls-files",
@@ -222,6 +222,7 @@ class WorkspaceManager:
                     "diff",
                     "--no-index",
                     "--no-ext-diff",
+                    "--no-textconv",
                     "--binary",
                     "--",
                     "/dev/null",
