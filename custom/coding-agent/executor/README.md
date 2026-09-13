@@ -7,6 +7,7 @@ This service gives a LibreChat Agent a deliberately narrow coding surface withou
 - Every task is created as a separate Git worktree and `agent/<task-id>` branch.
 - All paths are resolved beneath that task worktree.
 - Edits are unified diffs checked by `git apply --check` before application.
+- Final `git_diff` output includes tracked changes and untracked regular files; it fails closed rather than returning a truncated patch.
 - Shell strings are never evaluated. Only test, lint, build and `git diff --check` command prefixes are accepted.
 - Child commands receive a minimal environment that excludes the MCP bearer token.
 - The MCP server has no commit, push, delete-task, package-install or Docker tools.
@@ -68,6 +69,8 @@ git -C ~/coding-agent/tasks/<task-id> status --short
 git -C ~/coding-agent/tasks/<task-id> diff --check
 git -C ~/coding-agent/tasks/<task-id> diff
 ```
+
+Host `git diff` shows tracked changes only. Use the Agent's final `git_diff` result and the complete-patch procedure in [PROMOTION.md](./PROMOTION.md) whenever the task contains `??` entries. Empty untracked files are rejected because they cannot be represented as an unstaged content patch.
 
 A rejected command returns exit code `126` and a `command_not_allowed` result without spawning the requested process.
 

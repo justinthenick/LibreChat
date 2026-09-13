@@ -16,35 +16,54 @@ REPO_PATH="$CODING_ROOT/repos/$REPOSITORY_NAME"
 TASK_PATH="$CODING_ROOT/tasks/$TASK_ID"
 ```
 
-Then verify the boundaries:
+Then verify the boundaries in Bash:
 
 ```bash
+set -euo pipefail
 test -d "$REPO_PATH/.git"
 test -e "$TASK_PATH/.git"
-test -z "$(git -C "$TASK_PATH" ls-files --others --exclude-standard)"
 test -z "$(git -C "$REPO_PATH" status --porcelain)"
 test "$(git -C "$REPO_PATH" rev-parse HEAD)" = "$(git -C "$TASK_PATH" rev-parse HEAD)"
 git -C "$TASK_PATH" diff --check
 git -C "$TASK_PATH" status --short
 git -C "$TASK_PATH" diff --stat
 git -C "$TASK_PATH" diff
+git -C "$TASK_PATH" ls-files --others --exclude-standard
+while IFS= read -r -d '' RELATIVE_PATH; do
+  test -f "$TASK_PATH/$RELATIVE_PATH"
+  test ! -L "$TASK_PATH/$RELATIVE_PATH"
+done < <(git -C "$TASK_PATH" ls-files --others --exclude-standard -z --)
 ```
 
-Stop if the source repository is dirty, the task contains any untracked file, the two HEAD commits differ, the task diff is malformed, or the observed change differs from the agent's report. This v0.1 promotion procedure deliberately rejects new-file tasks because unstaged files are not included by `git diff --binary`.
+Stop if the source repository is dirty, the two HEAD commits differ, the task diff is malformed, an untracked path is not a regular non-symlink file, or the observed change differs from the agent's report.
 
 Run the repository's required tests in the same controlled environment used by the executor. Do not promote solely because the agent claimed they passed.
 
 ## Apply after human approval
 
-Create a temporary patch from the reviewed task and prove it applies cleanly:
+Create a temporary complete patch from the reviewed task. Tracked changes are exported first, followed by every untracked regular file:
 
 ```bash
 PATCH_FILE="$(mktemp /tmp/coding-agent-promotion.XXXXXX.patch)"
-git -C "$TASK_PATH" diff --binary > "$PATCH_FILE"
+git -C "$TASK_PATH" diff --binary --no-ext-diff --no-textconv -- > "$PATCH_FILE"
+
+while IFS= read -r -d '' RELATIVE_PATH; do
+  test -f "$TASK_PATH/$RELATIVE_PATH"
+  test ! -L "$TASK_PATH/$RELATIVE_PATH"
+  set +e
+  git -C "$TASK_PATH" diff --no-index --binary --no-ext-diff --no-textconv -- /dev/null "$RELATIVE_PATH" >> "$PATCH_FILE"
+  DIFF_EXIT=$?
+  set -e
+  test "$DIFF_EXIT" -eq 1
+done < <(git -C "$TASK_PATH" ls-files --others --exclude-standard -z --)
+
 test -s "$PATCH_FILE"
 git -C "$REPO_PATH" apply --check "$PATCH_FILE"
+git -C "$REPO_PATH" apply --stat "$PATCH_FILE"
 git -C "$REPO_PATH" apply "$PATCH_FILE"
 ```
+
+The fail-closed exit-code check deliberately rejects empty untracked files because Git cannot represent them as an unstaged content diff. Add content or handle an intentionally empty file manually after review.
 
 Review and test the source repository again:
 
