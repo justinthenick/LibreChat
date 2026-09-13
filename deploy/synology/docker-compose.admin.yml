@@ -1,12 +1,36 @@
 version: "3.7"
 
-# Optional Synology Admin Settings panel. autodeploy.sh loads this overlay only
-# when the private host recovery credential is configured.
+# Synology administration overlay.
 #
-# The panel deliberately has NO .env mount and NO Docker socket. Routine browser
-# access uses password-backed HttpOnly sessions stored under /state; the host
-# token is retained only for bootstrap/emergency recovery.
+# Two deliberately separate surfaces run here:
+# 1) the official LibreChat Admin Panel for application administration; and
+# 2) the custom Synology Deployment Settings panel for host-side .env/deployment
+#    changes, validation, selective recreation, health checks, and rollback.
+#
+# The custom deployment-settings panel has NO .env mount and NO Docker socket.
+# Routine browser access uses password-backed HttpOnly sessions stored under
+# /state; the host recovery token is retained only for bootstrap/emergency use.
 services:
+  admin-panel:
+    image: registry.librechat.ai/clickhouse/librechat-admin-panel:latest
+    container_name: librechat-admin-panel
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_PANEL_PORT:-3220}:3000"
+    environment:
+      PORT: "3000"
+      # Backward-compatible fallback lets the first deployment start before the
+      # updated bootstrap has created the dedicated session secret. Re-run
+      # bootstrap-admin-settings.py after deployment so this uses its own secret.
+      SESSION_SECRET: "${ADMIN_PANEL_SESSION_SECRET:-${ADMIN_SETTINGS_ACCESS_TOKEN}}"
+      API_SERVER_URL: http://api:3080
+      VITE_API_BASE_URL: "${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${LIBRECHAT_PORT:-3200}"
+      SESSION_COOKIE_SECURE: "${ADMIN_PANEL_SESSION_COOKIE_SECURE:-false}"
+    depends_on:
+      - api
+    networks:
+      - librechat
+
   admin-settings:
     image: python:3.12-alpine
     container_name: librechat-admin-settings

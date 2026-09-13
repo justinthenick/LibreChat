@@ -1,0 +1,27 @@
+version: "3.7"
+
+# Standalone official LibreChat Admin Panel overlay.
+#
+# The current Synology autodeploy path loads docker-compose.admin.yml, which
+# includes both the official LibreChat Admin Panel and the custom Synology
+# Deployment Settings service. This standalone overlay is kept as the clean
+# decoupling target for the later point where the custom deployment-settings UI
+# can be disabled without disabling LibreChat's upstream administration surface.
+# It is not loaded automatically today.
+services:
+  admin-panel:
+    image: registry.librechat.ai/clickhouse/librechat-admin-panel:latest
+    container_name: librechat-admin-panel
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_PANEL_PORT:-3220}:3000"
+    environment:
+      PORT: "3000"
+      SESSION_SECRET: "${ADMIN_PANEL_SESSION_SECRET}"
+      API_SERVER_URL: http://api:3080
+      VITE_API_BASE_URL: "${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${LIBRECHAT_PORT:-3200}"
+      SESSION_COOKIE_SECURE: "${ADMIN_PANEL_SESSION_COOKIE_SECURE:-false}"
+    depends_on:
+      - api
+    networks:
+      - librechat
