@@ -58,6 +58,14 @@ services:
       - /volume1/docker/librechat/custom/coding-agent/production:/app/coding-agent-pilot:ro
       - /volume1/docker/librechat/custom/ba-agent/skills:/app/deployment-skills:ro
       - /volume1/docker/librechat/workspace:/workspace
+      # Curated Solution Architect evidence view. Only explicitly selected,
+      # non-secret deployment artefacts are mounted, and every source is :ro.
+      # Never mount deploy/synology/.env or /var/run/docker.sock here.
+      - ./librechat.yaml:/architecture-view/librechat.yaml:ro
+      - ./docker-compose.yml:/architecture-view/docker-compose.yml:ro
+      - ./docker-compose.cloudflare.yml:/architecture-view/docker-compose.cloudflare.yml:ro
+      - ./README.md:/architecture-view/README.md:ro
+      - ./ADMIN-SETTINGS.md:/architecture-view/ADMIN-SETTINGS.md:ro
       - librechat-data:/app/data
       - librechat-images:/app/client/public/images
       - librechat-uploads:/app/uploads
