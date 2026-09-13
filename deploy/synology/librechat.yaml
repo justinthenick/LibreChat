@@ -118,6 +118,21 @@ mcpServers:
     startup: false
     timeout: 120000
 
+  # Sanitised NAS runtime evidence. A privileged host-side collector projects a
+  # small allowlisted JSON snapshot into /nas-runtime-view. The agent receives no
+  # Docker socket, host shell, environment values, raw logs or arbitrary host path.
+  nas_infra_readonly:
+    type: stdio
+    command: npx
+    args:
+      - -y
+      - '@modelcontextprotocol/server-filesystem@2026.1.14'
+      - /nas-runtime-view
+    chatMenu: false
+    serverInstructions: true
+    startup: false
+    timeout: 120000
+
 endpoints:
   # Pin only capability enum values accepted by the deployed LibreChat build.
   # Unsupported pseudo-capabilities such as memory, run_in_background and
