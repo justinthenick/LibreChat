@@ -30,7 +30,9 @@ chmod 600 .env
 
 The `.env` file is private runtime state and must never be committed.
 
-`DOMAIN_CLIENT` and `DOMAIN_SERVER` are derived by Compose from `LIBRECHAT_SCHEME`, `NAS_HOST`, and `LIBRECHAT_PORT`. `SEARCH`, `NO_INDEX`, `SESSION_COOKIE_SECURE`, and `ADMIN_PANEL_URL` are also controlled by `.env`; Compose no longer silently overrides those managed values.
+`DOMAIN_CLIENT` and `DOMAIN_SERVER` are derived by Compose from `LIBRECHAT_SCHEME`, `NAS_HOST`, and `LIBRECHAT_PORT`. `SEARCH`, `NO_INDEX`, `SCHEDULES_SINGLE_PROCESS`, `SESSION_COOKIE_SECURE`, and `ADMIN_PANEL_URL` are also controlled by `.env`; Compose no longer silently overrides those managed values.
+
+This Compose deployment runs exactly one LibreChat API process, so `SCHEDULES_SINGLE_PROCESS=true` safely enables the process-local scheduler without Redis. Before adding another API replica, set it to `false` and configure a shared Redis stream store; otherwise multiple schedulers cannot coordinate generation ownership safely.
 
 ## One-time RAG bootstrap
 
