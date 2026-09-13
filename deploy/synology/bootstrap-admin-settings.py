@@ -55,7 +55,10 @@ def main():
 
     deployment_port = values.get("ADMIN_SETTINGS_PORT") or "3210"
     deployment_port = manage_env.validate_value(settings["ADMIN_SETTINGS_PORT"], deployment_port)
-    official_port = validate_port(values.get("ADMIN_PANEL_PORT") or "3000", "ADMIN_PANEL_PORT")
+    # Use a deployment-specific host port so the upstream panel does not compete
+    # with common NAS services that already use port 3000. The container still
+    # listens on its upstream-standard internal port 3000.
+    official_port = validate_port(values.get("ADMIN_PANEL_PORT") or "3220", "ADMIN_PANEL_PORT")
 
     host = values.get("NAS_HOST") or ""
     if not host:
