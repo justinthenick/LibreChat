@@ -69,4 +69,4 @@ git -C ~/coding-agent/tasks/<task-id> diff --check
 git -C ~/coding-agent/tasks/<task-id> diff
 ```
 
-A rejected command returns exit code `126` and a `command_not_allowed` result without spawning the requested process.
+A rejected command returns exit code `126` and a `command_not_allowed` result without spawning the requested process.\n\nAfter review, follow [PROMOTION.md](./PROMOTION.md) for the fail-closed, human-authorised patch transfer into the source repository. The executor itself never commits, pushes, merges or promotes changes.\n
