@@ -45,12 +45,10 @@ jobs:
               'read_file', 'search_text', 'apply_patch', 'run_check', 'git_diff',
           }
           assert agent['id'] == 'agent_software_engineering_pilot_v01'
-          assert agent['version'] == '0.1.1'
-          assert agent['status'] == 'validated-for-persistent-pilot'
+          assert agent['status'] == 'validated-for-pilot-use'
           assert agent['preferred_model'] == 'google/gemini-3.8-flash'
           assert set(agent['mcp_tools']) == expected_tools
-          assert agent['deployment']['mode'] == 'persistent-pilot'
-          assert agent['deployment']['production_seeder'] == 'enabled'
+          assert agent['deployment']['production_seeder'] == 'not-yet-enabled'
 
           assert evidence['benchmark'] == 'C001'
           assert evidence['final_score'] == 100
@@ -81,5 +79,6 @@ jobs:
           assert 'git reset --hard' in promotion
           assert 'Do not use `git reset --hard`' in promotion
           assert 'apply --reverse --check' in promotion
+          assert 'ls-files --others --exclude-standard' in promotion
           assert 'Only a human may then create the source commit' in promotion
           PY
