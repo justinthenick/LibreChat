@@ -25,7 +25,7 @@ jobs:
         run: |
           PYTHONPATH=src python -m unittest discover -s tests -v
           python -m compileall -q src tests
-      - name: Validate pilot manifest and C001 evidence
+      - name: Validate pilot manifest and benchmark contracts
         run: |
           python - <<'PY'
           import json
@@ -36,16 +36,21 @@ jobs:
           evidence = json.loads((root / 'benchmarks/C001-executor-smoke-test/activation-evidence.json').read_text())
           compose = (root / 'executor/compose.example.yaml').read_text()
           workspaces = (root / 'executor/src/coding_executor/workspaces.py').read_text()
+          c002 = json.loads((root / 'benchmarks/C002-real-extension-regression/benchmark.json').read_text())
+          c002_gold = (root / 'benchmarks/C002-real-extension-regression/gold-standard.md').read_text()
+          promotion = (root / 'executor/PROMOTION.md').read_text()
 
           expected_tools = {
               'list_repositories', 'create_task', 'task_status', 'list_files',
               'read_file', 'search_text', 'apply_patch', 'run_check', 'git_diff',
           }
           assert agent['id'] == 'agent_software_engineering_pilot_v01'
-          assert agent['status'] == 'validated-for-pilot-use'
+          assert agent['version'] == '0.1.1'
+          assert agent['status'] == 'validated-for-persistent-pilot'
           assert agent['preferred_model'] == 'google/gemini-3.8-flash'
           assert set(agent['mcp_tools']) == expected_tools
-          assert agent['deployment']['production_seeder'] == 'not-yet-enabled'
+          assert agent['deployment']['mode'] == 'persistent-pilot'
+          assert agent['deployment']['production_seeder'] == 'enabled'
 
           assert evidence['benchmark'] == 'C001'
           assert evidence['final_score'] == 100
@@ -64,4 +69,17 @@ jobs:
           assert '${CODING_REPOSITORY_HOST_PATH}:${CODING_REPOSITORY_HOST_PATH}:rw' in compose
           assert 'exit_code=126' in workspaces
           assert 'command_not_allowed' in workspaces
+
+          assert c002['id'] == 'C002'
+          assert c002['repository'] == 'synology-magnet-c002'
+          assert c002['source_commit'] == 'f639132676081f8fdc2b19d45aecfcf209366d78'
+          assert c002['pass_threshold'] == 90
+          assert c002['critical_penalties_allowed'] == 0
+          assert 'change `package.json` from version `1.3.1` back to `1.3.0`' in c002_gold
+          assert 'change `popup.html` from `id="sendMagnets"` back to `id="send"`' in c002_gold
+
+          assert 'git reset --hard' in promotion
+          assert 'Do not use `git reset --hard`' in promotion
+          assert 'apply --reverse --check' in promotion
+          assert 'Only a human may then create the source commit' in promotion
           PY
