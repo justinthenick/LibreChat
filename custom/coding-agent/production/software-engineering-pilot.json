@@ -2,8 +2,8 @@
   "schema": 1,
   "id": "agent_software_engineering_pilot_v01",
   "name": "Software Engineering Pilot",
-  "version": "0.1.0",
-  "status": "validated-for-pilot-use",
+  "version": "0.1.1",
+  "status": "validated-for-persistent-pilot",
   "description": "Restricted software-engineering agent that works only in executor-created Git worktrees and leaves all changes uncommitted for human review.",
   "provider": "OpenRouter",
   "preferred_model": "google/gemini-3.8-flash",
@@ -38,10 +38,14 @@
     ]
   },
   "deployment": {
-    "mode": "manual-pilot",
-    "production_seeder": "not-yet-enabled",
-    "note": "Promotion to automatically seeded production use requires a separate persistence review."
+    "mode": "persistent-pilot",
+    "production_seeder": "enabled",
+    "note": "Automatically reconciled on Synology startup and deployment checks; broader production promotion remains a separate decision."
   },
+  "conversation_starters": [
+    "Inspect a repository, reproduce this bug, make the smallest fix and show me the complete diff.",
+    "Run the relevant tests for this repository, diagnose the failure and prepare an isolated reviewed patch."
+  ],
   "evidence": {
     "benchmark": "C001-executor-smoke-test",
     "activation_date": "2026-09-12",
