@@ -21,6 +21,7 @@ Then verify the boundaries:
 ```bash
 test -d "$REPO_PATH/.git"
 test -e "$TASK_PATH/.git"
+test -z "$(git -C "$TASK_PATH" ls-files --others --exclude-standard)"
 test -z "$(git -C "$REPO_PATH" status --porcelain)"
 test "$(git -C "$REPO_PATH" rev-parse HEAD)" = "$(git -C "$TASK_PATH" rev-parse HEAD)"
 git -C "$TASK_PATH" diff --check
@@ -29,7 +30,7 @@ git -C "$TASK_PATH" diff --stat
 git -C "$TASK_PATH" diff
 ```
 
-Stop if the source repository is dirty, the two HEAD commits differ, the task diff is malformed, or the observed change differs from the agent's report.
+Stop if the source repository is dirty, the task contains any untracked file, the two HEAD commits differ, the task diff is malformed, or the observed change differs from the agent's report. This v0.1 promotion procedure deliberately rejects new-file tasks because unstaged files are not included by `git diff --binary`.
 
 Run the repository's required tests in the same controlled environment used by the executor. Do not promote solely because the agent claimed they passed.
 
