@@ -1,0 +1,38 @@
+name: Synology Runtime Evidence
+
+on:
+  pull_request:
+    paths:
+      - 'deploy/synology/runtime-evidence.py'
+      - 'deploy/synology/bootstrap-runtime-evidence.py'
+      - 'deploy/synology/test_runtime_evidence.py'
+      - 'deploy/synology/NAS-INFRA-READONLY.md'
+      - 'deploy/synology/docker-compose.yml'
+      - 'deploy/synology/librechat.yaml'
+      - '.github/workflows/synology-runtime-evidence.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+      - name: Validate Python syntax
+        run: |
+          python -m py_compile \
+            deploy/synology/runtime-evidence.py \
+            deploy/synology/bootstrap-runtime-evidence.py \
+            deploy/synology/test_runtime_evidence.py
+      - name: Run runtime evidence regression tests
+        run: python -m unittest -v deploy/synology/test_runtime_evidence.py
+      - name: Validate read-only evidence wiring
+        run: |
+          grep -q '^  nas_infra_readonly:' deploy/synology/librechat.yaml
+          grep -Fq '/nas-runtime-view' deploy/synology/librechat.yaml
+          grep -Fq '/volume1/docker/librechat/runtime-evidence:/nas-runtime-view:ro' deploy/synology/docker-compose.yml
+          grep -Fq './NAS-INFRA-READONLY.md:/architecture-view/NAS-INFRA-READONLY.md:ro' deploy/synology/docker-compose.yml
+          grep -Fq 'OnUnitActiveSec=300s' deploy/synology/bootstrap-runtime-evidence.py
+          ! grep -Fq '/var/run/docker.sock' deploy/synology/docker-compose.yml
+          ! grep -Fq '/var/run/docker.sock' deploy/synology/runtime-evidence.py
