@@ -14,7 +14,7 @@ services:
     container_name: librechat-admin-panel
     restart: unless-stopped
     ports:
-      - "${ADMIN_PANEL_PORT:-3000}:3000"
+      - "${ADMIN_PANEL_PORT:-3220}:3000"
     environment:
       PORT: "3000"
       SESSION_SECRET: "${ADMIN_PANEL_SESSION_SECRET}"
