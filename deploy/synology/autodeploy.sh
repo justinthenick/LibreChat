@@ -10,6 +10,10 @@ ADMIN_WORKER="$DEPLOY_DIR/admin-settings-worker.py"
 ADMIN_STATE_DIR="$REPO_DIR/admin-settings-state"
 ADMIN_SOCKET="$ADMIN_STATE_DIR/worker.sock"
 ADMIN_UNIT="/etc/systemd/system/librechat-admin-settings-worker.service"
+NAS_INFRA_WORKER="$DEPLOY_DIR/nas-infra-readonly-worker.py"
+NAS_INFRA_STATE_DIR="$REPO_DIR/nas-infra-readonly-state"
+NAS_INFRA_SOCKET="$NAS_INFRA_STATE_DIR/worker.sock"
+NAS_INFRA_UNIT="/etc/systemd/system/librechat-nas-infra-readonly.service"
 TELEMETRY_SCRIPT="$DEPLOY_DIR/publish-telemetry.sh"
 REMOTE_URL="https://github.com/justinthenick/LibreChat.git"
 BRANCH="server/synology"
@@ -162,6 +166,7 @@ collect_diagnostics() {
       printf '%s\n' "--- admin panel logs ---"; docker logs --tail=80 librechat-admin-settings || true
       printf '%s\n' "--- admin worker status ---"; systemctl status librechat-admin-settings-worker.service --no-pager || true
     fi
+    printf '%s\n' "--- NAS read-only worker status ---"; systemctl status librechat-nas-infra-readonly.service --no-pager || true
     printf '%s\n' "--- end diagnostics ---"
   } >> "$LOG_FILE" 2>&1
 }
@@ -226,6 +231,21 @@ s=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM); s.settimeout(3); s.connect(s
 PY
 }
 
+nas_infra_worker_check() {
+  systemctl is-active --quiet librechat-nas-infra-readonly.service || return 1
+  [ -S "$NAS_INFRA_SOCKET" ] || return 1
+  python3 - "$NAS_INFRA_SOCKET" <<'PY' >/dev/null 2>&1
+import json, socket, sys
+s=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM); s.settimeout(3); s.connect(sys.argv[1]); s.sendall(b'{"action":"ping","params":{}}\n'); data=s.recv(4096); s.close(); result=json.loads(data.split(b'\n',1)[0].decode()); raise SystemExit(0 if result.get('ok') and (result.get('result') or {}).get('status') == 'ok' else 1)
+PY
+}
+
+nas_infra_runtime_check() {
+  nas_infra_worker_check || return 1
+  RESPONSE="$(printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_deployment_state","arguments":{}}}' | docker exec -i librechat python3 /app/nas-infra-readonly-mcp.py 2>/dev/null || true)"
+  printf '%s' "$RESPONSE" | grep -Fq '"isError":false'
+}
+
 admin_panel_check() {
   if [ "$ADMIN_SETTINGS_ENABLED" != "1" ]; then ! docker inspect librechat-admin-settings >/dev/null 2>&1; return; fi
   RUNNING="$(docker inspect -f '{{.State.Running}}' librechat-admin-settings 2>/dev/null || true)"
@@ -234,7 +254,7 @@ admin_panel_check() {
 }
 
 steady_state_check() {
-  health_check && production_agent_seed >/dev/null 2>&1 && workspace_check && cloudflare_check && admin_worker_check && admin_panel_check
+  health_check && production_agent_seed >/dev/null 2>&1 && workspace_check && cloudflare_check && admin_worker_check && admin_panel_check && nas_infra_runtime_check
 }
 
 configure_admin_worker() {
@@ -286,6 +306,47 @@ EOF
     COUNT=$((COUNT+1)); [ "$COUNT" -lt 10 ] || { log "ERROR: admin settings worker did not become ready"; return 1; }; sleep 1
   done
   log "Synology Admin Settings privileged worker ready"
+}
+
+configure_nas_infra_worker() {
+  [ -f "$NAS_INFRA_WORKER" ] || { log "ERROR: NAS read-only infrastructure worker script is missing"; return 1; }
+  mkdir -p "$NAS_INFRA_STATE_DIR"
+  chown 0:100 "$NAS_INFRA_STATE_DIR"
+  chmod 0770 "$NAS_INFRA_STATE_DIR"
+
+  TMP_UNIT="${NAS_INFRA_UNIT}.$$"
+  cat > "$TMP_UNIT" <<EOF
+[Unit]
+Description=LibreChat Synology read-only infrastructure inspection worker
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=$DEPLOY_DIR
+ExecStart=/usr/bin/python3 $NAS_INFRA_WORKER --socket $NAS_INFRA_SOCKET --socket-group 100 serve
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  if [ ! -f "$NAS_INFRA_UNIT" ] || ! cmp -s "$TMP_UNIT" "$NAS_INFRA_UNIT"; then
+    mv -f "$TMP_UNIT" "$NAS_INFRA_UNIT"
+    chmod 0644 "$NAS_INFRA_UNIT"
+    systemctl daemon-reload
+  else
+    rm -f "$TMP_UNIT"
+  fi
+  systemctl enable librechat-nas-infra-readonly.service >/dev/null 2>&1
+  systemctl restart librechat-nas-infra-readonly.service
+  COUNT=0
+  until nas_infra_worker_check; do
+    COUNT=$((COUNT+1)); [ "$COUNT" -lt 10 ] || { log "ERROR: NAS read-only infrastructure worker did not become ready"; return 1; }; sleep 1
+  done
+  log "NAS read-only infrastructure worker ready"
 }
 
 log "LibreChat deployment check started"
@@ -360,6 +421,9 @@ cd "$DEPLOY_DIR"
 FAILED_STAGE="admin_worker"
 if ! configure_admin_worker; then collect_diagnostics; exit 1; fi
 
+FAILED_STAGE="nas_infra_worker"
+if ! configure_nas_infra_worker; then collect_diagnostics; exit 1; fi
+
 FAILED_STAGE="compose_validation"
 if ! compose config >/dev/null 2>> "$LOG_FILE"; then log "ERROR: Compose validation failed"; exit 1; fi
 log "Compose validation passed"
@@ -409,6 +473,11 @@ if [ "$ADMIN_SETTINGS_ENABLED" = "1" ]; then
   log "Synology Admin Settings panel and worker healthy"
 else log "Synology Admin Settings not configured"; fi
 
+FAILED_STAGE="nas_infra_check"
+COUNT=0
+until nas_infra_runtime_check; do COUNT=$((COUNT+1)); if [ "$COUNT" -ge 12 ]; then log "ERROR: NAS read-only infrastructure bridge did not become healthy after 60 seconds"; collect_diagnostics; exit 1; fi; sleep 5; done
+log "NAS read-only infrastructure worker and MCP bridge healthy"
+
 FAILED_STAGE="state_record"
 DEPLOYED_SHA="$(git_repo rev-parse HEAD)"
 if [ "$DEPLOYED_SHA" != "$REMOTE_SHA" ]; then log "ERROR: deployed checkout changed unexpectedly to $(short_sha "$DEPLOYED_SHA")"; exit 1; fi
@@ -418,10 +487,10 @@ FAILED_STAGE="telemetry_publish"
 publish_telemetry success complete "$DEPLOYED_SHA" || true
 
 FAILED_STAGE="status_report"
-if [ "$CLOUDFLARE_ENABLED" = "1" ] && [ "$ADMIN_SETTINGS_ENABLED" = "1" ]; then post_status success "$DEPLOYED_SHA" "Synology deployment healthy; tunnel + admin settings ready"
-elif [ "$CLOUDFLARE_ENABLED" = "1" ]; then post_status success "$DEPLOYED_SHA" "Synology deployment healthy; Cloudflare tunnel connected"
-elif [ "$ADMIN_SETTINGS_ENABLED" = "1" ]; then post_status success "$DEPLOYED_SHA" "Synology deployment healthy; admin settings ready"
-else post_status success "$DEPLOYED_SHA" "Synology deployment healthy"; fi
+if [ "$CLOUDFLARE_ENABLED" = "1" ] && [ "$ADMIN_SETTINGS_ENABLED" = "1" ]; then post_status success "$DEPLOYED_SHA" "Synology deployment healthy; tunnel + admin settings + read-only infra ready"
+elif [ "$CLOUDFLARE_ENABLED" = "1" ]; then post_status success "$DEPLOYED_SHA" "Synology deployment healthy; tunnel + read-only infra ready"
+elif [ "$ADMIN_SETTINGS_ENABLED" = "1" ]; then post_status success "$DEPLOYED_SHA" "Synology deployment healthy; admin settings + read-only infra ready"
+else post_status success "$DEPLOYED_SHA" "Synology deployment healthy; read-only infra ready"; fi
 STATUS_TARGET_SHA=""
 FAILED_STAGE="complete"
 log "Deployment healthy at $DEPLOYED_SHA"
