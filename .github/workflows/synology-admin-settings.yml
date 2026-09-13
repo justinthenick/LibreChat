@@ -32,15 +32,18 @@ jobs:
             deploy/synology/bootstrap-rag.py \
             deploy/synology/admin-settings-worker.py \
             deploy/synology/admin-settings-panel.py \
+            deploy/synology/nas-infra-readonly-worker.py \
+            deploy/synology/nas-infra-readonly-mcp.py \
             deploy/synology/render-librechat-config.py
       - name: Validate JSON schema document
         run: python -m json.tool deploy/synology/admin-settings.schema.json >/dev/null
-      - name: Run settings regression tests
+      - name: Run settings and read-only infrastructure regression tests
         run: |
           python -m unittest -v \
             deploy/synology/test_manage_env.py \
             deploy/synology/test_admin_settings_worker.py \
-            deploy/synology/test_admin_settings_panel.py
+            deploy/synology/test_admin_settings_panel.py \
+            deploy/synology/test_nas_infra_readonly.py
       - name: Validate rendered default LibreChat config and capabilities
         run: |
           tmp_env="$(mktemp)"
@@ -84,6 +87,7 @@ jobs:
           grep -q '^  coding_executor:' /tmp/librechat.runtime.yaml
           grep -q '^  github_readonly:' /tmp/librechat.runtime.yaml
           grep -q '^  architecture_files:' /tmp/librechat.runtime.yaml
+          grep -q '^  nas_infra_readonly:' /tmp/librechat.runtime.yaml
           grep -Fq "Authorization: 'Bearer \${CODING_EXECUTOR_TOKEN}'" /tmp/librechat.runtime.yaml
           grep -Fq "url: 'http://192.168.1.129:8765/mcp'" /tmp/librechat.runtime.yaml
           grep -Fq "Authorization: 'Bearer {{GITHUB_ARCHITECT_PAT}}'" /tmp/librechat.runtime.yaml
@@ -92,6 +96,7 @@ jobs:
           grep -Fq "sensitive: true" /tmp/librechat.runtime.yaml
           grep -Fq '@modelcontextprotocol/server-filesystem@2026.1.14' /tmp/librechat.runtime.yaml
           grep -Fq '/architecture-view' /tmp/librechat.runtime.yaml
+          grep -Fq '/app/nas-infra-readonly-mcp.py' /tmp/librechat.runtime.yaml
           ! grep -Fq '${CODING_EXECUTOR_HOST}' /tmp/librechat.runtime.yaml
           ! grep -Fq '${CODING_EXECUTOR_PORT}' /tmp/librechat.runtime.yaml
           ! grep -Fq '/var/run/docker.sock' /tmp/librechat.runtime.yaml
@@ -112,6 +117,13 @@ jobs:
           grep -q -- '--output /tmp/librechat.runtime.yaml' deploy/synology/docker-compose.yml
           ! grep -q 'CONFIG_PATH: /app/data/librechat.runtime.yaml' deploy/synology/docker-compose.yml
           ! grep -q -- '--output /app/data/librechat.runtime.yaml' deploy/synology/docker-compose.yml
+      - name: Validate read-only infrastructure boundary wiring
+        run: |
+          grep -Fq './nas-infra-readonly-mcp.py:/app/nas-infra-readonly-mcp.py:ro' deploy/synology/docker-compose.yml
+          grep -Fq '/volume1/docker/librechat/nas-infra-readonly-state:/run/nas-infra-readonly:ro' deploy/synology/docker-compose.yml
+          grep -Fq 'NAS_INFRA_READONLY_SOCKET: /run/nas-infra-readonly/worker.sock' deploy/synology/docker-compose.yml
+          ! grep -Fq '/var/run/docker.sock' deploy/synology/docker-compose.yml
+          ! grep -Eq 'docker[ _-]exec|restart_container|stop_container|start_container|write_file' deploy/synology/nas-infra-readonly-mcp.py
       - name: Validate shell syntax and API runtime refresh
         run: |
           sh -n deploy/synology/autodeploy.sh
