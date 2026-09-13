@@ -1,0 +1,26 @@
+version: "3.7"
+
+# Official LibreChat Admin Panel. This overlay is loaded only when
+# ADMIN_PANEL_SESSION_SECRET is configured in the private Synology .env.
+#
+# The panel manages LibreChat application administration (users, groups, roles,
+# grants, and schema-driven configuration overrides). It is intentionally
+# separate from the custom Synology deployment-settings surface, which remains
+# responsible for host-side .env/deployment changes and rollback.
+services:
+  admin-panel:
+    image: registry.librechat.ai/clickhouse/librechat-admin-panel:latest
+    container_name: librechat-admin-panel
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_PANEL_PORT:-3000}:3000"
+    environment:
+      PORT: "3000"
+      SESSION_SECRET: "${ADMIN_PANEL_SESSION_SECRET}"
+      API_SERVER_URL: http://api:3080
+      VITE_API_BASE_URL: "${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${LIBRECHAT_PORT:-3200}"
+      SESSION_COOKIE_SECURE: "${ADMIN_PANEL_SESSION_COOKIE_SECURE:-false}"
+    depends_on:
+      - api
+    networks:
+      - librechat
