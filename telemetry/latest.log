@@ -1,33 +1,3 @@
-2026-09-13 19:05:05 Synology Admin Settings integration enabled
-2026-09-13 19:09:30 No deployment change; healthy deployment already recorded at d90af0f5
-2026-09-13 19:10:03 LibreChat deployment check started
-2026-09-13 19:10:04 Cloudflare tunnel integration enabled
-2026-09-13 19:10:04 Synology Admin Settings integration enabled
-2026-09-13 19:14:42 No deployment change; healthy deployment already recorded at d90af0f5
-2026-09-13 19:15:27 LibreChat deployment check started
-2026-09-13 19:15:27 Cloudflare tunnel integration enabled
-2026-09-13 19:15:27 Synology Admin Settings integration enabled
-2026-09-13 19:18:45 No deployment change; healthy deployment already recorded at d90af0f5
-2026-09-13 19:20:14 LibreChat deployment check started
-2026-09-13 19:20:14 Cloudflare tunnel integration enabled
-2026-09-13 19:20:14 Synology Admin Settings integration enabled
-2026-09-13 19:24:55 No deployment change; healthy deployment already recorded at d90af0f5
-2026-09-13 19:25:02 LibreChat deployment check started
-2026-09-13 19:25:02 Cloudflare tunnel integration enabled
-2026-09-13 19:25:02 Synology Admin Settings integration enabled
-2026-09-13 19:28:12 Change detected: d90af0f5 -> a7fcf7ac
-2026-09-13 19:33:44 Synology Admin Settings privileged worker ready
-2026-09-13 19:33:48 Compose validation passed
-2026-09-13 19:36:03 Image pull completed
-2026-09-13 19:37:00 ERROR: Compose update failed
-2026-09-13 19:37:00 Collecting deployment diagnostics for stage compose_up
-2026-09-13 19:42:10 Sanitised GitHub telemetry published
-2026-09-13 19:43:53 LibreChat deployment check started
-2026-09-13 19:43:53 Cloudflare tunnel integration enabled
-2026-09-13 19:43:53 Synology Admin Settings integration enabled
-2026-09-13 19:46:44 Retrying deployment at a7fcf7ac; last successful deployment was d90af0f5
-2026-09-13 19:48:29 Synology Admin Settings privileged worker ready
-2026-09-13 19:48:31 NAS read-only infrastructure worker ready
 2026-09-13 19:48:34 Compose validation passed
 2026-09-13 19:49:55 Image pull completed
 2026-09-13 19:53:12 Compose update completed
@@ -38,3 +8,33 @@
 2026-09-13 19:56:14 Cloudflare tunnel connector registered
 2026-09-13 19:56:18 Synology Admin Settings panel and worker healthy
 2026-09-13 19:56:21 NAS read-only infrastructure worker and MCP bridge healthy
+2026-09-13 20:01:13 Sanitised GitHub telemetry published
+2026-09-13 20:02:03 Deployment healthy at a7fcf7aca9e9a9bd7ed5e9f0ca543c327eb22e89
+2026-09-13 20:02:25 LibreChat deployment check started
+2026-09-13 20:02:25 Cloudflare tunnel integration enabled
+2026-09-13 20:02:25 Synology Admin Settings integration enabled
+2026-09-13 20:04:51 No deployment change; healthy deployment already recorded at a7fcf7ac
+2026-09-13 20:05:10 LibreChat deployment check started
+2026-09-13 20:05:10 Cloudflare tunnel integration enabled
+2026-09-13 20:05:10 Synology Admin Settings integration enabled
+2026-09-13 20:07:32 No deployment change; healthy deployment already recorded at a7fcf7ac
+2026-09-13 20:10:01 LibreChat deployment check started
+2026-09-13 20:10:01 Cloudflare tunnel integration enabled
+2026-09-13 20:10:01 Synology Admin Settings integration enabled
+2026-09-13 20:11:48 No deployment change; healthy deployment already recorded at a7fcf7ac
+2026-09-13 20:15:03 LibreChat deployment check started
+2026-09-13 20:15:03 Cloudflare tunnel integration enabled
+2026-09-13 20:15:03 Synology Admin Settings integration enabled
+2026-09-13 20:16:29 Change detected: a7fcf7ac -> 156635ef
+2026-09-13 20:18:15 Synology Admin Settings privileged worker ready
+2026-09-13 20:18:17 NAS read-only infrastructure worker ready
+2026-09-13 20:18:18 Compose validation passed
+2026-09-13 20:23:26 Image pull completed
+2026-09-13 20:23:51 Compose update completed
+2026-09-13 20:27:30 LibreChat API recreated for deployed runtime configuration
+2026-09-13 20:27:31 LibreChat health check passed
+2026-09-13 20:28:12 Production agents and coding-agent pilot seeded and validated
+2026-09-13 20:28:12 MCP workspace mount passed write/read/delete check
+2026-09-13 20:28:12 Cloudflare tunnel connector registered
+2026-09-13 20:28:15 Synology Admin Settings panel and worker healthy
+2026-09-13 20:28:17 NAS read-only infrastructure worker and MCP bridge healthy
