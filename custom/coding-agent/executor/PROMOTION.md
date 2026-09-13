@@ -45,13 +45,13 @@ Create a temporary complete patch from the reviewed task. Tracked changes are ex
 
 ```bash
 PATCH_FILE="$(mktemp /tmp/coding-agent-promotion.XXXXXX.patch)"
-git -C "$TASK_PATH" diff --binary --no-ext-diff -- > "$PATCH_FILE"
+git -C "$TASK_PATH" diff --binary --no-ext-diff --no-textconv -- > "$PATCH_FILE"
 
 while IFS= read -r -d '' RELATIVE_PATH; do
   test -f "$TASK_PATH/$RELATIVE_PATH"
   test ! -L "$TASK_PATH/$RELATIVE_PATH"
   set +e
-  git -C "$TASK_PATH" diff --no-index --binary --no-ext-diff -- /dev/null "$RELATIVE_PATH" >> "$PATCH_FILE"
+  git -C "$TASK_PATH" diff --no-index --binary --no-ext-diff --no-textconv -- /dev/null "$RELATIVE_PATH" >> "$PATCH_FILE"
   DIFF_EXIT=$?
   set -e
   test "$DIFF_EXIT" -eq 1
