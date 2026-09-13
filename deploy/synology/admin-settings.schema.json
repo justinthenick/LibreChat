@@ -1,5 +1,5 @@
 {
-  "schema": 8,
+  "schema": 9,
   "title": "LibreChat Synology Admin Settings",
   "groups": [
     {"id":"address","label":"Address and access"},
@@ -23,6 +23,7 @@
 
     {"key":"NO_INDEX","label":"Prevent search-engine indexing","group":"application","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
     {"key":"SEARCH","label":"Enable LibreChat search integration","group":"application","class":"editable","control":"boolean","restart":"recreate","services":["api"]},
+    {"key":"SCHEDULES_SINGLE_PROCESS","label":"Enable schedules in single-process mode","group":"application","class":"editable","control":"boolean","restart":"recreate","services":["api"],"description":"Assert that exactly one LibreChat API process runs so the process-local scheduler can operate safely.","warning":"Keep enabled only while this deployment runs exactly one LibreChat API process. Disable it before adding API replicas, then configure a shared Redis stream store."},
     {"key":"SESSION_COOKIE_SECURE","label":"Secure session cookie","group":"application","class":"editable","control":"boolean","restart":"recreate","services":["api"],"warning":"Enable when the browser reaches LibreChat over HTTPS."},
 
     {"key":"ALLOWED_MODELS","label":"Allowed OpenRouter models / pre-filter","group":"models","class":"editable","control":"text","required":false,"restart":"recreate","services":["api"],"description":"Comma-separated OpenRouter model IDs. Non-empty restricts the catalogue to exactly these models; clear to fetch the full OpenRouter catalogue."},
