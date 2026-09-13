@@ -200,8 +200,52 @@ class WorkspaceManager:
 
     def diff(self, task_id: str) -> str:
         task = self._task(task_id)
-        result = self._git(task, "diff", "--no-ext-diff", "--binary")
-        return self._bounded(result.stdout)[0]
+        sections = [self._git(task, "diff", "--no-ext-diff", "--binary", "--").stdout]
+        untracked = self._git(
+            task,
+            "ls-files",
+            "--others",
+            "--exclude-standard",
+            "-z",
+            "--",
+        ).stdout
+
+        for relative in filter(None, untracked.split("\0")):
+            target = self._path(task, relative, must_exist=True)
+            if not target.is_file() or target.is_symlink():
+                raise ValueError(f"untracked path is not a regular file: {relative}")
+            result = subprocess.run(
+                [
+                    "git",
+                    "-c",
+                    "core.hooksPath=/dev/null",
+                    "diff",
+                    "--no-index",
+                    "--no-ext-diff",
+                    "--binary",
+                    "--",
+                    "/dev/null",
+                    relative,
+                ],
+                cwd=task,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=60,
+                env=self._child_environment(),
+            )
+            if result.returncode not in {0, 1}:
+                raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "git diff failed")
+            if not result.stdout:
+                raise ValueError(f"untracked file cannot be represented as a patch: {relative}")
+            sections.append(result.stdout)
+
+        complete = "".join(sections)
+        if len(complete.encode("utf-8")) > self.max_output_bytes:
+            raise ValueError(
+                f"complete diff exceeds {self.max_output_bytes} byte output limit; split the task"
+            )
+        return complete
 
     def _repository(self, name: str) -> Path:
         if not SAFE_NAME.fullmatch(name):
