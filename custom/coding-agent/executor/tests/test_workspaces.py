@@ -43,6 +43,43 @@ class WorkspaceManagerTest(unittest.TestCase):
         self.assertIn("example.txt", result["status"])
         self.assertIn("+gamma", self.manager.diff(task_id))
 
+    def test_diff_includes_untracked_regular_files(self) -> None:
+        task = self.manager.create_task("demo", "add notes", "main")
+        task_id = task["task_id"]
+        self.manager.apply_patch(
+            task_id,
+            "--- /dev/null\n+++ b/notes.txt\n@@ -0,0 +1,2 @@\n+first\n+second\n",
+        )
+
+        complete = self.manager.diff(task_id)
+
+        self.assertIn("new file mode 100644", complete)
+        self.assertIn("+++ b/notes.txt", complete)
+        self.assertIn("+first", complete)
+        self.assertIn("+second", complete)
+
+    def test_diff_rejects_untracked_symbolic_links(self) -> None:
+        task = self.manager.create_task("demo", "unsafe untracked", "main")
+        (Path(task["path"]) / "unsafe-link").symlink_to("/tmp")
+
+        with self.assertRaisesRegex(ValueError, "not a regular file"):
+            self.manager.diff(task["task_id"])
+
+    def test_diff_fails_closed_instead_of_truncating(self) -> None:
+        manager = WorkspaceManager(
+            self.repositories,
+            self.tasks,
+            max_output_bytes=32,
+        )
+        task = manager.create_task("demo", "large diff", "main")
+        manager.apply_patch(
+            task["task_id"],
+            "--- a/example.txt\n+++ b/example.txt\n@@ -1,2 +1,2 @@\n alpha\n-beta\n+replacement-value\n",
+        )
+
+        with self.assertRaisesRegex(ValueError, "complete diff exceeds"):
+            manager.diff(task["task_id"])
+
     def test_rejects_path_escape(self) -> None:
         task = self.manager.create_task("demo", "safe path", "main")
         with self.assertRaises(ValueError):
