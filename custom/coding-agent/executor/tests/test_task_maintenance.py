@@ -6,7 +6,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from coding_executor.task_maintenance import inventory, remove_clean_task
+from coding_executor.task_maintenance import (
+    _child_environment,
+    inventory,
+    remove_clean_task,
+)
 
 
 class TaskMaintenanceTest(unittest.TestCase):
@@ -43,6 +47,15 @@ class TaskMaintenanceTest(unittest.TestCase):
         task = self.tasks / task_id
         self._git("worktree", "add", "-b", f"agent/{task_id}", str(task), "main")
         return task
+
+    def test_child_environment_excludes_executor_secrets(self) -> None:
+        environment = _child_environment()
+
+        self.assertEqual(
+            set(environment),
+            {"PATH", "HOME", "CI", "NO_COLOR", "LANG"},
+        )
+        self.assertNotIn("CODING_EXECUTOR_TOKEN", environment)
 
     def test_inventory_reports_clean_dirty_and_broken_tasks(self) -> None:
         self._worktree("clean-task")
