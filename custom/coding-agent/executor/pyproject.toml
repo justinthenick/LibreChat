@@ -15,6 +15,7 @@ dependencies = [
 
 [project.scripts]
 coding-executor = "coding_executor.server:main"
+coding-executor-tasks = "coding_executor.task_maintenance:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/coding_executor"]
