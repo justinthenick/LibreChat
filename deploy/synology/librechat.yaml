@@ -118,6 +118,20 @@ mcpServers:
     startup: false
     timeout: 120000
 
+  # Live host/runtime evidence source. The stdio bridge has no Docker socket and
+  # can reach only a group-restricted Unix socket served by the host worker. The
+  # worker itself exposes a fixed read-only action allowlist and sanitizes Docker
+  # inspection data before returning it to the Agent.
+  nas_infra_readonly:
+    type: stdio
+    command: python3
+    args:
+      - /app/nas-infra-readonly-mcp.py
+    chatMenu: false
+    serverInstructions: true
+    startup: false
+    timeout: 120000
+
 endpoints:
   # Pin only capability enum values accepted by the deployed LibreChat build.
   # Unsupported pseudo-capabilities such as memory, run_in_background and
