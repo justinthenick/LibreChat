@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "timestamp": "2026-09-14T11:29:54+1000",
-  "result": "failure",
-  "stage": "preflight",
+  "timestamp": "2026-09-14T11:43:22+1000",
+  "result": "success",
+  "stage": "steady_state_recovered",
   "commit": "156635efb59f70a67d63aea89c9e1f1003cf0000",
   "runtime": {
     "librechat_container": "running",
