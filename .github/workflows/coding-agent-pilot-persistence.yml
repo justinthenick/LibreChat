@@ -52,7 +52,9 @@ jobs:
           }
           assert manifest['id'] == 'agent_software_engineering_pilot_v01'
           assert manifest['status'] == 'validated-for-persistent-pilot'
-          assert manifest['preferred_model'] == 'google/gemini-3.8-flash'
+          assert manifest['version'] == '0.1.2'
+          assert manifest['provider'] == 'google'
+          assert manifest['preferred_model'] == 'gemini-3.8-flash'
           assert manifest['mcp_server'] == 'coding_executor'
           assert set(manifest['mcp_tools']) == expected
           assert len(manifest['mcp_tools']) == len(expected)
@@ -65,6 +67,10 @@ jobs:
           assert 'sys__all__sys_mcp_' not in json.dumps(manifest)
           assert "${tool}_mcp_${manifest.mcp_server}" in seeder
           assert 'mcpServerNames: [manifest.mcp_server]' in seeder
+          assert "const GOOGLE_ENDPOINT_NAME = 'google';" in seeder
+          assert "normalized === 'google'" in seeder
+          assert 'agent.provider !== expectedProvider' in seeder
+          assert 'provider: agent.provider' in seeder
           assert 'seed-coding-agent-pilot.js /app/coding-agent-pilot' in compose
           assert '/custom/coding-agent/production:/app/coding-agent-pilot:ro' in compose
           assert 'node /app/config/seed-coding-agent-pilot.js /app/coding-agent-pilot' in deploy
