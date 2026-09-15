@@ -46,7 +46,10 @@ jobs:
           }
           assert agent['id'] == 'agent_software_engineering_pilot_v01'
           assert agent['status'] == 'validated-for-pilot-use'
-          assert agent['preferred_model'] == 'google/gemini-3.8-flash'
+          assert agent['version'] == '0.1.1'
+          assert agent['provider'] == 'google'
+          assert agent['preferred_model'] == 'gemini-3.8-flash'
+          assert not agent['preferred_model'].startswith('google/')
           assert set(agent['mcp_tools']) == expected_tools
           assert agent['deployment']['production_seeder'] == 'not-yet-enabled'
 
