@@ -108,7 +108,7 @@ Then remove the bootstrap copy after confirming login:
 sudo rm -f /volume1/docker/librechat/admin-settings-bootstrap-token.txt
 ```
 
-The next normal autodeploy run sees `ADMIN_SETTINGS_ACCESS_TOKEN`, installs/starts the privileged worker, loads `docker-compose.admin.yml`, starts the browser panel, recreates LibreChat so the Admin panel link becomes visible, and validates panel/worker health.
+The next normal autodeploy run sees `ADMIN_SETTINGS_ACCESS_TOKEN`, installs/starts the privileged worker, loads `docker-compose.admin.yml`, starts the browser panel, recreates LibreChat so the Admin panel link becomes visible, and prepares the dedicated official panel session secret if missing, and validates both the official panel on its configured host port (default `3220`) and the Deployment Settings panel/worker. See [ADMIN-SURFACES.md](ADMIN-SURFACES.md) for migration and health details.
 
 The expected LAN URL is:
 

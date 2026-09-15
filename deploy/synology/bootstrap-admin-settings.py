@@ -49,6 +49,17 @@ def validate_port(raw, key):
     return str(port)
 
 
+def ensure_official_session_secret(env):
+    key = "ADMIN_PANEL_SESSION_SECRET"
+    lines, values, positions = manage_env.read_env(env, {key})
+    if values.get(key):
+        return False
+    manage_env.replace_key(lines, positions, key, secrets.token_urlsafe(48))
+    manage_env.backup_env(env)
+    manage_env.atomic_write(env, lines)
+    return True
+
+
 def main():
     schema, settings = manage_env.load_schema(SCHEMA)
     lines, values, positions = manage_env.read_env(ENV, set(settings))
@@ -110,4 +121,15 @@ def main():
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--ensure-session-secret", action="store_true",
+                        help="Only create a missing official panel secret; preserve other settings")
+    parser.add_argument("--env-file", type=Path, default=ENV)
+    args = parser.parse_args()
+    if args.ensure_session_secret:
+        ensure_official_session_secret(args.env_file)
+    else:
+        ENV = args.env_file
+        raise SystemExit(main())

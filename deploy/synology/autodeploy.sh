@@ -163,7 +163,9 @@ collect_diagnostics() {
     printf '%s\n' "--- api logs (last 80 lines) ---"; compose logs --tail=80 api || true
     if [ "$CLOUDFLARE_ENABLED" = "1" ]; then printf '%s\n' "--- cloudflared logs ---"; docker logs --tail=80 librechat-cloudflared || true; fi
     if [ "$ADMIN_SETTINGS_ENABLED" = "1" ]; then
-      printf '%s\n' "--- admin panel logs ---"; docker logs --tail=80 librechat-admin-settings || true
+      printf '%s\n' "--- Synology Deployment Settings logs ---"; docker logs --tail=80 librechat-admin-settings || true
+      printf '%s\n' "--- official LibreChat Admin Panel state ---"; docker inspect -f 'running={{.State.Running}} status={{.State.Status}} restarts={{.RestartCount}}' librechat-admin-panel || true
+      printf '%s\n' "--- official LibreChat Admin Panel logs ---"; docker logs --tail=80 librechat-admin-panel || true
       printf '%s\n' "--- admin worker status ---"; systemctl status librechat-admin-settings-worker.service --no-pager || true
     fi
     printf '%s\n' "--- NAS read-only worker status ---"; systemctl status librechat-nas-infra-readonly.service --no-pager || true
@@ -253,8 +255,23 @@ admin_panel_check() {
   docker exec librechat-admin-settings python3 -c 'import urllib.request; r=urllib.request.urlopen("http://127.0.0.1:3210/health",timeout=5); raise SystemExit(0 if 200 <= r.status < 300 else 1)' >/dev/null 2>&1
 }
 
+official_admin_panel_check() {
+  if [ "$ADMIN_SETTINGS_ENABLED" != "1" ]; then ! docker inspect librechat-admin-panel >/dev/null 2>&1; return; fi
+  RUNNING="$(docker inspect -f '{{.State.Running}}' librechat-admin-panel 2>/dev/null || true)"
+  [ "$RUNNING" = "true" ] || return 1
+  python3 - "$(env_value ADMIN_PANEL_PORT)" <<'PY' >/dev/null 2>&1
+import sys, urllib.request
+port = int(sys.argv[1] or "3220")
+if not 1 <= port <= 65535:
+    raise SystemExit(1)
+opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+response = opener.open("http://127.0.0.1:{}/".format(port), timeout=5)
+raise SystemExit(0 if 200 <= response.status < 300 else 1)
+PY
+}
+
 steady_state_check() {
-  health_check && production_agent_seed >/dev/null 2>&1 && workspace_check && cloudflare_check && admin_worker_check && admin_panel_check && nas_infra_runtime_check
+  health_check && production_agent_seed >/dev/null 2>&1 && workspace_check && cloudflare_check && admin_worker_check && admin_panel_check && official_admin_panel_check && nas_infra_runtime_check
 }
 
 configure_admin_worker() {
@@ -418,6 +435,15 @@ if [ "$ADMIN_SETTINGS_ENABLED" = "1" ] && [ ! -f "$ADMIN_OVERLAY" ]; then log "E
 prepare_workspace
 cd "$DEPLOY_DIR"
 
+FAILED_STAGE="admin_session_secret"
+if [ "$ADMIN_SETTINGS_ENABLED" = "1" ]; then
+  if ! python3 "$DEPLOY_DIR/bootstrap-admin-settings.py" --ensure-session-secret --env-file "$DEPLOY_DIR/.env" >/dev/null 2>&1; then
+    log "ERROR: official Admin Panel session secret migration failed; check private .env for duplicate keys"
+    exit 1
+  fi
+  log "Official LibreChat Admin Panel dedicated session secret ready"
+fi
+
 FAILED_STAGE="admin_worker"
 if ! configure_admin_worker; then collect_diagnostics; exit 1; fi
 
@@ -473,6 +499,12 @@ if [ "$ADMIN_SETTINGS_ENABLED" = "1" ]; then
   log "Synology Admin Settings panel and worker healthy"
 else log "Synology Admin Settings not configured"; fi
 
+FAILED_STAGE="official_admin_panel_check"
+if [ "$ADMIN_SETTINGS_ENABLED" = "1" ]; then
+  COUNT=0; until official_admin_panel_check; do COUNT=$((COUNT+1)); if [ "$COUNT" -ge 12 ]; then log "ERROR: official LibreChat Admin Panel did not become healthy on its configured host port (default 3220) after 60 seconds"; collect_diagnostics; exit 1; fi; sleep 5; done
+  log "Official LibreChat Admin Panel healthy on its configured host port (default 3220)"
+else log "Official LibreChat Admin Panel not configured"; fi
+
 FAILED_STAGE="nas_infra_check"
 COUNT=0
 until nas_infra_runtime_check; do COUNT=$((COUNT+1)); if [ "$COUNT" -ge 12 ]; then log "ERROR: NAS read-only infrastructure bridge did not become healthy after 60 seconds"; collect_diagnostics; exit 1; fi; sleep 5; done
@@ -487,9 +519,9 @@ FAILED_STAGE="telemetry_publish"
 publish_telemetry success complete "$DEPLOYED_SHA" || true
 
 FAILED_STAGE="status_report"
-if [ "$CLOUDFLARE_ENABLED" = "1" ] && [ "$ADMIN_SETTINGS_ENABLED" = "1" ]; then post_status success "$DEPLOYED_SHA" "Synology deployment healthy; tunnel + admin settings + read-only infra ready"
+if [ "$CLOUDFLARE_ENABLED" = "1" ] && [ "$ADMIN_SETTINGS_ENABLED" = "1" ]; then post_status success "$DEPLOYED_SHA" "Synology deployment healthy; tunnel + both admin panels + read-only infra ready"
 elif [ "$CLOUDFLARE_ENABLED" = "1" ]; then post_status success "$DEPLOYED_SHA" "Synology deployment healthy; tunnel + read-only infra ready"
-elif [ "$ADMIN_SETTINGS_ENABLED" = "1" ]; then post_status success "$DEPLOYED_SHA" "Synology deployment healthy; admin settings + read-only infra ready"
+elif [ "$ADMIN_SETTINGS_ENABLED" = "1" ]; then post_status success "$DEPLOYED_SHA" "Synology deployment healthy; both admin panels + read-only infra ready"
 else post_status success "$DEPLOYED_SHA" "Synology deployment healthy; read-only infra ready"; fi
 STATUS_TARGET_SHA=""
 FAILED_STAGE="complete"
