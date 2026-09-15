@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "timestamp": "2026-09-15T21:56:01+1000",
+  "result": "success",
+  "stage": "complete",
+  "commit": "69dc666c5c5c1744182909449093123d398d0017",
+  "runtime": {
+    "librechat_container": "running",
+    "librechat_exit_code": "0",
+    "librechat_restart_count": "0",
+    "mongodb_container": "running",
+    "http_health": "pass",
+    "workspace": "pass",
+    "cloudflare_tunnel": "connected",
+    "volume1_used_percent": "19"
+  },
+  "last_failure": {
+    "timestamp": "2026-09-15T17:11:18+1000",
+    "commit": "156635efb59f70a67d63aea89c9e1f1003cf0000",
+    "stage": "preflight",
+    "librechat_container": "running",
+    "librechat_exit_code": "0",
+    "cloudflare_tunnel": "running_unregistered",
+    "volume1_used_percent": "19"
+  }
+}
