@@ -17,7 +17,7 @@ services:
       - "${ADMIN_PANEL_PORT:-3220}:3000"
     environment:
       PORT: "3000"
-      SESSION_SECRET: "${ADMIN_PANEL_SESSION_SECRET}"
+      SESSION_SECRET: "${ADMIN_PANEL_SESSION_SECRET:?Run bootstrap-admin-settings.py --ensure-session-secret first}"
       API_SERVER_URL: http://api:3080
       VITE_API_BASE_URL: "${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${LIBRECHAT_PORT:-3200}"
       SESSION_COOKIE_SECURE: "${ADMIN_PANEL_SESSION_COOKIE_SECURE:-false}"

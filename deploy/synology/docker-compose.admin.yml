@@ -19,10 +19,7 @@ services:
       - "${ADMIN_PANEL_PORT:-3220}:3000"
     environment:
       PORT: "3000"
-      # Backward-compatible fallback lets the first deployment start before the
-      # updated bootstrap has created the dedicated session secret. Re-run
-      # bootstrap-admin-settings.py after deployment so this uses its own secret.
-      SESSION_SECRET: "${ADMIN_PANEL_SESSION_SECRET:-${ADMIN_SETTINGS_ACCESS_TOKEN}}"
+      SESSION_SECRET: "${ADMIN_PANEL_SESSION_SECRET:?Run bootstrap-admin-settings.py --ensure-session-secret first}"
       API_SERVER_URL: http://api:3080
       VITE_API_BASE_URL: "${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${LIBRECHAT_PORT:-3200}"
       SESSION_COOKIE_SECURE: "${ADMIN_PANEL_SESSION_COOKIE_SECURE:-false}"
