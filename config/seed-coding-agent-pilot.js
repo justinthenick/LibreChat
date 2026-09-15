@@ -16,6 +16,7 @@ const MANIFEST_DIR =
 const MANIFEST_FILE = 'software-engineering-pilot.json';
 const PILOT_AGENT_ID = 'agent_software_engineering_pilot_v01';
 const MCP_SERVER = 'coding_executor';
+const GOOGLE_ENDPOINT_NAME = 'google';
 const OPENROUTER_ENDPOINT_NAME = 'OpenRouter';
 const EXPECTED_MCP_TOOLS = [
   'list_repositories',
@@ -51,7 +52,11 @@ function chooseModel(manifest) {
 }
 
 function normalizeProvider(value) {
-  if (String(value || '').trim().toLowerCase() === 'openrouter') {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'google') {
+    return GOOGLE_ENDPOINT_NAME;
+  }
+  if (normalized === 'openrouter') {
     return OPENROUTER_ENDPOINT_NAME;
   }
   throw new Error(`Unsupported coding-agent provider: ${value}`);
@@ -188,6 +193,10 @@ function validatePersistedAgent(agent, manifest) {
   if (agent.edges?.length || agent.subagents != null) {
     throw new Error(`${manifest.id} unexpectedly retained orchestration wiring`);
   }
+  const expectedProvider = normalizeProvider(manifest.provider);
+  if (agent.provider !== expectedProvider) {
+    throw new Error(`${manifest.id} did not retain provider ${expectedProvider}`);
+  }
   if (agent.model !== manifest.preferred_model) {
     throw new Error(`${manifest.id} did not retain preferred model ${manifest.preferred_model}`);
   }
@@ -253,6 +262,7 @@ async function seed() {
     id: manifest.id,
     outcome,
     owner: ownerId,
+    provider: agent.provider,
     model: agent.model,
     mcpServerNames: sortedStrings(agent.mcpServerNames),
     tools: sortedStrings(agent.tools),
