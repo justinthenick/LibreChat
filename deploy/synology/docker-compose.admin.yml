@@ -2,14 +2,10 @@ version: "3.7"
 
 # Synology administration overlay.
 #
-# Two deliberately separate surfaces run here:
-# 1) the official LibreChat Admin Panel for application administration; and
-# 2) the custom Synology Deployment Settings panel for host-side .env/deployment
-#    changes, validation, selective recreation, health checks, and rollback.
-#
-# The custom deployment-settings panel has NO .env mount and NO Docker socket.
-# Routine browser access uses password-backed HttpOnly sessions stored under
-# /state; the host recovery token is retained only for bootstrap/emergency use.
+# The upstream LibreChat Admin Panel remains the application administration
+# surface. Synology Deployment Settings retains the privileged host/deployment
+# boundary behind a restricted worker. The deployment-frame-gateway exposes the
+# existing browser UI only to the downstream Admin Panel Deployment route.
 services:
   admin-panel:
     image: registry.librechat.ai/clickhouse/librechat-admin-panel:latest
@@ -52,5 +48,30 @@ services:
     volumes:
       - ./admin-settings-panel.py:/app/admin-settings-panel.py:ro
       - /volume1/docker/librechat/admin-settings-state:/state
+    networks:
+      - librechat
+
+  deployment-frame-gateway:
+    image: python:3.12-alpine
+    container_name: librechat-deployment-frame-gateway
+    restart: unless-stopped
+    command: python3 /app/deployment-frame-proxy.py
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp
+    environment:
+      DEPLOYMENT_GATEWAY_PORT: "3211"
+      DEPLOYMENT_GATEWAY_UPSTREAM: "http://admin-settings:3210"
+      DEPLOYMENT_GATEWAY_FRAME_ANCESTOR: "${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${ADMIN_PANEL_PORT:-3220}"
+    ports:
+      - "${DEPLOYMENT_GATEWAY_PORT:-3211}:3211"
+    volumes:
+      - ./deployment-frame-proxy.py:/app/deployment-frame-proxy.py:ro
+    depends_on:
+      - admin-settings
     networks:
       - librechat
