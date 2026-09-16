@@ -5,6 +5,7 @@ on:
     paths:
       - 'deploy/synology/admin-panel-extension/**'
       - 'deploy/synology/deployment-frame-proxy.py'
+      - 'deploy/synology/docker-compose.admin.yml'
       - '.github/workflows/synology-admin-panel-extension.yml'
   push:
     branches:
@@ -12,6 +13,7 @@ on:
     paths:
       - 'deploy/synology/admin-panel-extension/**'
       - 'deploy/synology/deployment-frame-proxy.py'
+      - 'deploy/synology/docker-compose.admin.yml'
       - '.github/workflows/synology-admin-panel-extension.yml'
   workflow_dispatch:
 
