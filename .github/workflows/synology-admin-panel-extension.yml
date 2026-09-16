@@ -58,10 +58,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Verify same-origin deployment bridge
+      - name: Verify authenticated same-origin deployment bridge
         if: github.event_name == 'pull_request'
         run: |
           set -euo pipefail
+
           cat > "$RUNNER_TEMP/fake-gateway.py" <<'PY'
           from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -73,13 +74,16 @@ jobs:
                   if self.path == '/health':
                       payload = b'{"ok":true,"bridge":"synthetic"}'
                       content_type = 'application/json'
+                  elif self.path == '/echo-cookie':
+                      payload = self.headers.get('Cookie', '').encode('utf-8')
+                      content_type = 'text/plain; charset=utf-8'
                   elif self.path == '/':
                       payload = b"<html><script>api('/api/state')</script></html>"
                       content_type = 'text/html; charset=utf-8'
                   else:
                       payload = b'not found'
                       content_type = 'text/plain; charset=utf-8'
-                  self.send_response(200 if self.path in {'/', '/health'} else 404)
+                  self.send_response(200 if self.path in {'/', '/health', '/echo-cookie'} else 404)
                   self.send_header('Content-Type', content_type)
                   self.send_header('Set-Cookie', 'bridge_test=1; Path=/; HttpOnly; SameSite=Strict')
                   self.send_header('Content-Length', str(len(payload)))
@@ -89,9 +93,115 @@ jobs:
           ThreadingHTTPServer(('0.0.0.0', 3211), Handler).serve_forever()
           PY
 
+          cat > "$RUNNER_TEMP/fake-api.py" <<'PY'
+          import json
+          from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+          class Handler(BaseHTTPRequestHandler):
+              def log_message(self, fmt, *args):
+                  pass
+
+              def send_json(self, code, payload):
+                  data = json.dumps(payload).encode('utf-8')
+                  self.send_response(code)
+                  self.send_header('Content-Type', 'application/json')
+                  self.send_header('Content-Length', str(len(data)))
+                  self.end_headers()
+                  self.wfile.write(data)
+
+              def read_json(self):
+                  length = int(self.headers.get('Content-Length', '0'))
+                  raw = self.rfile.read(length) if length else b'{}'
+                  return json.loads(raw.decode('utf-8'))
+
+              def do_POST(self):
+                  if self.path == '/api/admin/login/local':
+                      body = self.read_json()
+                      self.send_json(200, {
+                          'token': 'test-admin-token',
+                          'user': {
+                              'id': 'u_test',
+                              'email': body.get('email', 'admin@test.com'),
+                              'name': 'Test Admin',
+                              'role': 'ADMIN',
+                          },
+                      })
+                      return
+                  if self.path == '/api/auth/logout':
+                      self.send_json(200, {})
+                      return
+                  self.send_json(404, {'error': 'not found'})
+
+              def do_GET(self):
+                  if self.path == '/api/admin/oauth/openid/check':
+                      self.send_json(200, {'message': 'OpenID check successful'})
+                      return
+                  if self.path == '/api/admin/verify':
+                      if self.headers.get('Authorization') != 'Bearer test-admin-token':
+                          self.send_json(401, {'error': 'Authentication required'})
+                          return
+                      self.send_json(200, {
+                          'user': {
+                              'id': 'u_test',
+                              'email': 'admin@test.com',
+                              'name': 'Test Admin',
+                              'role': 'ADMIN',
+                          },
+                      })
+                      return
+                  self.send_json(404, {'error': 'not found'})
+
+          ThreadingHTTPServer(('0.0.0.0', 3080), Handler).serve_forever()
+          PY
+
+          cat > "$RUNNER_TEMP/bridge-auth-test.js" <<'JS'
+          const assert = require('node:assert/strict');
+          const { chromium } = require('playwright');
+
+          (async () => {
+            const base = 'http://admin-panel-bridge-test:3000';
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext();
+            const page = await context.newPage();
+
+            await page.goto(`${base}/login`, { waitUntil: 'domcontentloaded' });
+            await page.locator('input:not([type="password"])').first().fill('admin@test.com');
+            await page.locator('input[type="password"]').first().fill('password');
+            await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+            await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
+
+            const cookies = await context.cookies(base);
+            assert(cookies.some((cookie) => cookie.name === 'admin-session'), 'admin-session cookie missing');
+
+            const health = await context.request.get(`${base}/deployment-control/health`);
+            assert.equal(health.status(), 200);
+            assert.deepEqual(await health.json(), { ok: true, bridge: 'synthetic' });
+
+            const root = await context.request.get(`${base}/deployment-control`);
+            assert.equal(root.status(), 200);
+            const html = await root.text();
+            assert(html.includes('/deployment-control/api/state'), 'deployment API paths were not rewritten');
+            assert.match(root.headers()['set-cookie'] || '', /bridge_test=1; Path=\/deployment-control\//i);
+
+            const echo = await context.request.get(`${base}/deployment-control/echo-cookie`);
+            assert.equal(echo.status(), 200);
+            const downstreamCookies = await echo.text();
+            assert(!downstreamCookies.includes('admin-session='), 'official admin session leaked downstream');
+
+            await context.clearCookies();
+            const denied = await context.request.get(`${base}/deployment-control/health`);
+            assert.equal(denied.status(), 401, 'cleared admin session should be denied');
+
+            await browser.close();
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          JS
+
           docker network create admin-panel-bridge-test
           cleanup() {
-            docker rm -f admin-panel-bridge-test deployment-frame-gateway >/dev/null 2>&1 || true
+            docker rm -f admin-panel-bridge-test deployment-frame-gateway fake-librechat-api >/dev/null 2>&1 || true
             docker network rm admin-panel-bridge-test >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
@@ -101,12 +211,19 @@ jobs:
             -v "$RUNNER_TEMP/fake-gateway.py:/app/server.py:ro" \
             python:3.12-alpine python3 /app/server.py
 
+          docker run -d --name fake-librechat-api \
+            --network admin-panel-bridge-test \
+            -v "$RUNNER_TEMP/fake-api.py:/app/server.py:ro" \
+            python:3.12-alpine python3 /app/server.py
+
           docker run -d --name admin-panel-bridge-test \
             --network admin-panel-bridge-test \
             -p 3220:3000 \
             -e SESSION_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef \
-            -e API_SERVER_URL=http://api.invalid:3080 \
-            -e VITE_API_BASE_URL=http://librechat.invalid:3200 \
+            -e SESSION_COOKIE_SECURE=false \
+            -e ADMIN_SSO_ENABLED=false \
+            -e API_SERVER_URL=http://fake-librechat-api:3080 \
+            -e VITE_API_BASE_URL=http://fake-librechat-api:3080 \
             -e DEPLOYMENT_GATEWAY_URL=http://deployment-frame-gateway:3211 \
             ghcr.io/justinthenick/librechat-admin-panel-synology:server-synology
 
@@ -117,10 +234,12 @@ jobs:
           done
           test "$ready" -eq 1
 
-          curl -fsS http://127.0.0.1:3220/deployment-control/health \
-            | python -c 'import json,sys; data=json.load(sys.stdin); assert data == {"ok": True, "bridge": "synthetic"}'
-          curl -fsS http://127.0.0.1:3220/deployment-control/ \
-            | grep -F "/deployment-control/api/state"
-          curl -fsS -D "$RUNNER_TEMP/bridge-headers.txt" -o /dev/null \
-            http://127.0.0.1:3220/deployment-control/
-          grep -Eiq '^set-cookie: bridge_test=1; Path=/deployment-control/;' "$RUNNER_TEMP/bridge-headers.txt"
+          status="$(curl -sS -o "$RUNNER_TEMP/anonymous.json" -w '%{http_code}' http://127.0.0.1:3220/deployment-control/health)"
+          test "$status" = 401
+          grep -F 'valid LibreChat administrator session' "$RUNNER_TEMP/anonymous.json"
+
+          docker run --rm \
+            --network admin-panel-bridge-test \
+            -v "$RUNNER_TEMP/bridge-auth-test.js:/work/bridge-auth-test.js:ro" \
+            mcr.microsoft.com/playwright:v1.61.0-noble \
+            bash -lc 'mkdir -p /tmp/bridge-test && cd /tmp/bridge-test && npm init -y >/dev/null 2>&1 && npm install --silent --no-save playwright@1.61.0 && node /work/bridge-auth-test.js'
