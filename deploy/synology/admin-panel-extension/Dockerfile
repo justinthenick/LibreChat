@@ -37,6 +37,8 @@ RUN bun install --frozen-lockfile \
 
 FROM oven/bun:1.3.11-alpine AS runtime
 WORKDIR /app
+LABEL org.opencontainers.image.source="https://github.com/justinthenick/LibreChat"
+LABEL org.opencontainers.image.description="LibreChat Admin Panel with Synology Deployment control route"
 ENV NODE_ENV=production
 COPY --from=prod-deps /app/node_modules node_modules
 COPY --from=build /app/dist dist
