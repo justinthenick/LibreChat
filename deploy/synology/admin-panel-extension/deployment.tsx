@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-const configuredPort = import.meta.env.VITE_DEPLOYMENT_SETTINGS_PORT || '3210';
+const configuredPort = import.meta.env.VITE_DEPLOYMENT_GATEWAY_PORT || '3211';
 
 export const Route = createFileRoute('/_app/deployment')({
   component: DeploymentPage,
