@@ -8,6 +8,10 @@ RUN git clone --filter=blob:none https://github.com/LibreChat-AI/admin-panel.git
 COPY inject.py /tmp/inject.py
 RUN python3 /tmp/inject.py
 COPY deployment.tsx /src/src/routes/_app/deployment.tsx
+COPY deployment-proxy.ts /src/src/server/deploymentProxy.ts
+COPY deployment-control-root.ts /src/src/routes/deployment-control.ts
+COPY deployment-control-splat.ts /tmp/deployment-control-splat.ts
+RUN cp /tmp/deployment-control-splat.ts '/src/src/routes/deployment-control.$.ts'
 
 FROM oven/bun:1.3.11-alpine AS deps
 WORKDIR /app
@@ -36,7 +40,7 @@ RUN bun install --frozen-lockfile \
 FROM oven/bun:1.3.11-alpine AS runtime
 WORKDIR /app
 LABEL org.opencontainers.image.source="https://github.com/justinthenick/LibreChat"
-LABEL org.opencontainers.image.description="LibreChat Admin Panel with Synology Deployment control route"
+LABEL org.opencontainers.image.description="LibreChat Admin Panel with authenticated Synology Deployment control route"
 ENV NODE_ENV=production
 COPY --from=prod-deps /app/node_modules node_modules
 COPY --from=build /app/dist dist
