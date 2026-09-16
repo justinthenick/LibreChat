@@ -20,6 +20,17 @@ services:
       VITE_API_BASE_URL: "${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${LIBRECHAT_PORT:-3200}"
       SESSION_COOKIE_SECURE: "${ADMIN_PANEL_SESSION_COOKIE_SECURE:-false}"
       DEPLOYMENT_GATEWAY_URL: http://deployment-frame-gateway:3211
+    healthcheck:
+      test:
+        - CMD
+        - bun
+        - -e
+        - >-
+          Promise.all([fetch('http://127.0.0.1:3000/health'),fetch('http://127.0.0.1:3000/deployment-control/health')]).then(rs=>{if(rs.some(r=>!r.ok))throw 1}).catch(()=>process.exit(1))
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
     depends_on:
       - api
       - deployment-frame-gateway
@@ -71,6 +82,17 @@ services:
       DEPLOYMENT_GATEWAY_FRAME_ANCESTOR: "${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${ADMIN_PANEL_PORT:-3220}"
     expose:
       - "3211"
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - >-
+          import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:3211/health',timeout=5); raise SystemExit(0 if 200 <= r.status < 300 else 1)
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
     volumes:
       - ./deployment-frame-proxy.py:/app/deployment-frame-proxy.py:ro
     depends_on:
