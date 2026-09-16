@@ -79,7 +79,7 @@ services:
     environment:
       DEPLOYMENT_GATEWAY_PORT: "3211"
       DEPLOYMENT_GATEWAY_UPSTREAM: "http://admin-settings:3210"
-      DEPLOYMENT_GATEWAY_FRAME_ANCESTOR: "${LIBRECHAT_SCHEME:-http}://${NAS_HOST}:${ADMIN_PANEL_PORT:-3220}"
+      DEPLOYMENT_GATEWAY_FRAME_ANCESTOR: "${ADMIN_PANEL_URL:?ADMIN_PANEL_URL must point to the official LibreChat Admin Panel}"
     expose:
       - "3211"
     healthcheck:
