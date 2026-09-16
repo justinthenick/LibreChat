@@ -30,6 +30,20 @@ class UpstreamHandler(BaseHTTPRequestHandler):
         self.wfile.write(payload)
 
 
+class FrameAncestorTests(unittest.TestCase):
+    def test_normalizes_configured_url_to_origin(self):
+        self.assertEqual(
+            proxy.normalize_frame_ancestor("https://admin.example.test:8443/some/path?x=1#fragment"),
+            "https://admin.example.test:8443",
+        )
+
+    def test_rejects_credentials_and_non_http_schemes(self):
+        for value in ("https://user:secret@admin.example.test", "file:///tmp/admin"):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    proxy.normalize_frame_ancestor(value)
+
+
 class GatewayTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
