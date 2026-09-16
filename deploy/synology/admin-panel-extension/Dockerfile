@@ -2,12 +2,11 @@ ARG UPSTREAM_REF=522e8cd404abba30cfa01b2c0e9353e546c8ff2a
 
 FROM alpine:3.22 AS source
 ARG UPSTREAM_REF
-RUN apk add --no-cache git
+RUN apk add --no-cache git python3
 RUN git clone --filter=blob:none https://github.com/LibreChat-AI/admin-panel.git /src \
     && git -C /src checkout --detach "$UPSTREAM_REF"
-COPY navigation.patch /tmp/navigation.patch
-RUN git -C /src apply --check /tmp/navigation.patch \
-    && git -C /src apply /tmp/navigation.patch
+COPY inject.py /tmp/inject.py
+RUN python3 /tmp/inject.py
 COPY deployment.tsx /src/src/routes/_app/deployment.tsx
 
 FROM oven/bun:1.3.11-alpine AS deps
