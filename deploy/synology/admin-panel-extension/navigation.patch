@@ -29,9 +29,9 @@ diff --git a/src/locales/en/translation.json b/src/locales/en/translation.json
 index e392295..3333333 100644
 --- a/src/locales/en/translation.json
 +++ b/src/locales/en/translation.json
-@@ -1,5 +1,6 @@
+@@ -1,4 +1,5 @@
  {
 +  "com_nav_deployment": "Deployment",
-   "com_a11y_admin_panel": "LibreChat Admin Panel",
-   "com_a11y_close": "Close",
-   "com_a11y_logo_alt": "LibreChat logo",
+   "com_ui_read_more": "Read more",
+   "com_ui_add_item": "Add {{item}}",
+   "com_ui_delete": "Delete",
