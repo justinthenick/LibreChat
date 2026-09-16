@@ -8,14 +8,26 @@ from urllib.parse import urlsplit
 
 PORT = int(os.environ.get("DEPLOYMENT_GATEWAY_PORT", "3211"))
 UPSTREAM = os.environ.get("DEPLOYMENT_GATEWAY_UPSTREAM", "http://admin-settings:3210")
-FRAME_ANCESTOR = os.environ.get("DEPLOYMENT_GATEWAY_FRAME_ANCESTOR", "")
+FRAME_ANCESTOR_RAW = os.environ.get("DEPLOYMENT_GATEWAY_FRAME_ANCESTOR", "")
 MAX_BODY = 128 * 1024
+
+
+def normalize_frame_ancestor(value):
+    parsed = urlsplit(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise ValueError("DEPLOYMENT_GATEWAY_FRAME_ANCESTOR must be an http(s) URL")
+    if parsed.username or parsed.password:
+        raise ValueError("DEPLOYMENT_GATEWAY_FRAME_ANCESTOR must not contain credentials")
+    return "{}://{}".format(parsed.scheme, parsed.netloc)
+
 
 upstream = urlsplit(UPSTREAM)
 if upstream.scheme != "http" or not upstream.hostname or not upstream.port:
     raise SystemExit("DEPLOYMENT_GATEWAY_UPSTREAM must be an http://host:port URL")
-if not FRAME_ANCESTOR.startswith(("http://", "https://")):
-    raise SystemExit("DEPLOYMENT_GATEWAY_FRAME_ANCESTOR must be an http(s) origin")
+try:
+    FRAME_ANCESTOR = normalize_frame_ancestor(FRAME_ANCESTOR_RAW)
+except ValueError as exc:
+    raise SystemExit(str(exc)) from exc
 
 
 class Handler(BaseHTTPRequestHandler):
