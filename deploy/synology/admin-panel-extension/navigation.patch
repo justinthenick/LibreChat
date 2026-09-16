@@ -1,0 +1,37 @@
+diff --git a/src/components/Sidebar.tsx b/src/components/Sidebar.tsx
+index ce99c1e..1111111 100644
+--- a/src/components/Sidebar.tsx
++++ b/src/components/Sidebar.tsx
+@@ -19,6 +19,12 @@ const navItems: t.NavItem[] = [
+     icon: 'settings',
+     capability: SystemCapabilities.READ_CONFIGS,
+   },
++  {
++    labelKey: 'com_nav_deployment',
++    path: '/deployment',
++    icon: 'settings',
++  },
+   // TODO: re-enable once user management is ready
+   // {
+   //   labelKey: 'com_nav_users',
+diff --git a/src/routes/_app.tsx b/src/routes/_app.tsx
+index 4eeb042..2222222 100644
+--- a/src/routes/_app.tsx
++++ b/src/routes/_app.tsx
+@@ -15,6 +15,7 @@ const ROUTE_TITLE_KEYS: Record<string, string> = {
+   '/': 'com_dash_title',
+   '/configuration': 'com_config_title',
++  '/deployment': 'com_nav_deployment',
+   '/users': 'com_users_title',
+   '/access': 'com_access_title',
+   '/grants': 'com_grants_title',
+diff --git a/src/locales/en/translation.json b/src/locales/en/translation.json
+index e392295..3333333 100644
+--- a/src/locales/en/translation.json
++++ b/src/locales/en/translation.json
+@@ -1,5 +1,6 @@
+ {
++  "com_nav_deployment": "Deployment",
+   "com_a11y_admin_panel": "LibreChat Admin Panel",
+   "com_a11y_close": "Close",
+   "com_a11y_logo_alt": "LibreChat logo",
