@@ -1,19 +1,10 @@
-import { useEffect, useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
-
-const configuredPort = import.meta.env.VITE_DEPLOYMENT_GATEWAY_PORT || '3211';
 
 export const Route = createFileRoute('/_app/deployment')({
   component: DeploymentPage,
 });
 
 function DeploymentPage() {
-  const [deploymentUrl, setDeploymentUrl] = useState('about:blank');
-
-  useEffect(() => {
-    setDeploymentUrl(`${window.location.protocol}//${window.location.hostname}:${configuredPort}/`);
-  }, []);
-
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-4 p-6">
       <div>
@@ -27,7 +18,7 @@ function DeploymentPage() {
       <div className="min-h-[640px] flex-1 overflow-hidden rounded-lg border border-(--cui-color-stroke-default) bg-(--cui-color-background-panel)">
         <iframe
           title="Synology Deployment Control"
-          src={deploymentUrl}
+          src="/deployment-control/"
           className="h-full min-h-[640px] w-full border-0"
           referrerPolicy="no-referrer"
         />
