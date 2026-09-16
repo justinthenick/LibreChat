@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 
 const configuredPort = import.meta.env.VITE_DEPLOYMENT_GATEWAY_PORT || '3211';
@@ -7,7 +8,11 @@ export const Route = createFileRoute('/_app/deployment')({
 });
 
 function DeploymentPage() {
-  const deploymentUrl = `${window.location.protocol}//${window.location.hostname}:${configuredPort}/`;
+  const [deploymentUrl, setDeploymentUrl] = useState('about:blank');
+
+  useEffect(() => {
+    setDeploymentUrl(`${window.location.protocol}//${window.location.hostname}:${configuredPort}/`);
+  }, []);
 
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-4 p-6">
