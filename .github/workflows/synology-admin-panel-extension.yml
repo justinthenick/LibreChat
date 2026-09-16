@@ -50,9 +50,77 @@ jobs:
         with:
           context: deploy/synology/admin-panel-extension
           platforms: linux/amd64
+          load: ${{ github.event_name == 'pull_request' }}
           push: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
           tags: |
             ghcr.io/justinthenick/librechat-admin-panel-synology:server-synology
             ghcr.io/justinthenick/librechat-admin-panel-synology:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Verify same-origin deployment bridge
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/fake-gateway.py" <<'PY'
+          from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+          class Handler(BaseHTTPRequestHandler):
+              def log_message(self, fmt, *args):
+                  pass
+
+              def do_GET(self):
+                  if self.path == '/health':
+                      payload = b'{"ok":true,"bridge":"synthetic"}'
+                      content_type = 'application/json'
+                  elif self.path == '/':
+                      payload = b"<html><script>api('/api/state')</script></html>"
+                      content_type = 'text/html; charset=utf-8'
+                  else:
+                      payload = b'not found'
+                      content_type = 'text/plain; charset=utf-8'
+                  self.send_response(200 if self.path in {'/', '/health'} else 404)
+                  self.send_header('Content-Type', content_type)
+                  self.send_header('Set-Cookie', 'bridge_test=1; Path=/; HttpOnly; SameSite=Strict')
+                  self.send_header('Content-Length', str(len(payload)))
+                  self.end_headers()
+                  self.wfile.write(payload)
+
+          ThreadingHTTPServer(('0.0.0.0', 3211), Handler).serve_forever()
+          PY
+
+          docker network create admin-panel-bridge-test
+          cleanup() {
+            docker rm -f admin-panel-bridge-test deployment-frame-gateway >/dev/null 2>&1 || true
+            docker network rm admin-panel-bridge-test >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run -d --name deployment-frame-gateway \
+            --network admin-panel-bridge-test \
+            -v "$RUNNER_TEMP/fake-gateway.py:/app/server.py:ro" \
+            python:3.12-alpine python3 /app/server.py
+
+          docker run -d --name admin-panel-bridge-test \
+            --network admin-panel-bridge-test \
+            -p 3220:3000 \
+            -e SESSION_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef \
+            -e API_SERVER_URL=http://api.invalid:3080 \
+            -e VITE_API_BASE_URL=http://librechat.invalid:3200 \
+            -e DEPLOYMENT_GATEWAY_URL=http://deployment-frame-gateway:3211 \
+            ghcr.io/justinthenick/librechat-admin-panel-synology:server-synology
+
+          ready=0
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3220/health >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          test "$ready" -eq 1
+
+          curl -fsS http://127.0.0.1:3220/deployment-control/health \
+            | python -c 'import json,sys; data=json.load(sys.stdin); assert data == {"ok": True, "bridge": "synthetic"}'
+          curl -fsS http://127.0.0.1:3220/deployment-control/ \
+            | grep -F "/deployment-control/api/state"
+          curl -fsS -D "$RUNNER_TEMP/bridge-headers.txt" -o /dev/null \
+            http://127.0.0.1:3220/deployment-control/
+          grep -Eiq '^set-cookie: bridge_test=1; Path=/deployment-control/;' "$RUNNER_TEMP/bridge-headers.txt"
