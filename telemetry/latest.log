@@ -1,8 +1,3 @@
-2026-09-17 17:56:47 No deployment change; healthy deployment already recorded at feb11380
-2026-09-17 18:00:02 LibreChat deployment check started
-2026-09-17 18:00:02 Cloudflare tunnel integration enabled
-2026-09-17 18:00:02 Synology Admin Settings integration enabled
-2026-09-17 18:01:52 No deployment change; healthy deployment already recorded at feb11380
 2026-09-17 18:05:02 LibreChat deployment check started
 2026-09-17 18:05:03 Cloudflare tunnel integration enabled
 2026-09-17 18:05:03 Synology Admin Settings integration enabled
@@ -38,3 +33,8 @@
 2026-09-17 18:43:02 Compose validation passed
 2026-09-17 18:46:52 ERROR: image pull failed
 2026-09-17 18:46:52 Collecting deployment diagnostics for stage image_pull
+2026-09-17 18:50:21 Sanitised GitHub telemetry published
+2026-09-17 18:50:54 LibreChat deployment check started
+2026-09-17 18:50:54 Cloudflare tunnel integration enabled
+2026-09-17 18:50:54 Synology Admin Settings integration enabled
+2026-09-17 18:53:06 No deployment change; healthy deployment already recorded at feb11380
