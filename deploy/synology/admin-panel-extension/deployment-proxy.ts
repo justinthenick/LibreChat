@@ -13,7 +13,7 @@ function deploymentCookies(rawCookie: string | null): string {
     .filter((part) => {
       const eq = part.indexOf('=');
       const name = eq >= 0 ? part.slice(0, eq) : part;
-      return name !== 'admin-session' && !name.startsWith('admin-session.');
+      return name === 'librechat_admin_settings';
     })
     .join('; ');
 }
@@ -37,7 +37,12 @@ export async function handleDeploymentControl(request: Request): Promise<Respons
 
   const incoming = new URL(request.url);
   const suffix = incoming.pathname.slice(DEPLOYMENT_PREFIX.length) || '/';
-  const target = new URL(`${suffix}${incoming.search}`, DEPLOYMENT_GATEWAY_URL);
+  if (suffix.startsWith('//')) {
+    return Response.json({ ok: false, error: 'Invalid deployment path.' }, { status: 400 });
+  }
+  const target = new URL(DEPLOYMENT_GATEWAY_URL);
+  target.pathname = suffix;
+  target.search = incoming.search;
   const method = request.method.toUpperCase();
 
   // Deliberately forward only what the Deployment Settings service needs.
