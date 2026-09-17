@@ -26,7 +26,7 @@ services:
         - bun
         - -e
         - >-
-          Promise.all([fetch('http://127.0.0.1:3000/health'),fetch('http://127.0.0.1:3000/deployment-control/health')]).then(rs=>{if(rs.some(r=>!r.ok))throw 1}).catch(()=>process.exit(1))
+          Promise.all([fetch('http://127.0.0.1:3000/health'),fetch('http://deployment-frame-gateway:3211/health')]).then(rs=>{if(rs.some(r=>!r.ok))throw 1}).catch(()=>process.exit(1))
       interval: 30s
       timeout: 5s
       start_period: 20s

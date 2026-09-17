@@ -18,7 +18,7 @@ function DeploymentPage() {
       <div className="min-h-[640px] flex-1 overflow-hidden rounded-lg border border-(--cui-color-stroke-default) bg-(--cui-color-background-panel)">
         <iframe
           title="Synology Deployment Control"
-          src="/deployment-control/"
+          src="/deployment-control"
           className="h-full min-h-[640px] w-full border-0"
           referrerPolicy="no-referrer"
         />
