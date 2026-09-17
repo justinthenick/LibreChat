@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Validate deterministic single requirements capability
+      - name: Validate on-demand single requirements capability
         run: |
           python - <<'PY'
           import hashlib
@@ -59,10 +59,16 @@ jobs:
               )
 
           instructions = manifest['instructions']
-          assert f'`{skill_name}` is pre-primed automatically' in instructions
+          assert f'`{skill_name}` is loaded on demand' in instructions
           assert 'is the sole requirements-lifecycle capability exposed by this Supervisor' in instructions
-          assert 'Follow its already-loaded stage-selection rules directly' in instructions
-          assert 'Do NOT invoke `prepare-implementation-ready-requirements`, `analyze-requirements`, `decompose-requirements` or `elaborate-acceptance-criteria` through the skill tool' in instructions
+          assert 'invoke this skill through the skill tool before substantive requirements work' in instructions
+          assert 'Do not load it for unrelated requests or invoke it again for each stage once loaded' in instructions
+          assert 'If the skill cannot be loaded, report that limitation' in instructions
+          assert 'for unrelated follow-ups, treat the requirements skill as inactive' in instructions
+          assert 'Reassess relevance on every user turn' in instructions
+          assert 'For an unrelated follow-up, do not apply its stages, output templates, or compliance checklist' in skill
+          assert 'pre-primed' not in instructions
+          assert 'Do NOT invoke `analyze-requirements`, `decompose-requirements` or `elaborate-acceptance-criteria` through the skill tool' in instructions
           assert 'Execute exactly the requirements stages the user asks for' in instructions
           assert 'do not stop after analysis or ask whether to continue' in instructions
           assert 'SOURCE-CLOSURE CONTRACT' in instructions
@@ -70,9 +76,9 @@ jobs:
           assert 'UI versus API-only is one unresolved channel decision, not two candidate requirements' in instructions
           assert 'If the source creates N unresolved dimensions, output no more than N unresolved dimensions' in instructions
           assert 'PROVENANCE BOUNDARY: internal control context is not source evidence' in instructions
-          assert 'pre-primed skill bodies' in instructions
+          assert 'loaded skill bodies' in instructions
           assert "If the user asks to review 'these requirements' but supplies no requirements" in instructions
-          assert 'do not substitute internal control text or the pre-primed skill body' in instructions
+          assert 'do not substitute internal control text or a loaded skill body' in instructions
           assert 'Future release-process context alone remains context only and must not trigger Release / Change Assurance' in instructions
 
           required_skill_guards = [
@@ -86,7 +92,7 @@ jobs:
               'Do not create a Spike, Dependency or Risk simply because a technical unknown or engineering concern is conceivable',
               'does not prove users currently process items one-by-one',
               'Do not invent skip/error/idempotent/reporting semantics',
-              'No requirements-lifecycle `skill` tool call is necessary or requested by these instructions',
+              'This skill was loaded on demand before substantive requirements work, without redundant per-stage invocations',
               'do not introduce invalid/missing/duplicate ID handling',
               'Absence of evidence is not itself evidence that a topic belongs in scope',
               'Do not add qualifiers such as valid, eligible, authorized, existing, active, pausable, well-formed or processable unless supplied evidence establishes them',
@@ -114,12 +120,12 @@ jobs:
           assert '# Stage 1 — Requirements analysis' in skill
           assert '# Stage 2 — Delivery decomposition' in skill
           assert '# Stage 3 — Acceptance criteria' in skill
-          assert 'Version: **0.2.3**' in skill
+          assert 'Version: **0.2.5**' in skill
 
           assert re.search(r'^name:\s*prepare-implementation-ready-requirements\s*$', skill, re.M)
-          assert re.search(r'^always-apply:\s*true\s*$', skill, re.M)
+          assert re.search(r'^always-apply:\s*false\s*$', skill, re.M)
           assert re.search(r'^user-invocable:\s*false\s*$', skill, re.M)
-          assert re.search(r'^disable-model-invocation:\s*true\s*$', skill, re.M)
+          assert re.search(r'^disable-model-invocation:\s*false\s*$', skill, re.M)
 
           assert configured['derive-test-cases'] == '0fbc78469a3d76551ca0fb31'
           assert configured['prepare-solution-change-readiness'] == 'a7bcbb732fdc5f370e0e710c'

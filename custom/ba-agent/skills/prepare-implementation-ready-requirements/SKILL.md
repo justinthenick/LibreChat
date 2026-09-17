@@ -1,20 +1,24 @@
 ---
 name: prepare-implementation-ready-requirements
-description: Always-primed BA requirements-lifecycle capability. Execute exactly the requested requirements stage or stages — analysis, delivery decomposition, acceptance criteria, or a combined lifecycle — while preserving evidence, status, uncertainty and traceability without inventing business or solution facts.
-always-apply: true
+description: On-demand BA requirements-lifecycle capability. Use for requirements analysis, delivery decomposition, acceptance criteria, or combined lifecycle requests. Execute exactly the requested requirements stage or stages — analysis, delivery decomposition, acceptance criteria, or a combined lifecycle — while preserving evidence, status, uncertainty and traceability without inventing business or solution facts.
+always-apply: false
 user-invocable: false
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Requirements Lifecycle
 
-Version: **0.2.4**
+Version: **0.2.5**
 
 ## Purpose
 
-This skill is pre-primed for BA Supervisor turns and is the Supervisor's sole requirements-lifecycle capability. The independently benchmarked `analyze-requirements`, `decompose-requirements`, and `elaborate-acceptance-criteria` skills remain reference capabilities in the repository but are intentionally not callable from BA Supervisor.
+This skill is loaded on demand for relevant BA Supervisor requests and is the Supervisor's sole requirements-lifecycle capability. The independently benchmarked `analyze-requirements`, `decompose-requirements`, and `elaborate-acceptance-criteria` skills remain reference capabilities in the repository but are intentionally not callable from BA Supervisor.
 
-Do not invoke this skill or those component skills through the `skill` tool. Execute the appropriate stages directly from this already-loaded body. No requirements-lifecycle `skill` tool call is necessary or requested by these instructions.
+Load this skill through the `skill` tool before substantive requirements-lifecycle work. Once loaded, execute the appropriate stages directly from this body without invoking it again for each stage. Do not invoke the reference component skills from BA Supervisor.
+
+## Applicability on follow-up turns
+
+Apply this skill only when the current user request asks for requirements analysis, delivery decomposition, acceptance criteria, or a combined requirements lifecycle. LibreChat may retain this body after invocation in the same conversation; retained availability does not make it applicable to every turn. For an unrelated follow-up, do not apply its stages, output templates, or compliance checklist. Reassess relevance from the current request, not merely from a prior skill invocation.
 
 ## Stage selection
 
@@ -314,6 +318,6 @@ Before answering, verify:
 - [ ] Do not infer implementation mechanics such as `status is updated`, `state transition`, database changes or matching/lookup behaviour when the source only says the inspections are paused.
 - [ ] When the source establishes only `provide a list of inspection IDs` plus `pause those inspections`, the confirmed criterion must stay at that same abstraction.
 - [ ] For full-lifecycle requests, all requested stages appear in one consolidated answer without an intermediate stop.
-- [ ] No requirements-lifecycle `skill` tool call is necessary or requested by these instructions.
+- [ ] This skill was loaded on demand before substantive requirements work, without redundant per-stage invocations.
 
 If any check fails, revise before responding.
