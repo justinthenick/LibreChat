@@ -242,4 +242,4 @@ jobs:
             --network admin-panel-bridge-test \
             -v "$RUNNER_TEMP/bridge-auth-test.js:/work/bridge-auth-test.js:ro" \
             mcr.microsoft.com/playwright:v1.61.0-noble \
-            bash -lc 'mkdir -p /tmp/bridge-test && cd /tmp/bridge-test && npm init -y >/dev/null 2>&1 && npm install --silent --no-save playwright@1.61.0 && node /work/bridge-auth-test.js'
+            bash -lc 'mkdir -p /tmp/bridge-test && cp /work/bridge-auth-test.js /tmp/bridge-test/bridge-auth-test.js && cd /tmp/bridge-test && npm init -y >/dev/null 2>&1 && npm install --silent --no-save playwright@1.61.0 && node bridge-auth-test.js'
