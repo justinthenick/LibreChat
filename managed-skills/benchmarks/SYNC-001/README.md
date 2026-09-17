@@ -30,14 +30,13 @@ Prove that a managed skill can be promoted from GitHub into LibreChat using the 
 
 Observed against `feature/skill-sync-pilot` on the Synology LibreChat deployment:
 
+- PASS — criteria 1, 6: persisted `SkillSyncStatus` for source `managed-skills` recorded provider `github`, repository `justinthenick/LibreChat`, ref `feature/skill-sync-pilot`, path `managed-skills/skills`, status `succeeded`, `syncedSkillCount: 1`, zero skipped skills/files, and a current `lastSuccessAt`. This confirms the pilot source is the scoped `managed-skills/skills` path rather than unrelated repository content.
 - PASS — criteria 2–3: `skill-sync-pilot` appeared in the LibreChat Skills catalogue and was labelled `GitHub Sync`.
 - PASS — criterion 4: after enabling the synced skill as `Available` for the test user, a new LibreChat chat invoked `skill-sync-pilot` through the skill tool and returned exactly `Skill Sync pilot is active.`
 - PASS — criterion 5: commit `76ba85434ba2ed90089fc12d77a3e3b95caf0f79` changed the synced skill description to include `SYNC-001 update marker: v2`; the updated description appeared in LibreChat after the next sync.
-- PASS — criterion 9: disposable file `managed-skills/skills/sync-pilot/delete-me.txt` was first observed under the synced skill in LibreChat, then deleted upstream in commit `21028271b2af9bf19917c1afc2e4eda717211e62`; after the next sync the file no longer appeared under the skill.
 - PASS — criterion 8 (observed): only content below `managed-skills/skills` appeared in the Skills catalogue; benchmark/documentation files were not surfaced as skills.
-- PENDING EVIDENCE — criterion 6: capture sync-status source and successful skill/file counts.
+- PASS — criterion 9: disposable file `managed-skills/skills/sync-pilot/delete-me.txt` was first observed under the synced skill in LibreChat, then deleted upstream in commit `21028271b2af9bf19917c1afc2e4eda717211e62`; after the next sync the file no longer appeared under the skill.
 - PENDING EVIDENCE — criteria 7 and 10: retain/configure the LibreChat production GitHub credential as repository-scoped, read-only Contents and Metadata; capture configuration evidence without exposing the token.
-- Criterion 1 is constrained by the configured source path and is considered satisfied once status confirms the `managed-skills` source is the active source for this pilot.
 
 ## Operational note
 
