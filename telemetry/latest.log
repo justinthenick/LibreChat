@@ -1,40 +1,40 @@
-2026-09-16 23:54:13 Sanitised GitHub telemetry published
-2026-09-16 23:54:28 Deployment healthy at b9f6cb12b619341d178d34793e7e432108542e45
-2026-09-16 23:54:39 LibreChat deployment check started
-2026-09-16 23:54:39 Cloudflare tunnel integration enabled
-2026-09-16 23:54:39 Synology Admin Settings integration enabled
-2026-09-16 23:55:54 Change detected: b9f6cb12 -> 9ddcc466
-2026-09-16 23:57:11 Official LibreChat Admin Panel dedicated session secret ready
-2026-09-16 23:57:14 Synology Admin Settings privileged worker ready
-2026-09-16 23:57:16 NAS read-only infrastructure worker ready
-2026-09-16 23:57:17 Compose validation passed
-2026-09-17 00:01:01 Image pull completed
-2026-09-17 00:03:27 Compose update completed
-2026-09-17 00:06:27 LibreChat API recreated for deployed runtime configuration
-2026-09-17 00:06:29 LibreChat health check passed
-2026-09-17 00:07:19 Production agents and coding-agent pilot seeded and validated
-2026-09-17 00:07:20 MCP workspace mount passed write/read/delete check
-2026-09-17 00:07:22 Cloudflare tunnel connector registered
-2026-09-17 00:07:23 Synology Admin Settings panel and worker healthy
-2026-09-17 00:07:40 Official LibreChat Admin Panel healthy on its configured host port (default 3220)
-2026-09-17 00:07:43 NAS read-only infrastructure worker and MCP bridge healthy
-2026-09-17 00:10:36 Sanitised GitHub telemetry published
-2026-09-17 00:11:07 Deployment healthy at 9ddcc466a9434996331c05b93f52bf0b185a1e53
-2026-09-17 00:11:15 LibreChat deployment check started
-2026-09-17 00:11:15 Cloudflare tunnel integration enabled
-2026-09-17 00:11:15 Synology Admin Settings integration enabled
-2026-09-17 00:12:27 Change detected: 9ddcc466 -> 34f80c8b
-2026-09-17 00:13:58 Official LibreChat Admin Panel dedicated session secret ready
-2026-09-17 00:14:00 Synology Admin Settings privileged worker ready
-2026-09-17 00:14:02 NAS read-only infrastructure worker ready
-2026-09-17 00:14:04 Compose validation passed
-2026-09-17 00:15:13 Image pull completed
-2026-09-17 00:15:15 Compose update completed
-2026-09-17 00:17:19 LibreChat API recreated for deployed runtime configuration
-2026-09-17 00:17:30 LibreChat health check passed
-2026-09-17 00:17:50 Production agents and coding-agent pilot seeded and validated
-2026-09-17 00:17:53 MCP workspace mount passed write/read/delete check
-2026-09-17 00:17:53 Cloudflare tunnel connector registered
-2026-09-17 00:17:54 Synology Admin Settings panel and worker healthy
-2026-09-17 00:18:06 Official LibreChat Admin Panel healthy on its configured host port (default 3220)
-2026-09-17 00:18:08 NAS read-only infrastructure worker and MCP bridge healthy
+2026-09-17 12:45:02 Synology Admin Settings integration enabled
+2026-09-17 12:46:45 No deployment change; healthy deployment already recorded at 34f80c8b
+2026-09-17 12:50:02 LibreChat deployment check started
+2026-09-17 12:50:02 Cloudflare tunnel integration enabled
+2026-09-17 12:50:02 Synology Admin Settings integration enabled
+2026-09-17 12:51:49 No deployment change; healthy deployment already recorded at 34f80c8b
+2026-09-17 12:55:01 LibreChat deployment check started
+2026-09-17 12:55:02 Cloudflare tunnel integration enabled
+2026-09-17 12:55:02 Synology Admin Settings integration enabled
+2026-09-17 12:56:56 No deployment change; healthy deployment already recorded at 34f80c8b
+2026-09-17 13:00:02 LibreChat deployment check started
+2026-09-17 13:00:02 Cloudflare tunnel integration enabled
+2026-09-17 13:00:02 Synology Admin Settings integration enabled
+2026-09-17 13:01:55 No deployment change; healthy deployment already recorded at 34f80c8b
+2026-09-17 13:05:02 LibreChat deployment check started
+2026-09-17 13:05:02 Cloudflare tunnel integration enabled
+2026-09-17 13:05:02 Synology Admin Settings integration enabled
+2026-09-17 13:06:42 No deployment change; healthy deployment already recorded at 34f80c8b
+2026-09-17 13:10:02 LibreChat deployment check started
+2026-09-17 13:10:02 Cloudflare tunnel integration enabled
+2026-09-17 13:10:02 Synology Admin Settings integration enabled
+2026-09-17 13:11:55 No deployment change; healthy deployment already recorded at 34f80c8b
+2026-09-17 13:15:02 LibreChat deployment check started
+2026-09-17 13:15:02 Cloudflare tunnel integration enabled
+2026-09-17 13:15:02 Synology Admin Settings integration enabled
+2026-09-17 13:16:47 Change detected: 34f80c8b -> feb11380
+2026-09-17 13:18:33 Official LibreChat Admin Panel dedicated session secret ready
+2026-09-17 13:18:36 Synology Admin Settings privileged worker ready
+2026-09-17 13:18:38 NAS read-only infrastructure worker ready
+2026-09-17 13:18:40 Compose validation passed
+2026-09-17 13:21:35 Image pull completed
+2026-09-17 13:22:37 Compose update completed
+2026-09-17 13:25:20 LibreChat API recreated for deployed runtime configuration
+2026-09-17 13:25:21 LibreChat health check passed
+2026-09-17 13:26:30 Production agents and coding-agent pilot seeded and validated
+2026-09-17 13:26:30 MCP workspace mount passed write/read/delete check
+2026-09-17 13:26:30 Cloudflare tunnel connector registered
+2026-09-17 13:26:33 Synology Admin Settings panel and worker healthy
+2026-09-17 13:27:23 Official LibreChat Admin Panel healthy on its configured host port (default 3220)
+2026-09-17 13:27:24 NAS read-only infrastructure worker and MCP bridge healthy
