@@ -1,6 +1,6 @@
 ---
 name: skill-sync-pilot
-description: Minimal managed skill used to verify GitHub-backed LibreChat Skill Sync lifecycle. SYNC-001 update marker: v2.
+description: "Minimal managed skill used to verify GitHub-backed LibreChat Skill Sync lifecycle. SYNC-001 update marker: v2."
 always-apply: false
 ---
 
