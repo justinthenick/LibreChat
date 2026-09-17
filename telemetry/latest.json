@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "timestamp": "2026-09-17T18:46:59+1000",
-  "result": "failure",
-  "stage": "image_pull",
+  "timestamp": "2026-09-17T18:53:06+1000",
+  "result": "success",
+  "stage": "steady_state_recovered",
   "commit": "feb11380cb63c3ac61b09bd204025cb8b3a710ff",
   "runtime": {
     "librechat_container": "running",
