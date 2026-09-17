@@ -1,1 +1,0 @@
-SYNC-001 disposable mirror artifact. This file exists only to verify deletion propagation through LibreChat Skill Sync.
