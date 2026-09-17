@@ -64,6 +64,9 @@ jobs:
           assert 'invoke this skill through the skill tool before substantive requirements work' in instructions
           assert 'Do not load it for unrelated requests or invoke it again for each stage once loaded' in instructions
           assert 'If the skill cannot be loaded, report that limitation' in instructions
+          assert 'for unrelated follow-ups, treat the requirements skill as inactive' in instructions
+          assert 'Reassess relevance on every user turn' in instructions
+          assert 'For an unrelated follow-up, do not apply its stages, output templates, or compliance checklist' in skill
           assert 'pre-primed' not in instructions
           assert 'Do NOT invoke `analyze-requirements`, `decompose-requirements` or `elaborate-acceptance-criteria` through the skill tool' in instructions
           assert 'Execute exactly the requirements stages the user asks for' in instructions

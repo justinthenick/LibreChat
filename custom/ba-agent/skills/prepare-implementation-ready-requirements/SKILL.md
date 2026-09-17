@@ -16,6 +16,10 @@ This skill is loaded on demand for relevant BA Supervisor requests and is the Su
 
 Load this skill through the `skill` tool before substantive requirements-lifecycle work. Once loaded, execute the appropriate stages directly from this body without invoking it again for each stage. Do not invoke the reference component skills from BA Supervisor.
 
+## Applicability on follow-up turns
+
+Apply this skill only when the current user request asks for requirements analysis, delivery decomposition, acceptance criteria, or a combined requirements lifecycle. LibreChat may retain this body after invocation in the same conversation; retained availability does not make it applicable to every turn. For an unrelated follow-up, do not apply its stages, output templates, or compliance checklist. Reassess relevance from the current request, not merely from a prior skill invocation.
+
 ## Stage selection
 
 Execute **exactly the stage or stages requested by the user**. Do not silently expand scope.
