@@ -161,13 +161,13 @@ jobs:
           (async () => {
             const base = 'http://admin-panel-bridge-test:3000';
             const browser = await chromium.launch({ headless: true });
-            const context = await browser.newContext();
+            const context = await browser.newContext({ locale: 'en-US' });
             const page = await context.newPage();
 
             await page.goto(`${base}/login`, { waitUntil: 'domcontentloaded' });
-            await page.locator('input:not([type="password"])').first().fill('admin@test.com');
-            await page.locator('input[type="password"]').first().fill('password');
-            await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+            await page.getByPlaceholder('admin@example.com', { exact: true }).fill('admin@test.com');
+            await page.getByPlaceholder('Enter your password', { exact: true }).fill('password');
+            await page.getByRole('button', { name: 'Sign in', exact: true }).click();
             await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
 
             const cookies = await context.cookies(base);
@@ -188,10 +188,14 @@ jobs:
             const downstreamCookies = await echo.text();
             assert(!downstreamCookies.includes('admin-session='), 'official admin session leaked downstream');
 
-            await context.clearCookies();
+            assert(downstreamCookies.includes('bridge_test=1'), 'deployment cookie was not forwarded');
+            await context.clearCookies({ name: /^admin-session(?:\.|$)/ });
+            const remainingCookies = await context.cookies(`${base}/deployment-control/health`);
+            assert(remainingCookies.some((cookie) => cookie.name === 'bridge_test'), 'deployment cookie should remain');
             const denied = await context.request.get(`${base}/deployment-control/health`);
             assert.equal(denied.status(), 401, 'cleared admin session should be denied');
 
+            console.log('PASS: Admin UI login, authenticated bridge, path/cookie rewriting, session isolation, and denial after Admin session removal');
             await browser.close();
           })().catch((error) => {
             console.error(error);
