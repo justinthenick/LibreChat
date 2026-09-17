@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.1.1**
+Version: **0.1.2**
 
 ## Purpose
 
@@ -41,8 +41,11 @@ This Skill is **reconstruction only**. It does not rewrite prose, line-edit chap
 - Do not treat an apparent contradiction as an error if a plausible textual explanation remains; label the uncertainty.
 - Do not resolve an open ending.
 - Do not infer guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive from ambiguity alone. If the text only supports that a statement is unexplained or potentially significant, keep it at `Possible interpretation` or `Unknown / unresolved` and state exactly what evidence is missing.
-- Do not use charged interpretive labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, or `deception` unless the manuscript explicitly establishes them or the output clearly attributes them to a character's stated belief.
+- Do not use charged interpretive labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, or `red herring` unless the manuscript explicitly establishes that label or a character explicitly uses it. Do not introduce these labels merely as hypothetical possibilities.
 - When two facts or statements diverge, describe the divergence before naming any explanation. A discrepancy is not evidence that one party lied.
+- Do not promote ownership, residence, agency or action beyond what the text states. `Leon's car` establishes possession or association, not that Leon drove it; presence at a cottage does not establish residence.
+- When listing possible referents or explanations for an unresolved clue, constrain examples to possibilities already evidenced by the manuscript. If the text does not support candidate identities or motives, say `unresolved` rather than inventing options.
+- Do not recast an unresolved clue as a craft device, continuity error, red herring, deliberate misdirection, authorial choice, or intended twist unless the manuscript or supplied author note explicitly establishes that framing.
 
 ## Recommended output
 
@@ -68,7 +71,7 @@ Separate repeated textual motifs from interpretive thematic readings and label c
 Record discrepancies without repairing them.
 
 ### 8. Living editorial-brief seed
-A compact, neutral summary of current premise, story movement, major reveals, unresolved questions, point-of-view/structural observations actually evidenced by the text, and items requiring author confirmation before editing. Do not convert unresolved clues into motive, guilt, deception, premeditation or hidden intent.
+A compact, neutral summary of current premise, story movement, major reveals, unresolved questions, point-of-view/structural observations actually evidenced by the text, and items requiring author confirmation before editing. Do not convert unresolved clues into motive, guilt, deception, premeditation, complicity, hidden intent, craft-device labels, or authorial explanations.
 
 ## Out of scope for v0.1
 
@@ -90,5 +93,6 @@ Before returning the analysis, check:
 - Did I preserve contradictory accounts instead of choosing one without evidence?
 - Did I avoid inventing authorial intent?
 - Did I avoid inferring guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive from unresolved clues?
+- Did I avoid inventing unsupported candidate identities, roles, ownership, residence, actions or narrative-device labels?
 - Did I avoid editorial recommendations?
 - Could a later editing agent safely use this as a factual map without inheriting invented canon?
