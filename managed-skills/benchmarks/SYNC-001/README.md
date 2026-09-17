@@ -36,7 +36,11 @@ Observed against `feature/skill-sync-pilot` on the Synology LibreChat deployment
 - PASS — criterion 5: commit `76ba85434ba2ed90089fc12d77a3e3b95caf0f79` changed the synced skill description to include `SYNC-001 update marker: v2`; the updated description appeared in LibreChat after the next sync.
 - PASS — criterion 8 (observed): only content below `managed-skills/skills` appeared in the Skills catalogue; benchmark/documentation files were not surfaced as skills.
 - PASS — criterion 9: disposable file `managed-skills/skills/sync-pilot/delete-me.txt` was first observed under the synced skill in LibreChat, then deleted upstream in commit `21028271b2af9bf19917c1afc2e4eda717211e62`; after the next sync the file no longer appeared under the skill.
-- PENDING EVIDENCE — criteria 7 and 10: retain/configure the LibreChat production GitHub credential as repository-scoped, read-only Contents and Metadata; capture configuration evidence without exposing the token.
+- PASS — criteria 7, 10: operator confirmed the LibreChat GitHub credential is a fine-grained PAT scoped only to `justinthenick/LibreChat`, with repository permissions `Contents: Read-only` and `Metadata: Read-only`, and no repository permission set to read/write. No token value was captured in benchmark evidence.
+
+## Result
+
+SYNC-001 passed all acceptance criteria on the pilot branch. The managed-skill lifecycle is approved to proceed to merge and a short production-ref smoke test against `server/synology`.
 
 ## Operational note
 
