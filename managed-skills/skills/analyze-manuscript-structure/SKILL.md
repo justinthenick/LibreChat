@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.1.0**
+Version: **0.1.1**
 
 ## Purpose
 
@@ -40,6 +40,9 @@ This Skill is **reconstruction only**. It does not rewrite prose, line-edit chap
 - Do not assume narrative significance proves causation.
 - Do not treat an apparent contradiction as an error if a plausible textual explanation remains; label the uncertainty.
 - Do not resolve an open ending.
+- Do not infer guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive from ambiguity alone. If the text only supports that a statement is unexplained or potentially significant, keep it at `Possible interpretation` or `Unknown / unresolved` and state exactly what evidence is missing.
+- Do not use charged interpretive labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, or `deception` unless the manuscript explicitly establishes them or the output clearly attributes them to a character's stated belief.
+- When two facts or statements diverge, describe the divergence before naming any explanation. A discrepancy is not evidence that one party lied.
 
 ## Recommended output
 
@@ -65,7 +68,7 @@ Separate repeated textual motifs from interpretive thematic readings and label c
 Record discrepancies without repairing them.
 
 ### 8. Living editorial-brief seed
-A compact, neutral summary of current premise, story movement, major reveals, unresolved questions, point-of-view/structural observations actually evidenced by the text, and items requiring author confirmation before editing.
+A compact, neutral summary of current premise, story movement, major reveals, unresolved questions, point-of-view/structural observations actually evidenced by the text, and items requiring author confirmation before editing. Do not convert unresolved clues into motive, guilt, deception, premeditation or hidden intent.
 
 ## Out of scope for v0.1
 
@@ -86,5 +89,6 @@ Before returning the analysis, check:
 - Did I leave ambiguous identities and outcomes unresolved?
 - Did I preserve contradictory accounts instead of choosing one without evidence?
 - Did I avoid inventing authorial intent?
+- Did I avoid inferring guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive from unresolved clues?
 - Did I avoid editorial recommendations?
 - Could a later editing agent safely use this as a factual map without inheriting invented canon?
