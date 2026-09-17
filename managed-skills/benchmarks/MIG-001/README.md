@@ -28,7 +28,7 @@ LibreChat's deployment-skill compatibility layer deliberately lets deployment sk
 4. **PASS (staged collision control)** — the managed copy was synced while the legacy deployment copy remained present. LibreChat's deployment-skill precedence kept the deployment copy authoritative until cutover; no semantic difference existed because both files had the same blob content.
 5. **PASS (cutover, 2026-09-17)** — only after criterion 3 passed, the legacy directory was moved out of `custom/ba-agent/skills` to `_skill_backups/analyze-manuscript-structure-pre-managed-sync`. The deployment loader then dropped from 19 to 18 skills after restart.
 6. **PASS (runtime, 2026-09-17)** — after restart, the persisted `analyze-manuscript-structure` record reports `source: github`, `authorName: GitHub Sync`, `alwaysApply: false`, and `sourceMetadata.sourceId: managed-skills`; its source metadata records `ref: server/synology`, migration commit `c163beaf2d042023775ce89e91470e55d8ed679e`, and the expected skill blob SHA.
-7. **PENDING BEHAVIOR** — invoke the GitHub-synced skill against `fixture.md`. It must perform reconstruction only: distinguish explicit facts, character claims/inferences and unknowns; preserve the ambiguous identity of `M.` and the person in Leon's coat; avoid concluding Leon boarded the ferry or that the torn fabric came from the scarf; avoid assigning guilt or motive; and provide no prose rewrite or developmental-edit recommendations.
+7. **PASS (behaviour, 2026-09-17)** — the GitHub-synced skill reconstructed `fixture.md` without rewriting it or giving developmental-edit recommendations. It kept Leon's ferry use unconfirmed, the torn red fabric unmatched to the scarf, the identity of `M.` unresolved, the wearer of Leon's coat unidentified, and Mara's role unresolved. It also separated direct facts from character/witness statements and unknowns. Minor interpretive phrasing such as `foreknowledge`, `misdirection / fabrication`, and `premeditation or thwarted expectations` was present, but these were framed as interpretation rather than resolved canon and did not collapse the fixture's ambiguity.
 8. **PASS (runtime, 2026-09-17)** — after cutover, persisted Skill Sync status remained `status: succeeded` on `server/synology` with `syncedSkillCount: 2`, `skippedSkillCount: 0`, and `skippedFileCount: 0` at `2026-09-17T12:02:32.532Z`.
 9. **PASS (rollback design)** — rollback remains possible by restoring `_skill_backups/analyze-manuscript-structure-pre-managed-sync` to `custom/ba-agent/skills/analyze-manuscript-structure`, restarting LibreChat, and allowing deployment-name precedence to shadow the persisted managed copy again.
 
@@ -43,6 +43,10 @@ Enable `analyze-manuscript-structure` as **Available** in LibreChat, start a new
 `Use analyze-manuscript-structure to reconstruct this manuscript exactly as written. Do not edit or improve it.`
 
 Criterion 7 passes only if the result preserves the fixture's unresolved ambiguity and stays within reconstruction-only scope.
+
+## Result
+
+**MIG-001: PASS — all nine acceptance criteria satisfied.**
 
 ## Promotion rule
 
