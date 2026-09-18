@@ -1,4 +1,6 @@
 {
   "schema": 1,
-  "enabled": false
+  "enabled": true,
+  "request_id": "inline-skill-file-content-20260918-004",
+  "recipe": "custom/ba-agent/diagnostics/inline-skill-file-content-20260918-001.json"
 }
