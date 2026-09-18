@@ -1,0 +1,147 @@
+{
+  "checks": [
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 11096
+          }
+        ]
+      },
+      "index": 1,
+      "label": "Autodeploy process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "docker run --rm -e GH_TOKEN=[REDACTED_GITHUB_TOKEN] -e GH_URL=https://api.github.com/repos/justinthenick/LibreChat/contents/telemetry/history/20260918T095822Z-883386fc6917-failure.json -e GH_METHOD=PUT -e GH_PAYLOAD=payload.json -v /tmp/librechat-telemetry.15422:/work:ro --entrypoint sh curlimages/curl:8.10.1 -c \n        curl -fsS --connect-timeout 5 --max-time 20 -X \"$GH_METHOD\" \\\n          -H \"Accept: application/vnd.github+",
+            "pid": 18964
+          }
+        ]
+      },
+      "index": 2,
+      "label": "Curl image process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 11096
+          },
+          {
+            "cmdline": "/var/packages/Docker/target/usr/bin/dockerd --config-file /var/packages/Docker/etc/dockerd.json ",
+            "pid": 14563
+          },
+          {
+            "cmdline": "containerd --config /var/run/docker/containerd/containerd.toml --log-level info ",
+            "pid": 14895
+          },
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/publish-telemetry.sh failure git_update 883386fc6917a92ba65f9f6a0d48555a412810e4 ",
+            "pid": 15422
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id 8f18a8d949192d4b951796794e30d4ad4a987fbdfbfa9a017c2e9ead67185971 -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 18117
+          },
+          {
+            "cmdline": "docker run --rm -e GH_TOKEN=[REDACTED_GITHUB_TOKEN] -e GH_URL=https://api.github.com/repos/justinthenick/LibreChat/contents/telemetry/history/20260918T095822Z-883386fc6917-failure.json -e GH_METHOD=PUT -e GH_PAYLOAD=payload.json -v /tmp/librechat-telemetry.15422:/work:ro --entrypoint sh curlimages/curl:8.10.1 -c \n        curl -fsS --connect-timeout 5 --max-time 20 -X \"$GH_METHOD\" \\\n          -H \"Accept: application/vnd.github+",
+            "pid": 18964
+          },
+          {
+            "cmdline": "/bin/sh /volume1/docker/librechat-ba-lab/custom/ba-agent/tools/run_worker_once.sh ",
+            "pid": 19277
+          },
+          {
+            "cmdline": "/usr/local/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 3220 -container-ip 172.21.0.6 -container-port 3000 ",
+            "pid": 19384
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id 84d39f754638560d93cc190053e6a06e1417c8f5e256137fc16a3178e933a8ad -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 19461
+          },
+          {
+            "cmdline": "/usr/bin/python3 /volume1/docker/librechat/deploy/synology/admin-settings-worker.py --env-file /volume1/docker/librechat/deploy/synology/.env --schema /volume1/docker/librechat/deploy/synology/admin-settings.schema.json --state-dir /volume1/docker/librechat/admin-settings-state --socket /volume1/docker/librechat/admin-settings-state/worker.sock --socket-group 100 serve ",
+            "pid": 22179
+          },
+          {
+            "cmdline": "/usr/bin/python3 /volume1/docker/librechat/deploy/synology/nas-infra-readonly-worker.py --socket /volume1/docker/librechat/nas-infra-readonly-state/worker.sock --socket-group 100 serve ",
+            "pid": 22268
+          },
+          {
+            "cmdline": "/usr/local/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 3210 -container-ip 172.21.0.5 -container-port 3210 ",
+            "pid": 25865
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id c5af321f83e5ec6d91eca5dc8336a8bcc540e4ddb7e63215922666e2692dfbcf -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 26093
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id f5430579a071437a62951c4b55ea04f7d8ee6028b9d8a1798c27851f5ca3da99 -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 27177
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id 281810bb68a97a70d46709599aa6c5efa32b54902ceeadd94f086ccecac2cddc -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 27278
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id 4a08c7854ab9ec908508aeeb33c0139c79da705c7f29040d512bf72ead3e61fb -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 27728
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id 61725890065c95f568fb19c517bd4ed6b01925b1424d901f2bfa7c1ac697a884 -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 28138
+          },
+          {
+            "cmdline": "/usr/local/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 3200 -container-ip 172.21.0.8 -container-port 3080 ",
+            "pid": 29206
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id e882e196d9cfc2e00b0cd8a85134c55a5ade147ebb67dcce97b23255c958edb2 -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 29300
+          },
+          {
+            "cmdline": "/volume1/@appstore/Docker/usr/bin/containerd-shim-runc-v2 -namespace moby -id 4bb0de662bf6be32ae773d8f8aa05e29b6712c9316e808bc31d5d5d84a064609 -address /var/run/docker/containerd/containerd.sock ",
+            "pid": 31527
+          }
+        ]
+      },
+      "index": 3,
+      "label": "Docker client process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lines": 20,
+        "path": "/volume1/docker/librechat-deploy-events.log",
+        "text": "2026-09-18 19:27:12 LibreChat health check passed\n2026-09-18 19:27:57 Production agents and coding-agent pilot seeded and validated\n2026-09-18 19:28:01 MCP workspace mount passed write/read/delete check\n2026-09-18 19:28:04 Cloudflare tunnel connector registered\n2026-09-18 19:28:07 Synology Admin Settings panel and worker healthy\n2026-09-18 19:28:23 Official LibreChat Admin Panel healthy on its configured host port (default 3220)\n2026-09-18 19:28:26 NAS read-only infrastructure worker and MCP bridge healthy\n2026-09-18 19:34:29 Sanitised GitHub telemetry published\n2026-09-18 19:35:11 Deployment healthy at 5c610170580951ee0b26819d13036568b72f3edb\n2026-09-18 19:35:32 LibreChat deployment check started\n2026-09-18 19:35:32 Cloudflare tunnel integration enabled\n2026-09-18 19:35:32 Synology Admin Settings integration enabled\n2026-09-18 19:37:52 Change detected: 5c610170 -> 883386fc\n2026-09-18 19:39:31 ERROR: Git fast-forward update failed\n2026-09-18 19:46:04 Sanitised GitHub telemetry published\n2026-09-18 19:47:36 LibreChat deployment check started\n2026-09-18 19:47:36 Cloudflare tunnel integration enabled\n2026-09-18 19:47:36 Synology Admin Settings integration enabled\n2026-09-18 19:51:54 Change detected: 5c610170 -> 883386fc\n2026-09-18 19:54:10 ERROR: Git fast-forward update failed"
+      },
+      "index": 4,
+      "label": "Recent deployment event log",
+      "status": "ok",
+      "type": "tail"
+    }
+  ],
+  "ended_at": "2026-09-18T10:00:10Z",
+  "hostname": "NAS",
+  "overall": "ok",
+  "recipe": "custom/ba-agent/diagnostics/pr93-stuck-process-check-20260918-008.json",
+  "recipe_name": "PR93 failed autodeploy process check",
+  "request_id": "pr93-stuck-process-check-20260918-008",
+  "schema": 1,
+  "started_at": "2026-09-18T10:00:10Z"
+}
