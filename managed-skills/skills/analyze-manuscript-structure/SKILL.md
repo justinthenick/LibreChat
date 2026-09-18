@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.1.17**
+Version: **0.1.18**
 
 ## Purpose
 
@@ -78,6 +78,8 @@ Rules for the ledger:
 
 - Keep separate sentences/clauses as separate atoms when they have different attribution or modality.
 - Record only locations, times, recipients and object states explicitly established for that atom.
+- **Do not derive transitions from states.** `the engine is cold` establishes a cold state, not that the engine previously ran, cooled, was switched off, or changed temperature; `the car is beside the north road` does not establish that someone drove, parked, left, or brought it there; `a receipt is in the glovebox` does not establish who bought, placed, used, or obtained it.
+- **Keep modifiers atom-local.** A location/time phrase applies only to the clause/sentence it grammatically modifies. `At the harbour, Vale finds...` does not automatically locate a following deckhand memory at the harbour. Do not carry scene location, time, recipient, or state from one ledger atom into the next merely because the sentences are adjacent.
 - Do not carry an object's earlier state into a later appearance unless the later text restates that state.
 - A repeated noun does not inherit earlier properties automatically. If Chapter 1 says `the kitchen clock reads 6:45` and Chapter 3 only says Mara `looks at the kitchen clock`, the Chapter 3 atom has **no stated clock reading**.
 - Preserve nested attribution. `Mara says Leon left before six. He told me he was taking the north road.` produces separate atoms for Mara's departure statement and Mara's report of what Leon told her.
@@ -91,6 +93,8 @@ Construct every visible section only from ledger atoms plus clearly labelled int
 - When combining atoms would change attribution, modality, predicate, timing, location or object state, keep them separate.
 - Motif entries must quote or faithfully restate the underlying ledger predicates rather than replacing them with generic speech terms such as `mention` or `report`.
 - A later reference to an object must not repeat an earlier state unless the later atom restates it.
+- Do not render a state as a transition/process question. If the ledger says `engine: cold`, output may say the engine is cold; it must not ask when/why it cooled. If the ledger says `car: beside north road`, do not introduce `arrived`, `parked`, `left`, or a driver unless another atom establishes that action.
+- Do not group a separate atom under a location/time heading unless that atom itself carries that modifier in the ledger.
 - If a table cell cannot be populated directly from ledger atoms, use `Unstated`, `Unknown`, `None established`, or leave it neutral.
 
 ## Source-preserving output contract
@@ -188,6 +192,8 @@ Before returning the analysis, check:
 - Did I preserve the source predicate/action type itself in every section, including motifs/themes and living-brief summaries (for example, `remembers` as memory rather than turning it into `reports`, `mentions`, or another speech act)?
 - Did I avoid carrying an earlier object state into a later appearance when the later text does not restate that state (for example, Chapter 1's `clock reads 6:45` must not become a Chapter 3 clock reading merely because Mara looks at the clock again)?
 - Could every factual clause in the visible output be traced back to one or more source-ledger atoms without adding recipient, location, time, state, predicate or modality?
+- Did I keep static states as states rather than inventing implied transitions/processes (cold→cooled, located→arrived/parked, receipt present→purchased/used)?
+- Did I keep sentence-local location/time modifiers attached only to the atoms they explicitly modify, rather than propagating them to adjacent material?
 - In the chapter map, did I use `Character-state change` only for explicit state changes and write `None established` rather than using that column to paraphrase events or dialogue?
 - Did I preserve nested attribution and clause boundaries, rather than collapsing `X says A; Y told X B` into a single factual claim `A and B`?
 - Did I avoid editorial recommendations?
