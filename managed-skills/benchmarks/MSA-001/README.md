@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Version 0.1.3 strengthens the evidence-discipline rules further:
+Current hardening through version 0.1.5 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -69,6 +69,17 @@ This controlled rerun used Gemini 3.8 Flash in a fresh chat with the loaded skil
 - it continued to include some secondary unknowns (for example vantage point / broader wardrobe familiarity) that are not established as relevant by the manuscript.
 
 The benchmark therefore remains failed rather than accepting small provenance/timing drift into the factual map. Version 0.1.4 adds explicit controls for service-document location, timetable/event wording, and narrow-vs-broad familiarity claims.
+
+
+### Attempt 4 — v0.1.4 — FAIL
+
+This controlled rerun was materially closer and passed criteria 2–5, but still failed strict criterion 6 on residual factual promotion:
+
+- it stated that the 6:32 receipt was printed before the passenger boarded the `6:40 ferry`, even though the manuscript never states the boarding time;
+- it still expanded source labels beyond the manuscript, including `police inspector`, `harbourside employee`, and `inland north road`;
+- it added secondary unknowns such as Mrs Pell's vantage point/distance that are conceivable but not created by the manuscript.
+
+The benchmark remains failed. Version 0.1.5 now explicitly prohibits deriving event order from labels/schedules/timestamps alone, expanding role/place labels beyond the source, and adding unnecessary secondary unknowns.
 
 ## Promotion rule
 
