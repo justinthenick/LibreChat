@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.1.9 strengthens the evidence-discipline rules further:
+Current hardening through version 0.1.10 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -126,6 +126,15 @@ This controlled rerun preserved the core ambiguity, chronology, character-statem
 - the living brief listed `A passenger in a dark coat boarded the 6:40 ferry` as an unqualified major reveal, dropping attribution to the deckhand's recollection.
 
 The benchmark remains failed. Version 0.1.9 now explicitly preserves mixed provenance in aggregate summaries, requires question modality to survive into table claim labels, and requires witness/character attribution to be retained in summaries and major reveals.
+
+
+### Attempt 9 — v0.1.9 — FAIL
+
+This controlled rerun fixed the prior notebook-modality and witness-attribution issues and was otherwise clean against criteria 2–5. It still failed strict criterion 6 on one explicit aggregate-provenance error:
+
+- the current-ending-state summary said Vale had `gathered witness statements and found physical items across the cottage, north road, and harbour`, collapsing Mara's cottage observations into Vale's evidence collection.
+
+The benchmark remains failed rather than accepting a known violation of the skill's mixed-provenance rule. Version 0.1.10 adds an explicit summary-section audit for this exact failure mode without broadening the benchmark.
 
 ## Promotion rule
 
