@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "name": "PR93 failed autodeploy process check",
+  "checks": [
+    {
+      "type": "lock_status",
+      "label": "Autodeploy process",
+      "path": "/tmp/librechat-autodeploy.lock",
+      "process_contains": "autodeploy.sh"
+    },
+    {
+      "type": "lock_status",
+      "label": "Curl image process",
+      "path": "/tmp/librechat-autodeploy.lock",
+      "process_contains": "curlimages"
+    },
+    {
+      "type": "lock_status",
+      "label": "Docker client process",
+      "path": "/tmp/librechat-autodeploy.lock",
+      "process_contains": "docker"
+    },
+    {
+      "type": "tail",
+      "label": "Recent deployment event log",
+      "path": "/volume1/docker/librechat-deploy-events.log",
+      "lines": 20
+    }
+  ]
+}
