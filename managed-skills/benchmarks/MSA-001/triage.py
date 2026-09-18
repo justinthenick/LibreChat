@@ -25,6 +25,11 @@ NOTEBOOK_ACTION = re.compile(
 SCENE_LOCATION_SUMMARY = re.compile(
     r"\b(?:chapter\s*[123]|presentation order)\b.{0,120}\b(?:scene|scenes)\b"
     r".{0,120}\b(?:cottage|north road|harbour)\b", re.I)
+INELIGIBLE_GOAL_PREDICATE = re.compile(
+    r"\b(?:remembers?|recalls?|recollects?|saw|seen|heard|cannot tell|can't tell|"
+    r"cannot identify|can't identify|does not know|doesn't know|says|tells)\b", re.I)
+IDENTITY_CANDIDATE_LEON = re.compile(r"\bwhether\b.{0,60}\b(?:person|passenger)\b.{0,60}\bwas Leon\b", re.I)
+STATIC_TO_FOUND = re.compile(r"\b(?:receipt|fabric|scarf|car|engine)\b.{0,60}\bfound\b|\bfound\b.{0,60}\b(?:receipt|fabric|scarf|car|engine)\b", re.I)
 
 
 def plain(text):
@@ -72,7 +77,10 @@ def scan(text):
     relationship_column = None
     uncertainty_column = None
     unresolved_subject_column = None
+    unresolved_point_column = None
     unresolved_id_column = None
+    continuity_status_column = None
+    continuity_ids_column = None
     question_ids = set()
     unresolved_subjects = {}
     heading_locations = {}
@@ -155,7 +163,10 @@ def scan(text):
             relationship_column = None
             uncertainty_column = None
             unresolved_subject_column = None
+            unresolved_point_column = None
             unresolved_id_column = None
+            continuity_status_column = None
+            continuity_ids_column = None
             continue
         if "|" in raw:
             flush()
@@ -177,10 +188,16 @@ def scan(text):
                                    if cell.startswith("uncertainty ids about this subject")]
             unresolved_subject_headers = [i for i, cell in enumerate(lowered)
                                           if cell == "unresolved subject"]
+            unresolved_point_headers = [i for i, cell in enumerate(lowered)
+                                        if cell == "neutral unresolved point"]
             unresolved_id_headers = [i for i, cell in enumerate(lowered)
                                      if cell == "u-id"]
+            continuity_ids_headers = [i for i, cell in enumerate(lowered)
+                                      if cell == "source ids compared"]
+            continuity_status_headers = [i for i, cell in enumerate(lowered)
+                                         if cell == "explicit status"]
             if (claim_headers or goals_headers or role_headers or relation_headers
-                    or unresolved_subject_headers):
+                    or unresolved_subject_headers or continuity_status_headers):
                 claim_column = claim_headers[0] if claim_headers else None
                 id_column = id_headers[0] if id_headers else None
                 evidence_type_column = evidence_headers[0] if evidence_headers else None
@@ -190,8 +207,14 @@ def scan(text):
                 uncertainty_column = uncertainty_headers[0] if uncertainty_headers else None
                 unresolved_subject_column = (unresolved_subject_headers[0]
                                              if unresolved_subject_headers else None)
+                unresolved_point_column = (unresolved_point_headers[0]
+                                           if unresolved_point_headers else None)
                 unresolved_id_column = (unresolved_id_headers[0]
                                         if unresolved_id_headers else None)
+                continuity_ids_column = (continuity_ids_headers[0]
+                                         if continuity_ids_headers else None)
+                continuity_status_column = (continuity_status_headers[0]
+                                            if continuity_status_headers else None)
                 continue
             if row and all(re.fullmatch(r":?-+:?", cell or " ") for cell in row):
                 continue
@@ -203,6 +226,17 @@ def scan(text):
                     and len(row) > max(unresolved_id_column, unresolved_subject_column)):
                 for uid in uids(row[unresolved_id_column]):
                     unresolved_subjects[uid] = row[unresolved_subject_column]
+            if unresolved_point_column is not None and len(row) > unresolved_point_column:
+                point = row[unresolved_point_column]
+                if IDENTITY_CANDIDATE_LEON.search(point):
+                    add(number, "identity-candidate-expansion",
+                        "Check candidate identity added to a neutral identity uncertainty; "
+                        "do not name Leon unless the licensing source explicitly enumerates "
+                        "Leon as a candidate.")
+                if STATIC_TO_FOUND.search(point):
+                    add(number, "uncertainty-action-promotion",
+                        "Check static source wording promoted to a new action such as found "
+                        "inside neutral unresolved wording.")
             if claim_column is not None and len(row) > claim_column:
                 claim = row[claim_column]
                 if DEPENDENT_CLAIM_START.search(claim):
@@ -231,6 +265,10 @@ def scan(text):
                             "descriptive paraphrase can change field semantics.")
             if goals_column is not None and len(row) > goals_column:
                 goals = row[goals_column]
+                if INELIGIBLE_GOAL_PREDICATE.search(goals):
+                    add(number, "ineligible-goal-predicate",
+                        "Recollection, perception, inability-to-identify and communication "
+                        "predicates do not establish goals/beliefs.")
                 if not id_only_or_none(goals):
                     add(number, "typed-field-prose",
                         "Character-map goals/beliefs should contain source IDs only "
@@ -246,6 +284,18 @@ def scan(text):
                         "MSA-001 has no independently established character goals/beliefs; "
                         "check whether a statement, third-party claim, question or "
                         "uncertainty was used merely to populate this typed field.")
+            if (continuity_status_column is not None
+                    and len(row) > continuity_status_column):
+                status = row[continuity_status_column]
+                allowed = {
+                    "Direct contradiction explicitly established",
+                    "Difference/discrepancy explicitly established",
+                    "None established",
+                }
+                if status not in allowed:
+                    add(number, "continuity-free-text",
+                        "Continuity status must use the controlled vocabulary; factual "
+                        "paraphrase is not allowed in this table.")
             if (uncertainty_column is not None and len(row) > uncertainty_column
                     and row):
                 label = row[0].strip('"').strip("'").lower()
@@ -269,7 +319,10 @@ def scan(text):
         relationship_column = None
         uncertainty_column = None
         unresolved_subject_column = None
+        unresolved_point_column = None
         unresolved_id_column = None
+        continuity_status_column = None
+        continuity_ids_column = None
         if not value:
             flush()
             continue
