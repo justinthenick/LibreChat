@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.2.3**
+Version: **0.2.4**
 
 ## Purpose and boundary
 
@@ -60,8 +60,12 @@ attribution from the original claim.
   an event in which somebody found, placed, purchased or used it.
 - Preserve nested attribution: what X says Y told X remains that nested report,
   not a fact about Y's subsequent action.
-- Preserve questions as questions. Do not convert recorded questions into
-  suspicion, belief, knowledge, or a declarative proposition.
+- Preserve questions as questions. Recorded or spoken questions (such as
+  notebook entries or dialogue queries) remain questions and must not be
+  promoted into an established belief, goal, intention, fact, motive, or
+  conclusion simply because they are attributable to a character. Do not
+  convert recorded questions into suspicion, belief, knowledge, or a
+  declarative proposition.
 - Preserve the source's nouns, possessives and referent classes. Do not expand a
   role, add a role's location, assign residence, or turn an ambiguous pronoun into
   a person. Possession/association does not establish action or agency.
@@ -127,6 +131,10 @@ observations and object states are not inferred character transitions. Write
 `Character/source label | Explicit role/history: source IDs | Explicit goals/beliefs: source IDs | Explicit relationships/interactions: source IDs | Uncertainty IDs about this subject`
 
 Use the manuscript's exact label. A statement is not automatically a belief.
+Recorded or spoken questions remain questions and must not populate fields such
+as explicit goals/beliefs unless the source independently establishes the
+corresponding belief or goal. Attribution of a question to a character does not
+establish that character's belief, goal, intention, fact, motive or conclusion.
 Do not create source-expanding biographies to populate a row. Recipient,
 interaction, ownership, residence and action require their own explicit support.
 Use `None established` for unsupported cells. Uncertainties about another subject
@@ -210,7 +218,9 @@ Apply these to every cell, heading, bullet and interpretation:
 - Do not invent authorial purpose, craft devices, deliberate misdirection,
   narrative functions, intended twists or intended resolutions.
 - Do not convert a limited action into a stronger act, a recollection into
-  communication, or a recorded question into a belief.
+  communication, or a recorded or spoken question into an established belief,
+  goal, intention, fact, motive, or conclusion. Questions must not populate
+  explicit goals/beliefs unless independent source evidence establishes it.
 - No prose rewriting, developmental recommendations, continuity repair, pitch,
   market positioning, legal conclusions or change-impact propagation.
 
@@ -229,6 +239,7 @@ Compare the visible output with the source, not merely with the internal ledger.
 5. Chronology distinguishes presentation order and source time expressions from
    proven event order. Later object appearances do not inherit earlier readings.
 6. Interpretation supplies no unsupported facts, identity linkage, motive,
-   mechanism, authorial intent or edit recommendation.
+   mechanism, authorial intent or edit recommendation. Recorded or spoken
+   questions remain questions and do not populate explicit goals/beliefs.
 
 Return the reconstruction only after fixing any violation found.
