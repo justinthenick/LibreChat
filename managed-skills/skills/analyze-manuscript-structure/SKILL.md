@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.2.5**
+Version: **0.2.6**
 
 ## Purpose and boundary
 
@@ -149,10 +149,16 @@ general evidence bucket.
   to an identity/referent uncertainty does not transfer the U-ID to the candidate.
   Keep unidentified-person/passenger/referent uncertainties on their unresolved
   subject rows.
+- Preserve possessive/document wording exactly. A source phrase such as
+  `Vale's notebook contains...` establishes only that source wording; it does
+  not by itself establish that Vale keeps, owns, carries, writes in, created, or
+  maintained a notebook. Do not turn possessive association into an action,
+  habit, biography, or interaction.
 - Do not create source-expanding biographies to populate a row. Recipient,
   interaction, ownership, residence and action require their own explicit support.
 
-Use `None established` for unsupported cells.
+Use `None established` for unsupported cells; an ID alone is preferable to an
+invented relationship/action paraphrase.
 
 #### 4. Chronology and causal map
 
@@ -220,13 +226,18 @@ Use these compact indexed fields:
 - Story movement: chapter-map references, explicitly presentation order.
 - Major reveals: selected source IDs and exact register claims.
 - Unresolved points: existing U-IDs and their existing neutral wording.
-- Point of view / structure: observations directly evidenced by quoted passages,
-  or `None established`.
+- Point of view / structure: only structural observations directly established
+  by the manuscript (for example chapter count or explicitly evidenced narrative
+  perspective), or `None established`. Do not infer scene boundaries or assign a
+  chapter/sequence to a location merely because one atom in that chapter has that
+  location. A chapter containing unlocated or differently located atoms is not a
+  single-location scene.
 - Author-confirmation items: existing U-IDs only; no new wording about intention.
 
 This is a source index for a later approved brief, not another free-form narrative
 summary. Preserve independent sentences; do not combine different provenance
-under a shared actor, location, time or inferred investigation.
+under a shared actor, location, time, inferred scene boundary or inferred
+investigation.
 
 ## Global evidence safeguards
 
@@ -243,9 +254,10 @@ Apply these to every cell, heading, bullet and interpretation:
 - Do not invent authorial purpose, craft devices, deliberate misdirection,
   narrative functions, intended twists or intended resolutions.
 - Do not convert a limited action into a stronger act, a recollection into
-  communication, or a recorded or spoken question into an established belief,
-  goal, intention, fact, motive, or conclusion. Questions must not populate
-  explicit goals/beliefs unless independent source evidence establishes it.
+  communication, a possessive/document association into keeping/owning/writing,
+  or a recorded or spoken question into an established belief, goal, intention,
+  fact, motive, or conclusion. Questions must not populate explicit
+  goals/beliefs unless independent source evidence establishes it.
 - No prose rewriting, developmental recommendations, continuity repair, pitch,
   market positioning, legal conclusions or change-impact propagation.
 
@@ -273,5 +285,8 @@ Compare the visible output with the source, not merely with the internal ledger.
 7. Time-bearing views never convert a service name or document/object timestamp
    into an event time, schedule, departure, or boarding time unless the source
    explicitly establishes that relation.
+8. Possessive/document phrases do not become actions or biography, and
+   point-of-view/structure text does not create scene boundaries or chapter-level
+   locations from atom-local location evidence.
 
 Return the reconstruction only after fixing any violation found.
