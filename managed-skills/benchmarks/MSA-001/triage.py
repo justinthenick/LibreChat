@@ -10,6 +10,11 @@ BOARDING = re.compile(r"\bpassenger\b.{0,100}\bboard(?:ed|ing|s)?\b", re.I)
 IDENTITY = re.compile(r"\bidentity of (?:the |a )?deckhand\b|\bwho (?:is|was) the deckhand\b", re.I)
 LOCATION = re.compile(r"\b(?:at|in) the harbour\b", re.I)
 DECKHAND = re.compile(r"\bdeckhand\b", re.I)
+NONE_ESTABLISHED = re.compile(r"^none established\.?$", re.I)
+SERVICE_TIME_PROMOTION = re.compile(
+    r"\b(?:boarding|departure|scheduled|actual event) time\b", re.I)
+SOURCE_ID = re.compile(r"\b(?:ID|S)-\d+\b", re.I)
+ELLIPSIS = re.compile(r"(?:\.\.\.|…)" )
 
 
 def plain(text):
@@ -23,7 +28,7 @@ def cells(line):
 def scan(text):
     """Return advisory review candidates, including possible false positives.
 
-    Handles only the handoff's three known regression families.
+    Handles only selected known regression families from the MSA-001 handoff.
     A warning is not a semantic verdict; an empty result is not evidence of PASS.
     """
     findings = []
@@ -59,6 +64,14 @@ def scan(text):
             add(number, "unlicensed-unknown",
                 "Check invented deckhand identity uncertainty; the licensed identity "
                 "uncertainty concerns the passenger.")
+        if SERVICE_TIME_PROMOTION.search(value) and re.search(r"6:40\s+ferry", value, re.I):
+            add(number, "service-time-promotion",
+                "Check whether the 6:40 ferry service name was promoted into a "
+                "boarding/departure/scheduled/event time.")
+        if SOURCE_ID.search(value) and ELLIPSIS.search(value):
+            add(number, "shortened-claim",
+                "Check shortened evidence reuse; when claim text accompanies an ID, "
+                "the complete canonical Claim cell should be reused without ellipses.")
         heading = re.match(r"^(#{1,6})\s+(.*)", raw.strip())
         if heading:
             flush()
@@ -96,6 +109,11 @@ def scan(text):
                         "Check whether a recorded or spoken question was placed under "
                         "explicit goals/beliefs; attribution of a question does not "
                         "establish the corresponding belief or goal.")
+                if goals and goals not in {"—", "-"} and not NONE_ESTABLISHED.fullmatch(goals):
+                    add(number, "goals-beliefs-scope",
+                        "MSA-001 has no independently established character goals/beliefs; "
+                        "check whether a statement, third-party claim, question or "
+                        "uncertainty was used merely to populate this typed field.")
             for cell in row:
                 check_scope(cell, number, any(heading_locations.values()))
             continue
