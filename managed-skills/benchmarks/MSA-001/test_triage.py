@@ -230,6 +230,36 @@ None established. The manuscript has several timestamps."""
 None established"""
         self.assertNotIn("none-section-explanation", self.codes(text))
 
+    def test_identity_candidate_expansion_is_flagged(self):
+        text = """| U-ID | Unresolved subject | Neutral unresolved point |
+| --- | --- | --- |
+| U-01 | Person in Leon's coat | Identity of the person, and whether that person was Leon. |"""
+        self.assertIn("identity-candidate-expansion", self.codes(text))
+
+    def test_identity_only_uncertainty_is_clean(self):
+        text = """| U-ID | Unresolved subject | Neutral unresolved point |
+| --- | --- | --- |
+| U-01 | Person in Leon's coat | Identity of the person in Leon's coat. |"""
+        self.assertNotIn("identity-candidate-expansion", self.codes(text))
+
+    def test_static_receipt_promoted_to_found_is_flagged(self):
+        text = """| U-ID | Unresolved subject | Neutral unresolved point |
+| --- | --- | --- |
+| U-02 | Ferry receipt passenger | Identity of passenger for receipt found in glovebox. |"""
+        self.assertIn("uncertainty-action-promotion", self.codes(text))
+
+    def test_continuity_free_text_is_flagged(self):
+        text = """| Source IDs compared | Explicit status | Licensed U-ID |
+| --- | --- | --- |
+| S-03 vs S-04 | S-03 says north road whereas S-04 says harbour | U-01 |"""
+        self.assertIn("continuity-free-text", self.codes(text))
+
+    def test_continuity_controlled_status_is_clean(self):
+        text = """| Source IDs compared | Explicit status | Licensed U-ID |
+| --- | --- | --- |
+| None established | None established | — |"""
+        self.assertNotIn("continuity-free-text", self.codes(text))
+
     def test_negated_example_remains_advisory(self):
         result = report("Do not invent identity of the deckhand.")
         self.assertTrue(result["findings"])
