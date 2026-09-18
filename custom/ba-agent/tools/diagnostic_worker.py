@@ -765,6 +765,88 @@ def check_inline_skill_files(check, root, env_file, repo, branch):
     raise DiagnosticError("Inline skill files query failed: {}".format(" | ".join(errors)))
 
 
+def check_inline_skill_file_content(check, root, env_file, repo, branch):
+    requests = check.get("files") or []
+    if not isinstance(requests, list) or not requests or len(requests) > 20:
+        raise DiagnosticError("inline skill file content requires 1-20 files")
+    cleaned = []
+    for item in requests:
+        if not isinstance(item, dict):
+            raise DiagnosticError("file request must be an object")
+        name = str(item.get("skill") or "").strip()
+        rel = str(item.get("path") or "").strip()
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", name):
+            raise DiagnosticError("Invalid skill name")
+        if not rel or rel.startswith("/") or ".." in rel.split("/") or not re.fullmatch(r"[A-Za-z0-9._/-]+", rel):
+            raise DiagnosticError("Invalid relative path")
+        cleaned.append({"skill": name, "path": rel})
+    script = (
+        "var reqs=" + json.dumps(cleaned) + "; var out=[];"
+        "reqs.forEach(function(q){"
+        "var s=db.skills.findOne({source:'inline',name:q.skill},{_id:1,name:1});"
+        "if(!s){out.push({skill:q.skill,path:q.path,error:'skill not found'});return;}"
+        "var f=db.skillfiles.findOne({skillId:s._id,relativePath:q.path},"
+        "{_id:0,relativePath:1,filename:1,filepath:1,mimeType:1,bytes:1,content:1,isBinary:1});"
+        "if(!f){out.push({skill:q.skill,path:q.path,error:'file not found'});return;}"
+        "f.skill=q.skill; out.push(f);"
+        "}); print(JSON.stringify(out));"
+    )
+    commands = [
+        ["docker", "exec", "librechat-mongodb", "mongosh", "LibreChat", "--quiet", "--eval", script],
+        ["docker", "exec", "librechat-mongodb", "mongo", "LibreChat", "--quiet", "--eval", script],
+    ]
+    rows = None
+    errors = []
+    for cmd in commands:
+        try:
+            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=30, check=False)
+        except Exception as exc:
+            errors.append(str(exc)); continue
+        if proc.returncode != 0:
+            errors.append(sanitize_text(proc.stderr or proc.stdout)); continue
+        output = (proc.stdout or "").strip()
+        try:
+            rows = json.loads(output.splitlines()[-1]) if output else []
+        except Exception:
+            raise DiagnosticError("Inline skill file metadata returned non-JSON output")
+        break
+    if rows is None:
+        raise DiagnosticError("Inline skill file metadata query failed: {}".format(" | ".join(errors)))
+    results = []
+    for row in rows:
+        if row.get("error"):
+            results.append(row); continue
+        if row.get("isBinary") is True:
+            results.append({"skill": row.get("skill"), "path": row.get("relativePath"), "error": "binary file"}); continue
+        size = int(row.get("bytes") or 0)
+        if size > 200000:
+            results.append({"skill": row.get("skill"), "path": row.get("relativePath"), "error": "file too large"}); continue
+        content = row.get("content")
+        if not isinstance(content, str):
+            filepath = str(row.get("filepath") or "")
+            if not filepath.startswith("/uploads/") or ".." in filepath.split("/"):
+                results.append({"skill": row.get("skill"), "path": row.get("relativePath"), "error": "unsafe filepath"}); continue
+            proc = subprocess.run(
+                ["docker", "exec", "librechat", "cat", filepath],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20, check=False
+            )
+            if proc.returncode != 0:
+                results.append({"skill": row.get("skill"), "path": row.get("relativePath"), "error": sanitize_text(proc.stderr.decode("utf-8","replace"))}); continue
+            try:
+                content = proc.stdout.decode("utf-8")
+            except Exception:
+                results.append({"skill": row.get("skill"), "path": row.get("relativePath"), "error": "not utf-8"}); continue
+        results.append({
+            "skill": row.get("skill"),
+            "path": row.get("relativePath"),
+            "filename": row.get("filename"),
+            "mimeType": row.get("mimeType"),
+            "bytes": size,
+            "content": content,
+        })
+    return {"count": len(results), "files": results}
+
+
 CHECKS = {
     "path_exists": check_path_exists,
     "tail": check_tail,
@@ -778,6 +860,7 @@ CHECKS = {
     "skill_inventory": check_skill_inventory,
     "inline_skill_export": check_inline_skill_export,
     "inline_skill_files": check_inline_skill_files,
+    "inline_skill_file_content": check_inline_skill_file_content,
     "repair_skill_sync_checkout": check_repair_skill_sync_checkout,
     "restore_librechat_yaml_from_last_success": check_restore_librechat_yaml_from_last_success,
     "clear_failed_autodeploy": check_clear_failed_autodeploy,
