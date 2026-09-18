@@ -1,0 +1,72 @@
+{
+  "checks": [
+    {
+      "error": "Refusing config restore while autodeploy lock exists",
+      "index": 1,
+      "label": "Restore tracked production LibreChat config from last success",
+      "status": "error",
+      "type": "restore_librechat_yaml_from_last_success"
+    },
+    {
+      "data": {
+        "lines": 40,
+        "path": "/volume1/docker/librechat/deploy/synology/librechat.yaml",
+        "text": "endpoints:\n  # Pin only capability enum values accepted by the deployed LibreChat build.\n  # Unsupported pseudo-capabilities such as memory, run_in_background and\n  # ask_user_question must not be advertised here because schema validation is\n  # fatal and prevents the API from starting.\n  agents:\n    capabilities:\n      - deferred_tools\n      - file_search\n      - execute_code\n      - web_search\n      - actions\n      - ocr\n      - artifacts\n      - subagents\n      - context\n      - skills\n      - tools\n      - chain\n    skills:\n      maxCatalogSkills: 100\n\n  custom:\n    - name: 'OpenRouter'\n      apiKey: '${OPENROUTER_KEY}'\n      baseURL: 'https://openrouter.ai/api/v1'\n      # BEGIN MANAGED OPENROUTER MODELS\n      # render-librechat-config.py replaces only this block in the runtime copy.\n      # With no managed allowlist, keep the historical default and fetch the\n      # complete provider catalogue.\n      models:\n        default:\n          - 'deepseek/deepseek-v3.2'\n        fetch: true\n      # END MANAGED OPENROUTER MODELS\n      titleConvo: true\n      titleModel: 'deepseek/deepseek-v3.2'\n      summarize: false\n      forcePrompt: false\n      modelDisplayLabel: 'OpenRouter'"
+      },
+      "index": 2,
+      "label": "Live Synology LibreChat config",
+      "status": "ok",
+      "type": "tail"
+    },
+    {
+      "data": {
+        "lines": 5,
+        "path": "/volume1/docker/librechat-deploy.last-success",
+        "text": "5c610170580951ee0b26819d13036568b72f3edb"
+      },
+      "index": 3,
+      "label": "Last successful deployed SHA",
+      "status": "ok",
+      "type": "tail"
+    },
+    {
+      "data": {
+        "document": {
+          "deletedFileCount": 0,
+          "deletedSkillCount": 0,
+          "finishedAt": "2026-09-18T09:56:37.233Z",
+          "lastFailureAt": "2026-09-18T09:07:14.782Z",
+          "lastSuccessAt": "2026-09-18T09:56:37.233Z",
+          "owner": "justinthenick",
+          "paths": [
+            "managed-skills/skills"
+          ],
+          "provider": "github",
+          "ref": "server/synology",
+          "repo": "LibreChat",
+          "skippedFileCount": 0,
+          "skippedSkillCount": 0,
+          "sourceId": "managed-skills",
+          "startedAt": "2026-09-18T09:56:35.224Z",
+          "status": "succeeded",
+          "syncedFileCount": 0,
+          "syncedSkillCount": 2,
+          "updatedAt": "2026-09-18T09:56:37.234Z"
+        },
+        "source_id": "managed-skills"
+      },
+      "index": 4,
+      "label": "Managed skills GitHub sync status",
+      "status": "ok",
+      "type": "skill_sync_status"
+    }
+  ],
+  "ended_at": "2026-09-18T09:58:24Z",
+  "hostname": "NAS",
+  "overall": "partial",
+  "recipe": "custom/ba-agent/diagnostics/pr93-restore-last-success-yaml-20260918-006.json",
+  "recipe_name": "Restore LibreChat YAML from last successful deployment",
+  "request_id": "pr93-restore-last-success-yaml-20260918-006",
+  "schema": 1,
+  "started_at": "2026-09-18T09:58:23Z"
+}
