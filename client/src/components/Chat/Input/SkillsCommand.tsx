@@ -3,6 +3,11 @@ import { ScrollText } from 'lucide-react';
 import { AutoSizer, List } from 'react-virtualized';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { Input, Spinner, useCombobox } from '@librechat/client';
+import {
+  encodeSkillSelection,
+  getSkillLifecycle,
+  getSkillLogicalName,
+} from 'librechat-data-provider';
 import type { TSkillSummary } from 'librechat-data-provider';
 import type { MentionOption } from '~/common';
 import useInitPopoverInput from '~/hooks/Input/useInitPopoverInput';
@@ -151,10 +156,22 @@ function SkillsCommandContent({
     const filtered = filterSkillsForPopover(allSkills, { agentSkillIds, isActive });
     const options: MentionOption[] = [];
     for (const skill of filtered) {
+      const lifecycle = getSkillLifecycle(skill);
+      const logicalName = getSkillLogicalName(skill);
       options.push({
-        label: skill.displayTitle ?? skill.name,
-        value: skill.name,
+        label: skill.displayTitle ?? logicalName,
+        value: encodeSkillSelection({ _id: skill._id, name: logicalName }),
         description: skill.description,
+        badge:
+          lifecycle === 'draft'
+            ? 'Draft'
+            : lifecycle === 'trial'
+              ? 'Draft · Trial'
+              : lifecycle === 'publish_pending'
+                ? 'Draft · Publish pending'
+                : skill.source === 'github'
+                  ? 'Published'
+                  : 'Local',
         type: 'skill',
         icon: skillIcon,
       });
@@ -269,6 +286,7 @@ function SkillsCommandContent({
         name={mention.label ?? ''}
         icon={mention.icon}
         description={mention.description}
+        badge={mention.badge}
         isActive={index === activeIndex}
       />
     );
