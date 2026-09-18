@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.1.11**
+Version: **0.1.12**
 
 ## Purpose
 
@@ -72,7 +72,7 @@ Apply this contract to every section, table cell, summary sentence and bullet:
 2. **Attributed statement/recollection:** Keep the speaker/source attached to the claim every time it is repeated.
 3. **Recorded text/question:** Preserve its modality exactly; a question stays a question.
 4. **Unresolved item:** State only the unknown the manuscript itself creates. Do not propagate an ambiguous clue onto candidate characters or create secondary unknowns to fill a row.
-5. **Interaction/action:** Do not infer that two characters spoke, interviewed, met, investigated or exchanged information merely because their material appears in the same scene or paragraph.
+5. **Interaction/action:** Do not infer that two characters spoke, interviewed, met, investigated or exchanged information merely because their material appears in the same scene or paragraph. Recipient attribution must be explicit in the source: `Mara says Leon hated boats` does not become `Mara tells Vale Leon hated boats`; `a deckhand remembers...` does not become `the deckhand tells/speaks to Vale...` unless the manuscript states that recipient or interaction.
 6. **Empty cells are acceptable:** If a relationship, goal, unknown, character-state change or causal link is not established, use `Unstated`, `Unknown`, `None established`, or leave the cell neutral rather than inventing connective tissue.
 7. **One provenance per clause:** If a sentence combines material from different sources, split it into separate clauses/sentences with explicit attribution rather than compressing them into a single actor's knowledge or collection.
 
@@ -80,6 +80,7 @@ For the character map specifically:
 - An unresolved initial such as `M.` stays unresolved in the `M.` row unless the manuscript establishes a referent.
 - Do not add `what Mara knew about the harbour` to Mara's unknowns merely because Mara is one possible referent of `M.`.
 - A deckhand recollection does not establish that the deckhand `spoke with Vale` or was `at the harbour` unless the manuscript explicitly states that interaction/location relation.
+- In relationship-evidence cells, record only relationships/interactions explicitly stated by the manuscript. If the source gives a recollection but no recipient, use `None established` rather than inventing `spoke to Vale`.
 
 ## Recommended output
 
@@ -142,5 +143,6 @@ Before returning the analysis, check:
 - Did I prefer omission or `Unstated` over speculative completeness?
 - Did every character-map unknown come from the manuscript itself rather than from propagating an unresolved clue onto possible candidates?
 - Did I avoid inventing interactions (spoke/interviewed/met/informed) from scene adjacency or narrative sequence?
+- For every character statement/recollection, did I preserve whether a recipient was explicitly stated, rather than assigning one from context?
 - Did I avoid editorial recommendations?
 - Could a later editing agent safely use this as a factual map without inheriting invented canon?
