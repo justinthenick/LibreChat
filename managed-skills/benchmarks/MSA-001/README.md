@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.1.8 strengthens the evidence-discipline rules further:
+Current hardening through version 0.1.9 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -115,6 +115,17 @@ This controlled rerun was the strongest result so far. It preserved the central 
 - `deckhand at the harbour` appended a role/location relation beyond the source noun.
 
 The benchmark remains failed. Version 0.1.8 tightens observer/finder attribution, report/action scope, exact role/location wording, and prohibits `points to` spatial summaries for service-related documents.
+
+
+### Attempt 8 — v0.1.8 — FAIL
+
+This controlled rerun preserved the core ambiguity, chronology, character-statement classification, and exact role/place wording much better, but strict criterion 6 still failed on three narrow provenance/modality issues:
+
+- the ending-state summary said Vale had collected witness statements and physical findings at the cottage, north road, and harbour, collapsing Mara's cottage observations into Vale's evidence collection;
+- the evidence register rewrote Vale's notebook question as the declarative claim `"M." knew about the harbour before Vale mentioned it`, even though the strength was marked `Unknown / unresolved`;
+- the living brief listed `A passenger in a dark coat boarded the 6:40 ferry` as an unqualified major reveal, dropping attribution to the deckhand's recollection.
+
+The benchmark remains failed. Version 0.1.9 now explicitly preserves mixed provenance in aggregate summaries, requires question modality to survive into table claim labels, and requires witness/character attribution to be retained in summaries and major reveals.
 
 ## Promotion rule
 
