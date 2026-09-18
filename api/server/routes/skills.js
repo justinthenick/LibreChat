@@ -196,6 +196,18 @@ async function uploadFileHandler(req, res) {
     }
 
     const skillId = req.params.id;
+    const skill = await getSkillById(skillId);
+    if (!skill) {
+      return res.status(404).json({ error: 'Skill not found' });
+    }
+    if (skill.source !== 'inline') {
+      return res.status(409).json({
+        error: 'skill_external_source_read_only',
+        message:
+          'Externally managed skills are read-only in LibreChat. Update the upstream source and run Skill Sync.',
+      });
+    }
+
     const relativePath = req.body.relativePath;
     if (!relativePath) {
       return res.status(400).json({ error: 'relativePath is required in form body' });
