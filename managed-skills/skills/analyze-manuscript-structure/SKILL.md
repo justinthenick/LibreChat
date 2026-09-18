@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.1.3**
+Version: **0.1.4**
 
 ## Purpose
 
@@ -50,7 +50,9 @@ This Skill is **reconstruction only**. It does not rewrite prose, line-edit chap
 - Do not use authorial-purpose language such as `intended`, `intentionally`, `meant as`, `designed to`, `red herring`, `deliberate misdirection`, or `intended twist` unless a supplied author note or the manuscript explicitly establishes that framing.
 - Shared descriptors do not establish identity or linkage. Two red objects, two coats, or two similar times may be noted as similar, but do not call them a match, corroboration or confirmation unless the text or evidence establishes the connection.
 - Keep independent witness reports independent unless the manuscript establishes that they concern the same person, object or event. One report does not confirm or corroborate another solely because both use a broad descriptor.
-- Preserve evidence location and provenance exactly. Do not relocate a receipt, object, sighting or statement from where it was found, observed or reported.
+- Preserve evidence location and provenance exactly. Do not relocate a receipt, object, sighting or statement from where it was found, observed or reported. A document connected to a place or service does not mean it was found at that place.
+- Preserve event wording and timing exactly. A `6:40 ferry` or a passenger `boarding the 6:40 ferry` does not by itself establish the ferry's departure time unless the text explicitly says it departed at 6:40.
+- Do not upgrade familiarity or relationship detail from a single observation. A witness recognizing a coat does not establish broader familiarity with the wearer's appearance, habits or wardrobe unless the text says so.
 - Do not recast an unresolved clue as a craft device, continuity error, authorial choice or narrative function unless the manuscript or supplied author note explicitly establishes that framing.
 
 ## Recommended output
@@ -100,7 +102,9 @@ Before returning the analysis, check:
 - Did I avoid inventing authorial intent?
 - Did I avoid inferring guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive from unresolved clues?
 - Did I avoid inventing unsupported candidate identities, roles, ownership, residence, actions, mechanisms or narrative-device labels?
-- Did I preserve the exact location and provenance of evidence?
+- Did I preserve the exact location and provenance of evidence, without relocating service-related documents?
+- Did I preserve event wording and timing without turning a labelled/scheduled time into an unstated departure time?
 - Did I avoid treating shared descriptors or independent witness reports as matches or corroboration without support?
+- Did I avoid upgrading a narrow observation into broader familiarity or relationship knowledge?
 - Did I avoid editorial recommendations?
 - Could a later editing agent safely use this as a factual map without inheriting invented canon?
