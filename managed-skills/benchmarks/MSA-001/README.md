@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.1.11 strengthens the evidence-discipline rules further:
+Current hardening through version 0.1.12 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -145,6 +145,18 @@ This controlled rerun fixed the prior aggregate-provenance issue in the current-
 - the character/relationship map stated that the deckhand `spoke with Vale at the harbour`, inferring an interaction/location relation that the manuscript does not explicitly establish.
 
 These failures indicate a structural tendency to invent connective tissue when completing table cells rather than a need for more isolated phrase bans. Version 0.1.11 therefore adds a source-preserving output contract: narrator facts stay narrator facts, statements/recollections stay attributed, questions preserve modality, unknowns do not propagate to candidate characters, interactions are not inferred from adjacency, and neutral/empty cells are explicitly allowed.
+
+
+### Attempt 11 — v0.1.11 — FAIL
+
+This controlled rerun fixed the prior propagated-`M.` unknown in Mara's row and preserved the main chronology, provenance, modality, and witness-attribution requirements. It still failed strict criterion 6 because the output continued to infer recipients/interactions that the manuscript does not explicitly state:
+
+- the character map said the deckhand `spoke to Vale`;
+- the chronology said the deckhand `speaks to Vale`;
+- the evidence register described the deckhand's memory as a recollection `to Vale`;
+- Chapter 2 / relationship wording also treated Mara's statement about Leon hating boats as a statement `to Vale`, although the manuscript only says Mara says it.
+
+Version 0.1.12 tightens the source-preserving contract around recipient attribution: a statement/recollection may only be assigned a recipient when the source explicitly names that recipient. Otherwise the relationship cell must remain neutral (for example, `None established`).
 
 ## Promotion rule
 
