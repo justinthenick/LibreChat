@@ -1,0 +1,19 @@
+{
+  "checks": [
+    {
+      "error": "unsupported check type",
+      "index": 1,
+      "label": "Inline skill definitions",
+      "status": "error",
+      "type": "inline_skill_export"
+    }
+  ],
+  "ended_at": "2026-09-18T11:52:12Z",
+  "hostname": "NAS",
+  "overall": "partial",
+  "recipe": "custom/ba-agent/diagnostics/inline-skills-export-20260918-001.json",
+  "recipe_name": "Export live inline LibreChat skill definitions for GitHub promotion",
+  "request_id": "inline-skills-export-20260918-001",
+  "schema": 1,
+  "started_at": "2026-09-18T11:52:12Z"
+}
