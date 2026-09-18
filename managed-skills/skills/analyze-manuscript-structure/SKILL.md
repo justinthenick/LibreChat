@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.1.4**
+Version: **0.1.5**
 
 ## Purpose
 
@@ -52,7 +52,10 @@ This Skill is **reconstruction only**. It does not rewrite prose, line-edit chap
 - Keep independent witness reports independent unless the manuscript establishes that they concern the same person, object or event. One report does not confirm or corroborate another solely because both use a broad descriptor.
 - Preserve evidence location and provenance exactly. Do not relocate a receipt, object, sighting or statement from where it was found, observed or reported. A document connected to a place or service does not mean it was found at that place.
 - Preserve event wording and timing exactly. A `6:40 ferry` or a passenger `boarding the 6:40 ferry` does not by itself establish the ferry's departure time unless the text explicitly says it departed at 6:40.
+- Do not derive event order from a label, schedule, timestamp or object time unless the text establishes when the event itself occurred. A receipt printed at 6:32 and a passenger boarding the `6:40 ferry` do not establish that the receipt was printed before the boarding event.
 - Do not upgrade familiarity or relationship detail from a single observation. A witness recognizing a coat does not establish broader familiarity with the wearer's appearance, habits or wardrobe unless the text says so.
+- Preserve role and place labels at the source text's level of specificity. `Inspector` does not automatically become `police inspector`; `deckhand` does not automatically become `harbourside employee`; `north road` does not automatically become `inland`.
+- Do not add secondary unknowns merely because they are conceivable. Track an unknown only when the manuscript itself creates it or when it is necessary to explain why a claim cannot be established.
 - Do not recast an unresolved clue as a craft device, continuity error, authorial choice or narrative function unless the manuscript or supplied author note explicitly establishes that framing.
 
 ## Recommended output
@@ -103,8 +106,10 @@ Before returning the analysis, check:
 - Did I avoid inferring guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive from unresolved clues?
 - Did I avoid inventing unsupported candidate identities, roles, ownership, residence, actions, mechanisms or narrative-device labels?
 - Did I preserve the exact location and provenance of evidence, without relocating service-related documents?
-- Did I preserve event wording and timing without turning a labelled/scheduled time into an unstated departure time?
+- Did I preserve event wording and timing without turning a labelled/scheduled time into an unstated departure time or unsupported event ordering?
 - Did I avoid treating shared descriptors or independent witness reports as matches or corroboration without support?
 - Did I avoid upgrading a narrow observation into broader familiarity or relationship knowledge?
+- Did I preserve role and place labels at the source text's exact level of specificity?
+- Did I avoid adding secondary unknowns that the manuscript itself does not create?
 - Did I avoid editorial recommendations?
 - Could a later editing agent safely use this as a factual map without inheriting invented canon?
