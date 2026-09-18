@@ -1,6 +1,4 @@
 {
   "schema": 1,
-  "enabled": true,
-  "request_id": "msa001-postmerge-sync-20260918-003",
-  "recipe": "custom/ba-agent/diagnostics/msa001-postmerge-sync-20260918-001.json"
+  "enabled": false
 }
