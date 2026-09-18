@@ -35,6 +35,7 @@ const {
   MAX_SUBAGENT_GRAPH_NODES,
   MAX_SUBAGENT_RUN_CONFIGS,
   isEphemeralAgentId,
+  parseSkillSelection,
   resolveAllowedStatefulCodeEnvironments,
 } = require('librechat-data-provider');
 const {
@@ -513,12 +514,49 @@ const initializeClient = async ({
     }
   }
 
-  const primaryScopedSkillIds = resolveAgentScopedSkillIds({
+  let primaryScopedSkillIds = resolveAgentScopedSkillIds({
     agent: primaryAgent,
     accessibleSkillIds,
     skillsCapabilityEnabled,
     ephemeralSkillsToggle,
   });
+
+  /**
+   * A managed author draft inherits the persisted agent scope of its published
+   * parent for explicit manual trials only. This does not widen the model
+   * catalog: the draft remains disable-model-invocation and is added here only
+   * when the user explicitly selected its revision token, the draft is already
+   * VIEW-accessible to the user, and its linked published parent is in the
+   * agent's scoped set.
+   */
+  if (manualSkills?.length && primaryScopedSkillIds.length > 0) {
+    const fullAccessibleSet = new Set(accessibleSkillIds.map((id) => id.toString()));
+    const scopedSet = new Set(primaryScopedSkillIds.map((id) => id.toString()));
+    const selectedDraftIds = [
+      ...new Set(
+        manualSkills
+          .map((selection) => parseSkillSelection(selection).skillId)
+          .filter((id) => typeof id === 'string' && fullAccessibleSet.has(id)),
+      ),
+    ];
+    if (selectedDraftIds.length > 0) {
+      const selectedDrafts = await Promise.all(
+        selectedDraftIds.map((id) => skillDbMethods.getSkillById(id)),
+      );
+      const inheritedIds = selectedDrafts
+        .filter(
+          (skill) =>
+            skill?.source === 'inline' &&
+            ['draft', 'trial', 'publish_pending'].includes(skill?.sourceMetadata?.lifecycle) &&
+            typeof skill?.sourceMetadata?.draftOfSkillId === 'string' &&
+            scopedSet.has(skill.sourceMetadata.draftOfSkillId),
+        )
+        .map((skill) => skill._id);
+      if (inheritedIds.length > 0) {
+        primaryScopedSkillIds = [...primaryScopedSkillIds, ...inheritedIds];
+      }
+    }
+  }
   const primaryScopedEditableSkillIds = resolveAgentScopedSkillIds({
     agent: primaryAgent,
     accessibleSkillIds: editableSkillIds,
