@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "name": "PR93 live deployment progress",
+  "checks": [
+    {
+      "type": "lock_status",
+      "label": "Autodeploy lock/process status",
+      "path": "/tmp/librechat-autodeploy.lock",
+      "process_contains": "autodeploy.sh"
+    },
+    {
+      "type": "tail",
+      "label": "Recent deployment event log",
+      "path": "/volume1/docker/librechat-deploy-events.log",
+      "lines": 120
+    },
+    {
+      "type": "tail",
+      "label": "Recent deployment log",
+      "path": "/volume1/docker/librechat-deploy.log",
+      "lines": 160
+    },
+    {
+      "type": "tail",
+      "label": "Last successful deployed SHA",
+      "path": "/volume1/docker/librechat-deploy.last-success",
+      "lines": 5
+    },
+    {
+      "type": "skill_sync_status",
+      "label": "Managed skills GitHub sync status",
+      "source_id": "managed-skills"
+    }
+  ]
+}
