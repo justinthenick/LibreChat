@@ -826,12 +826,19 @@ def check_inline_skill_file_content(check, root, env_file, repo, branch):
             filepath = str(row.get("filepath") or "")
             if not filepath.startswith("/uploads/") or ".." in filepath.split("/"):
                 results.append({"skill": row.get("skill"), "path": row.get("relativePath"), "error": "unsafe filepath"}); continue
-            proc = subprocess.run(
-                ["docker", "exec", "librechat", "cat", filepath],
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20, check=False
-            )
-            if proc.returncode != 0:
-                results.append({"skill": row.get("skill"), "path": row.get("relativePath"), "error": sanitize_text(proc.stderr.decode("utf-8","replace"))}); continue
+            candidates = [filepath, "/app" + filepath]
+            proc = None
+            last_error = ""
+            for candidate in candidates:
+                proc = subprocess.run(
+                    ["docker", "exec", "librechat", "cat", candidate],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20, check=False
+                )
+                if proc.returncode == 0:
+                    break
+                last_error = sanitize_text(proc.stderr.decode("utf-8","replace"))
+            if proc is None or proc.returncode != 0:
+                results.append({"skill": row.get("skill"), "path": row.get("relativePath"), "error": last_error}); continue
             try:
                 content = proc.stdout.decode("utf-8")
             except Exception:
