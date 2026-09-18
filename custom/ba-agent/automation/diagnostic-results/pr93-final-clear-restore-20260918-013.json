@@ -1,0 +1,120 @@
+{
+  "checks": [
+    {
+      "data": {
+        "cleared": true,
+        "http_health": "pass",
+        "lock_exists_after": false,
+        "terminated": [
+          {
+            "kind": "telemetry-docker",
+            "pid": 27723,
+            "signal": "TERM"
+          },
+          {
+            "kind": "telemetry",
+            "pid": 24656,
+            "signal": "TERM"
+          },
+          {
+            "kind": "telemetry",
+            "pid": 27722,
+            "signal": "TERM"
+          },
+          {
+            "kind": "autodeploy",
+            "pid": 20954,
+            "signal": "TERM"
+          },
+          {
+            "kind": "telemetry-docker",
+            "pid": 27723,
+            "signal": "KILL"
+          },
+          {
+            "kind": "telemetry",
+            "pid": 24656,
+            "signal": "KILL"
+          }
+        ]
+      },
+      "index": 1,
+      "label": "Clear failed autodeploy cleanup chain",
+      "status": "ok",
+      "type": "clear_failed_autodeploy"
+    },
+    {
+      "data": {
+        "bytes": 5324,
+        "changed": true,
+        "path": "/volume1/docker/librechat/deploy/synology/librechat.yaml",
+        "restored_from": "5c610170580951ee0b26819d13036568b72f3edb"
+      },
+      "index": 2,
+      "label": "Restore LibreChat YAML from last successful deployment",
+      "status": "ok",
+      "type": "restore_librechat_yaml_from_last_success"
+    },
+    {
+      "data": {
+        "lock_exists": false,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": []
+      },
+      "index": 3,
+      "label": "Autodeploy lock after repair",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lines": 5,
+        "path": "/volume1/docker/librechat-deploy.last-success",
+        "text": "5c610170580951ee0b26819d13036568b72f3edb"
+      },
+      "index": 4,
+      "label": "Last successful deployed SHA",
+      "status": "ok",
+      "type": "tail"
+    },
+    {
+      "data": {
+        "document": {
+          "deletedFileCount": 0,
+          "deletedSkillCount": 0,
+          "finishedAt": "2026-09-18T10:11:43.464Z",
+          "lastFailureAt": "2026-09-18T09:07:14.782Z",
+          "lastSuccessAt": "2026-09-18T10:11:43.464Z",
+          "owner": "justinthenick",
+          "paths": [
+            "managed-skills/skills"
+          ],
+          "provider": "github",
+          "ref": "server/synology",
+          "repo": "LibreChat",
+          "skippedFileCount": 0,
+          "skippedSkillCount": 0,
+          "sourceId": "managed-skills",
+          "startedAt": "2026-09-18T10:11:41.381Z",
+          "status": "succeeded",
+          "syncedFileCount": 0,
+          "syncedSkillCount": 2,
+          "updatedAt": "2026-09-18T10:11:43.464Z"
+        },
+        "source_id": "managed-skills"
+      },
+      "index": 5,
+      "label": "Managed skills GitHub sync status",
+      "status": "ok",
+      "type": "skill_sync_status"
+    }
+  ],
+  "ended_at": "2026-09-18T10:14:33Z",
+  "hostname": "NAS",
+  "overall": "ok",
+  "recipe": "custom/ba-agent/diagnostics/pr93-final-clear-restore-20260918-013.json",
+  "recipe_name": "Final PR93 stale deploy cleanup and YAML restore",
+  "request_id": "pr93-final-clear-restore-20260918-013",
+  "schema": 1,
+  "started_at": "2026-09-18T10:14:28Z"
+}
