@@ -66,6 +66,18 @@ class TriageTests(unittest.TestCase):
             "| Deckhand | None established |\n"
             "The deckhand says he cannot tell whether the passenger was Leon."))
 
+    def test_question_in_goals_beliefs_is_flagged(self):
+        text = """| Character/source label | Explicit role/history | Explicit goals/beliefs | Explicit relationships/interactions |
+| --- | --- | --- | --- |
+| Inspector Vale | None established | ID-13 ("M. knew about harbour before I mentioned it?") | None established |"""
+        self.assertIn("question-as-belief", self.codes(text))
+
+    def test_question_outside_goals_beliefs_is_not_flagged(self):
+        text = """| Character/source label | Explicit role/history | Explicit goals/beliefs | Explicit relationships/interactions |
+| --- | --- | --- | --- |
+| Inspector Vale | None established | None established | ID-13 ("M. knew about harbour before I mentioned it?") |"""
+        self.assertNotIn("question-as-belief", self.codes(text))
+
     def test_negated_example_remains_advisory(self):
         result = report("Do not invent identity of the deckhand.")
         self.assertTrue(result["findings"])
