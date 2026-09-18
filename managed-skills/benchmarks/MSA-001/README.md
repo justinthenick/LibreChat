@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.1.5 strengthens the evidence-discipline rules further:
+Current hardening through version 0.1.6 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -80,6 +80,17 @@ This controlled rerun was materially closer and passed criteria 2–5, but still
 - it added secondary unknowns such as Mrs Pell's vantage point/distance that are conceivable but not created by the manuscript.
 
 The benchmark remains failed. Version 0.1.5 now explicitly prohibits deriving event order from labels/schedules/timestamps alone, expanding role/place labels beyond the source, and adding unnecessary secondary unknowns.
+
+
+### Attempt 5 — v0.1.5 — FAIL
+
+This controlled rerun again passed criteria 2–5, but strict criterion 6 still failed on residual overreach:
+
+- it stated that the 6:32 receipt was printed before the passenger boarded the `6:40 ferry`, even though the manuscript never states the boarding time;
+- it expanded `deckhand` into `harbourside worker / crew member` and treated `6:40 ferry` as a `labelled/scheduled time`, adding specificity not present in the text;
+- it continued to introduce secondary unknowns such as Mara's residence status and Mrs Pell's vantage point/distance that are conceivable but not created by the manuscript.
+
+The benchmark remains failed. Version 0.1.6 now requires uncertain time-bearing facts to be stated separately without self-generated ordering, preserves exact role/place nouns, and prefers omission/`Unstated` over speculative completeness.
 
 ## Promotion rule
 
