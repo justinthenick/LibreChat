@@ -78,6 +78,34 @@ class TriageTests(unittest.TestCase):
 | Inspector Vale | None established | None established | ID-13 ("M. knew about harbour before I mentioned it?") |"""
         self.assertNotIn("question-as-belief", self.codes(text))
 
+    def test_nonempty_goals_beliefs_is_advisory_for_fixture(self):
+        text = """| Character/source label | Explicit role/history | Explicit goals/beliefs | Explicit relationships/interactions |
+| --- | --- | --- | --- |
+| Mara | None established | S-12 ("Mara says Leon hated boats.") | None established |"""
+        self.assertIn("goals-beliefs-scope", self.codes(text))
+
+    def test_none_established_goals_beliefs_is_clean(self):
+        text = """| Character/source label | Explicit role/history | Explicit goals/beliefs | Explicit relationships/interactions |
+| --- | --- | --- | --- |
+| Mara | None established | None established | None established |"""
+        self.assertNotIn("goals-beliefs-scope", self.codes(text))
+
+    def test_service_name_is_not_boarding_time(self):
+        self.assertIn("service-time-promotion", self.codes(
+            "- S-17: passenger boarding the 6:40 ferry [boarding time]"))
+
+    def test_service_name_without_promoted_time_is_clean(self):
+        self.assertNotIn("service-time-promotion", self.codes(
+            "- S-17: A deckhand remembers a passenger boarding the 6:40 ferry."))
+
+    def test_shortened_claim_with_source_id_is_flagged(self):
+        self.assertIn("shortened-claim", self.codes(
+            "- S-06: ...walking toward the harbour shortly after seven."))
+
+    def test_complete_claim_without_ellipsis_is_clean(self):
+        self.assertNotIn("shortened-claim", self.codes(
+            "- S-06: A neighbour, Mrs Pell, tells Vale that she saw someone walking."))
+
     def test_negated_example_remains_advisory(self):
         result = report("Do not invent identity of the deckhand.")
         self.assertTrue(result["findings"])
