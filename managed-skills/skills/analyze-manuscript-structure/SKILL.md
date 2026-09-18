@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.1.14**
+Version: **0.1.15**
 
 ## Purpose
 
@@ -61,7 +61,7 @@ This Skill is **reconstruction only**. It does not rewrite prose, line-edit chap
 - Preserve the referent class of ambiguous language. An unspecified `you` does not establish that the addressee is a person or individual; report the addressee/referent as unresolved unless the text establishes its nature.
 - Avoid converting neutral spatial descriptions into route or domain labels. `north road` and `harbour` need not become `land route`, `maritime route`, `inland`, `coastal`, or similar abstractions unless the text uses them. Do not say an item `points to` a place merely because it concerns a service associated with that place; state the item's actual location and content instead.
 - Preserve report/action scope. If the text shows a character phoning an inspector and making statements about another character's departure, do not upgrade that act into `reporting a disappearance` or `reporting someone missing` unless the text explicitly says so.
-- Preserve evidence type in summaries and `Major reveals`. A deckhand's recollection remains `the deckhand reports/recalls...`; do not restate it as an unqualified factual reveal such as `a passenger boarded...`. Character statements and witness recollections must remain attributed wherever they appear.
+- Preserve evidence type in summaries and `Major reveals`. A deckhand's recollection remains `the deckhand remembers...`; do not restate it as a report, mention, statement, or unqualified factual reveal such as `a passenger boarded...`. Character statements and witness recollections must remain attributed wherever they appear.
 - Do not recast an unresolved clue as a craft device, continuity error, authorial choice or narrative function unless the manuscript or supplied author note explicitly establishes that framing.
 
 ## Source-preserving output contract
@@ -75,6 +75,7 @@ Apply this contract to every section, table cell, summary sentence and bullet:
 5. **Interaction/action:** Do not infer that two characters spoke, interviewed, met, investigated, reported, mentioned, or exchanged information merely because their material appears in the same scene or paragraph. Recipient attribution must be explicit in the source: `Mara says Leon hated boats` does not become `Mara tells Vale Leon hated boats`; `a deckhand remembers...` does not become `the deckhand reports/tells/speaks/mentions...` or `a boarding is reported` unless the manuscript states that communication or recipient.
 6. **Empty cells are acceptable:** If a relationship, goal, unknown, character-state change or causal link is not established, use `Unstated`, `Unknown`, `None established`, or leave the cell neutral rather than inventing connective tissue.
 7. **One provenance per clause:** If a sentence combines material from different sources, split it into separate clauses/sentences with explicit attribution rather than compressing them into a single actor's knowledge or collection.
+8. **Preserve nested attribution and clause boundaries:** Do not merge a statement about an event with a statement about what another character said or intended. For example, `Mara says Leon left before six. He told me he was taking the north road.` must not become `Leon left before six taking the north road`; preserve that the route is something Leon reportedly told Mara, not an established route he actually took.
 
 For the character map specifically:
 - An unresolved initial such as `M.` stays unresolved in the `M.` row unless the manuscript establishes a referent.
@@ -145,5 +146,6 @@ Before returning the analysis, check:
 - Did I avoid inventing interactions (spoke/interviewed/met/informed) from scene adjacency or narrative sequence?
 - For every character statement/recollection, did I preserve whether a recipient was explicitly stated, rather than assigning one from context?
 - Did I preserve the source predicate/action type itself in every section, including motifs/themes and living-brief summaries (for example, `remembers` as memory rather than turning it into `reports`, `mentions`, or another speech act)?
+- Did I preserve nested attribution and clause boundaries, rather than collapsing `X says A; Y told X B` into a single factual claim `A and B`?
 - Did I avoid editorial recommendations?
 - Could a later editing agent safely use this as a factual map without inheriting invented canon?
