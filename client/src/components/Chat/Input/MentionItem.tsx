@@ -10,6 +10,7 @@ export interface MentionItemProps {
   icon?: React.ReactNode;
   isActive?: boolean;
   description?: string;
+  badge?: string;
   style?: React.CSSProperties;
 }
 
@@ -20,6 +21,7 @@ export default function MentionItem({
   icon,
   isActive,
   description,
+  badge,
   style,
   type = 'mention',
 }: MentionItemProps) {
@@ -48,7 +50,14 @@ export default function MentionItem({
               </span>
             ) : null}
           </div>
-          <Clock4 size={16} className="ml-2 flex-shrink-0" />
+          <div className="ml-2 flex flex-shrink-0 items-center gap-2">
+            {badge ? (
+              <span className="rounded-full border border-border-medium bg-surface-secondary px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">
+                {badge}
+              </span>
+            ) : null}
+            <Clock4 size={16} />
+          </div>
         </div>
       </div>
     </button>
