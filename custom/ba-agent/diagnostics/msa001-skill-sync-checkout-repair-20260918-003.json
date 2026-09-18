@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "name": "MSA-001 bounded production skill-sync checkout repair",
+  "checks": [
+    {
+      "type": "repair_skill_sync_checkout",
+      "label": "Restore tracked production LibreChat config"
+    },
+    {
+      "type": "tail",
+      "label": "Live Synology LibreChat config",
+      "path": "/volume1/docker/librechat/deploy/synology/librechat.yaml",
+      "lines": 80
+    },
+    {
+      "type": "lock_status",
+      "label": "Autodeploy lock/process status",
+      "path": "/tmp/librechat-autodeploy.lock",
+      "process_contains": "autodeploy.sh"
+    },
+    {
+      "type": "skill_sync_status",
+      "label": "Managed skills GitHub sync status",
+      "source_id": "managed-skills"
+    }
+  ]
+}
