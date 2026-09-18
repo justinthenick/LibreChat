@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.1.6 strengthens the evidence-discipline rules further:
+Current hardening through version 0.1.7 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -91,6 +91,18 @@ This controlled rerun again passed criteria 2–5, but strict criterion 6 still 
 - it continued to introduce secondary unknowns such as Mara's residence status and Mrs Pell's vantage point/distance that are conceivable but not created by the manuscript.
 
 The benchmark remains failed. Version 0.1.6 now requires uncertain time-bearing facts to be stated separately without self-generated ordering, preserves exact role/place nouns, and prefers omission/`Unstated` over speculative completeness.
+
+
+### Attempt 6 — v0.1.6 — FAIL
+
+This controlled rerun improved chronology handling substantially and kept the central ambiguity constraints intact, but strict criterion 6 still failed on residual classification and wording drift:
+
+- direct character statements were inconsistently reclassified as `Strong inference` or `Possible interpretation` instead of remaining `Character statement`;
+- Mara's ambiguous `you` was promoted to an `individual`;
+- Vale's notebook question was summarized as Vale `suspects` prior knowledge, which strengthens a question into a belief state;
+- the output introduced source-expanding labels such as `their cottage`, `land route`, and `maritime route`.
+
+The benchmark remains failed. Version 0.1.7 now explicitly preserves character-statement classification, modality, ambiguous referent class, exact ownership/residence wording, and source-level spatial labels.
 
 ## Promotion rule
 
