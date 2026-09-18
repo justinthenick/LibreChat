@@ -358,6 +358,14 @@ export type TSetSkillLifecycleRequest = {
 
 export type TSetSkillLifecycleResponse = TSkill;
 
+export type TPublishSkillDraftResponse = {
+  skill: TSkill;
+  branch: string;
+  commitSha: string;
+  pullRequestNumber: number;
+  pullRequestUrl: string;
+};
+
 /** Request body for POST `/api/skills`. */
 export type TCreateSkill = {
   name: string;
