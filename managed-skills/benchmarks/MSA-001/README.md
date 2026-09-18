@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.2.9 strengthens the evidence-discipline rules further:
+Current hardening through version 0.3.0 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -34,6 +34,9 @@ Current hardening through version 0.2.9 strengthens the evidence-discipline rule
 - factual claim reuse is exact when text is shown; ellipses, shortened inner quotations and fresh bracketed paraphrases are not substitutes for the canonical Claim cell;
 - chronology claim bullets do not append parenthetical classifications, and absent established chronology/causality renders as `None established` without explanatory paraphrase;
 - evidence-register Claim cells are self-contained: dependent pronouns/deictics must carry the minimum contiguous verbatim antecedent context in the same Claim cell rather than relying on a neighbouring row;
+- goals/beliefs require an explicit qualifying mental-state predicate; recollection, perception, inability-to-identify and communication predicates are ineligible;
+- identity uncertainties do not introduce candidate answers unless the licensing source explicitly enumerates them, and neutral uncertainty wording cannot promote static states into new actions;
+- the continuity/contradiction register uses controlled status labels only for source-explicit contradictions/discrepancies and otherwise renders `None established`;
 - a time embedded in a service name must not be labelled as boarding/departure/scheduled/event time without explicit source support;
 - possessive/document associations must not be promoted into actions such as keeping, owning, carrying, writing or maintaining unless the source states the action;
 - point-of-view/structure summaries must not invent scene boundaries or assign whole chapters/sequences to atom-local locations;
@@ -468,13 +471,37 @@ were supposed to be late.”"`. The skill already requires a longer verbatim
 excerpt when splitting would lose a pronoun antecedent, so accepting this run
 would weaken the existing gate.
 
-### v0.2.9 candidate — runtime pending
+### Attempt 27 — v0.2.9 — FAIL (controlled, 2026-09-18)
 
-v0.2.9 makes source-atom construction explicit: a dependent sentence is merged
-backward to the minimum contiguous verbatim span that makes its antecedent
-explicit, is not also emitted as a standalone claim, and is labelled
-`Mixed source passage` when the combined span contains multiple evidence types.
-Existing acceptance criteria and the MIG-001 fixture remain unchanged.
+The fresh v0.2.9 runtime fixed the v0.2.8 source-atom problem: dependent sentences
+were merged into contiguous self-contained verbatim spans and were not emitted as
+standalone pronoun fragments.
+
+Three remaining criterion-6 failures exposed the last permissive selection/
+free-text surfaces:
+
+- The Deckhand row selected S-10 under `Explicit goals/beliefs` even though S-10
+  contains a recollection and inability to identify the passenger, not a
+  qualifying goal/belief.
+- U-01 expanded the coat-wearer identity uncertainty with the candidate
+  `whether that person was Leon`, although the source does not explicitly
+  enumerate Leon as a candidate; U-02 also promoted the static receipt wording to
+  a receipt `found` in the glovebox.
+- The continuity/contradiction register returned to fresh factual paraphrase and
+  compared independent statements that the manuscript does not itself declare to
+  be contradictory/discrepant.
+
+The benchmark remains failed rather than accepting those promotions.
+
+### v0.3.0 candidate — runtime pending
+
+v0.3.0 replaces those permissive surfaces with eligibility gates. Goals/beliefs
+require an explicit qualifying mental-state predicate; identity uncertainties
+default to identity-only wording unless candidates are source-enumerated; neutral
+uncertainty wording cannot invent actions; and the continuity register contains
+only source-explicit contradictions/discrepancies with controlled status labels,
+otherwise `None established`. Existing acceptance criteria and the MIG-001
+fixture remain unchanged.
 
 ## Promotion rule
 
