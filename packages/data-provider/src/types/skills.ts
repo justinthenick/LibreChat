@@ -31,6 +31,62 @@ export const SKILL_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
  */
 export type SkillSource = 'inline' | 'deployment' | 'github' | 'notion';
 
+export type SkillLifecycle = 'published' | 'draft' | 'trial' | 'publish_pending';
+
+/**
+ * Manual skill selection token. Legacy callers may still submit just the
+ * skill name; UI selections include the exact skill id so a published skill
+ * and an author draft can coexist without name-resolution ambiguity.
+ */
+export const SKILL_SELECTION_SEPARATOR = '@@';
+
+export function encodeSkillSelection(skill: Pick<TSkillSummary, '_id' | 'name'>): string {
+  return `${skill.name}${SKILL_SELECTION_SEPARATOR}${skill._id}`;
+}
+
+export function parseSkillSelection(value: string): { name: string; skillId?: string } {
+  const index = value.lastIndexOf(SKILL_SELECTION_SEPARATOR);
+  if (index <= 0) {
+    return { name: value };
+  }
+  const name = value.slice(0, index);
+  const skillId = value.slice(index + SKILL_SELECTION_SEPARATOR.length);
+  if (!/^[a-fA-F0-9]{24}$/.test(skillId)) {
+    return { name: value };
+  }
+  return { name, skillId };
+}
+
+export function getSkillLifecycle(
+  skill: Pick<TSkillSummary, 'source' | 'sourceMetadata'>,
+): SkillLifecycle {
+  const metadata =
+    skill.sourceMetadata && typeof skill.sourceMetadata === 'object'
+      ? (skill.sourceMetadata as Record<string, unknown>)
+      : undefined;
+  const lifecycle = metadata?.lifecycle;
+  if (
+    lifecycle === 'draft' ||
+    lifecycle === 'trial' ||
+    lifecycle === 'publish_pending'
+  ) {
+    return lifecycle;
+  }
+  return 'published';
+}
+
+export function getSkillLogicalName(
+  skill: Pick<TSkillSummary, 'name' | 'sourceMetadata'>,
+): string {
+  const metadata =
+    skill.sourceMetadata && typeof skill.sourceMetadata === 'object'
+      ? (skill.sourceMetadata as Record<string, unknown>)
+      : undefined;
+  return typeof metadata?.logicalName === 'string' && metadata.logicalName.length > 0
+    ? metadata.logicalName
+    : skill.name;
+}
+
 /**
  * Category inferred from a skill file's top-level directory prefix.
  * `script` for `scripts/...`, `reference` for `references/...`, `asset` for `assets/...`,
