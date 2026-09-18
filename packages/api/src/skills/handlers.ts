@@ -624,6 +624,9 @@ export function createSkillsHandlers(deps: SkillsHandlersDeps): {
 
       // Fire-and-forget blob cleanup for each file
       for (const file of files) {
+        if (file.sourceMetadata?.sharedStorage === true) {
+          continue;
+        }
         const { deleteFile: deleteBlob } = getStrategyFunctions(file.source);
         if (deleteBlob) {
           deleteBlob(req, {
@@ -838,7 +841,7 @@ export function createSkillsHandlers(deps: SkillsHandlersDeps): {
 
       // Clean up the stored blob — fire-and-forget so the response isn't delayed
       const { deleteFile: deleteBlob } = getStrategyFunctions(file.source);
-      if (deleteBlob) {
+      if (deleteBlob && file.sourceMetadata?.sharedStorage !== true) {
         deleteBlob(req, {
           filepath: file.filepath,
           storageKey: file.storageKey,
