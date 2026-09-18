@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.1.17 strengthens the evidence-discipline rules further:
+Current hardening through version 0.1.18 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -207,6 +207,16 @@ One criterion-6/source-contract failure remained in the Chapter 1 `Character-sta
 - it said `Mara phones Vale and says Leon left before six taking the north road`, again compressing Mara's two differently attributed claims so that Leon's reported statement about taking the north road became the route he actually took.
 
 The failure is now isolated to misuse of the chapter-map state-change column. Version 0.1.17 therefore gives that column a strict contract: it may contain only explicit character-state changes; it must not restate dialogue, routes, evidence, phone calls, or inferred transitions, and must use `None established` when no explicit state change exists.
+
+
+### Attempt 17 — v0.1.17 — FAIL
+
+This controlled rerun fixed the Chapter 1 state-change-column compression and preserved the main ambiguity, chronology, provenance, modality, evidence-classification, recipient-attribution, nested-attribution, clock-state, and predicate controls. Two criterion-6/source-ledger issues remained:
+
+- static states were still expanded into unsupported transitions/processes: `engine is cold` became questions about when/why the engine cooled and who drove/parked the car; `receipt in the glovebox` became questions about who purchased it and whether it was used;
+- sentence-local location was still propagated to a separate atom: summaries grouped the deckhand's memory under `at the harbour` / described recollections as situated at the harbour, although the source explicitly locates Vale's fabric discovery there but does not explicitly locate the deckhand or the remembering act.
+
+Version 0.1.18 therefore tightens the atomic ledger itself: states cannot imply prior transitions/actions, and location/time/recipient/state modifiers remain atom-local rather than propagating across adjacent sentences.
 
 ## Promotion rule
 
