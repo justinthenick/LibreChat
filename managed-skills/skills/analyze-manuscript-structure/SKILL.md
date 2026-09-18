@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.1.16**
+Version: **0.1.17**
 
 ## Purpose
 
@@ -112,6 +112,17 @@ For the character map specifically:
 - A deckhand recollection does not establish that the deckhand `spoke with Vale` or was `at the harbour` unless the manuscript explicitly states that interaction/location relation.
 - In relationship-evidence cells, record only relationships/interactions explicitly stated by the manuscript. If the source gives a recollection but no recipient, use `None established` rather than inventing `spoke to Vale`.
 
+## Chapter-map column contract
+
+For the chapter map, keep each column semantically narrow:
+
+- **Material events:** only actions/observations/statements actually occurring in the chapter, preserving source predicate and attribution.
+- **New information / reveal:** only information newly available in that chapter, preserving whether it is narrator-established, a character statement, a memory, or recorded text.
+- **Character-state change:** only a state change explicitly established by the manuscript. Do **not** use this column to restate dialogue, routes, evidence, phone calls, investigation activity, or inferred transitions. If no explicit state change is established, write `None established`.
+- **Open threads created / resolved:** only unknowns or resolutions the manuscript itself creates; do not generate secondary investigative questions for completeness.
+
+A statement must never be compressed into a stronger action in the character-state column. For example, `Mara says Leon left before six. He told me he was taking the north road.` must not become `Leon left before six taking the north road` anywhere in the chapter map.
+
 ## Recommended output
 
 ### 1. Manuscript-level reconstruction
@@ -177,6 +188,7 @@ Before returning the analysis, check:
 - Did I preserve the source predicate/action type itself in every section, including motifs/themes and living-brief summaries (for example, `remembers` as memory rather than turning it into `reports`, `mentions`, or another speech act)?
 - Did I avoid carrying an earlier object state into a later appearance when the later text does not restate that state (for example, Chapter 1's `clock reads 6:45` must not become a Chapter 3 clock reading merely because Mara looks at the clock again)?
 - Could every factual clause in the visible output be traced back to one or more source-ledger atoms without adding recipient, location, time, state, predicate or modality?
+- In the chapter map, did I use `Character-state change` only for explicit state changes and write `None established` rather than using that column to paraphrase events or dialogue?
 - Did I preserve nested attribution and clause boundaries, rather than collapsing `X says A; Y told X B` into a single factual claim `A and B`?
 - Did I avoid editorial recommendations?
 - Could a later editing agent safely use this as a factual map without inheriting invented canon?
