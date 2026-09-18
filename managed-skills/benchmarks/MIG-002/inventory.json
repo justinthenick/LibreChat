@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "baselineCommit": "adb82762f84ccb6cc86e102e5b8eb2e8d8ebb1c8",
+  "status": "prepared-not-cut-over",
+  "skills": [
+    {
+      "source": "custom/ba-agent/skills/analyze-nonfunctional-requirements/SKILL.md",
+      "destination": "managed-skills/skills/analyze-nonfunctional-requirements/SKILL.md",
+      "blobSha": "027cefd06e8d4684934100e444eede90f9569485",
+      "bytes": 6507
+    },
+    {
+      "source": "custom/ba-agent/skills/analyze-requirements/SKILL.md",
+      "destination": "managed-skills/skills/analyze-requirements/SKILL.md",
+      "blobSha": "62d88e0e24f4890d924aea9bffa3ba6f2c175fb4",
+      "bytes": 18035
+    },
+    {
+      "source": "custom/ba-agent/skills/assess-change-impact/SKILL.md",
+      "destination": "managed-skills/skills/assess-change-impact/SKILL.md",
+      "blobSha": "861f04363a10c8cdf825372f2bdc8c9d03a71b2e",
+      "bytes": 6285
+    },
+    {
+      "source": "custom/ba-agent/skills/assess-itil-alignment/SKILL.md",
+      "destination": "managed-skills/skills/assess-itil-alignment/SKILL.md",
+      "blobSha": "809905358eac20dd64720618b472c69524e827fe",
+      "bytes": 10154
+    },
+    {
+      "source": "custom/ba-agent/skills/assess-operational-readiness/SKILL.md",
+      "destination": "managed-skills/skills/assess-operational-readiness/SKILL.md",
+      "blobSha": "4068bf8820b138abdcf07609bb5f46a53efe813c",
+      "bytes": 6803
+    },
+    {
+      "source": "custom/ba-agent/skills/audit-artifact-traceability/SKILL.md",
+      "destination": "managed-skills/skills/audit-artifact-traceability/SKILL.md",
+      "blobSha": "d631ab4bb54420537e20ee910f3bfc7a40f14d07",
+      "bytes": 8557
+    },
+    {
+      "source": "custom/ba-agent/skills/decompose-requirements/SKILL.md",
+      "destination": "managed-skills/skills/decompose-requirements/SKILL.md",
+      "blobSha": "2a53ba2a2f20fa4e472ec77c37d92e1c682c40c7",
+      "bytes": 16786
+    },
+    {
+      "source": "custom/ba-agent/skills/derive-test-cases/SKILL.md",
+      "destination": "managed-skills/skills/derive-test-cases/SKILL.md",
+      "blobSha": "bd4c891a99415d599135777423d72df36f4af7b6",
+      "bytes": 7066
+    },
+    {
+      "source": "custom/ba-agent/skills/design-technical-solution/SKILL.md",
+      "destination": "managed-skills/skills/design-technical-solution/SKILL.md",
+      "blobSha": "5775e8420a73632307d9f705de1439d618e862fe",
+      "bytes": 12149
+    },
+    {
+      "source": "custom/ba-agent/skills/elaborate-acceptance-criteria/SKILL.md",
+      "destination": "managed-skills/skills/elaborate-acceptance-criteria/SKILL.md",
+      "blobSha": "b30dbbd230f167c7ff614f569a5ce04f30254b40",
+      "bytes": 11697
+    },
+    {
+      "source": "custom/ba-agent/skills/expand-procurement-market/SKILL.md",
+      "destination": "managed-skills/skills/expand-procurement-market/SKILL.md",
+      "blobSha": "70a11ea5b49f3b9c79d786b99c43bc307cbc964c",
+      "bytes": 3813
+    },
+    {
+      "source": "custom/ba-agent/skills/prepare-implementation-ready-requirements/SKILL.md",
+      "destination": "managed-skills/skills/prepare-implementation-ready-requirements/SKILL.md",
+      "blobSha": "f7ea6a6db0a72106c735c80e1b853732365a2ac2",
+      "bytes": 22667
+    },
+    {
+      "source": "custom/ba-agent/skills/prepare-procurement-specification/SKILL.md",
+      "destination": "managed-skills/skills/prepare-procurement-specification/SKILL.md",
+      "blobSha": "5c7735d852168caf861d12ad5d4422ce0b6c6eb2",
+      "bytes": 7328
+    },
+    {
+      "source": "custom/ba-agent/skills/prepare-solution-change-readiness/SKILL.md",
+      "destination": "managed-skills/skills/prepare-solution-change-readiness/SKILL.md",
+      "blobSha": "ed9a90085c506ca509ba03ad55e6f2977f6029e8",
+      "bytes": 6886
+    },
+    {
+      "source": "custom/ba-agent/skills/reconcile-requirement-changes/SKILL.md",
+      "destination": "managed-skills/skills/reconcile-requirement-changes/SKILL.md",
+      "blobSha": "604e6003534fd7535a95b80261709661757042b4",
+      "bytes": 5886
+    },
+    {
+      "source": "custom/ba-agent/skills/record-architecture-decisions/SKILL.md",
+      "destination": "managed-skills/skills/record-architecture-decisions/SKILL.md",
+      "blobSha": "07350c76c9d791050eb45a8b606828be3d651203",
+      "bytes": 6216
+    },
+    {
+      "source": "custom/ba-agent/skills/validate-release-evidence/SKILL.md",
+      "destination": "managed-skills/skills/validate-release-evidence/SKILL.md",
+      "blobSha": "22f64650f21c256336c1751cd7ad3bc99a091832",
+      "bytes": 16686
+    },
+    {
+      "source": "custom/ba-agent/skills/verify-procurement-options/SKILL.md",
+      "destination": "managed-skills/skills/verify-procurement-options/SKILL.md",
+      "blobSha": "7fd4fcbef2daa3d59e93d4221507b93dc18bbabc",
+      "bytes": 6939
+    }
+  ]
+}
