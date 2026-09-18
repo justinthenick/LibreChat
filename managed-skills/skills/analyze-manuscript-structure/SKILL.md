@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.2.7**
+Version: **0.2.8**
 
 ## Purpose and boundary
 
@@ -170,8 +170,14 @@ general evidence bucket.
 - Do not create source-expanding biographies to populate a row. Recipient,
   interaction, ownership, residence and action require their own explicit support.
 
-Use `None established` for unsupported cells; an ID alone is preferable to an
-invented relationship/action paraphrase.
+For the three typed evidence fields (`Explicit role/history`,
+`Explicit goals/beliefs`, and `Explicit relationships/interactions`), render
+**source IDs only** or `None established`. Do not add descriptive paraphrases
+inside these cells. The evidence register supplies the canonical claim text and
+preserves its attribution/modality. Include an ID in a typed field only when its
+canonical claim directly establishes that field for the row subject.
+
+Use `None established` for unsupported typed fields.
 
 #### 4. Chronology and causal map
 
@@ -181,8 +187,9 @@ Presentation order can reference the chapter map without claiming temporal order
 List time-bearing source IDs with their exact quoted claims. If text accompanies
 an ID anywhere outside the evidence register, copy the complete Claim cell
 verbatim; do not shorten it with ellipses, extract only an inner quotation, or add
-a fresh paraphrase. Prefer the ID alone when repeating the full claim would be
-cumbersome.
+a fresh paraphrase. Do not append parenthetical labels, classifications,
+interpretations, or restatements after the canonical claim. Prefer the ID alone
+when repeating the full claim would be cumbersome.
 
 Keep document timestamps, object readings, remembered events and service names
 distinct. Do not append interpretive timing labels such as `boarding time`,
@@ -192,9 +199,16 @@ sequence unless the manuscript explicitly establishes the events' timing/order.
 A time embedded in a service name is not an established departure, boarding,
 schedule, or actual event time.
 
+For **Established event chronology**, list only source IDs for event
+relationships/order that the manuscript explicitly establishes. If no
+cross-source chronology is explicitly established, write exactly
+`None established`; do not explain the absence with a newly paraphrased
+timeline.
+
 List a causal relationship only when a source passage explicitly states it;
 retain attribution if a character states the causal belief. Otherwise write
-`None established`. Do not generate process questions to fill the causal map.
+exactly `None established`. Do not append explanatory prose after that value or
+generate process questions to fill the causal map.
 
 #### 5. Manuscript-level reconstruction and current ending state
 
@@ -291,16 +305,20 @@ Compare the visible output with the source, not merely with the internal ledger.
 5. Chronology distinguishes presentation order and source time expressions from
    proven event order. Later object appearances do not inherit earlier readings.
 6. Interpretation supplies no unsupported facts, identity linkage, motive,
-   mechanism, authorial intent or edit recommendation. Character-map fields obey
-   their typed semantics: a recorded/spoken question does not populate
-   role/history, goals/beliefs, or relationships/interactions without independent
-   declarative support; candidate identities and source speakers do not inherit
-   U-IDs for another unresolved subject.
+   mechanism, authorial intent or edit recommendation. Character-map typed fields
+   contain source IDs only (or `None established`), and every selected ID
+   directly establishes that field for the row subject. Recorded/spoken questions
+   do not populate typed fields without independent declarative support;
+   candidate identities and source speakers do not inherit U-IDs for another
+   unresolved subject.
 7. Time-bearing views never convert a service name or document/object timestamp
    into an event time, schedule, departure, or boarding time unless the source
    explicitly establishes that relation.
 8. Possessive/document phrases do not become actions or biography, and
    point-of-view/structure text does not create scene boundaries or chapter-level
    locations from atom-local location evidence.
+9. Time-bearing claim bullets have no appended paraphrase/annotation. When no
+   established cross-source chronology or causal relationship exists, the
+   corresponding section contains only `None established`.
 
 Return the reconstruction only after fixing any violation found.
