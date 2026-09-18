@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.1.14 strengthens the evidence-discipline rules further:
+Current hardening through version 0.1.15 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -176,6 +176,16 @@ This controlled rerun fixed the prior recipient and relationship inferences and 
 - the motifs section referred to `the deckhand's mention` of a passenger, again converting memory/recollection into a communication act.
 
 Everything else in the promotion-critical behavior was clean. Version 0.1.14 therefore applies predicate fidelity across every output section, including motifs/themes and living briefs, and explicitly prohibits converting `remembers` into `reports`, `mentions`, or passive reporting language.
+
+
+### Attempt 14 — v0.1.14 — FAIL
+
+This controlled rerun preserved the main ambiguity, chronology, provenance, modality, evidence classification, recipient attribution, and deckhand relationship controls. Two residual source-contract issues remained:
+
+- the Chapter 1 character-state summary compressed Mara's two statements into `Leon left before six taking the north road`, which promotes Leon's reported statement about taking the north road into the route he actually took;
+- the motifs section still used `Mrs Pell's mention` and `the deckhand's mention`, with the latter converting the manuscript's `remembers` predicate into a communication act.
+
+Version 0.1.15 therefore preserves nested attribution/clause boundaries explicitly and removes an internally inconsistent older instruction that still allowed a deckhand recollection to be phrased as `reports/recalls`.
 
 ## Promotion rule
 
