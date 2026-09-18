@@ -1,0 +1,39 @@
+{
+  "checks": [
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 11096
+          }
+        ]
+      },
+      "index": 1,
+      "label": "Autodeploy lock/process status",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lines": 30,
+        "path": "/volume1/docker/librechat-deploy-events.log",
+        "text": "2026-09-18 19:05:02 Cloudflare tunnel integration enabled\n2026-09-18 19:05:02 Synology Admin Settings integration enabled\n2026-09-18 19:07:43 Change detected: adb82762 -> 5c610170\n2026-09-18 19:11:58 Official LibreChat Admin Panel dedicated session secret ready\n2026-09-18 19:12:02 Synology Admin Settings privileged worker ready\n2026-09-18 19:12:04 NAS read-only infrastructure worker ready\n2026-09-18 19:12:06 Compose validation passed\n2026-09-18 19:17:30 Image pull completed\n2026-09-18 19:22:26 Compose update completed\n2026-09-18 19:27:11 LibreChat API recreated for deployed runtime configuration\n2026-09-18 19:27:12 LibreChat health check passed\n2026-09-18 19:27:57 Production agents and coding-agent pilot seeded and validated\n2026-09-18 19:28:01 MCP workspace mount passed write/read/delete check\n2026-09-18 19:28:04 Cloudflare tunnel connector registered\n2026-09-18 19:28:07 Synology Admin Settings panel and worker healthy\n2026-09-18 19:28:23 Official LibreChat Admin Panel healthy on its configured host port (default 3220)\n2026-09-18 19:28:26 NAS read-only infrastructure worker and MCP bridge healthy\n2026-09-18 19:34:29 Sanitised GitHub telemetry published\n2026-09-18 19:35:11 Deployment healthy at 5c610170580951ee0b26819d13036568b72f3edb\n2026-09-18 19:35:32 LibreChat deployment check started\n2026-09-18 19:35:32 Cloudflare tunnel integration enabled\n2026-09-18 19:35:32 Synology Admin Settings integration enabled\n2026-09-18 19:37:52 Change detected: 5c610170 -> 883386fc\n2026-09-18 19:39:31 ERROR: Git fast-forward update failed\n2026-09-18 19:46:04 Sanitised GitHub telemetry published\n2026-09-18 19:47:36 LibreChat deployment check started\n2026-09-18 19:47:36 Cloudflare tunnel integration enabled\n2026-09-18 19:47:36 Synology Admin Settings integration enabled\n2026-09-18 19:51:54 Change detected: 5c610170 -> 883386fc\n2026-09-18 19:54:10 ERROR: Git fast-forward update failed"
+      },
+      "index": 2,
+      "label": "Recent deployment event log",
+      "status": "ok",
+      "type": "tail"
+    }
+  ],
+  "ended_at": "2026-09-18T09:58:57Z",
+  "hostname": "NAS",
+  "overall": "ok",
+  "recipe": "custom/ba-agent/diagnostics/pr93-lock-check-20260918-007.json",
+  "recipe_name": "PR93 autodeploy lock check",
+  "request_id": "pr93-lock-check-20260918-007",
+  "schema": 1,
+  "started_at": "2026-09-18T09:58:56Z"
+}
