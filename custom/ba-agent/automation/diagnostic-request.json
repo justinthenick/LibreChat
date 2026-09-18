@@ -1,6 +1,6 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "pr93-stuck-process-check-20260918-008",
-  "recipe": "custom/ba-agent/diagnostics/pr93-stuck-process-check-20260918-008.json"
+  "request_id": "pr93-cleanup-refresh-check-20260918-009",
+  "recipe": "custom/ba-agent/diagnostics/pr93-cleanup-refresh-check-20260918-009.json"
 }
