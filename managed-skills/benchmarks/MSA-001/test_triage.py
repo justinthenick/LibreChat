@@ -106,6 +106,22 @@ class TriageTests(unittest.TestCase):
         self.assertNotIn("shortened-claim", self.codes(
             "- S-06: A neighbour, Mrs Pell, tells Vale that she saw someone walking."))
 
+    def test_possessive_notebook_action_is_flagged(self):
+        self.assertIn("possessive-action", self.codes(
+            "| Inspector Vale | None established | None established | keeps a notebook (S13) |"))
+
+    def test_source_notebook_wording_is_clean(self):
+        self.assertNotIn("possessive-action", self.codes(
+            'S13: "Vale’s notebook contains the line: “M. knew about harbour before I mentioned it?”"'))
+
+    def test_scene_location_summary_is_flagged(self):
+        self.assertIn("scene-location-summary", self.codes(
+            "- Presentation order follows scenes at the cottage (Chapter 1), north road (Chapter 2), harbour (Chapter 3)."))
+
+    def test_plain_presentation_order_is_clean(self):
+        self.assertNotIn("scene-location-summary", self.codes(
+            "- Chapter 1: presentation order S01-S07."))
+
     def test_negated_example_remains_advisory(self):
         result = report("Do not invent identity of the deckhand.")
         self.assertTrue(result["findings"])
