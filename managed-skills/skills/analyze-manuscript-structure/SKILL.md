@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.2.4**
+Version: **0.2.5**
 
 ## Purpose and boundary
 
@@ -130,26 +130,48 @@ observations and object states are not inferred character transitions. Write
 
 `Character/source label | Explicit role/history: source IDs | Explicit goals/beliefs: source IDs | Explicit relationships/interactions: source IDs | Uncertainty IDs about this subject`
 
-Use the manuscript's exact label. A statement is not automatically a belief.
-Recorded or spoken questions remain questions and must not populate fields such
-as explicit goals/beliefs unless the source independently establishes the
-corresponding belief or goal. Attribution of a question to a character does not
-establish that character's belief, goal, intention, fact, motive or conclusion.
-Do not create source-expanding biographies to populate a row. Recipient,
-interaction, ownership, residence and action require their own explicit support.
-Use `None established` for unsupported cells. Uncertainties about another subject
-stay in the uncertainty ledger, even if the character supplies the evidence.
+Use the manuscript's exact label. Treat every column as a typed field, not a
+general evidence bucket.
+
+- A statement is not automatically the speaker's belief, and a statement about
+  another character is not that other character's belief or goal. Populate
+  `Explicit goals/beliefs` only when the manuscript directly establishes a
+  mental state for that row subject. Third-party claims, questions, inability to
+  identify/confirm, preferences merely alleged by another character, and general
+  uncertainty do not qualify.
+- Recorded or spoken questions remain questions and must not populate fields such
+  as explicit goals/beliefs unless the source independently establishes the
+  corresponding belief or goal. Attribution of a question to a character does not
+  establish that character's belief, goal, intention, fact, motive or conclusion.
+- Attach a U-ID to a character/source row only when that U-ID's unresolved subject
+  is that row subject itself, or when the manuscript explicitly makes the
+  uncertainty about that subject's own state. Being a possible candidate answer
+  to an identity/referent uncertainty does not transfer the U-ID to the candidate.
+  Keep unidentified-person/passenger/referent uncertainties on their unresolved
+  subject rows.
+- Do not create source-expanding biographies to populate a row. Recipient,
+  interaction, ownership, residence and action require their own explicit support.
+
+Use `None established` for unsupported cells.
 
 #### 4. Chronology and causal map
 
 Separate **chapter/presentation order** from **established event chronology**.
 Presentation order can reference the chapter map without claiming temporal order.
 
-List time-bearing source IDs with their exact quoted claims. Keep document
-timestamps, object readings, remembered events and service names distinct. Do not
-sort these into a confirmed event sequence unless the manuscript explicitly
-establishes the events' timing/order. A time embedded in a service name is not an
-established departure, boarding, schedule, or actual event time.
+List time-bearing source IDs with their exact quoted claims. If text accompanies
+an ID anywhere outside the evidence register, copy the complete Claim cell
+verbatim; do not shorten it with ellipses, extract only an inner quotation, or add
+a fresh paraphrase. Prefer the ID alone when repeating the full claim would be
+cumbersome.
+
+Keep document timestamps, object readings, remembered events and service names
+distinct. Do not append interpretive timing labels such as `boarding time`,
+`departure time`, `scheduled time`, or equivalent unless the source explicitly
+establishes that event/time relation. Do not sort these into a confirmed event
+sequence unless the manuscript explicitly establishes the events' timing/order.
+A time embedded in a service name is not an established departure, boarding,
+schedule, or actual event time.
 
 List a causal relationship only when a source passage explicitly states it;
 retain attribution if a character states the causal belief. Otherwise write
@@ -169,7 +191,10 @@ locations, states or character knowledge forward.
 #### 6. Motifs / possible themes
 
 List repeated textual words/images with source IDs and their exact claims.
-Repetition supports a textual motif, not a hidden relationship or explanation.
+When claim text is shown, reproduce the complete register Claim cell verbatim;
+do not use ellipses or shortened fragments. An ID alone is preferable to a
+shortened quotation. Repetition supports a textual motif, not a hidden
+relationship or explanation.
 
 A thematic reading, if useful, must be explicitly labelled `Possible interpretation`
 with confidence and source IDs. It must not introduce a new factual proposition,
@@ -230,16 +255,23 @@ Compare the visible output with the source, not merely with the internal ledger.
 
 1. Every register claim is an exact source excerpt with complete attribution and
    modality; no excerpt silently converts quoted testimony to narration.
-2. Every factual reuse is an ID reference or the same exact register claim.
-   Replace newly paraphrased summary prose with the selected claims.
+2. Every factual reuse is an ID reference or the same complete register claim.
+   No ellipses, shortened inner quotations, or bracketed paraphrases replace the
+   canonical claim. Prefer an ID alone if full repetition is not useful.
 3. Every unresolved item has a licensing quotation, preserves its subject and
-   occurs only in the appropriate views.
+   occurs only in the appropriate views. Candidate identities/referents do not
+   inherit another unresolved subject's U-ID.
 4. Every modifier and relationship is supported for that atom; no neighbouring
    location/time/state, inferred recipient, or static-state precursor has leaked in.
 5. Chronology distinguishes presentation order and source time expressions from
    proven event order. Later object appearances do not inherit earlier readings.
 6. Interpretation supplies no unsupported facts, identity linkage, motive,
-   mechanism, authorial intent or edit recommendation. Recorded or spoken
-   questions remain questions and do not populate explicit goals/beliefs.
+   mechanism, authorial intent or edit recommendation. Character-map fields obey
+   their typed semantics: statements/questions/uncertainties do not become
+   goals/beliefs, and candidate identities do not inherit U-IDs. Recorded or
+   spoken questions remain questions and do not populate explicit goals/beliefs.
+7. Time-bearing views never convert a service name or document/object timestamp
+   into an event time, schedule, departure, or boarding time unless the source
+   explicitly establishes that relation.
 
 Return the reconstruction only after fixing any violation found.
