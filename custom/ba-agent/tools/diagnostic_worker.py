@@ -646,6 +646,62 @@ def check_skill_inventory(check, root, env_file, repo, branch):
     raise DiagnosticError("Skill inventory query failed: {}".format(" | ".join(errors)))
 
 
+def check_inline_skill_export(check, root, env_file, repo, branch):
+    names = check.get("names") or []
+    if not isinstance(names, list) or not names or len(names) > 20:
+        raise DiagnosticError("inline skill export requires 1-20 names")
+    cleaned = []
+    for name in names:
+        value = str(name or "").strip()
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", value):
+            raise DiagnosticError("Invalid skill name")
+        cleaned.append(value)
+    script = (
+        "var rows=db.skills.find({source:'inline',name:{$in:"
+        + json.dumps(cleaned)
+        + "}},"
+        + json.dumps({
+            "_id": 0,
+            "name": 1,
+            "displayTitle": 1,
+            "description": 1,
+            "body": 1,
+            "frontmatter": 1,
+            "disableModelInvocation": 1,
+            "userInvocable": 1,
+            "allowedTools": 1,
+            "category": 1,
+            "alwaysApply": 1,
+            "version": 1,
+            "fileCount": 1,
+            "createdAt": 1,
+            "updatedAt": 1,
+        })
+        + ").sort({name:1}).toArray(); print(JSON.stringify(rows));"
+    )
+    commands = [
+        ["docker", "exec", "librechat-mongodb", "mongosh", "LibreChat", "--quiet", "--eval", script],
+        ["docker", "exec", "librechat-mongodb", "mongo", "LibreChat", "--quiet", "--eval", script],
+    ]
+    errors = []
+    for cmd in commands:
+        try:
+            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=30, check=False)
+        except Exception as exc:
+            errors.append(str(exc))
+            continue
+        if proc.returncode != 0:
+            errors.append(sanitize_text(proc.stderr or proc.stdout))
+            continue
+        output = (proc.stdout or "").strip()
+        try:
+            rows = json.loads(output.splitlines()[-1]) if output else []
+        except Exception:
+            raise DiagnosticError("Inline skill export returned non-JSON output: {}".format(sanitize_text(output)))
+        return {"count": len(rows), "skills": rows}
+    raise DiagnosticError("Inline skill export query failed: {}".format(" | ".join(errors)))
+
+
 CHECKS = {
     "path_exists": check_path_exists,
     "tail": check_tail,
@@ -657,6 +713,7 @@ CHECKS = {
     "env_presence": check_env_presence,
     "skill_sync_status": check_skill_sync_status,
     "skill_inventory": check_skill_inventory,
+    "inline_skill_export": check_inline_skill_export,
     "repair_skill_sync_checkout": check_repair_skill_sync_checkout,
     "restore_librechat_yaml_from_last_success": check_restore_librechat_yaml_from_last_success,
     "clear_failed_autodeploy": check_clear_failed_autodeploy,
