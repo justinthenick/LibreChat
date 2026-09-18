@@ -66,7 +66,15 @@ export function filterSkillsForPopover(
   const result: TSkillSummary[] = [];
   for (const skill of skills) {
     if (agentSet && !agentSet.has(skill._id)) {
-      continue;
+      const metadata =
+        skill.sourceMetadata && typeof skill.sourceMetadata === 'object'
+          ? (skill.sourceMetadata as Record<string, unknown>)
+          : undefined;
+      const draftOfSkillId =
+        typeof metadata?.draftOfSkillId === 'string' ? metadata.draftOfSkillId : undefined;
+      if (!draftOfSkillId || !agentSet.has(draftOfSkillId)) {
+        continue;
+      }
     }
     if (!isActive(skill)) {
       continue;
