@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.1.18**
+Version: **0.2.0**
 
 ## Purpose
 
@@ -72,11 +72,13 @@ Before drafting the visible reconstruction, perform these two passes:
 
 Build an internal ledger of atomic source claims. For each claim preserve, where present:
 
-`Chapter | Source/actor | Exact predicate/action type | Explicit recipient | Content/object | Explicit location | Explicit time | Modality/evidence type`
+`Chapter | Source/actor | Exact predicate/action type | Explicit recipient | Content/object | Explicit location | Explicit time | Modality/evidence type | Source-licensed unresolved point`
 
 Rules for the ledger:
 
 - Keep separate sentences/clauses as separate atoms when they have different attribution or modality.
+- **Closed-world unresolved scope:** populate `Source-licensed unresolved point` only when the manuscript itself explicitly creates the uncertainty (for example, `could not see the face`, `cannot tell whether`, `does not explain`, `no passenger name`, `no test performed`, an unresolved question in recorded text, or a directly observable contradiction/discrepancy). Do not manufacture a new event merely to ask about it.
+- A single static state does **not** license reverse-engineered process questions. `car beside the north road` does not license `who drove/parked/left it` or `when it arrived`; `engine cold` does not license `when/why it cooled`; `receipt in glovebox` does not license `who purchased/placed/used/obtained it`; `scarf on table` does not license `who placed it`.
 - Record only locations, times, recipients and object states explicitly established for that atom.
 - **Do not derive transitions from states.** `the engine is cold` establishes a cold state, not that the engine previously ran, cooled, was switched off, or changed temperature; `the car is beside the north road` does not establish that someone drove, parked, left, or brought it there; `a receipt is in the glovebox` does not establish who bought, placed, used, or obtained it.
 - **Keep modifiers atom-local.** A location/time phrase applies only to the clause/sentence it grammatically modifies. `At the harbour, Vale finds...` does not automatically locate a following deckhand memory at the harbour. Do not carry scene location, time, recipient, or state from one ledger atom into the next merely because the sentences are adjacent.
@@ -95,7 +97,8 @@ Construct every visible section only from ledger atoms plus clearly labelled int
 - A later reference to an object must not repeat an earlier state unless the later atom restates it.
 - Do not render a state as a transition/process question. If the ledger says `engine: cold`, output may say the engine is cold; it must not ask when/why it cooled. If the ledger says `car: beside north road`, do not introduce `arrived`, `parked`, `left`, or a driver unless another atom establishes that action.
 - Do not group a separate atom under a location/time heading unless that atom itself carries that modifier in the ledger.
-- If a table cell cannot be populated directly from ledger atoms, use `Unstated`, `Unknown`, `None established`, or leave it neutral.
+- If a table cell cannot be populated directly from ledger atoms, use `Unstated`, `Unknown`, `None established`, `—`, or leave it neutral.
+- `Open threads`, `Unknowns`, `What remains unresolved`, and `Items requiring author confirmation` may only render the ledger's `Source-licensed unresolved point` values. They are closed-world views, not prompts to brainstorm missing causes, actors, purchases, uses, arrivals, parking, or other hypothetical precursor events.
 
 ## Source-preserving output contract
 
@@ -123,7 +126,7 @@ For the chapter map, keep each column semantically narrow:
 - **Material events:** only actions/observations/statements actually occurring in the chapter, preserving source predicate and attribution.
 - **New information / reveal:** only information newly available in that chapter, preserving whether it is narrator-established, a character statement, a memory, or recorded text.
 - **Character-state change:** only a state change explicitly established by the manuscript. Do **not** use this column to restate dialogue, routes, evidence, phone calls, investigation activity, or inferred transitions. If no explicit state change is established, write `None established`.
-- **Open threads created / resolved:** only unknowns or resolutions the manuscript itself creates; do not generate secondary investigative questions for completeness.
+- **Open threads created / resolved:** only the ledger's source-licensed unresolved points or explicit resolutions. If none are licensed for that chapter, write `None established`. Do not generate `who/when/how/why` questions from static states or object presence.
 
 A statement must never be compressed into a stronger action in the character-state column. For example, `Mara says Leon left before six. He told me he was taking the north road.` must not become `Leon left before six taking the north road` anywhere in the chapter map.
 
@@ -139,10 +142,11 @@ A short description of the story as it currently exists, including central drama
 `Character | Explicit role/history | Explicit goals/beliefs | Relationship evidence | Unknowns`
 
 ### 4. Chronology and causal map
-List confirmed sequence first, then uncertain/conflicting timing and causal claims.
+List confirmed sequence first, then uncertain/conflicting timing. Include causal claims only when the manuscript explicitly states a causal relation or a character explicitly states a causal belief. If none are established, write `None established`; do not invent causal/process questions from static states.
 
 ### 5. Evidence and uncertainty register
-`Claim | Strength | Evidence | What remains unresolved`
+`Claim | Strength | Evidence | Source-licensed unresolved point`
+Use `—` when the ledger licenses no unresolved point for that claim. Do not generate new precursor events or investigative questions to fill the final column.
 
 ### 6. Motifs / possible themes
 Separate repeated textual motifs from interpretive thematic readings and label confidence.
@@ -151,9 +155,9 @@ Separate repeated textual motifs from interpretive thematic readings and label c
 Record discrepancies without repairing them.
 
 ### 8. Living editorial-brief seed
-A compact, neutral summary of current premise, story movement, major reveals, unresolved questions, point-of-view/structural observations actually evidenced by the text, and items requiring author confirmation before editing. State unresolved items neutrally; do not propose candidate answers, mechanisms, motives, craft-device labels or authorial explanations unless the source text itself supplies them.
+A compact, neutral summary of current premise, story movement, major reveals, source-licensed unresolved points, point-of-view/structural observations actually evidenced by the text, and only those author-confirmation items licensed by the ledger. Do not group statements/recollections under a place unless their own ledger atoms carry that location. Do not propose candidate answers, mechanisms, motives, craft-device labels or authorial explanations unless the source text itself supplies them.
 
-## Out of scope for v0.1
+## Out of scope
 
 - prose rewriting or copy-editing;
 - developmental-edit recommendations;
@@ -193,6 +197,7 @@ Before returning the analysis, check:
 - Did I avoid carrying an earlier object state into a later appearance when the later text does not restate that state (for example, Chapter 1's `clock reads 6:45` must not become a Chapter 3 clock reading merely because Mara looks at the clock again)?
 - Could every factual clause in the visible output be traced back to one or more source-ledger atoms without adding recipient, location, time, state, predicate or modality?
 - Did I keep static states as states rather than inventing implied transitions/processes (cold→cooled, located→arrived/parked, receipt present→purchased/used)?
+- Did every rendered unresolved/open-thread/author-confirmation item come from a `Source-licensed unresolved point` in the ledger, rather than being reverse-engineered from a static state or object presence?
 - Did I keep sentence-local location/time modifiers attached only to the atoms they explicitly modify, rather than propagating them to adjacent material?
 - In the chapter map, did I use `Character-state change` only for explicit state changes and write `None established` rather than using that column to paraphrase events or dialogue?
 - Did I preserve nested attribution and clause boundaries, rather than collapsing `X says A; Y told X B` into a single factual claim `A and B`?
