@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.1.8**
+Version: **0.1.9**
 
 ## Purpose
 
@@ -50,17 +50,18 @@ This Skill is **reconstruction only**. It does not rewrite prose, line-edit chap
 - Do not use authorial-purpose language such as `intended`, `intentionally`, `meant as`, `designed to`, `red herring`, `deliberate misdirection`, or `intended twist` unless a supplied author note or the manuscript explicitly establishes that framing.
 - Shared descriptors do not establish identity or linkage. Two red objects, two coats, or two similar times may be noted as similar, but do not call them a match, corroboration or confirmation unless the text or evidence establishes the connection.
 - Keep independent witness reports independent unless the manuscript establishes that they concern the same person, object or event. One report does not confirm or corroborate another solely because both use a broad descriptor.
-- Preserve evidence location and provenance exactly. Do not relocate a receipt, object, sighting or statement from where it was found, observed or reported. A document connected to a place or service does not mean it was found at that place. Also preserve who observed, found, reported, or recorded each item; do not attribute Mara's cottage observations to Vale or summarize them as evidence Vale collected.
+- Preserve evidence location and provenance exactly. Do not relocate a receipt, object, sighting or statement from where it was found, observed or reported. A document connected to a place or service does not mean it was found at that place. Also preserve who observed, found, reported, or recorded each item; do not attribute Mara's cottage observations to Vale or summarize them as evidence Vale collected. In aggregate summaries, if evidence has mixed provenance, either enumerate the source for each item or use neutral wording such as `the manuscript contains`; do not collapse mixed observations into one investigator's collection.
 - Preserve event wording and timing exactly. A `6:40 ferry` or a passenger `boarding the 6:40 ferry` does not by itself establish the ferry's departure time unless the text explicitly says it departed at 6:40.
 - Do not derive event order from a label, schedule, timestamp or object time unless the text establishes when the event itself occurred. A receipt printed at 6:32 and a passenger boarding the `6:40 ferry` do not establish that the receipt was printed before the boarding event. When in doubt, state the two time-bearing facts separately and do not compare them chronologically.
 - Do not upgrade familiarity or relationship detail from a single observation. A witness recognizing a coat does not establish broader familiarity with the wearer's appearance, habits or wardrobe unless the text says so.
 - Preserve role and place labels at the source text's level of specificity. Use the source noun itself when possible rather than a broader or inferred paraphrase: `Inspector` stays `Inspector`; `deckhand` stays `deckhand`; `north road` stays `north road`. Do not convert an indefinite place such as `the cottage` into ownership or residence language such as `their cottage`, and do not append contextual location to a role (`deckhand at the harbour`) unless the text states that role/location relation.
 - Do not add secondary unknowns merely because they are conceivable. Track an unknown only when the manuscript itself creates it or when it is necessary to explain why a claim cannot be established. Do not add questions about residence, vantage point, distance, broader familiarity, wardrobe knowledge, ambient conditions, or similar background details unless the manuscript itself makes that detail material.
 - Prefer omission over speculative completeness. If filling a table cell would require adding a new unstated question, role, mechanism or candidate, write `Unstated` / `Unknown` or leave the cell neutral rather than expanding beyond the manuscript.
-- Preserve modality exactly. A notebook question such as `M. knew about harbour before I mentioned it?` is a recorded question, not proof that Vale suspects, believes, concludes, or establishes prior knowledge.
+- Preserve modality exactly. A notebook question such as `M. knew about harbour before I mentioned it?` is a recorded question, not proof that Vale suspects, believes, concludes, or establishes prior knowledge. In evidence tables, the claim label itself must preserve that modality (for example, `Vale's notebook contains a question about whether M. knew...`), rather than rewriting the question as a declarative claim and relying on `Unknown / unresolved` to soften it.
 - Preserve the referent class of ambiguous language. An unspecified `you` does not establish that the addressee is a person or individual; report the addressee/referent as unresolved unless the text establishes its nature.
 - Avoid converting neutral spatial descriptions into route or domain labels. `north road` and `harbour` need not become `land route`, `maritime route`, `inland`, `coastal`, or similar abstractions unless the text uses them. Do not say an item `points to` a place merely because it concerns a service associated with that place; state the item's actual location and content instead.
 - Preserve report/action scope. If the text shows a character phoning an inspector and making statements about another character's departure, do not upgrade that act into `reporting a disappearance` or `reporting someone missing` unless the text explicitly says so.
+- Preserve evidence type in summaries and `Major reveals`. A deckhand's recollection remains `the deckhand reports/recalls...`; do not restate it as an unqualified factual reveal such as `a passenger boarded...`. Character statements and witness recollections must remain attributed wherever they appear.
 - Do not recast an unresolved clue as a craft device, continuity error, authorial choice or narrative function unless the manuscript or supplied author note explicitly establishes that framing.
 
 ## Recommended output
@@ -110,16 +111,17 @@ Before returning the analysis, check:
 - Did I avoid inventing authorial intent?
 - Did I avoid inferring guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive from unresolved clues?
 - Did I avoid inventing unsupported candidate identities, roles, ownership, residence, actions, mechanisms or narrative-device labels?
-- Did I preserve the exact location and provenance of evidence, including who observed/found/reported each item, without relocating service-related documents or attributing observations to the wrong character?
+- Did I preserve the exact location and provenance of evidence, including who observed/found/reported each item, without relocating service-related documents, collapsing mixed provenance into one investigator, or attributing observations to the wrong character?
 - Did I preserve event wording and timing without turning a labelled/scheduled time into an unstated departure time or unsupported event ordering? If two time-bearing facts were not explicitly ordered, did I avoid ordering them myself?
 - Did I avoid treating shared descriptors or independent witness reports as matches or corroboration without support?
 - Did I avoid upgrading a narrow observation into broader familiarity or relationship knowledge?
 - Did I preserve role and place labels at the source text's exact level of specificity and avoid inferred paraphrases, appended role locations, or ownership/residence language?
 - Did I avoid adding secondary unknowns that the manuscript itself does not create, including residence/vantage-point/familiarity questions?
-- Did I preserve modality, keeping questions as questions rather than converting them into suspicion, belief or conclusion?
+- Did I preserve modality, keeping questions as questions even in table claim labels rather than converting them into declarative claims, suspicion, belief or conclusion?
 - Did I keep ambiguous referents neutral rather than assuming they denote a person/individual?
 - Did I avoid abstracting source places into unstated route/domain labels or saying an item `points to` a place without explicit support?
 - Did I preserve the exact scope of what each character reported or did, without upgrading it into a stronger act such as `reporting missing`?
+- Did I keep witness recollections and character statements attributed in summaries and major reveals rather than presenting them as narrator-established facts?
 - Did I prefer omission or `Unstated` over speculative completeness?
 - Did I avoid editorial recommendations?
 - Could a later editing agent safely use this as a factual map without inheriting invented canon?
