@@ -1,4 +1,6 @@
 {
   "schema": 1,
-  "enabled": false
+  "enabled": true,
+  "request_id": "skills-audited-baseline-20260918-001",
+  "recipe": "custom/ba-agent/diagnostics/skills-audited-baseline-20260918-001.json"
 }
