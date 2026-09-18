@@ -1,11 +1,21 @@
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { InvocationMode } from 'librechat-data-provider';
+import {
+  InvocationMode,
+  PermissionTypes,
+  Permissions,
+  getSkillLifecycle,
+  getSkillLogicalName,
+} from 'librechat-data-provider';
 import { Button, TooltipAnchor } from '@librechat/client';
 import { Pencil, Pin, User, Calendar, EarthIcon, Sparkles, GitBranch, PencilLine } from 'lucide-react';
 import type { TSkill } from 'librechat-data-provider';
 import type { TranslationKeys } from '~/hooks';
-import { useLocalize, useAuthContext } from '~/hooks';
+import { useLocalize, useAuthContext, useHasAccess } from '~/hooks';
+import {
+  useCreateSkillDraftMutation,
+  useSetSkillLifecycleMutation,
+} from '~/data-provider';
 import DeleteSkill from '../dialogs/DeleteSkill';
 import { ShareSkill } from '../buttons';
 
@@ -24,6 +34,17 @@ const SkillDetailHeader = ({ skill, showActions = true }: SkillDetailHeaderProps
   const localize = useLocalize();
   const navigate = useNavigate();
   const { user } = useAuthContext();
+  const canCreateSkill = useHasAccess({
+    permissionType: PermissionTypes.SKILLS,
+    permission: Permissions.CREATE,
+  });
+  const createDraft = useCreateSkillDraftMutation({
+    onSuccess: (draft) => navigate(`/skills/${draft._id}/edit`),
+  });
+  const setLifecycle = useSetSkillLifecycleMutation();
+  const lifecycle = getSkillLifecycle(skill);
+  const logicalName = getSkillLogicalName(skill);
+  const isManagedDraft = lifecycle !== 'published';
   const formattedDate = skill.createdAt ? format(new Date(skill.createdAt), 'MMM d, yyyy') : null;
   const isOwner = skill.author === user?.id;
   const isShared = !isOwner && Boolean(skill.authorName);
@@ -34,8 +55,8 @@ const SkillDetailHeader = ({ skill, showActions = true }: SkillDetailHeaderProps
     <div className="flex flex-col gap-3 py-2 sm:flex-row sm:items-center sm:gap-4">
       <div className="min-w-0 flex-1 overflow-hidden">
         <div className="flex min-w-0 items-center gap-2">
-          <h2 className="truncate text-xl font-bold text-text-primary" title={skill.name}>
-            {skill.name}
+          <h2 className="truncate text-xl font-bold text-text-primary" title={logicalName}>
+            {logicalName}
           </h2>
           {isPublic && (
             <TooltipAnchor
@@ -51,22 +72,36 @@ const SkillDetailHeader = ({ skill, showActions = true }: SkillDetailHeaderProps
           )}
           <span
             className={
-              skill.source === 'github'
+              lifecycle === 'published' && skill.source === 'github'
                 ? 'inline-flex shrink-0 items-center gap-1 rounded-full border border-border-medium bg-surface-secondary px-2 py-1 text-xs font-medium text-text-secondary'
                 : 'inline-flex shrink-0 items-center gap-1 rounded-full border border-status-warning-border bg-status-warning-subtle px-2 py-1 text-xs font-medium text-status-warning'
             }
             title={
-              skill.source === 'github'
-                ? 'Managed from GitHub'
-                : 'Local skill — not managed by GitHub Skill Sync'
+              lifecycle === 'published' && skill.source === 'github'
+                ? 'Published and managed from GitHub'
+                : lifecycle === 'trial'
+                  ? 'Author draft enabled for trial'
+                  : lifecycle === 'publish_pending'
+                    ? 'Draft queued for publication'
+                    : isManagedDraft
+                      ? 'Editable author draft'
+                      : 'Local skill — not managed by GitHub Skill Sync'
             }
           >
-            {skill.source === 'github' ? (
+            {lifecycle === 'published' && skill.source === 'github' ? (
               <GitBranch className="size-3" aria-hidden="true" />
             ) : (
               <PencilLine className="size-3" aria-hidden="true" />
             )}
-            {skill.source === 'github' ? 'GitHub managed' : 'Local'}
+            {lifecycle === 'trial'
+              ? 'Draft · Trial'
+              : lifecycle === 'publish_pending'
+                ? 'Draft · Publish pending'
+                : isManagedDraft
+                  ? 'Draft'
+                  : skill.source === 'github'
+                    ? 'GitHub managed'
+                    : 'Local'}
           </span>
           {skill.alwaysApply === true && (
             <TooltipAnchor
@@ -105,9 +140,55 @@ const SkillDetailHeader = ({ skill, showActions = true }: SkillDetailHeaderProps
         </div>
       </div>
       {showActions && (
-        <div className="flex shrink-0 items-center gap-2">
-          <ShareSkill skill={skill} />
-          {isOwner && !externallyManaged && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {!isManagedDraft && <ShareSkill skill={skill} />}
+          {skill.source === 'github' && lifecycle === 'published' && canCreateSkill && (
+            <Button
+              variant="outline"
+              disabled={createDraft.isLoading}
+              onClick={() => createDraft.mutate({ skillId: skill._id })}
+            >
+              Create Draft
+            </Button>
+          )}
+          {isManagedDraft && isOwner && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/skills/${skill._id}/edit`)}
+              >
+                <Pencil className="mr-1 size-4" aria-hidden="true" />
+                Edit Draft
+              </Button>
+              {lifecycle !== 'trial' ? (
+                <Button
+                  variant="outline"
+                  disabled={setLifecycle.isLoading}
+                  onClick={() =>
+                    setLifecycle.mutate({ skillId: skill._id, lifecycle: 'trial' })
+                  }
+                >
+                  Test Draft
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  disabled={setLifecycle.isLoading}
+                  onClick={() =>
+                    setLifecycle.mutate({ skillId: skill._id, lifecycle: 'draft' })
+                  }
+                >
+                  End Trial
+                </Button>
+              )}
+              <DeleteSkill
+                skillId={skill._id}
+                skillName={logicalName}
+                onDelete={() => navigate('/skills')}
+              />
+            </>
+          )}
+          {isOwner && !externallyManaged && !isManagedDraft && (
             <>
               <TooltipAnchor
                 description={localize('com_ui_edit')}
