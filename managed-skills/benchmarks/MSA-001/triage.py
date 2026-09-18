@@ -13,7 +13,7 @@ DECKHAND = re.compile(r"\bdeckhand\b", re.I)
 NONE_ESTABLISHED = re.compile(r"^none established\.?$", re.I)
 SERVICE_TIME_PROMOTION = re.compile(
     r"\b(?:boarding|departure|scheduled|actual event) time\b", re.I)
-SOURCE_ID = re.compile(r"\b(?:ID|S)\s*-?\s*\d+\b", re.I)
+SOURCE_ID = re.compile(r"\b(?:ID|E|S)\s*-?\s*\d+\b", re.I)
 U_ID = re.compile(r"\bU\s*-?\s*\d+\b", re.I)
 ELLIPSIS = re.compile(r"(?:\.\.\.|…)" )
 NOTEBOOK_ACTION = re.compile(
@@ -44,6 +44,16 @@ def uids(value):
     return {norm_id(match.group(0)) for match in U_ID.finditer(value)}
 
 
+def id_only_or_none(value):
+    text = plain(value)
+    if not text or text in {"—", "-"} or NONE_ESTABLISHED.fullmatch(text):
+        return True
+    remainder = SOURCE_ID.sub("", text)
+    remainder = re.sub(r"(?:<br\s*/?>|[,;/&+])", "", remainder, flags=re.I)
+    remainder = re.sub(r"[()\s]", "", remainder)
+    return remainder == ""
+
+
 def scan(text):
     """Return advisory review candidates, including possible false positives.
 
@@ -63,6 +73,9 @@ def scan(text):
     question_ids = set()
     unresolved_subjects = {}
     heading_locations = {}
+    in_time_bearing_section = False
+    in_established_chronology = False
+    in_causal_section = False
     paragraph = []
     paragraph_start = None
 
@@ -108,10 +121,25 @@ def scan(text):
             add(number, "scene-location-summary",
                 "Check whether a structural summary assigned chapter/scene locations "
                 "from atom-local location evidence.")
+        if in_time_bearing_section and SOURCE_ID.search(value) and re.search(r"\)\s*$", value):
+            add(number, "chronology-annotation",
+                "Check appended chronology annotation; a time-bearing source claim "
+                "should be the complete canonical claim without fresh parenthetical "
+                "classification.")
+        if ((in_established_chronology or in_causal_section)
+                and value and not NONE_ESTABLISHED.fullmatch(value.lstrip("- ").strip())):
+            add(number, "none-section-explanation",
+                "When no chronology/causal relationship is established, render "
+                "None established only rather than explanatory paraphrase.")
         heading = re.match(r"^(#{1,6})\s+(.*)", raw.strip())
         if heading:
             flush()
             level = len(heading.group(1))
+            heading_text = plain(heading.group(2)).lower()
+            in_time_bearing_section = bool(
+                re.search(r"time-bearing source (?:claims|passages)", heading_text))
+            in_established_chronology = (heading_text == "established event chronology")
+            in_causal_section = bool(re.search(r"^causal relationships?$", heading_text))
             heading_locations = {k: v for k, v in heading_locations.items() if k < level}
             heading_locations[level] = bool(re.search(r"\bharbour\b", heading.group(2), re.I))
             claim_column = None
@@ -186,8 +214,18 @@ def scan(text):
                             "Check recorded-question reuse in " + field_name +
                             "; a question may license uncertainty but does not "
                             "establish this typed character field.")
+                    if not id_only_or_none(row[column]):
+                        add(number, "typed-field-prose",
+                            "Character-map " + field_name +
+                            " should contain source IDs only or None established; "
+                            "descriptive paraphrase can change field semantics.")
             if goals_column is not None and len(row) > goals_column:
                 goals = row[goals_column]
+                if not id_only_or_none(goals):
+                    add(number, "typed-field-prose",
+                        "Character-map goals/beliefs should contain source IDs only "
+                        "or None established; descriptive paraphrase can change field "
+                        "semantics.")
                 if "?" in goals:
                     add(number, "question-as-belief",
                         "Check whether a recorded or spoken question was placed under "
