@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.1.9**
+Version: **0.1.10**
 
 ## Purpose
 
@@ -50,7 +50,7 @@ This Skill is **reconstruction only**. It does not rewrite prose, line-edit chap
 - Do not use authorial-purpose language such as `intended`, `intentionally`, `meant as`, `designed to`, `red herring`, `deliberate misdirection`, or `intended twist` unless a supplied author note or the manuscript explicitly establishes that framing.
 - Shared descriptors do not establish identity or linkage. Two red objects, two coats, or two similar times may be noted as similar, but do not call them a match, corroboration or confirmation unless the text or evidence establishes the connection.
 - Keep independent witness reports independent unless the manuscript establishes that they concern the same person, object or event. One report does not confirm or corroborate another solely because both use a broad descriptor.
-- Preserve evidence location and provenance exactly. Do not relocate a receipt, object, sighting or statement from where it was found, observed or reported. A document connected to a place or service does not mean it was found at that place. Also preserve who observed, found, reported, or recorded each item; do not attribute Mara's cottage observations to Vale or summarize them as evidence Vale collected. In aggregate summaries, if evidence has mixed provenance, either enumerate the source for each item or use neutral wording such as `the manuscript contains`; do not collapse mixed observations into one investigator's collection.
+- Preserve evidence location and provenance exactly. Do not relocate a receipt, object, sighting or statement from where it was found, observed or reported. A document connected to a place or service does not mean it was found at that place. Also preserve who observed, found, reported, or recorded each item; do not attribute Mara's cottage observations to Vale or summarize them as evidence Vale collected. In aggregate summaries, if evidence has mixed provenance, either enumerate the source for each item or use neutral wording such as `the manuscript contains`; do not collapse mixed observations into one investigator's collection. This rule applies especially to `Current ending state`, executive summaries, and living briefs: never write that Vale `gathered`, `collected`, or `found` evidence at the cottage when the cottage observations were made by Mara.
 - Preserve event wording and timing exactly. A `6:40 ferry` or a passenger `boarding the 6:40 ferry` does not by itself establish the ferry's departure time unless the text explicitly says it departed at 6:40.
 - Do not derive event order from a label, schedule, timestamp or object time unless the text establishes when the event itself occurred. A receipt printed at 6:32 and a passenger boarding the `6:40 ferry` do not establish that the receipt was printed before the boarding event. When in doubt, state the two time-bearing facts separately and do not compare them chronologically.
 - Do not upgrade familiarity or relationship detail from a single observation. A witness recognizing a coat does not establish broader familiarity with the wearer's appearance, habits or wardrobe unless the text says so.
@@ -111,7 +111,7 @@ Before returning the analysis, check:
 - Did I avoid inventing authorial intent?
 - Did I avoid inferring guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive from unresolved clues?
 - Did I avoid inventing unsupported candidate identities, roles, ownership, residence, actions, mechanisms or narrative-device labels?
-- Did I preserve the exact location and provenance of evidence, including who observed/found/reported each item, without relocating service-related documents, collapsing mixed provenance into one investigator, or attributing observations to the wrong character?
+- Did I preserve the exact location and provenance of evidence, including who observed/found/reported each item, without relocating service-related documents, collapsing mixed provenance into one investigator, or attributing observations to the wrong character? Did I check `Current ending state` and other summary sections specifically for this error?
 - Did I preserve event wording and timing without turning a labelled/scheduled time into an unstated departure time or unsupported event ordering? If two time-bearing facts were not explicitly ordered, did I avoid ordering them myself?
 - Did I avoid treating shared descriptors or independent witness reports as matches or corroboration without support?
 - Did I avoid upgrading a narrow observation into broader familiarity or relationship knowledge?
