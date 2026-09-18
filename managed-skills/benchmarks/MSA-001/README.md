@@ -493,15 +493,37 @@ free-text surfaces:
 
 The benchmark remains failed rather than accepting those promotions.
 
-### v0.3.0 candidate — runtime pending
+### Attempt 28 — v0.3.0 — PASS (controlled, 2026-09-18)
 
-v0.3.0 replaces those permissive surfaces with eligibility gates. Goals/beliefs
-require an explicit qualifying mental-state predicate; identity uncertainties
-default to identity-only wording unless candidates are source-enumerated; neutral
-uncertainty wording cannot invent actions; and the continuity register contains
-only source-explicit contradictions/discrepancies with controlled status labels,
-otherwise `None established`. Existing acceptance criteria and the MIG-001
-fixture remain unchanged.
+Fresh LibreChat runtime on Google / Gemini 3.8 Flash using the unchanged MIG-001
+fixture satisfied MSA-001 criteria 2–6 on the tested skill head
+`5bc2d4f92b19357686daa449e37e466066672e02`.
+
+The v0.3.0 run preserved all required ambiguities and source modality:
+
+- the person in Leon's coat, ferry-receipt passenger, `M.`, torn fabric,
+  6:40-ferry passenger, and Mara's final whisper remained unresolved;
+- no guilt, deception, fabrication, complicity, foreknowledge, premeditation,
+  charged-label, authorial-intent, candidate-mechanism, or continuity-repair
+  framing was introduced;
+- dependent pronouns were carried inside self-contained contiguous verbatim Claim
+  spans rather than emitted as standalone fragments;
+- character-map typed fields were ID-only/neutral and the Deckhand
+  `Explicit goals/beliefs` cell was `None established`;
+- identity uncertainties added no unlicensed candidate answers, while source-
+  enumerated candidates such as the possible referents of `M.` and the
+  deckhand's explicit inability to tell whether the passenger was Leon remained
+  represented;
+- neutral uncertainty wording did not promote static evidence states into new
+  actions;
+- time-bearing claims remained canonical, established chronology and causality
+  were `None established`, and the continuity register used the controlled
+  `None established` row.
+
+The promotion gate for criteria 2–6 is therefore satisfied without changing the
+fixture or weakening the acceptance criteria. Criterion 7 remains post-merge:
+GitHub Skill Sync from `server/synology` must complete with zero attributable
+skipped skill/file errors.
 
 ## Promotion rule
 
