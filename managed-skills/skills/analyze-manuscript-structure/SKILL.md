@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.2.9**
+Version: **0.3.0**
 
 ## Purpose and boundary
 
@@ -97,10 +97,20 @@ evidence/testing, or a directly observable discrepancy. Missing background alone
 is not a licence to invent questions. Do not reverse-engineer who/when/how/why
 questions from a static state.
 
-Use neutral wording that preserves the original subject. A witness to an
-unidentified passenger does not thereby become an unidentified-character mystery.
-A possible referent of an unresolved initial does not inherit the initial's
-knowledge, motive, actions or uncertainties.
+Use neutral wording that preserves the original subject. For an identity
+uncertainty, default to `Identity of <unresolved subject>`; do not append a
+candidate answer such as `whether this was Leon` unless the licensing source
+itself explicitly enumerates that candidate as a possibility. A possessive or
+descriptive association (for example `Leon’s coat`) is not an explicit candidate
+enumeration.
+
+The neutral unresolved wording must not introduce a new action/predicate that is
+absent from its licensing source. Static wording such as `is inside`,
+`contains`, or `does not contain` must not become `found`, `discovered`,
+`placed`, `purchased`, or equivalent. A witness to an unidentified passenger
+does not thereby become an unidentified-character mystery. A possible referent
+of an unresolved initial does not inherit the initial's knowledge, motive,
+actions or uncertainties.
 
 For an unanswered recorded or spoken question, preserve the unresolved proposition
 as a question/uncertainty rather than collapsing it to only one ambiguous noun.
@@ -155,8 +165,13 @@ general evidence bucket.
 
 - A statement is not automatically the speaker's belief, and a statement about
   another character is not that other character's belief or goal. Populate
-  `Explicit goals/beliefs` only when the manuscript directly establishes a
-  mental state for that row subject. Third-party claims, questions, inability to
+  `Explicit goals/beliefs` only when the canonical source directly attributes a
+  qualifying mental-state predicate to that row subject, such as explicitly
+  `believes`, `thinks`, `wants`, `intends`, `plans`, `hopes`,
+  `expects`, or `knows`. Recollection/perception/evidence-state predicates
+  such as `remembers`, `recalls`, `saw`, `heard`, `cannot tell`,
+  `cannot identify`, `does not know`, `says`, or `tells` do **not**
+  populate goals/beliefs. Third-party claims, questions, inability to
   identify/confirm, preferences merely alleged by another character, and general
   uncertainty do not qualify.
 - Recorded or spoken questions remain questions and do not populate any typed
@@ -250,13 +265,25 @@ must not imply concealment, deception or other unsupported characterization.
 
 #### 7. Continuity / contradiction register
 
-`Source IDs compared | What the passages explicitly differ on | Licensed U-ID`
+`Source IDs compared | Explicit status | Licensed U-ID`
 
-Copy the relevant claims or reference them. Distinguish direct contradiction from
-independent statements that can coexist. Do not treat physical evidence as
-conflicting with testimony about a particular person until the text establishes
-the necessary identity/linkage. Do not repair discrepancies or supply candidate
-mechanisms, even as an illustrative list of possibilities.
+Create a row only when the manuscript itself establishes a direct contradiction,
+an explicit discrepancy, or an explicit difference between the cited source
+atoms. The status cell must use only one of these controlled values:
+
+- `Direct contradiction explicitly established`
+- `Difference/discrepancy explicitly established`
+
+Do not create a row merely because two independent statements appear suggestive,
+tense, or potentially inconsistent. Do not paraphrase either source claim in this
+table. If no qualifying row exists, output exactly one row:
+
+`None established | None established | —`
+
+Do not treat physical evidence as conflicting with testimony about a particular
+person until the text establishes the necessary identity/linkage. Do not repair
+discrepancies or supply candidate mechanisms, even as an illustrative list of
+possibilities.
 
 #### 8. Living editorial-brief seed
 
@@ -313,8 +340,10 @@ Compare the visible output with the source, not merely with the internal ledger.
    No ellipses, shortened inner quotations, or bracketed paraphrases replace the
    canonical claim. Prefer an ID alone if full repetition is not useful.
 3. Every unresolved item has a licensing quotation, preserves its subject and
-   occurs only in the appropriate views. Candidate identities/referents do not
-   inherit another unresolved subject's U-ID.
+   occurs only in the appropriate views. Identity wording does not introduce
+   candidate answers unless explicitly enumerated by the licensing source, and
+   neutral uncertainty wording introduces no new action/predicate. Candidate
+   identities/referents do not inherit another unresolved subject's U-ID.
 4. Every modifier and relationship is supported for that atom; no neighbouring
    location/time/state, inferred recipient, or static-state precursor has leaked in.
 5. Chronology distinguishes presentation order and source time expressions from
@@ -322,10 +351,12 @@ Compare the visible output with the source, not merely with the internal ledger.
 6. Interpretation supplies no unsupported facts, identity linkage, motive,
    mechanism, authorial intent or edit recommendation. Character-map typed fields
    contain source IDs only (or `None established`), and every selected ID
-   directly establishes that field for the row subject. Recorded/spoken questions
-   do not populate typed fields without independent declarative support;
-   candidate identities and source speakers do not inherit U-IDs for another
-   unresolved subject.
+   directly establishes that field for the row subject. Goals/beliefs require an
+   explicit qualifying mental-state predicate; recollection, perception,
+   inability-to-identify and communication predicates do not qualify.
+   Recorded/spoken questions do not populate typed fields without independent
+   declarative support; candidate identities and source speakers do not inherit
+   U-IDs for another unresolved subject.
 7. Time-bearing views never convert a service name or document/object timestamp
    into an event time, schedule, departure, or boarding time unless the source
    explicitly establishes that relation.
@@ -335,5 +366,8 @@ Compare the visible output with the source, not merely with the internal ledger.
 9. Time-bearing claim bullets have no appended paraphrase/annotation. When no
    established cross-source chronology or causal relationship exists, the
    corresponding section contains only `None established`.
+10. The continuity/contradiction register contains only source-explicit
+    contradictions/discrepancies with controlled status labels and no factual
+    paraphrase; otherwise it contains the single `None established` row.
 
 Return the reconstruction only after fixing any violation found.
