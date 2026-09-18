@@ -13,7 +13,8 @@ DECKHAND = re.compile(r"\bdeckhand\b", re.I)
 NONE_ESTABLISHED = re.compile(r"^none established\.?$", re.I)
 SERVICE_TIME_PROMOTION = re.compile(
     r"\b(?:boarding|departure|scheduled|actual event) time\b", re.I)
-SOURCE_ID = re.compile(r"\b(?:ID|S)-\d+\b", re.I)
+SOURCE_ID = re.compile(r"\b(?:ID|S)\s*-?\s*\d+\b", re.I)
+U_ID = re.compile(r"\bU\s*-?\s*\d+\b", re.I)
 ELLIPSIS = re.compile(r"(?:\.\.\.|…)" )
 NOTEBOOK_ACTION = re.compile(
     r"\b(?:keeps?|kept|owns?|owned|carries|carried|writes?|wrote|maintains?|maintained|has|had)\b"
@@ -31,6 +32,18 @@ def cells(line):
     return [plain(cell) for cell in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
 
 
+def norm_id(value):
+    return re.sub(r"[\s-]", "", value).upper()
+
+
+def ids(value):
+    return {norm_id(match.group(0)) for match in SOURCE_ID.finditer(value)}
+
+
+def uids(value):
+    return {norm_id(match.group(0)) for match in U_ID.finditer(value)}
+
+
 def scan(text):
     """Return advisory review candidates, including possible false positives.
 
@@ -39,7 +52,16 @@ def scan(text):
     """
     findings = []
     claim_column = None
+    id_column = None
+    evidence_type_column = None
+    role_column = None
     goals_column = None
+    relationship_column = None
+    uncertainty_column = None
+    unresolved_subject_column = None
+    unresolved_id_column = None
+    question_ids = set()
+    unresolved_subjects = {}
     heading_locations = {}
     paragraph = []
     paragraph_start = None
@@ -93,7 +115,14 @@ def scan(text):
             heading_locations = {k: v for k, v in heading_locations.items() if k < level}
             heading_locations[level] = bool(re.search(r"\bharbour\b", heading.group(2), re.I))
             claim_column = None
+            id_column = None
+            evidence_type_column = None
+            role_column = None
             goals_column = None
+            relationship_column = None
+            uncertainty_column = None
+            unresolved_subject_column = None
+            unresolved_id_column = None
             continue
         if "|" in raw:
             flush()
@@ -101,21 +130,62 @@ def scan(text):
             lowered = [cell.lower() for cell in row]
             claim_headers = [i for i, cell in enumerate(lowered)
                              if cell == "claim" or cell.startswith("claim:")]
+            id_headers = [i for i, cell in enumerate(lowered) if cell == "id"]
+            evidence_headers = [i for i, cell in enumerate(lowered)
+                                if cell == "evidence type"]
+            role_headers = [i for i, cell in enumerate(lowered)
+                            if cell.startswith("explicit role/history")]
             goals_headers = [i for i, cell in enumerate(lowered)
                              if cell == "explicit goals/beliefs"
                              or cell.startswith("explicit goals/beliefs:")]
-            if claim_headers or goals_headers:
+            relation_headers = [i for i, cell in enumerate(lowered)
+                                if cell.startswith("explicit relationships/interactions")]
+            uncertainty_headers = [i for i, cell in enumerate(lowered)
+                                   if cell.startswith("uncertainty ids about this subject")]
+            unresolved_subject_headers = [i for i, cell in enumerate(lowered)
+                                          if cell == "unresolved subject"]
+            unresolved_id_headers = [i for i, cell in enumerate(lowered)
+                                     if cell == "u-id"]
+            if (claim_headers or goals_headers or role_headers or relation_headers
+                    or unresolved_subject_headers):
                 claim_column = claim_headers[0] if claim_headers else None
+                id_column = id_headers[0] if id_headers else None
+                evidence_type_column = evidence_headers[0] if evidence_headers else None
+                role_column = role_headers[0] if role_headers else None
                 goals_column = goals_headers[0] if goals_headers else None
+                relationship_column = relation_headers[0] if relation_headers else None
+                uncertainty_column = uncertainty_headers[0] if uncertainty_headers else None
+                unresolved_subject_column = (unresolved_subject_headers[0]
+                                             if unresolved_subject_headers else None)
+                unresolved_id_column = (unresolved_id_headers[0]
+                                        if unresolved_id_headers else None)
                 continue
             if row and all(re.fullmatch(r":?-+:?", cell or " ") for cell in row):
                 continue
+            if (id_column is not None and evidence_type_column is not None
+                    and len(row) > max(id_column, evidence_type_column)):
+                if "recorded question" in row[evidence_type_column].lower():
+                    question_ids.update(ids(row[id_column]))
+            if (unresolved_id_column is not None and unresolved_subject_column is not None
+                    and len(row) > max(unresolved_id_column, unresolved_subject_column)):
+                for uid in uids(row[unresolved_id_column]):
+                    unresolved_subjects[uid] = row[unresolved_subject_column]
             if claim_column is not None and len(row) > claim_column:
                 claim = row[claim_column]
                 if BOARDING.search(claim) and not ATTRIBUTION.search(claim):
                     add(number, "claim-attribution",
                         "The boarding claim needs the deckhand's memory attribution "
                         "inside the Claim cell; neighbouring columns cannot supply it.")
+            for column, field_name in (
+                    (role_column, "role/history"),
+                    (relationship_column, "relationships/interactions")):
+                if column is not None and len(row) > column:
+                    reused = ids(row[column]) & question_ids
+                    if reused:
+                        add(number, "question-as-typed-field",
+                            "Check recorded-question reuse in " + field_name +
+                            "; a question may license uncertainty but does not "
+                            "establish this typed character field.")
             if goals_column is not None and len(row) > goals_column:
                 goals = row[goals_column]
                 if "?" in goals:
@@ -128,11 +198,30 @@ def scan(text):
                         "MSA-001 has no independently established character goals/beliefs; "
                         "check whether a statement, third-party claim, question or "
                         "uncertainty was used merely to populate this typed field.")
+            if (uncertainty_column is not None and len(row) > uncertainty_column
+                    and row):
+                label = row[0].strip('"').strip("'").lower()
+                for uid in uids(row[uncertainty_column]):
+                    subject = unresolved_subjects.get(uid, "").lower()
+                    if (label == "mara"
+                            and ("addressee" in subject or "meaning" in subject)
+                            and "mara" in subject):
+                        add(number, "source-speaker-uncertainty",
+                            "Check uncertainty copied onto the source speaker; "
+                            "uncertainty about an utterance's addressee/meaning is "
+                            "not automatically uncertainty about the speaker.")
             for cell in row:
                 check_scope(cell, number, any(heading_locations.values()))
             continue
         claim_column = None
+        id_column = None
+        evidence_type_column = None
+        role_column = None
         goals_column = None
+        relationship_column = None
+        uncertainty_column = None
+        unresolved_subject_column = None
+        unresolved_id_column = None
         if not value:
             flush()
             continue
