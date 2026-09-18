@@ -1,0 +1,39 @@
+{
+  "checks": [
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 20954
+          }
+        ]
+      },
+      "index": 1,
+      "label": "Autodeploy process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lines": 20,
+        "path": "/volume1/docker/librechat-deploy-events.log",
+        "text": "2026-09-18 19:28:26 NAS read-only infrastructure worker and MCP bridge healthy\n2026-09-18 19:34:29 Sanitised GitHub telemetry published\n2026-09-18 19:35:11 Deployment healthy at 5c610170580951ee0b26819d13036568b72f3edb\n2026-09-18 19:35:32 LibreChat deployment check started\n2026-09-18 19:35:32 Cloudflare tunnel integration enabled\n2026-09-18 19:35:32 Synology Admin Settings integration enabled\n2026-09-18 19:37:52 Change detected: 5c610170 -> 883386fc\n2026-09-18 19:39:31 ERROR: Git fast-forward update failed\n2026-09-18 19:46:04 Sanitised GitHub telemetry published\n2026-09-18 19:47:36 LibreChat deployment check started\n2026-09-18 19:47:36 Cloudflare tunnel integration enabled\n2026-09-18 19:47:36 Synology Admin Settings integration enabled\n2026-09-18 19:51:54 Change detected: 5c610170 -> 883386fc\n2026-09-18 19:54:10 ERROR: Git fast-forward update failed\n2026-09-18 20:00:38 Sanitised GitHub telemetry published\n2026-09-18 20:03:14 LibreChat deployment check started\n2026-09-18 20:03:14 Cloudflare tunnel integration enabled\n2026-09-18 20:03:14 Synology Admin Settings integration enabled\n2026-09-18 20:07:05 Change detected: 5c610170 -> 883386fc\n2026-09-18 20:09:15 ERROR: Git fast-forward update failed"
+      },
+      "index": 2,
+      "label": "Recent deployment event log",
+      "status": "ok",
+      "type": "tail"
+    }
+  ],
+  "ended_at": "2026-09-18T10:13:09Z",
+  "hostname": "NAS",
+  "overall": "ok",
+  "recipe": "custom/ba-agent/diagnostics/pr93-window-check-20260918-012.json",
+  "recipe_name": "PR93 lock-free window check",
+  "request_id": "pr93-window-check-20260918-012",
+  "schema": 1,
+  "started_at": "2026-09-18T10:13:09Z"
+}
