@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.2.3 strengthens the evidence-discipline rules further:
+Current hardening through version 0.2.4 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -27,6 +27,7 @@ Current hardening through version 0.2.3 strengthens the evidence-discipline rule
 - independent witness reports must remain independent unless the text establishes they concern the same person/object/event;
 - evidence location and provenance must be preserved exactly;
 - unresolved clues must not be recast as craft devices, continuity errors, deliberate misdirection, authorial choices, red herrings or intended twists without explicit support;
+- recorded or spoken questions must remain questions and must not populate explicit goals/beliefs unless independent source evidence establishes the corresponding belief or goal;
 - the final editorial-brief seed must state unresolved items neutrally and must not invent candidate answers or mechanisms.
 
 ## Acceptance criteria
@@ -264,7 +265,7 @@ python3 managed-skills/benchmarks/MSA-001/triage.py /path/to/complete-runtime-re
 ```
 
 The test suite pins the original MIG-001 fixture's Git blob and exercises known
-location, attribution and invented-unknown regressions. Test strings are synthetic
+location, attribution, invented-unknown and question-to-belief regressions. Test strings are synthetic
 minimal examples, not claimed runtime captures. The triage tool scans captured
 Markdown and reports line-numbered review candidates for those three failure
 families. It can miss paraphrases and flag quoted or negated examples; review each
@@ -326,14 +327,31 @@ compensate for failures elsewhere.
 The direct-Google preflight without explicit skill selection could not load
 the skill. That preflight contained no manuscript and is not a scored attempt.
 
-### v0.2.3 candidate — runtime pending
+### Attempt 21 — v0.2.3 — FAIL (controlled, 2026-09-18)
 
-Retains the two-pass ledger but consolidates duplicated instructions and makes
-the source register the first visible section. Register claims use complete
-verbatim source passages; the remaining structural views reference IDs or reuse
-the exact claims. This removes the competing invitation to write eight fresh
-paraphrases while preserving all reconstruction sections and the strict gate.
-No benchmark criteria or fixture content changes.
+Fresh runtime validation preserved the major unresolved points, avoided the
+historical charged labels and speculative mechanisms, kept source claims
+verbatim, and did not invent a confirmed global chronology or causal map.
+
+Strict criterion 6 still failed in the Character and relationship map. ID-13,
+the recorded notebook question `"M. knew about harbour before I mentioned it?"`,
+was placed under `Explicit goals/beliefs` for Inspector Vale. The source
+establishes that the notebook contains a question; it does not independently
+establish the corresponding belief or goal. Putting that question in a
+goals/beliefs field therefore promotes its modality through table semantics even
+though the quotation itself remains verbatim.
+
+The benchmark remains failed rather than accepting the column-level semantic
+promotion.
+
+### v0.2.4 candidate — runtime pending
+
+Retains the v0.2.3 two-pass/register architecture and adds a column-safe question
+rule: recorded or spoken questions remain questions and must not populate explicit
+goals/beliefs unless separate source evidence independently establishes the
+corresponding belief or goal. Advisory triage now flags question punctuation
+inside an `Explicit goals/beliefs` column for manual review. Existing criteria
+and the MIG-001 fixture are unchanged.
 
 ## Promotion rule
 
