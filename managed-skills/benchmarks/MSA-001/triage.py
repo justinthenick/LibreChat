@@ -15,6 +15,12 @@ SERVICE_TIME_PROMOTION = re.compile(
     r"\b(?:boarding|departure|scheduled|actual event) time\b", re.I)
 SOURCE_ID = re.compile(r"\b(?:ID|S)-\d+\b", re.I)
 ELLIPSIS = re.compile(r"(?:\.\.\.|…)" )
+NOTEBOOK_ACTION = re.compile(
+    r"\b(?:keeps?|kept|owns?|owned|carries|carried|writes?|wrote|maintains?|maintained|has|had)\b"
+    r".{0,30}\bnotebook\b", re.I)
+SCENE_LOCATION_SUMMARY = re.compile(
+    r"\b(?:chapter\s*[123]|presentation order)\b.{0,120}\b(?:scene|scenes)\b"
+    r".{0,120}\b(?:cottage|north road|harbour)\b", re.I)
 
 
 def plain(text):
@@ -72,6 +78,14 @@ def scan(text):
             add(number, "shortened-claim",
                 "Check shortened evidence reuse; when claim text accompanies an ID, "
                 "the complete canonical Claim cell should be reused without ellipses.")
+        if NOTEBOOK_ACTION.search(value):
+            add(number, "possessive-action",
+                "Check whether possessive/document wording was promoted into a "
+                "keeping/owning/writing/maintaining action.")
+        if SCENE_LOCATION_SUMMARY.search(value):
+            add(number, "scene-location-summary",
+                "Check whether a structural summary assigned chapter/scene locations "
+                "from atom-local location evidence.")
         heading = re.match(r"^(#{1,6})\s+(.*)", raw.strip())
         if heading:
             flush()
