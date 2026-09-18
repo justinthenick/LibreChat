@@ -1,10 +1,3 @@
-2026-09-18 18:35:02 Synology Admin Settings integration enabled
-2026-09-18 18:37:53 No deployment change; healthy deployment already recorded at adb82762
-2026-09-18 18:40:06 LibreChat deployment check started
-2026-09-18 18:40:07 Cloudflare tunnel integration enabled
-2026-09-18 18:40:07 Synology Admin Settings integration enabled
-2026-09-18 18:43:09 No deployment change; healthy deployment already recorded at adb82762
-2026-09-18 18:45:02 LibreChat deployment check started
 2026-09-18 18:45:02 Cloudflare tunnel integration enabled
 2026-09-18 18:45:02 Synology Admin Settings integration enabled
 2026-09-18 18:48:13 No deployment change; healthy deployment already recorded at adb82762
@@ -38,3 +31,10 @@
 2026-09-18 19:28:07 Synology Admin Settings panel and worker healthy
 2026-09-18 19:28:23 Official LibreChat Admin Panel healthy on its configured host port (default 3220)
 2026-09-18 19:28:26 NAS read-only infrastructure worker and MCP bridge healthy
+2026-09-18 19:34:29 Sanitised GitHub telemetry published
+2026-09-18 19:35:11 Deployment healthy at 5c610170580951ee0b26819d13036568b72f3edb
+2026-09-18 19:35:32 LibreChat deployment check started
+2026-09-18 19:35:32 Cloudflare tunnel integration enabled
+2026-09-18 19:35:32 Synology Admin Settings integration enabled
+2026-09-18 19:37:52 Change detected: 5c610170 -> 883386fc
+2026-09-18 19:39:31 ERROR: Git fast-forward update failed
