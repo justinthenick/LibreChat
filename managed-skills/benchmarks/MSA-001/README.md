@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.1.16 strengthens the evidence-discipline rules further:
+Current hardening through version 0.1.17 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -196,6 +196,17 @@ This controlled rerun preserved the main ambiguity, chronology, provenance, moda
 - the chronology and motifs propagated the Chapter 1 clock state into Chapter 3 by saying the kitchen clock was reading 6:45 at the end of Chapter 3. The manuscript only states the 6:45 reading in Chapter 1; Chapter 3 says Mara looks at the clock but gives no reading.
 
 These failures show that local output sections can still paraphrase or inherit state even when the high-level evidence rules are correct. Version 0.1.16 therefore changes execution architecture: first build an atomic source ledger preserving source, predicate, recipient, location, time, object state and modality; then render every visible section only from those atoms. Later object references cannot inherit earlier states unless restated, and motif language must preserve the underlying source predicate.
+
+
+### Attempt 16 — v0.1.16 — FAIL
+
+This controlled rerun showed that the new atomic source-ledger architecture fixed the prior clock-state propagation and motif-predicate drift. The main ambiguity, chronology, provenance, modality, evidence classification, recipient attribution, and source-predicate controls all held.
+
+One criterion-6/source-contract failure remained in the Chapter 1 `Character-state change` cell:
+
+- it said `Mara phones Vale and says Leon left before six taking the north road`, again compressing Mara's two differently attributed claims so that Leon's reported statement about taking the north road became the route he actually took.
+
+The failure is now isolated to misuse of the chapter-map state-change column. Version 0.1.17 therefore gives that column a strict contract: it may contain only explicit character-state changes; it must not restate dialogue, routes, evidence, phone calls, or inferred transitions, and must use `None established` when no explicit state change exists.
 
 ## Promotion rule
 
