@@ -1,0 +1,88 @@
+{
+  "checks": [
+    {
+      "error": "Refusing cleanup: expected one failed autodeploy and active telemetry child",
+      "index": 1,
+      "label": "Clear failed autodeploy telemetry chain",
+      "status": "error",
+      "type": "clear_failed_autodeploy"
+    },
+    {
+      "error": "Refusing config restore while autodeploy lock exists",
+      "index": 2,
+      "label": "Restore LibreChat YAML from last successful deployment",
+      "status": "error",
+      "type": "restore_librechat_yaml_from_last_success"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 20954
+          },
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 20993
+          }
+        ]
+      },
+      "index": 3,
+      "label": "Autodeploy lock after cleanup",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lines": 5,
+        "path": "/volume1/docker/librechat-deploy.last-success",
+        "text": "5c610170580951ee0b26819d13036568b72f3edb"
+      },
+      "index": 4,
+      "label": "Last successful deployed SHA",
+      "status": "ok",
+      "type": "tail"
+    },
+    {
+      "data": {
+        "document": {
+          "deletedFileCount": 0,
+          "deletedSkillCount": 0,
+          "finishedAt": "2026-09-18T10:01:39.282Z",
+          "lastFailureAt": "2026-09-18T09:07:14.782Z",
+          "lastSuccessAt": "2026-09-18T10:01:39.282Z",
+          "owner": "justinthenick",
+          "paths": [
+            "managed-skills/skills"
+          ],
+          "provider": "github",
+          "ref": "server/synology",
+          "repo": "LibreChat",
+          "skippedFileCount": 0,
+          "skippedSkillCount": 0,
+          "sourceId": "managed-skills",
+          "startedAt": "2026-09-18T10:01:37.252Z",
+          "status": "succeeded",
+          "syncedFileCount": 0,
+          "syncedSkillCount": 2,
+          "updatedAt": "2026-09-18T10:01:39.282Z"
+        },
+        "source_id": "managed-skills"
+      },
+      "index": 5,
+      "label": "Managed skills GitHub sync status",
+      "status": "ok",
+      "type": "skill_sync_status"
+    }
+  ],
+  "ended_at": "2026-09-18T10:04:09Z",
+  "hostname": "NAS",
+  "overall": "partial",
+  "recipe": "custom/ba-agent/diagnostics/pr93-clear-and-restore-20260918-010.json",
+  "recipe_name": "Clear failed PR93 deploy chain and restore tracked YAML",
+  "request_id": "pr93-clear-and-restore-20260918-010",
+  "schema": 1,
+  "started_at": "2026-09-18T10:04:09Z"
+}
