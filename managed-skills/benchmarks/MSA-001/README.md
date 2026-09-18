@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.2.6 strengthens the evidence-discipline rules further:
+Current hardening through version 0.2.7 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -27,9 +27,9 @@ Current hardening through version 0.2.6 strengthens the evidence-discipline rule
 - independent witness reports must remain independent unless the text establishes they concern the same person/object/event;
 - evidence location and provenance must be preserved exactly;
 - unresolved clues must not be recast as craft devices, continuity errors, deliberate misdirection, authorial choices, red herrings or intended twists without explicit support;
-- recorded or spoken questions must remain questions and must not populate explicit goals/beliefs unless independent source evidence establishes the corresponding belief or goal;
+- recorded or spoken questions must remain questions and must not populate role/history, goals/beliefs, or relationships/interactions merely because a label appears inside the question; each typed field requires independent declarative support;
 - character-map columns are typed: statements, third-party claims, inability to identify/confirm and unresolved questions do not become goals/beliefs merely to fill the column;
-- identity/referent uncertainties remain attached to their unresolved subject and are not copied onto candidate characters;
+- identity/referent/addressee/meaning uncertainties remain attached to their unresolved subject and are not copied onto candidate characters or the source speaker merely because that character supplied the ambiguous statement;
 - factual claim reuse is exact when text is shown; ellipses, shortened inner quotations and fresh bracketed paraphrases are not substitutes for the canonical Claim cell;
 - a time embedded in a service name must not be labelled as boarding/departure/scheduled/event time without explicit source support;
 - possessive/document associations must not be promoted into actions such as keeping, owning, carrying, writing or maintaining unless the source states the action;
@@ -272,7 +272,8 @@ python3 managed-skills/benchmarks/MSA-001/triage.py /path/to/complete-runtime-re
 
 The test suite pins the original MIG-001 fixture's Git blob and exercises known
 location, attribution, invented-unknown, question-to-belief, typed-character-map,
-service-time and shortened-claim regressions. Test strings are synthetic minimal
+question-to-other-field, source-speaker-uncertainty, service-time and
+shortened-claim regressions. Test strings are synthetic minimal
 examples, not claimed runtime captures. The triage tool scans captured Markdown
 and reports line-numbered review candidates for those known failure families. It can miss paraphrases and flag quoted or negated examples; review each
 finding against the source. Exit 1 means candidates were found, exit 0 means none
@@ -397,13 +398,41 @@ Two narrower criterion-6 promotions remained:
 The benchmark remains failed rather than accepting inferred biography/action or
 scene-location propagation.
 
-### v0.2.6 candidate — runtime pending
+### Attempt 24 — v0.2.6 — FAIL (controlled, 2026-09-18)
 
-Retains all v0.2.5 hardening and explicitly prevents possessive/document wording
-from becoming keeping/owning/writing/maintaining actions. Point-of-view/structure
-may state only directly evidenced structural observations and must not invent
-scene boundaries or chapter-level locations from atom-local location evidence.
-Existing acceptance criteria and the MIG-001 fixture remain unchanged.
+The fresh v0.2.6 runtime cleared the v0.2.5 possessive/document-action and
+scene-location failures. It also preserved the earlier gains: every
+`Explicit goals/beliefs` cell was `None established`, the 6:40 ferry remained a
+service reference rather than an event time, canonical claims were reused
+completely, and the major ambiguities remained unresolved.
+
+Two narrower typed-field/uncertainty-scope failures remained:
+
+- The `"M."` character/source row cited the recorded notebook question ID 13
+  under both `Explicit role/history` and
+  `Explicit relationships/interactions`. The question establishes an unresolved
+  referent/question, not independent role/history or relationship evidence.
+- Mara's row inherited U-6 even though U-6 concerns the addressee and meaning of
+  Mara's whisper. Supplying an ambiguous utterance does not make the resulting
+  addressee/meaning uncertainty an uncertainty about the speaker.
+
+The uncertainty ledger also reduced the recorded notebook question to only the
+referent of `M.`; v0.2.7 explicitly requires an unanswered question's unresolved
+proposition to remain represented without asserting it as fact.
+
+The benchmark remains failed rather than accepting typed-field reuse of a
+question or source-speaker uncertainty propagation.
+
+### v0.2.7 candidate — runtime pending
+
+Retains all v0.2.6 hardening and applies question modality to every typed
+character-map column, not only goals/beliefs. Recorded/spoken questions may
+license unresolved subjects but cannot populate role/history or
+relationships/interactions without independent declarative support. U-IDs for an
+utterance's addressee/referent/meaning stay with that unresolved subject rather
+than the source speaker. Unanswered recorded questions preserve their unresolved
+proposition as uncertainty without promoting it to fact. Existing acceptance
+criteria and the MIG-001 fixture remain unchanged.
 
 ## Promotion rule
 
