@@ -122,7 +122,11 @@ async function saveSkillFileContent({ req, skillId, relativePath, content, mimeT
     throw error;
   }
 
-  if (existingFile && existingFile.filepath !== filepath) {
+  if (
+    existingFile &&
+    existingFile.filepath !== filepath &&
+    existingFile.sourceMetadata?.sharedStorage !== true
+  ) {
     const { deleteFile } = getStrategyFunctions(existingFile.source);
     if (deleteFile) {
       deleteFile(req, {
