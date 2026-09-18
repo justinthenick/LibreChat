@@ -1,6 +1,6 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "pr93-window-check-20260918-012",
-  "recipe": "custom/ba-agent/diagnostics/pr93-window-check-20260918-012.json"
+  "request_id": "pr93-final-clear-restore-20260918-013",
+  "recipe": "custom/ba-agent/diagnostics/pr93-final-clear-restore-20260918-013.json"
 }
