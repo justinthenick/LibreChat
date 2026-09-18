@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "name": "Restore LibreChat YAML from last successful deployment",
+  "checks": [
+    {
+      "type": "restore_librechat_yaml_from_last_success",
+      "label": "Restore tracked production LibreChat config from last success"
+    },
+    {
+      "type": "tail",
+      "label": "Live Synology LibreChat config",
+      "path": "/volume1/docker/librechat/deploy/synology/librechat.yaml",
+      "lines": 40
+    },
+    {
+      "type": "tail",
+      "label": "Last successful deployed SHA",
+      "path": "/volume1/docker/librechat-deploy.last-success",
+      "lines": 5
+    },
+    {
+      "type": "skill_sync_status",
+      "label": "Managed skills GitHub sync status",
+      "source_id": "managed-skills"
+    }
+  ]
+}
