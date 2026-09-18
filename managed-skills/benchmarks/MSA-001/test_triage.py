@@ -198,8 +198,8 @@ class TriageTests(unittest.TestCase):
         self.assertIn("chronology-annotation", self.codes(text))
 
     def test_time_bearing_canonical_claim_without_annotation_is_clean(self):
-        text = """## Time-bearing source claims
-- E-01: "At 7:10 p.m., Mara finds the back door open.""""
+        text = '''## Time-bearing source claims
+- E-01: "At 7:10 p.m., Mara finds the back door open."'''
         self.assertNotIn("chronology-annotation", self.codes(text))
 
     def test_explained_none_chronology_is_flagged(self):
