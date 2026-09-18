@@ -350,6 +350,14 @@ export type TGitHubSkillSyncManualRunResponse = {
   sources?: TGitHubSkillSyncSourceStatus[];
 };
 
+export type TCreateSkillDraftResponse = TSkill;
+
+export type TSetSkillLifecycleRequest = {
+  lifecycle: Extract<SkillLifecycle, 'draft' | 'trial' | 'publish_pending'>;
+};
+
+export type TSetSkillLifecycleResponse = TSkill;
+
 /** Request body for POST `/api/skills`. */
 export type TCreateSkill = {
   name: string;
