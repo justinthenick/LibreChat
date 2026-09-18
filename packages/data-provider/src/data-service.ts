@@ -1147,6 +1147,10 @@ export function setSkillLifecycle(
   return request.post(endpoints.setSkillLifecycle(skillId), payload);
 }
 
+export function publishSkillDraft(skillId: string): Promise<sk.TPublishSkillDraftResponse> {
+  return request.post(endpoints.publishSkillDraft(skillId), {});
+}
+
 export function updateSkill(variables: sk.TUpdateSkillVariables): Promise<sk.TUpdateSkillResponse> {
   return request.patch(endpoints.getSkill(variables.id), {
     expectedVersion: variables.expectedVersion,
