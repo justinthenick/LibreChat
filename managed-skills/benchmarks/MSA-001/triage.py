@@ -28,6 +28,7 @@ def scan(text):
     """
     findings = []
     claim_column = None
+    goals_column = None
     heading_locations = {}
     paragraph = []
     paragraph_start = None
@@ -65,6 +66,7 @@ def scan(text):
             heading_locations = {k: v for k, v in heading_locations.items() if k < level}
             heading_locations[level] = bool(re.search(r"\bharbour\b", heading.group(2), re.I))
             claim_column = None
+            goals_column = None
             continue
         if "|" in raw:
             flush()
@@ -72,8 +74,12 @@ def scan(text):
             lowered = [cell.lower() for cell in row]
             claim_headers = [i for i, cell in enumerate(lowered)
                              if cell == "claim" or cell.startswith("claim:")]
-            if claim_headers:
-                claim_column = claim_headers[0]
+            goals_headers = [i for i, cell in enumerate(lowered)
+                             if cell == "explicit goals/beliefs"
+                             or cell.startswith("explicit goals/beliefs:")]
+            if claim_headers or goals_headers:
+                claim_column = claim_headers[0] if claim_headers else None
+                goals_column = goals_headers[0] if goals_headers else None
                 continue
             if row and all(re.fullmatch(r":?-+:?", cell or " ") for cell in row):
                 continue
@@ -83,10 +89,18 @@ def scan(text):
                     add(number, "claim-attribution",
                         "The boarding claim needs the deckhand's memory attribution "
                         "inside the Claim cell; neighbouring columns cannot supply it.")
+            if goals_column is not None and len(row) > goals_column:
+                goals = row[goals_column]
+                if "?" in goals:
+                    add(number, "question-as-belief",
+                        "Check whether a recorded or spoken question was placed under "
+                        "explicit goals/beliefs; attribution of a question does not "
+                        "establish the corresponding belief or goal.")
             for cell in row:
                 check_scope(cell, number, any(heading_locations.values()))
             continue
         claim_column = None
+        goals_column = None
         if not value:
             flush()
             continue
