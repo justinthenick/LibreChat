@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.2.5 strengthens the evidence-discipline rules further:
+Current hardening through version 0.2.6 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -32,6 +32,8 @@ Current hardening through version 0.2.5 strengthens the evidence-discipline rule
 - identity/referent uncertainties remain attached to their unresolved subject and are not copied onto candidate characters;
 - factual claim reuse is exact when text is shown; ellipses, shortened inner quotations and fresh bracketed paraphrases are not substitutes for the canonical Claim cell;
 - a time embedded in a service name must not be labelled as boarding/departure/scheduled/event time without explicit source support;
+- possessive/document associations must not be promoted into actions such as keeping, owning, carrying, writing or maintaining unless the source states the action;
+- point-of-view/structure summaries must not invent scene boundaries or assign whole chapters/sequences to atom-local locations;
 - the final editorial-brief seed must state unresolved items neutrally and must not invent candidate answers or mechanisms.
 
 ## Acceptance criteria
@@ -374,15 +376,34 @@ Strict criterion 6 still failed on typed-field and canonical-reuse discipline:
 The benchmark remains failed rather than accepting column semantics, uncertainty
 propagation, service-time promotion or shortened evidence reuse.
 
-### v0.2.5 candidate — runtime pending
+### Attempt 23 — v0.2.5 — FAIL (controlled, 2026-09-18)
 
-Retains the v0.2.4 question protection and treats character-map columns as typed
-fields. Goals/beliefs require direct source support for the row subject;
-candidate identities do not inherit another unresolved subject's U-ID. Factual
-claim text must be reused completely or omitted in favour of the ID alone, and
-service-name times cannot be relabelled as event/boarding/departure/scheduled
-times without explicit source support. Existing acceptance criteria and the
-MIG-001 fixture remain unchanged.
+The fresh v0.2.5 runtime fixed the v0.2.4 typed-field, uncertainty-scope,
+service-time and shortened-claim failures. Every character `Explicit
+goals/beliefs` cell was `None established`; U-IDs remained attached to their
+unresolved subjects; chronology reused complete source claims and did not label
+the 6:40 ferry as a boarding/departure/scheduled time.
+
+Two narrower criterion-6 promotions remained:
+
+- Inspector Vale's relationship/interaction cell converted the source wording
+  `Vale's notebook contains...` into `keeps a notebook`. The possessive/document
+  association does not establish a keeping/maintaining action.
+- The living editorial-brief `Point of view / structure` line said presentation
+  order followed scenes at the cottage, north road, harbour and cottage. This
+  assigned chapter/scene locations from individual atom-local locations even
+  though other atoms in those chapters are unlocated or differently located.
+
+The benchmark remains failed rather than accepting inferred biography/action or
+scene-location propagation.
+
+### v0.2.6 candidate — runtime pending
+
+Retains all v0.2.5 hardening and explicitly prevents possessive/document wording
+from becoming keeping/owning/writing/maintaining actions. Point-of-view/structure
+may state only directly evidenced structural observations and must not invent
+scene boundaries or chapter-level locations from atom-local location evidence.
+Existing acceptance criteria and the MIG-001 fixture remain unchanged.
 
 ## Promotion rule
 
