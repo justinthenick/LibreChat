@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.1.13 strengthens the evidence-discipline rules further:
+Current hardening through version 0.1.14 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -166,6 +166,16 @@ This controlled rerun fixed the prior inferred-recipient relationships: the deck
 - the Chapter 3 material-events cell said `A deckhand reports a memory`, converting the manuscript's narrator-established `A deckhand remembers...` into an unsupported communication act.
 
 Everything else in the promotion-critical behavior was clean. Version 0.1.13 therefore tightens the source-preserving contract at the predicate level: attributed evidence must preserve not only the source but also the action type (`remembers`, `says`, `tells X`, `writes`, etc.) unless the manuscript explicitly establishes a different communication act.
+
+
+### Attempt 13 — v0.1.13 — FAIL
+
+This controlled rerun fixed the prior recipient and relationship inferences and preserved the main ambiguity, chronology, provenance, modality, and evidence-classification requirements. Two residual predicate-fidelity violations remained outside the core evidence tables:
+
+- the living editorial-brief premise said `a boarding is reported`, converting the deckhand's `remembers` into a reporting act;
+- the motifs section referred to `the deckhand's mention` of a passenger, again converting memory/recollection into a communication act.
+
+Everything else in the promotion-critical behavior was clean. Version 0.1.14 therefore applies predicate fidelity across every output section, including motifs/themes and living briefs, and explicitly prohibits converting `remembers` into `reports`, `mentions`, or passive reporting language.
 
 ## Promotion rule
 
