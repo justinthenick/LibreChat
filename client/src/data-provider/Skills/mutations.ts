@@ -206,6 +206,31 @@ export const useSetSkillLifecycleMutation = (
   });
 };
 
+
+export const usePublishSkillDraftMutation = (
+  options?: UseMutationOptions<
+    import('librechat-data-provider').TPublishSkillDraftResponse,
+    unknown,
+    { skillId: string }
+  >,
+): UseMutationResult<
+  import('librechat-data-provider').TPublishSkillDraftResponse,
+  unknown,
+  { skillId: string }
+> => {
+  const queryClient = useQueryClient();
+  const { onSuccess, ...rest } = options ?? {};
+  return useMutation({
+    mutationFn: ({ skillId }: { skillId: string }) => dataService.publishSkillDraft(skillId),
+    ...rest,
+    onSuccess: (response, variables, context) => {
+      queryClient.setQueryData<TSkill>([QueryKeys.skill, response.skill._id], response.skill);
+      replaceSkillInCachedLists(queryClient, response.skill);
+      if (onSuccess) onSuccess(response, variables, context);
+    },
+  });
+};
+
 /**
  * Update a skill. Uses optimistic updates mirroring `useUpdatePromptGroup`:
  *   - cancel in-flight queries so a late refetch can't clobber the optimistic state
