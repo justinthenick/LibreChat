@@ -1,0 +1,81 @@
+{
+  "checks": [
+    {
+      "error": "Command '['docker', 'run', '--rm', '--user', '1026:100', '-v', '/volume1/docker/librechat:/repo', 'alpine/git:latest', '-C', '/repo', 'rev-parse', '--abbrev-ref', 'HEAD']' timed out after 30 seconds",
+      "index": 1,
+      "label": "Restore tracked production LibreChat config",
+      "status": "error",
+      "type": "repair_skill_sync_checkout"
+    },
+    {
+      "data": {
+        "lines": 80,
+        "path": "/volume1/docker/librechat/deploy/synology/librechat.yaml",
+        "text": "        title: 'GitHub read-only PAT'\n        description: 'Fine-grained token scoped to the LibreChat repository with read-only permissions.'\n        sensitive: true\n    requiresOAuth: false\n    chatMenu: false\n    serverInstructions: true\n    startup: false\n    timeout: 120000\n\n  # Curated view of deployment configuration for architecture/assurance agents.\n  # Every source file is bind-mounted read-only in docker-compose.yml; the real\n  # private .env, credentials, Docker socket and arbitrary NAS filesystem are not\n  # exposed. Disable all write-capable filesystem tools when assigning this MCP\n  # to an Agent; the read-only bind mounts remain the hard enforcement boundary.\n  architecture_files:\n    type: stdio\n    command: npx\n    args:\n      - -y\n      - '@modelcontextprotocol/server-filesystem@2026.1.14'\n      - /architecture-view\n    chatMenu: false\n    serverInstructions: true\n    startup: false\n    timeout: 120000\n\n  # Live host/runtime evidence source. The stdio bridge has no Docker socket and\n  # can reach only a group-restricted Unix socket served by the host worker. The\n  # worker itself exposes a fixed read-only action allowlist and sanitizes Docker\n  # inspection data before returning it to the Agent.\n  nas_infra_readonly:\n    type: stdio\n    command: python3\n    args:\n      - /app/nas-infra-readonly-mcp.py\n    chatMenu: false\n    serverInstructions: true\n    startup: false\n    timeout: 120000\n\nendpoints:\n  # Pin only capability enum values accepted by the deployed LibreChat build.\n  # Unsupported pseudo-capabilities such as memory, run_in_background and\n  # ask_user_question must not be advertised here because schema validation is\n  # fatal and prevents the API from starting.\n  agents:\n    capabilities:\n      - deferred_tools\n      - file_search\n      - execute_code\n      - web_search\n      - actions\n      - ocr\n      - artifacts\n      - subagents\n      - context\n      - skills\n      - tools\n      - chain\n    skills:\n      maxCatalogSkills: 100\n\n  custom:\n    - name: 'OpenRouter'\n      apiKey: '${OPENROUTER_KEY}'\n      baseURL: 'https://openrouter.ai/api/v1'\n      # BEGIN MANAGED OPENROUTER MODELS\n      # render-librechat-config.py replaces only this block in the runtime copy.\n      # With no managed allowlist, keep the historical default and fetch the\n      # complete provider catalogue.\n      models:\n        default:\n          - 'deepseek/deepseek-v3.2'\n        fetch: true\n      # END MANAGED OPENROUTER MODELS\n      titleConvo: true\n      titleModel: 'deepseek/deepseek-v3.2'\n      summarize: false\n      forcePrompt: false\n      modelDisplayLabel: 'OpenRouter'"
+      },
+      "index": 2,
+      "label": "Live Synology LibreChat config",
+      "status": "ok",
+      "type": "tail"
+    },
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 11096
+          },
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 11136
+          }
+        ]
+      },
+      "index": 3,
+      "label": "Autodeploy lock/process status",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "document": {
+          "deletedFileCount": 0,
+          "deletedSkillCount": 0,
+          "finishedAt": "2026-09-18T09:46:33.174Z",
+          "lastFailureAt": "2026-09-18T09:07:14.782Z",
+          "lastSuccessAt": "2026-09-18T09:46:33.174Z",
+          "owner": "justinthenick",
+          "paths": [
+            "managed-skills/skills"
+          ],
+          "provider": "github",
+          "ref": "server/synology",
+          "repo": "LibreChat",
+          "skippedFileCount": 0,
+          "skippedSkillCount": 0,
+          "sourceId": "managed-skills",
+          "startedAt": "2026-09-18T09:46:31.048Z",
+          "status": "succeeded",
+          "syncedFileCount": 0,
+          "syncedSkillCount": 2,
+          "updatedAt": "2026-09-18T09:46:33.175Z"
+        },
+        "source_id": "managed-skills"
+      },
+      "index": 4,
+      "label": "Managed skills GitHub sync status",
+      "status": "ok",
+      "type": "skill_sync_status"
+    }
+  ],
+  "ended_at": "2026-09-18T09:48:59Z",
+  "hostname": "NAS",
+  "overall": "partial",
+  "recipe": "custom/ba-agent/diagnostics/msa001-skill-sync-checkout-repair-20260918-003.json",
+  "recipe_name": "MSA-001 bounded production skill-sync checkout repair",
+  "request_id": "msa001-skill-sync-checkout-repair-20260918-004",
+  "schema": 1,
+  "started_at": "2026-09-18T09:48:28Z"
+}
