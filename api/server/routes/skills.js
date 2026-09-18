@@ -186,6 +186,181 @@ const importHandler = createImportHandler({
 });
 
 // ---------------------------------------------------------------------------
+// Managed-skill draft lifecycle
+// ---------------------------------------------------------------------------
+
+function getSkillLifecycle(skill) {
+  return skill?.sourceMetadata?.lifecycle;
+}
+
+function isManagedDraft(skill) {
+  return (
+    skill?.source === 'inline' &&
+    (getSkillLifecycle(skill) === 'draft' ||
+      getSkillLifecycle(skill) === 'trial' ||
+      getSkillLifecycle(skill) === 'publish_pending') &&
+    typeof skill?.sourceMetadata?.draftOfSkillId === 'string'
+  );
+}
+
+function buildDraftName(published) {
+  const suffix = `-draft-${published._id.toString().slice(-6)}`;
+  const maxBase = Math.max(1, 64 - suffix.length);
+  return `${published.name.slice(0, maxBase)}${suffix}`;
+}
+
+async function createManagedDraftHandler(req, res) {
+  try {
+    const publishedId = req.params.id;
+    const published = await getSkillById(publishedId);
+    if (!published) {
+      return res.status(404).json({ error: 'Skill not found' });
+    }
+    if (published.source !== 'github') {
+      return res.status(400).json({ error: 'Only GitHub-managed skills can create managed drafts' });
+    }
+
+    const author = req.user?._id ?? req.user?.id;
+    if (!author) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const draftName = buildDraftName(published);
+    const existing = await db.getAuthorSkillByName({
+      name: draftName,
+      author,
+      tenantId: resolveRequestTenantId(req),
+    });
+    if (existing && isManagedDraft(existing)) {
+      return res.status(200).json(existing);
+    }
+
+    const inheritedMetadata =
+      published.sourceMetadata && typeof published.sourceMetadata === 'object'
+        ? published.sourceMetadata
+        : {};
+    const sourceMetadata = {
+      lifecycle: 'draft',
+      draftOfSkillId: published._id.toString(),
+      logicalName: published.name,
+      baseVersion: published.version,
+      baseCommitSha: inheritedMetadata.commitSha,
+      baseSkillBlobSha: inheritedMetadata.skillBlobSha,
+      provider: inheritedMetadata.provider ?? 'github',
+      sourceId: inheritedMetadata.sourceId,
+      owner: inheritedMetadata.owner,
+      repo: inheritedMetadata.repo,
+      ref: inheritedMetadata.ref,
+      skillPath: inheritedMetadata.skillPath,
+      createdFromPublishedAt: new Date().toISOString(),
+    };
+
+    const createResult = await createSkill({
+      name: draftName,
+      displayTitle: published.displayTitle
+        ? `${published.displayTitle} — Draft`
+        : `${published.name} — Draft`,
+      description: published.description,
+      body: published.body,
+      frontmatter: {
+        ...(published.frontmatter ?? {}),
+        'disable-model-invocation': true,
+        'user-invocable': true,
+      },
+      category: published.category,
+      alwaysApply: false,
+      author,
+      authorName: req.user.name ?? req.user.username ?? 'Unknown',
+      source: 'inline',
+      sourceMetadata,
+      tenantId: resolveRequestTenantId(req),
+    });
+
+    const draft = createResult.skill;
+    try {
+      await grantPermission({
+        principalType: PrincipalType.USER,
+        principalId: req.user.id,
+        resourceType: ResourceType.SKILL,
+        resourceId: draft._id,
+        accessRoleId: AccessRoleIds.SKILL_OWNER,
+        grantedBy: req.user.id,
+      });
+
+      const publishedFiles = await db.listSkillFiles(published._id);
+      for (const file of publishedFiles) {
+        await db.upsertSkillFile({
+          skillId: draft._id,
+          relativePath: file.relativePath,
+          file_id: crypto.randomUUID(),
+          filename: file.filename,
+          filepath: file.filepath,
+          storageKey: file.storageKey,
+          storageRegion: file.storageRegion,
+          source: file.source,
+          sourceMetadata: {
+            ...(file.sourceMetadata ?? {}),
+            sharedFromSkillId: published._id.toString(),
+            sharedStorage: true,
+          },
+          mimeType: file.mimeType,
+          bytes: file.bytes,
+          isExecutable: file.isExecutable,
+          author,
+          tenantId: resolveRequestTenantId(req),
+        });
+      }
+    } catch (error) {
+      await deleteSkill(draft._id.toString()).catch(() => undefined);
+      throw error;
+    }
+
+    return res.status(201).json(await getSkillById(draft._id));
+  } catch (error) {
+    logger.error('[POST /skills/:id/draft] Error creating managed draft', error);
+    return res.status(500).json({ error: 'Failed to create managed skill draft' });
+  }
+}
+
+async function setManagedDraftLifecycleHandler(req, res) {
+  try {
+    const id = req.params.id;
+    const draft = await getSkillById(id);
+    if (!draft) {
+      return res.status(404).json({ error: 'Skill not found' });
+    }
+    if (!isManagedDraft(draft)) {
+      return res.status(400).json({ error: 'Skill is not a managed draft' });
+    }
+    const lifecycle = req.body?.lifecycle;
+    if (!['draft', 'trial', 'publish_pending'].includes(lifecycle)) {
+      return res.status(400).json({ error: 'Invalid draft lifecycle' });
+    }
+    const result = await updateSkill({
+      id,
+      expectedVersion: draft.version,
+      update: {
+        sourceMetadata: {
+          ...(draft.sourceMetadata ?? {}),
+          lifecycle,
+          lifecycleUpdatedAt: new Date().toISOString(),
+        },
+      },
+    });
+    if (result.status === 'conflict') {
+      return res.status(409).json({ error: 'skill_version_conflict', current: result.current });
+    }
+    if (result.status !== 'updated') {
+      return res.status(404).json({ error: 'Skill not found' });
+    }
+    return res.status(200).json(result.skill);
+  } catch (error) {
+    logger.error('[POST /skills/:id/lifecycle] Error updating managed draft lifecycle', error);
+    return res.status(500).json({ error: 'Failed to update managed skill draft lifecycle' });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Per-file upload handler (add a single file to an existing skill)
 // ---------------------------------------------------------------------------
 async function uploadFileHandler(req, res) {
@@ -284,7 +459,11 @@ async function uploadFileHandler(req, res) {
     }
 
     // Clean up old blob if this was a replace (different filepath means new storage object)
-    if (existingFile && existingFile.filepath !== filepath) {
+    if (
+      existingFile &&
+      existingFile.filepath !== filepath &&
+      existingFile.sourceMetadata?.sharedStorage !== true
+    ) {
       const { deleteFile: delOld } = getStrategyFunctions(existingFile.source);
       if (delOld) {
         delOld(req, {
@@ -330,6 +509,20 @@ router.post(
 
 router.get('/', maybeStartRequestSkillSync, handlers.list);
 router.post('/', checkSkillCreate, handlers.create);
+
+router.post(
+  '/:id/draft',
+  checkSkillCreate,
+  canAccessSkillResource({ requiredPermission: PermissionBits.VIEW }),
+  createManagedDraftHandler,
+);
+
+router.post(
+  '/:id/lifecycle',
+  checkSkillCreate,
+  canAccessSkillResource({ requiredPermission: PermissionBits.EDIT }),
+  setManagedDraftLifecycleHandler,
+);
 
 router.get(
   '/:id',
