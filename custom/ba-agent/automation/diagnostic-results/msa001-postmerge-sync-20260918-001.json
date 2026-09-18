@@ -1,0 +1,63 @@
+{
+  "checks": [
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 17756
+          }
+        ]
+      },
+      "index": 1,
+      "label": "Autodeploy lock/process status",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "error": "Path outside diagnostic allowlist: /volume1/docker/librechat-deploy-events.log",
+      "index": 2,
+      "label": "Recent deployment event log",
+      "status": "error",
+      "type": "tail"
+    },
+    {
+      "error": "Path outside diagnostic allowlist: /volume1/docker/librechat-deploy.log",
+      "index": 3,
+      "label": "Recent deployment log",
+      "status": "error",
+      "type": "tail"
+    },
+    {
+      "error": "Path outside diagnostic allowlist: /volume1/docker/librechat-deploy.last-success",
+      "index": 4,
+      "label": "Last successful deployed SHA",
+      "status": "error",
+      "type": "tail"
+    },
+    {
+      "error": "Path outside diagnostic allowlist: /volume1/docker/librechat/deploy/synology/librechat.yaml",
+      "index": 5,
+      "label": "Live Synology LibreChat config",
+      "status": "error",
+      "type": "tail"
+    },
+    {
+      "error": "unsupported check type",
+      "index": 6,
+      "label": "Managed skills GitHub sync status",
+      "status": "error",
+      "type": "skill_sync_status"
+    }
+  ],
+  "ended_at": "2026-09-18T09:27:34Z",
+  "hostname": "NAS",
+  "overall": "partial",
+  "recipe": "custom/ba-agent/diagnostics/msa001-postmerge-sync-20260918-001.json",
+  "recipe_name": "MSA-001 post-merge NAS deployment and skill-sync verification",
+  "request_id": "msa001-postmerge-sync-20260918-001",
+  "schema": 1,
+  "started_at": "2026-09-18T09:27:33Z"
+}
