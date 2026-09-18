@@ -13,6 +13,7 @@ import type {
   TDeleteSkillFileVariables,
   TDeleteSkillFileResponse,
   TListSkillFilesResponse,
+  TPublishSkillDraftResponse,
   CreateSkillOptions,
   UpdateSkillOptions,
   DeleteSkillOptions,
@@ -206,15 +207,14 @@ export const useSetSkillLifecycleMutation = (
   });
 };
 
-
 export const usePublishSkillDraftMutation = (
   options?: UseMutationOptions<
-    import('librechat-data-provider').TPublishSkillDraftResponse,
+    TPublishSkillDraftResponse,
     unknown,
     { skillId: string }
   >,
 ): UseMutationResult<
-  import('librechat-data-provider').TPublishSkillDraftResponse,
+  TPublishSkillDraftResponse,
   unknown,
   { skillId: string }
 > => {
