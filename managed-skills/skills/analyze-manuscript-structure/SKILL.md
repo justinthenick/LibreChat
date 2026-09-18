@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.1.15**
+Version: **0.1.16**
 
 ## Purpose
 
@@ -63,6 +63,35 @@ This Skill is **reconstruction only**. It does not rewrite prose, line-edit chap
 - Preserve report/action scope. If the text shows a character phoning an inspector and making statements about another character's departure, do not upgrade that act into `reporting a disappearance` or `reporting someone missing` unless the text explicitly says so.
 - Preserve evidence type in summaries and `Major reveals`. A deckhand's recollection remains `the deckhand remembers...`; do not restate it as a report, mention, statement, or unqualified factual reveal such as `a passenger boarded...`. Character statements and witness recollections must remain attributed wherever they appear.
 - Do not recast an unresolved clue as a craft device, continuity error, authorial choice or narrative function unless the manuscript or supplied author note explicitly establishes that framing.
+
+## Two-pass source-ledger execution
+
+Before drafting the visible reconstruction, perform these two passes:
+
+### Pass A — Atomic source ledger
+
+Build an internal ledger of atomic source claims. For each claim preserve, where present:
+
+`Chapter | Source/actor | Exact predicate/action type | Explicit recipient | Content/object | Explicit location | Explicit time | Modality/evidence type`
+
+Rules for the ledger:
+
+- Keep separate sentences/clauses as separate atoms when they have different attribution or modality.
+- Record only locations, times, recipients and object states explicitly established for that atom.
+- Do not carry an object's earlier state into a later appearance unless the later text restates that state.
+- A repeated noun does not inherit earlier properties automatically. If Chapter 1 says `the kitchen clock reads 6:45` and Chapter 3 only says Mara `looks at the kitchen clock`, the Chapter 3 atom has **no stated clock reading**.
+- Preserve nested attribution. `Mara says Leon left before six. He told me he was taking the north road.` produces separate atoms for Mara's departure statement and Mara's report of what Leon told her.
+- Preserve source predicates exactly enough to keep evidence type stable: `tells Vale`, `says`, `remembers`, `finds`, `contains`, `whispers`, etc.
+
+### Pass B — Render from ledger only
+
+Construct every visible section only from ledger atoms plus clearly labelled interpretation where this Skill allows interpretation.
+
+- Do not add a fact, relationship, recipient, location, time, object state or predicate that is absent from the relevant ledger atom.
+- When combining atoms would change attribution, modality, predicate, timing, location or object state, keep them separate.
+- Motif entries must quote or faithfully restate the underlying ledger predicates rather than replacing them with generic speech terms such as `mention` or `report`.
+- A later reference to an object must not repeat an earlier state unless the later atom restates it.
+- If a table cell cannot be populated directly from ledger atoms, use `Unstated`, `Unknown`, `None established`, or leave it neutral.
 
 ## Source-preserving output contract
 
@@ -146,6 +175,8 @@ Before returning the analysis, check:
 - Did I avoid inventing interactions (spoke/interviewed/met/informed) from scene adjacency or narrative sequence?
 - For every character statement/recollection, did I preserve whether a recipient was explicitly stated, rather than assigning one from context?
 - Did I preserve the source predicate/action type itself in every section, including motifs/themes and living-brief summaries (for example, `remembers` as memory rather than turning it into `reports`, `mentions`, or another speech act)?
+- Did I avoid carrying an earlier object state into a later appearance when the later text does not restate that state (for example, Chapter 1's `clock reads 6:45` must not become a Chapter 3 clock reading merely because Mara looks at the clock again)?
+- Could every factual clause in the visible output be traced back to one or more source-ledger atoms without adding recipient, location, time, state, predicate or modality?
 - Did I preserve nested attribution and clause boundaries, rather than collapsing `X says A; Y told X B` into a single factual claim `A and B`?
 - Did I avoid editorial recommendations?
 - Could a later editing agent safely use this as a factual map without inheriting invented canon?
