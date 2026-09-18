@@ -387,6 +387,74 @@ def check_skill_sync_status(check, root, env_file, repo, branch):
     return {"source_id": source_id, "document": value}
 
 
+def check_repair_skill_sync_checkout(check, root, env_file, repo, branch):
+    """Restore only deploy/synology/librechat.yaml in the live checkout.
+
+    This is intentionally not a generic git/shell primitive. It operates on one
+    fixed repository path and one fixed tracked file so GitHub-triggered
+    diagnostics can recover the known post-promotion local-config conflict.
+    """
+    repo_dir = Path("/volume1/docker/librechat")
+    tracked = "deploy/synology/librechat.yaml"
+
+    def git_run(args, timeout=30):
+        cmd = [
+            "docker", "run", "--rm", "--user", "1026:100",
+            "-v", "{}:/repo".format(repo_dir),
+            "alpine/git:latest", "-C", "/repo"
+        ] + list(args)
+        proc = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+        if proc.returncode != 0:
+            raise DiagnosticError(
+                "Bounded git operation failed rc={}: {}".format(
+                    proc.returncode, sanitize_text(proc.stderr or proc.stdout)
+                )
+            )
+        return (proc.stdout or "").strip()
+
+    current_branch = git_run(["rev-parse", "--abbrev-ref", "HEAD"])
+    if current_branch != "server/synology":
+        raise DiagnosticError(
+            "Refusing checkout repair: live repository branch is {}".format(current_branch)
+        )
+
+    before = git_run(["status", "--porcelain", "--", tracked])
+    if not before:
+        return {
+            "branch": current_branch,
+            "path": tracked,
+            "changed": False,
+            "before": "",
+            "after": "",
+        }
+
+    lines = [line for line in before.splitlines() if line.strip()]
+    if any(not line.endswith(tracked) for line in lines):
+        raise DiagnosticError("Refusing checkout repair: unexpected path in scoped status")
+
+    git_run(["checkout", "--", tracked])
+    after = git_run(["status", "--porcelain", "--", tracked])
+    if after:
+        raise DiagnosticError(
+            "Scoped checkout repair did not clean {}: {}".format(tracked, sanitize_text(after))
+        )
+
+    return {
+        "branch": current_branch,
+        "path": tracked,
+        "changed": True,
+        "before": sanitize_text(before),
+        "after": after,
+    }
+
+
 CHECKS = {
     "path_exists": check_path_exists,
     "tail": check_tail,
@@ -397,6 +465,7 @@ CHECKS = {
     "disk_usage": check_disk_usage,
     "env_presence": check_env_presence,
     "skill_sync_status": check_skill_sync_status,
+    "repair_skill_sync_checkout": check_repair_skill_sync_checkout,
 }
 
 
