@@ -1,0 +1,19 @@
+{
+  "checks": [
+    {
+      "error": "unsupported check type",
+      "index": 1,
+      "label": "Agent skill allowlist references",
+      "status": "error",
+      "type": "skill_reference_audit"
+    }
+  ],
+  "ended_at": "2026-09-18T12:02:06Z",
+  "hostname": "NAS",
+  "overall": "partial",
+  "recipe": "custom/ba-agent/diagnostics/skill-reference-audit-20260918-001.json",
+  "recipe_name": "Audit agent references before inline skill cleanup",
+  "request_id": "skill-reference-audit-20260918-001",
+  "schema": 1,
+  "started_at": "2026-09-18T12:02:06Z"
+}
