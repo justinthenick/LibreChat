@@ -553,6 +553,7 @@ async function publishManagedDraftHandler(req, res) {
           lifecycleUpdatedAt: new Date().toISOString(),
           publishBaseCommitSha: baseCommitSha,
           publishCommitSha: commitPayload.sha,
+          publishSkillBlobSha: skillBlob.sha,
           githubBranch: branchName,
           githubPrNumber: pull.number,
           githubPrUrl: pull.html_url,
