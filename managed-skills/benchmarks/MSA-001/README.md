@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.2.8 strengthens the evidence-discipline rules further:
+Current hardening through version 0.2.9 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -33,6 +33,7 @@ Current hardening through version 0.2.8 strengthens the evidence-discipline rule
 - identity/referent/addressee/meaning uncertainties remain attached to their unresolved subject and are not copied onto candidate characters or the source speaker merely because that character supplied the ambiguous statement;
 - factual claim reuse is exact when text is shown; ellipses, shortened inner quotations and fresh bracketed paraphrases are not substitutes for the canonical Claim cell;
 - chronology claim bullets do not append parenthetical classifications, and absent established chronology/causality renders as `None established` without explanatory paraphrase;
+- evidence-register Claim cells are self-contained: dependent pronouns/deictics must carry the minimum contiguous verbatim antecedent context in the same Claim cell rather than relying on a neighbouring row;
 - a time embedded in a service name must not be labelled as boarding/departure/scheduled/event time without explicit source support;
 - possessive/document associations must not be promoted into actions such as keeping, owning, carrying, writing or maintaining unless the source states the action;
 - point-of-view/structure summaries must not invent scene boundaries or assign whole chapters/sequences to atom-local locations;
@@ -452,15 +453,28 @@ Strict criterion 6 still failed through free-text rendering:
 The benchmark remains failed rather than accepting semantic drift through
 free-text attached to otherwise correct source IDs.
 
-### v0.2.8 candidate — runtime pending
+### Attempt 26 — v0.2.8 — FAIL (controlled, 2026-09-18)
 
-v0.2.8 removes that remaining rendering surface. Character-map typed evidence
-cells contain source IDs only or `None established`, with every selected ID
-required to directly establish that typed field for the row subject. Time-bearing
-claims may be shown only as complete canonical claims without appended
-annotations; absent established chronology/causality renders as
-`None established` only. Existing acceptance criteria and the MIG-001 fixture
-remain unchanged.
+The fresh v0.2.8 runtime fixed the v0.2.7 rendering failures. Character-map typed
+fields were ID-only/neutral, the `M.` and final-whisper uncertainties remained on
+their unresolved subjects, time-bearing claims carried no appended annotations,
+and established chronology/causality rendered as `None established`.
+
+One source-register contract failure remained: several Claim cells were exact
+source sentences but were not self-contained because their pronoun antecedents
+lived only in neighbouring rows. Examples include `"Her brother Leon is not
+there."`, `"She could not see the person's face."`, and `"She whispers, “You
+were supposed to be late.”"`. The skill already requires a longer verbatim
+excerpt when splitting would lose a pronoun antecedent, so accepting this run
+would weaken the existing gate.
+
+### v0.2.9 candidate — runtime pending
+
+v0.2.9 makes source-atom construction explicit: a dependent sentence is merged
+backward to the minimum contiguous verbatim span that makes its antecedent
+explicit, is not also emitted as a standalone claim, and is labelled
+`Mixed source passage` when the combined span contains multiple evidence types.
+Existing acceptance criteria and the MIG-001 fixture remain unchanged.
 
 ## Promotion rule
 
