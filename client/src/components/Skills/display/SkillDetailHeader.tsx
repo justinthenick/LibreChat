@@ -7,7 +7,7 @@ import {
   getSkillLifecycle,
   getSkillLogicalName,
 } from 'librechat-data-provider';
-import { Button, TooltipAnchor } from '@librechat/client';
+import { Button, TooltipAnchor, useToastContext } from '@librechat/client';
 import { Pencil, Pin, User, Calendar, EarthIcon, Sparkles, GitBranch, PencilLine } from 'lucide-react';
 import type { TSkill } from 'librechat-data-provider';
 import type { TranslationKeys } from '~/hooks';
@@ -15,6 +15,7 @@ import { useLocalize, useAuthContext, useHasAccess } from '~/hooks';
 import {
   useCreateSkillDraftMutation,
   useSetSkillLifecycleMutation,
+  usePublishSkillDraftMutation,
 } from '~/data-provider';
 import DeleteSkill from '../dialogs/DeleteSkill';
 import { ShareSkill } from '../buttons';
@@ -34,6 +35,7 @@ const SkillDetailHeader = ({ skill, showActions = true }: SkillDetailHeaderProps
   const localize = useLocalize();
   const navigate = useNavigate();
   const { user } = useAuthContext();
+  const { showToast } = useToastContext();
   const canCreateSkill = useHasAccess({
     permissionType: PermissionTypes.SKILLS,
     permission: Permissions.CREATE,
@@ -42,6 +44,20 @@ const SkillDetailHeader = ({ skill, showActions = true }: SkillDetailHeaderProps
     onSuccess: (draft) => navigate(`/skills/${draft._id}/edit`),
   });
   const setLifecycle = useSetSkillLifecycleMutation();
+  const publishDraft = usePublishSkillDraftMutation({
+    onSuccess: (response) => {
+      showToast({
+        status: 'success',
+        message: `Draft published to PR #${response.pullRequestNumber}`,
+      });
+    },
+    onError: (error: unknown) => {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'Unable to publish draft to GitHub';
+      showToast({ status: 'error', message });
+    },
+  });
   const lifecycle = getSkillLifecycle(skill);
   const logicalName = getSkillLogicalName(skill);
   const isManagedDraft = lifecycle !== 'published';
@@ -163,7 +179,7 @@ const SkillDetailHeader = ({ skill, showActions = true }: SkillDetailHeaderProps
               {lifecycle !== 'trial' ? (
                 <Button
                   variant="outline"
-                  disabled={setLifecycle.isLoading}
+                  disabled={setLifecycle.isLoading || lifecycle === 'publish_pending'}
                   onClick={() =>
                     setLifecycle.mutate({ skillId: skill._id, lifecycle: 'trial' })
                   }
@@ -181,6 +197,28 @@ const SkillDetailHeader = ({ skill, showActions = true }: SkillDetailHeaderProps
                   End Trial
                 </Button>
               )}
+              {lifecycle !== 'publish_pending' ? (
+                <Button
+                  disabled={publishDraft.isLoading}
+                  onClick={() => publishDraft.mutate({ skillId: skill._id })}
+                >
+                  Publish Draft
+                </Button>
+              ) : typeof (skill.sourceMetadata as Record<string, unknown> | undefined)?.githubPrUrl ===
+                'string' ? (
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    window.open(
+                      (skill.sourceMetadata as Record<string, unknown>).githubPrUrl as string,
+                      '_blank',
+                      'noopener,noreferrer',
+                    )
+                  }
+                >
+                  View PR
+                </Button>
+              ) : null}
               <DeleteSkill
                 skillId={skill._id}
                 skillName={logicalName}
