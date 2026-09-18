@@ -16,6 +16,9 @@ const {
   PermissionBits,
   PermissionTypes,
   Permissions,
+  ResourceType,
+  PrincipalType,
+  AccessRoleIds,
   FileContext,
   mergeFileConfig,
 } = require('librechat-data-provider');
