@@ -121,15 +121,22 @@ def github_request(url, method="GET", token=None, payload=None, timeout=60):
         raise DiagnosticError("GitHub network error: {}".format(exc.reason))
 
 
-def github_fetch_json(repo, branch, repo_path):
+def github_fetch_text(repo, branch, repo_path):
     encoded = urllib.parse.quote(repo_path.strip("/"), safe="/")
     ref = urllib.parse.quote(branch, safe="")
     url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(repo, encoded, ref)
     _, data = github_request(url, token=GITHUB_READ_TOKEN)
     if not isinstance(data, dict) or data.get("type") != "file" or data.get("encoding") != "base64":
-        raise DiagnosticError("GitHub path is not a JSON file: {}".format(repo_path))
+        raise DiagnosticError("GitHub path is not a file: {}".format(repo_path))
     try:
-        text = base64.b64decode(data.get("content", "")).decode("utf-8")
+        return base64.b64decode(data.get("content", "")).decode("utf-8")
+    except Exception as exc:
+        raise DiagnosticError("Invalid text file {}: {}".format(repo_path, exc))
+
+
+def github_fetch_json(repo, branch, repo_path):
+    text = github_fetch_text(repo, branch, repo_path)
+    try:
         value = json.loads(text)
     except Exception as exc:
         raise DiagnosticError("Invalid JSON in {}: {}".format(repo_path, exc))
@@ -387,6 +394,41 @@ def check_skill_sync_status(check, root, env_file, repo, branch):
     return {"source_id": source_id, "document": value}
 
 
+def check_restore_librechat_yaml_from_last_success(check, root, env_file, repo, branch):
+    """Restore one tracked config file from the last successful deployment SHA."""
+    deploy_lock = Path("/tmp/librechat-autodeploy.lock")
+    if deploy_lock.exists():
+        raise DiagnosticError("Refusing config restore while autodeploy lock exists")
+
+    state_file = Path("/volume1/docker/librechat-deploy.last-success")
+    target = Path("/volume1/docker/librechat/deploy/synology/librechat.yaml")
+    tracked = "deploy/synology/librechat.yaml"
+
+    try:
+        last_success = state_file.read_text(encoding="utf-8").strip()
+    except Exception as exc:
+        raise DiagnosticError("Cannot read last successful deployment SHA: {}".format(exc))
+    if not re.fullmatch(r"[0-9a-f]{40}", last_success):
+        raise DiagnosticError("Invalid last successful deployment SHA")
+
+    restored = github_fetch_text(repo, last_success, tracked)
+    try:
+        before = target.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        before = None
+
+    temp = target.with_name(target.name + ".diag-restore.tmp")
+    temp.write_text(restored, encoding="utf-8")
+    temp.replace(target)
+
+    return {
+        "path": str(target),
+        "restored_from": last_success,
+        "changed": before != restored,
+        "bytes": len(restored.encode("utf-8")),
+    }
+
+
 def check_repair_skill_sync_checkout(check, root, env_file, repo, branch):
     """Restore only deploy/synology/librechat.yaml in the live checkout.
 
@@ -466,6 +508,7 @@ CHECKS = {
     "env_presence": check_env_presence,
     "skill_sync_status": check_skill_sync_status,
     "repair_skill_sync_checkout": check_repair_skill_sync_checkout,
+    "restore_librechat_yaml_from_last_success": check_restore_librechat_yaml_from_last_success,
 }
 
 
