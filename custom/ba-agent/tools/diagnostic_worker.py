@@ -14,9 +14,11 @@ import json
 import os
 from pathlib import Path
 import re
+import signal
 import socket
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -394,6 +396,106 @@ def check_skill_sync_status(check, root, env_file, repo, branch):
     return {"source_id": source_id, "document": value}
 
 
+def check_clear_failed_autodeploy(check, root, env_file, repo, branch):
+    """Clear only a failed git_update autodeploy stuck in telemetry publication."""
+    event_log = Path("/volume1/docker/librechat-deploy-events.log")
+    lock_dir = Path("/tmp/librechat-autodeploy.lock")
+    try:
+        events = event_log.read_text(encoding="utf-8", errors="replace")
+    except Exception as exc:
+        raise DiagnosticError("Cannot read deployment event log: {}".format(exc))
+
+    recent = "\n".join(events.splitlines()[-20:])
+    if "ERROR: Git fast-forward update failed" not in recent:
+        raise DiagnosticError("Refusing cleanup: no recent git_update failure is recorded")
+
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:3200/api/config", timeout=5) as response:
+            if response.status < 200 or response.status >= 500:
+                raise DiagnosticError("Refusing cleanup: LibreChat HTTP health is not acceptable")
+    except DiagnosticError:
+        raise
+    except Exception as exc:
+        raise DiagnosticError("Refusing cleanup: LibreChat HTTP health check failed: {}".format(exc))
+
+    proc_rows = []
+    for entry in Path("/proc").iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            cmdline = (entry / "cmdline").read_bytes().replace(b"\x00", b" ").decode(
+                "utf-8", errors="replace"
+            ).strip()
+        except Exception:
+            continue
+        if not cmdline:
+            continue
+        pid = int(entry.name)
+        kind = None
+        if cmdline == "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh":
+            kind = "autodeploy"
+        elif ("publish-telemetry.sh failure git_update" in cmdline
+              and "/volume1/docker/librechat/deploy/synology/" in cmdline):
+            kind = "telemetry"
+        elif ("docker run --rm" in cmdline and "curlimages/curl:8.10.1" in cmdline
+              and "telemetry/history/" in cmdline and "-failure.json" in cmdline):
+            kind = "telemetry-docker"
+        if kind:
+            proc_rows.append({"pid": pid, "kind": kind, "cmdline": sanitize_text(cmdline[:700])})
+
+    auto = [row for row in proc_rows if row["kind"] == "autodeploy"]
+    telem = [row for row in proc_rows if row["kind"] in {"telemetry", "telemetry-docker"}]
+    if len(auto) != 1 or not telem:
+        raise DiagnosticError(
+            "Refusing cleanup: expected one failed autodeploy and active telemetry child"
+        )
+
+    ordered = sorted(telem, key=lambda row: 0 if row["kind"] == "telemetry-docker" else 1) + auto
+    terminated = []
+    for row in ordered:
+        try:
+            os.kill(row["pid"], signal.SIGTERM)
+            terminated.append({"pid": row["pid"], "kind": row["kind"], "signal": "TERM"})
+        except ProcessLookupError:
+            pass
+
+    time.sleep(3)
+
+    for row in ordered:
+        proc_path = Path("/proc") / str(row["pid"])
+        if proc_path.exists():
+            try:
+                os.kill(row["pid"], signal.SIGKILL)
+                terminated.append({"pid": row["pid"], "kind": row["kind"], "signal": "KILL"})
+            except ProcessLookupError:
+                pass
+
+    time.sleep(1)
+    remaining_auto = process_matches("autodeploy.sh")
+    if remaining_auto:
+        raise DiagnosticError(
+            "Failed autodeploy process remains after bounded termination: {}".format(
+                sanitize_text(remaining_auto)
+            )
+        )
+
+    if lock_dir.exists():
+        try:
+            for child in lock_dir.iterdir():
+                if child.is_file() or child.is_symlink():
+                    child.unlink()
+            lock_dir.rmdir()
+        except Exception as exc:
+            raise DiagnosticError("Failed to remove stale autodeploy lock: {}".format(exc))
+
+    return {
+        "cleared": True,
+        "terminated": terminated,
+        "lock_exists_after": lock_dir.exists(),
+        "http_health": "pass",
+    }
+
+
 def check_restore_librechat_yaml_from_last_success(check, root, env_file, repo, branch):
     """Restore one tracked config file from the last successful deployment SHA."""
     deploy_lock = Path("/tmp/librechat-autodeploy.lock")
@@ -509,6 +611,7 @@ CHECKS = {
     "skill_sync_status": check_skill_sync_status,
     "repair_skill_sync_checkout": check_repair_skill_sync_checkout,
     "restore_librechat_yaml_from_last_success": check_restore_librechat_yaml_from_last_success,
+    "clear_failed_autodeploy": check_clear_failed_autodeploy,
 }
 
 
