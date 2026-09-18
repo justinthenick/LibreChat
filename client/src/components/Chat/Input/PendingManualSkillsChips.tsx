@@ -1,6 +1,7 @@
 import { memo, useCallback } from 'react';
 import { ScrollText, X } from 'lucide-react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
+import { parseSkillSelection } from 'librechat-data-provider';
 import { useLocalize } from '~/hooks';
 import store from '~/store';
 
@@ -36,24 +37,27 @@ function PendingManualSkillsChips({ conversationId }: { conversationId: string }
       role="list"
       aria-label={localize('com_ui_skills_queued')}
     >
-      {skills.map((name) => (
+      {skills.map((name) => {
+        const displayName = parseSkillSelection(name).name;
+        return (
         <span
           key={name}
           role="listitem"
           className="inline-flex items-center gap-1 rounded-full border border-border-light bg-surface-secondary px-2 py-0.5 text-xs text-text-secondary"
         >
           <ScrollText className="h-3 w-3 text-cyan-500" aria-hidden="true" />
-          <span className="max-w-[12rem] truncate">{name}</span>
+          <span className="max-w-[12rem] truncate">{displayName}</span>
           <button
             type="button"
-            aria-label={localize('com_ui_remove_skill_var', { 0: name })}
+            aria-label={localize('com_ui_remove_skill_var', { 0: displayName })}
             onClick={() => remove(name)}
             className="-mr-0.5 ml-0.5 rounded-full p-0.5 text-text-secondary hover:bg-surface-tertiary hover:text-text-primary"
           >
             <X className="h-3 w-3" aria-hidden="true" />
           </button>
         </span>
-      ))}
+        );
+      })}
     </div>
   );
 }
