@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Pin, ScrollText } from 'lucide-react';
+import { parseSkillSelection } from 'librechat-data-provider';
 import { useLocalize } from '~/hooks';
 
 /**
@@ -45,7 +46,9 @@ function SkillPills({
 
   return (
     <div className="flex flex-wrap gap-1.5 py-0.5" role="list" aria-label={localize(ariaLabelKey)}>
-      {skills.map((name) => (
+      {skills.map((name) => {
+        const displayName = parseSkillSelection(name).name;
+        return (
         <span
           key={name}
           role="listitem"
@@ -57,9 +60,10 @@ function SkillPills({
           ) : (
             <ScrollText className="h-3 w-3 text-cyan-500" aria-hidden="true" />
           )}
-          <span className="max-w-[12rem] truncate">{name}</span>
+          <span className="max-w-[12rem] truncate">{displayName}</span>
         </span>
-      ))}
+        );
+      })}
     </div>
   );
 }
