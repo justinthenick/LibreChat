@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.2.0 strengthens the evidence-discipline rules further:
+Current hardening through version 0.2.1 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -229,6 +229,16 @@ This controlled rerun preserved the main ambiguity, chronology, modality, recipi
 Related open-thread wording such as `Who left Leon's car...` and `Who obtained the ferry receipt?` came from the same open-world completion behavior.
 
 Version 0.2.0 formalizes the source ledger as closed-world. Each atom now carries a `Source-licensed unresolved point` field; open threads, unknowns, evidence-register unresolved cells, and author-confirmation items may render only those licensed uncertainties. Static states/object presence cannot generate reverse-engineered driver/parking/arrival/cooling/purchase/use events, and adjacent statements cannot inherit scene location unless their own atoms carry it.
+
+
+### Attempt 19 — v0.2.0 — FAIL
+
+This controlled rerun showed that the closed-world unresolved ledger fixed the earlier reverse-engineered parking/cooling/purchase/use questions in the evidence register and substantially reduced speculative open-thread generation. Two rendering-layer criterion-6 issues remained:
+
+- aggregate location grouping still attached the deckhand recollection to the harbour in the current-ending-state and living-brief prose, even though the deckhand-memory atom itself has no explicit harbour location;
+- the Deckhand character-map row introduced `Identity of the deckhand` as an unknown even though the manuscript does not create that identity as a mystery; the licensed unresolved point is the passenger identity, not the deckhand's identity.
+
+Version 0.2.1 therefore requires location-homogeneous grouped prose and restricts character-map unknowns to source-licensed unresolved points tied to that character's own atoms or explicit referent uncertainty.
 
 ## Promotion rule
 
