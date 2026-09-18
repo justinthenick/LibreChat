@@ -172,6 +172,46 @@ class TriageTests(unittest.TestCase):
 | Mara | ID 3 | None established | ID 5 | None established |"""
         self.assertNotIn("source-speaker-uncertainty", self.codes(text))
 
+    def test_typed_role_history_prose_is_flagged(self):
+        text = """| Character/source label | Explicit role/history: source IDs | Explicit goals/beliefs: source IDs | Explicit relationships/interactions: source IDs |
+| --- | --- | --- | --- |
+| Leon | Brother of Mara (E-03); possessive association with car (E-08) | None established | E-03 |"""
+        self.assertIn("typed-field-prose", self.codes(text))
+
+    def test_typed_fields_ids_only_are_clean(self):
+        text = """| Character/source label | Explicit role/history: source IDs | Explicit goals/beliefs: source IDs | Explicit relationships/interactions: source IDs |
+| --- | --- | --- | --- |
+| Leon | E-03 | None established | E-03 |"""
+        self.assertNotIn("typed-field-prose", self.codes(text))
+
+    def test_deckhand_goal_paraphrase_is_flagged(self):
+        text = """| Character/source label | Explicit role/history: source IDs | Explicit goals/beliefs: source IDs | Explicit relationships/interactions: source IDs |
+| --- | --- | --- | --- |
+| A deckhand | E-17 | Remembers a passenger in a dark coat (E-17) | None established |"""
+        codes = self.codes(text)
+        self.assertIn("typed-field-prose", codes)
+        self.assertIn("goals-beliefs-scope", codes)
+
+    def test_time_bearing_parenthetical_annotation_is_flagged(self):
+        text = """## Time-bearing source claims
+- E-01: "At 7:10 p.m., Mara finds the back door open." (Narrated timestamp: 7:10 p.m.)"""
+        self.assertIn("chronology-annotation", self.codes(text))
+
+    def test_time_bearing_canonical_claim_without_annotation_is_clean(self):
+        text = """## Time-bearing source claims
+- E-01: "At 7:10 p.m., Mara finds the back door open.""""
+        self.assertNotIn("chronology-annotation", self.codes(text))
+
+    def test_explained_none_chronology_is_flagged(self):
+        text = """## Established event chronology
+None established. The manuscript has several timestamps."""
+        self.assertIn("none-section-explanation", self.codes(text))
+
+    def test_bare_none_chronology_is_clean(self):
+        text = """## Established event chronology
+None established"""
+        self.assertNotIn("none-section-explanation", self.codes(text))
+
     def test_negated_example_remains_advisory(self):
         result = report("Do not invent identity of the deckhand.")
         self.assertTrue(result["findings"])
