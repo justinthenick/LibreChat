@@ -25,11 +25,15 @@ const {
 const {
   createSkill,
   getSkillById,
+  getAuthorSkillByName,
   updateSkill,
   deleteSkill,
+  listSkillFiles,
   upsertSkillFile,
   deleteSkillFile,
   getSkillFileByPath,
+  getSkillSyncStatus,
+  getSkillSyncCredentialToken,
   getRoleByName,
 } = require('~/models');
 const { requireJwtAuth, canAccessSkillResource } = require('~/server/middleware');
@@ -229,7 +233,7 @@ async function createManagedDraftHandler(req, res) {
     }
 
     const draftName = buildDraftName(published);
-    const existing = await db.getAuthorSkillByName({
+    const existing = await getAuthorSkillByName({
       name: draftName,
       author,
       tenantId: resolveRequestTenantId(req),
@@ -290,9 +294,9 @@ async function createManagedDraftHandler(req, res) {
         grantedBy: req.user.id,
       });
 
-      const publishedFiles = await db.listSkillFiles(published._id);
+      const publishedFiles = await listSkillFiles(published._id);
       for (const file of publishedFiles) {
-        await db.upsertSkillFile({
+        await upsertSkillFile({
           skillId: draft._id,
           relativePath: file.relativePath,
           file_id: crypto.randomUUID(),
@@ -444,12 +448,12 @@ async function publishManagedDraftHandler(req, res) {
       return res.status(409).json({ error: 'Managed draft is missing GitHub source metadata' });
     }
 
-    const status = await db.getSkillSyncStatus('github', sourceId, resolveRequestTenantId(req));
+    const status = await getSkillSyncStatus('github', sourceId, resolveRequestTenantId(req));
     const credentialKey = status?.credentialKey;
     if (!credentialKey) {
       return res.status(409).json({ error: 'No GitHub credential is configured for this skill source' });
     }
-    const token = await db.getSkillSyncCredentialToken('github', credentialKey);
+    const token = await getSkillSyncCredentialToken('github', credentialKey);
     if (!token) {
       return res.status(409).json({ error: 'GitHub credential is not available' });
     }
@@ -467,8 +471,8 @@ async function publishManagedDraftHandler(req, res) {
       throw new Error('Unable to resolve GitHub base tree');
     }
 
-    const draftFiles = await db.listSkillFiles(draft._id);
-    const publishedFiles = await db.listSkillFiles(published._id);
+    const draftFiles = await listSkillFiles(draft._id);
+    const publishedFiles = await listSkillFiles(published._id);
     const tree = [];
 
     const skillBlob = await githubJson(token, 'POST', `${baseApi}/git/blobs`, {
