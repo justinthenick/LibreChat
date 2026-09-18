@@ -5,86 +5,369 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.1.0**
+Version: **0.3.0**
 
-## Purpose
+## Purpose and boundary
 
-Turn a draft manuscript into a faithful structural map that can later become an approved editorial brief.
+Reconstruct the supplied manuscript as a factual map for a later editorial brief.
+Do not rewrite prose, improve the story, repair continuity, recommend edits,
+reorder chapters, invent authorial intent, or propose solutions to mysteries.
+Use only the supplied manuscript and explicitly supplied author notes.
 
-This Skill is **reconstruction only**. It does not rewrite prose, line-edit chapters, fix plot problems, pitch the work, or decide what the author intended.
+## Two-pass method
 
-## Core principle
+Retain a source ledger, then render views of that ledger. The visible evidence
+register comes **first**. Later sections select its IDs and exact claim text;
+they do not write fresh narrative paraphrases of the same evidence.
 
-**Describe the manuscript that exists before suggesting the manuscript it could become.**
+### Pass A: source ledger
 
-## Required method
+Read chapter by chapter. Assign each source atom an ID. Start from distinct
+sentences/clauses, but do **not** emit a dependent sentence as its own visible
+atom when doing so would lose a source, pronoun antecedent, negation, modality,
+attribution chain, or modifier scope.
 
-1. **Reconstruct chapter-by-chapter events.** Summarise what materially happens, who acts, what changes, and what new information becomes available.
-2. **Separate evidence from interpretation.** Label important claims as `Explicit fact`, `Strong inference`, `Possible interpretation`, or `Unknown / unresolved`.
-3. **Build the chronology.** Distinguish present action, backstory, remembered events, reported events and uncertain timing. Do not silently reconcile conflicting dates or times.
-4. **Map characters and relationships.** Record only goals, beliefs, history and relationships supported by the text. Do not invent hidden motives, diagnoses, arcs or backstory.
-5. **Map causal links.** Distinguish `A caused B` from `A happened before B`, `a character believes A caused B`, and `the manuscript leaves the relationship unresolved`.
-6. **Track reveals and information state.** Note what the reader learns, what a character learns, and what remains uncertain after each chapter.
-7. **Identify recurring motifs and themes cautiously.** Repetition can support a motif; theme is interpretive. Use confidence labels and textual evidence rather than presenting theme as authorial intent.
-8. **Flag contradictions and continuity risks without fixing them.** Record conflicting ages, dates, times, locations, object states or accounts as discrepancies. If both can coexist, say so.
-9. **Maintain an unresolved-thread register.** Questions, mysteries, promises, ambiguous identities, missing evidence and competing explanations stay open until the manuscript resolves them.
-10. **Produce an editorial-brief seed, not an edit plan.** The final synthesis should describe the current story architecture and its uncertainties. Do not propose chapter rewrites or craft improvements in this Skill.
+If a sentence begins with or depends on a pronoun/deictic reference such as
+`he`, `she`, `her`, `his`, `they`, `their`, `it`, `this`, or
+`that` whose referent is only supplied by preceding text, extend that atom
+backward to the minimum **contiguous verbatim source span** that makes the
+referent explicit. Do not rewrite the pronoun, insert a bracketed name, or rely on
+a neighbouring register row to supply its antecedent. The dependent sentence is
+not also emitted as a standalone Claim cell.
 
-## Evidence discipline
+Record internally:
 
-- A character statement is evidence that the character said or believes something; it is not automatically objective truth.
-- A memory, recording, archive, note, log, rumour or confession may have different evidentiary weight. Preserve that distinction.
-- Do not identify an unnamed voice, pronoun referent, initial, culprit, relationship or motive unless the manuscript establishes it.
-- Do not convert `could mean` into `means`.
-- Do not infer a missing scene merely because it would make the plot cleaner.
-- Do not assume narrative significance proves causation.
-- Do not treat an apparent contradiction as an error if a plausible textual explanation remains; label the uncertainty.
-- Do not resolve an open ending.
+`ID | Chapter | Verbatim source passage | Evidence type | Source/actor | Predicate | Explicit recipient | Explicit location | Explicit time | Explicit state | Licensed uncertainty ID`
 
-## Recommended output
+Build the claim from the **verbatim source passage**, with quotation marks.
+Use the minimum longer **contiguous** excerpt needed for self-contained context
+instead of completing a shortened fragment with inferred words. A passage may
+contain multiple sentences/clauses when necessary to preserve an antecedent,
+nested attribution, negation, modality, or modifier scope; do not split a
+character's quotation into independently asserted events. If the resulting span
+contains more than one evidence type, label it `Mixed source passage`.
 
-### 1. Manuscript-level reconstruction
-A short description of the story as it currently exists, including central dramatic question and current ending state.
+Evidence types:
 
-### 2. Chapter map
-`Chapter | Material events | New information/reveal | Character-state change | Open threads created/resolved`
+- `Narration`: what the narrator establishes, limited to the actual predicate.
+- `Character statement`: what a character says, including nested reports.
+- `Character recollection`: what a character remembers.
+- `Recorded question` or `Recorded text`: what a document contains.
+- `Mixed source passage`: a verbatim passage containing more than one type.
+  Retain the attribution within it; the label does not make its embedded claims true.
 
-### 3. Character and relationship map
-`Character | Explicit role/history | Explicit goals/beliefs | Relationship evidence | Unknowns`
+A statement proves that it was said, not necessarily that the speaker believes it
+or that its content happened. A recollection stays a recollection. Corroboration,
+if explicitly present, is a separate source passage, not permission to remove
+attribution from the original claim.
 
-### 4. Chronology and causal map
-List confirmed sequence first, then uncertain/conflicting timing and causal claims.
+**Atom-local scope**
 
-### 5. Evidence and uncertainty register
-`Claim | Strength | Evidence | What remains unresolved`
+- A place, time, recipient or state belongs only to the clause it explicitly
+  modifies. Do not inherit it from a neighbouring sentence, a chapter heading,
+  an earlier appearance of the same object, or presumed scene continuity.
+- Preserve exact source predicates. Remembering is not reporting, mentioning,
+  speaking to an investigator, or an interview. An object being present is not
+  an event in which somebody found, placed, purchased or used it.
+- Preserve nested attribution: what X says Y told X remains that nested report,
+  not a fact about Y's subsequent action.
+- Preserve questions as questions. Recorded or spoken questions (such as
+  notebook entries or dialogue queries) remain questions and must not be
+  promoted into an established belief, goal, intention, fact, motive, or
+  conclusion simply because they are attributable to a character. Do not
+  convert recorded questions into suspicion, belief, knowledge, or a
+  declarative proposition.
+- Preserve the source's nouns, possessives and referent classes. Do not expand a
+  role, add a role's location, assign residence, or turn an ambiguous pronoun into
+  a person. Possession/association does not establish action or agency.
+- Keep static states as states. Do not infer a precursor process, change,
+  movement, cooling, purchase, parking, use or actor from object presence/state.
+- Keep independent observations independent. Shared colours, clothing, names or
+  timestamps do not establish identity, a match, corroboration, or causation.
 
-### 6. Motifs / possible themes
-Separate repeated textual motifs from interpretive thematic readings and label confidence.
+**Closed-world uncertainty ledger**
 
-### 7. Continuity / contradiction register
-Record discrepancies without repairing them.
+For each uncertainty explicitly created by the manuscript, record:
 
-### 8. Living editorial-brief seed
-A compact, neutral summary of current premise, story movement, major reveals, unresolved questions, point-of-view/structural observations actually evidenced by the text, and items requiring author confirmation before editing.
+`U-ID | Unresolved subject | Neutral unresolved point | Licensing source IDs and quotation`
 
-## Out of scope for v0.1
+A licence is an explicit inability to identify/confirm, an unexplained referent
+or meaning, an unanswered recorded question, a stated absence of identifying
+evidence/testing, or a directly observable discrepancy. Missing background alone
+is not a licence to invent questions. Do not reverse-engineer who/when/how/why
+questions from a static state.
 
-- prose rewriting or copy-editing;
-- developmental-edit recommendations;
-- chapter reordering;
-- pitch/query/synopsis writing for submission;
-- market positioning;
-- legal or copyright conclusions;
-- change-impact propagation across a full manuscript.
+Use neutral wording that preserves the original subject. For an identity
+uncertainty, default to `Identity of <unresolved subject>`; do not append a
+candidate answer such as `whether this was Leon` unless the licensing source
+itself explicitly enumerates that candidate as a possibility. A possessive or
+descriptive association (for example `Leon’s coat`) is not an explicit candidate
+enumeration.
 
-## Final audit
+The neutral unresolved wording must not introduce a new action/predicate that is
+absent from its licensing source. Static wording such as `is inside`,
+`contains`, or `does not contain` must not become `found`, `discovered`,
+`placed`, `purchased`, or equivalent. A witness to an unidentified passenger
+does not thereby become an unidentified-character mystery. A possible referent
+of an unresolved initial does not inherit the initial's knowledge, motive,
+actions or uncertainties.
 
-Before returning the analysis, check:
+For an unanswered recorded or spoken question, preserve the unresolved proposition
+as a question/uncertainty rather than collapsing it to only one ambiguous noun.
+If both a referent and the proposition are unresolved, record both aspects
+neutrally without asserting the proposition as true. For example, a question of
+the form `M. knew X before Y?` may license uncertainty about who `M.` is and
+whether the questioned prior knowledge held; it does not establish that knowledge.
 
-- Did I reconstruct rather than rewrite?
-- Did I distinguish fact from inference and character belief?
-- Did I leave ambiguous identities and outcomes unresolved?
-- Did I preserve contradictory accounts instead of choosing one without evidence?
-- Did I avoid inventing authorial intent?
-- Did I avoid editorial recommendations?
-- Could a later editing agent safely use this as a factual map without inheriting invented canon?
+Do not add candidate answers, mechanisms, motives, hidden actors, hypothetical
+precursor events, authorial explanations or intended outcomes. An unnamed role
+is simply an unnamed role. When no uncertainty is licensed, record `—`.
+
+### Pass B: evidence register followed by indexed views
+
+Write the sections below in this order. Keep the factual register readable and
+complete enough to support the other views. **Do not create an introductory
+premise paragraph before the register.**
+
+#### 1. Evidence and uncertainty register
+
+`ID | Chapter | Claim: verbatim source passage | Evidence type | Licensed uncertainty IDs`
+
+Every Claim cell must be self-contained: include the speaker/recollection source
+or document, resolve any pronoun/deictic antecedent **within the same verbatim
+Claim cell**, and preserve quotation boundaries and question punctuation. Copy
+the source passage exactly; another register row, source/type column, or later
+character map cannot repair missing antecedent/attribution. Use the minimum
+contiguous set of complete quoted sentences needed to retain context.
+
+Then show:
+
+`U-ID | Unresolved subject | Neutral unresolved point | Source IDs and licensing passage`
+
+Do not turn the uncertainty table into an investigation plan. A question must
+already be licensed by the manuscript.
+
+#### 2. Chapter map
+
+`Chapter | Material events: source IDs | New information: source IDs | Explicit character-state changes | Open/resolved uncertainty IDs`
+
+Use IDs with their exact register claims when more context is useful. The state
+column contains only explicit changes in a character's state; dialogue,
+observations and object states are not inferred character transitions. Write
+`None established` when absent. Resolve a U-ID only with an explicit source ID.
+
+#### 3. Character and relationship map
+
+`Character/source label | Explicit role/history: source IDs | Explicit goals/beliefs: source IDs | Explicit relationships/interactions: source IDs | Uncertainty IDs about this subject`
+
+Use the manuscript's exact label. Treat every column as a typed field, not a
+general evidence bucket.
+
+- A statement is not automatically the speaker's belief, and a statement about
+  another character is not that other character's belief or goal. Populate
+  `Explicit goals/beliefs` only when the canonical source directly attributes a
+  qualifying mental-state predicate to that row subject, such as explicitly
+  `believes`, `thinks`, `wants`, `intends`, `plans`, `hopes`,
+  `expects`, or `knows`. Recollection/perception/evidence-state predicates
+  such as `remembers`, `recalls`, `saw`, `heard`, `cannot tell`,
+  `cannot identify`, `does not know`, `says`, or `tells` do **not**
+  populate goals/beliefs. Third-party claims, questions, inability to
+  identify/confirm, preferences merely alleged by another character, and general
+  uncertainty do not qualify.
+- Recorded or spoken questions remain questions and do not populate any typed
+  character-map field merely because a label appears inside the question.
+  `Explicit role/history`, `Explicit goals/beliefs`, and
+  `Explicit relationships/interactions` each require independent declarative
+  source support for the corresponding field. A question may license an
+  uncertainty row/U-ID while all three typed character fields remain
+  `None established`.
+- Attach a U-ID to a character/source row only when that U-ID's unresolved subject
+  is that row subject itself, or when the manuscript explicitly makes the
+  uncertainty about that subject's own state. Being a possible candidate answer
+  to an identity/referent uncertainty does not transfer the U-ID to the candidate.
+  Likewise, uncertainty about the addressee, referent, or meaning of a character's
+  utterance is not automatically uncertainty about the speaker; keep that U-ID on
+  the unresolved addressee/referent/meaning subject rather than the source
+  character. Keep unidentified-person/passenger/referent uncertainties on their
+  unresolved subject rows.
+- Preserve possessive/document wording exactly. A source phrase such as
+  `Vale's notebook contains...` establishes only that source wording; it does
+  not by itself establish that Vale keeps, owns, carries, writes in, created, or
+  maintained a notebook. Do not turn possessive association into an action,
+  habit, biography, or interaction.
+- Do not create source-expanding biographies to populate a row. Recipient,
+  interaction, ownership, residence and action require their own explicit support.
+
+For the three typed evidence fields (`Explicit role/history`,
+`Explicit goals/beliefs`, and `Explicit relationships/interactions`), render
+**source IDs only** or `None established`. Do not add descriptive paraphrases
+inside these cells. The evidence register supplies the canonical claim text and
+preserves its attribution/modality. Include an ID in a typed field only when its
+canonical claim directly establishes that field for the row subject.
+
+Use `None established` for unsupported typed fields.
+
+#### 4. Chronology and causal map
+
+Separate **chapter/presentation order** from **established event chronology**.
+Presentation order can reference the chapter map without claiming temporal order.
+
+List time-bearing source IDs with their exact quoted claims. If text accompanies
+an ID anywhere outside the evidence register, copy the complete Claim cell
+verbatim; do not shorten it with ellipses, extract only an inner quotation, or add
+a fresh paraphrase. Do not append parenthetical labels, classifications,
+interpretations, or restatements after the canonical claim. Prefer the ID alone
+when repeating the full claim would be cumbersome.
+
+Keep document timestamps, object readings, remembered events and service names
+distinct. Do not append interpretive timing labels such as `boarding time`,
+`departure time`, `scheduled time`, or equivalent unless the source explicitly
+establishes that event/time relation. Do not sort these into a confirmed event
+sequence unless the manuscript explicitly establishes the events' timing/order.
+A time embedded in a service name is not an established departure, boarding,
+schedule, or actual event time.
+
+For **Established event chronology**, list only source IDs for event
+relationships/order that the manuscript explicitly establishes. If no
+cross-source chronology is explicitly established, write exactly
+`None established`; do not explain the absence with a newly paraphrased
+timeline.
+
+List a causal relationship only when a source passage explicitly states it;
+retain attribution if a character states the causal belief. Otherwise write
+exactly `None established`. Do not append explanatory prose after that value or
+generate process questions to fill the causal map.
+
+#### 5. Manuscript-level reconstruction and current ending state
+
+Present a compact selection of source IDs and their **exact register claims**.
+Use one complete claim per bullet, without shared place/time lead-ins. This is
+the reconstruction; do not precede/follow it with a freshly paraphrased synopsis.
+
+The central dramatic question, if source-licensed, references the corresponding
+U-ID. Otherwise write `Not explicitly established`. The ending state selects
+only source passages relevant to the ending; do not carry earlier object readings,
+locations, states or character knowledge forward.
+
+#### 6. Motifs / possible themes
+
+List repeated textual words/images with source IDs and their exact claims.
+When claim text is shown, reproduce the complete register Claim cell verbatim;
+do not use ellipses or shortened fragments. An ID alone is preferable to a
+shortened quotation. Repetition supports a textual motif, not a hidden
+relationship or explanation.
+
+A thematic reading, if useful, must be explicitly labelled `Possible interpretation`
+with confidence and source IDs. It must not introduce a new factual proposition,
+unresolved question, implied event or authorial intent. Omit thematic readings
+that require such additions; `None established` is acceptable. Motif headings
+must not imply concealment, deception or other unsupported characterization.
+
+#### 7. Continuity / contradiction register
+
+`Source IDs compared | Explicit status | Licensed U-ID`
+
+Create a row only when the manuscript itself establishes a direct contradiction,
+an explicit discrepancy, or an explicit difference between the cited source
+atoms. The status cell must use only one of these controlled values:
+
+- `Direct contradiction explicitly established`
+- `Difference/discrepancy explicitly established`
+
+Do not create a row merely because two independent statements appear suggestive,
+tense, or potentially inconsistent. Do not paraphrase either source claim in this
+table. If no qualifying row exists, output exactly one row:
+
+`None established | None established | —`
+
+Do not treat physical evidence as conflicting with testimony about a particular
+person until the text establishes the necessary identity/linkage. Do not repair
+discrepancies or supply candidate mechanisms, even as an illustrative list of
+possibilities.
+
+#### 8. Living editorial-brief seed
+
+Use these compact indexed fields:
+
+- Current premise: selected source IDs and exact register claims.
+- Story movement: chapter-map references, explicitly presentation order.
+- Major reveals: selected source IDs and exact register claims.
+- Unresolved points: existing U-IDs and their existing neutral wording.
+- Point of view / structure: only structural observations directly established
+  by the manuscript (for example chapter count or explicitly evidenced narrative
+  perspective), or `None established`. Do not infer scene boundaries or assign a
+  chapter/sequence to a location merely because one atom in that chapter has that
+  location. A chapter containing unlocated or differently located atoms is not a
+  single-location scene.
+- Author-confirmation items: existing U-IDs only; no new wording about intention.
+
+This is a source index for a later approved brief, not another free-form narrative
+summary. Preserve independent sentences; do not combine different provenance
+under a shared actor, location, time, inferred scene boundary or inferred
+investigation.
+
+## Global evidence safeguards
+
+Apply these to every cell, heading, bullet and interpretation:
+
+- Leave ambiguous identities, outcomes, object relationships and final-line
+  referents/meanings unresolved until the source resolves them.
+- Do not infer guilt, deception, fabrication, complicity, foreknowledge,
+  premeditation, motive or intent from ambiguity.
+- Charged labels (including alibi, accomplice, conspiracy, setup, cover-up and
+  red herring) need explicit source support. Do not offer them as hypotheses.
+- A discrepancy is not proof that someone lied. Neutral omissions are preferable
+  to speculative completeness.
+- Do not invent authorial purpose, craft devices, deliberate misdirection,
+  narrative functions, intended twists or intended resolutions.
+- Do not convert a limited action into a stronger act, a recollection into
+  communication, a possessive/document association into keeping/owning/writing,
+  or a recorded or spoken question into an established belief, goal, intention,
+  fact, motive, or conclusion. Questions must not populate explicit
+  goals/beliefs unless independent source evidence establishes it.
+- No prose rewriting, developmental recommendations, continuity repair, pitch,
+  market positioning, legal conclusions or change-impact propagation.
+
+## Final verification
+
+Compare the visible output with the source, not merely with the internal ledger.
+
+1. Every register claim is an exact, self-contained source excerpt with complete
+   attribution, modality and pronoun/deictic antecedents inside the same Claim
+   cell; no excerpt silently converts quoted testimony to narration. A dependent
+   sentence is not emitted as a standalone claim.
+2. Every factual reuse is an ID reference or the same complete register claim.
+   No ellipses, shortened inner quotations, or bracketed paraphrases replace the
+   canonical claim. Prefer an ID alone if full repetition is not useful.
+3. Every unresolved item has a licensing quotation, preserves its subject and
+   occurs only in the appropriate views. Identity wording does not introduce
+   candidate answers unless explicitly enumerated by the licensing source, and
+   neutral uncertainty wording introduces no new action/predicate. Candidate
+   identities/referents do not inherit another unresolved subject's U-ID.
+4. Every modifier and relationship is supported for that atom; no neighbouring
+   location/time/state, inferred recipient, or static-state precursor has leaked in.
+5. Chronology distinguishes presentation order and source time expressions from
+   proven event order. Later object appearances do not inherit earlier readings.
+6. Interpretation supplies no unsupported facts, identity linkage, motive,
+   mechanism, authorial intent or edit recommendation. Character-map typed fields
+   contain source IDs only (or `None established`), and every selected ID
+   directly establishes that field for the row subject. Goals/beliefs require an
+   explicit qualifying mental-state predicate; recollection, perception,
+   inability-to-identify and communication predicates do not qualify.
+   Recorded/spoken questions do not populate typed fields without independent
+   declarative support; candidate identities and source speakers do not inherit
+   U-IDs for another unresolved subject.
+7. Time-bearing views never convert a service name or document/object timestamp
+   into an event time, schedule, departure, or boarding time unless the source
+   explicitly establishes that relation.
+8. Possessive/document phrases do not become actions or biography, and
+   point-of-view/structure text does not create scene boundaries or chapter-level
+   locations from atom-local location evidence.
+9. Time-bearing claim bullets have no appended paraphrase/annotation. When no
+   established cross-source chronology or causal relationship exists, the
+   corresponding section contains only `None established`.
+10. The continuity/contradiction register contains only source-explicit
+    contradictions/discrepancies with controlled status labels and no factual
+    paraphrase; otherwise it contains the single `None established` row.
+
+Return the reconstruction only after fixing any violation found.
