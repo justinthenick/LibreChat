@@ -127,7 +127,9 @@ def scan(text):
                 "should be the complete canonical claim without fresh parenthetical "
                 "classification.")
         if ((in_established_chronology or in_causal_section)
-                and value and not NONE_ESTABLISHED.fullmatch(value.lstrip("- ").strip())):
+                and value
+                and not re.match(r"^#{1,6}\s+", raw.strip())
+                and not NONE_ESTABLISHED.fullmatch(value.lstrip("- ").strip())):
             add(number, "none-section-explanation",
                 "When no chronology/causal relationship is established, render "
                 "None established only rather than explanatory paraphrase.")
