@@ -1,8 +1,3 @@
-2026-09-18 22:03:14 Change detected: 883386fc -> c521ee2e
-2026-09-18 22:09:05 Official LibreChat Admin Panel dedicated session secret ready
-2026-09-18 22:09:07 Synology Admin Settings privileged worker ready
-2026-09-18 22:09:09 NAS read-only infrastructure worker ready
-2026-09-18 22:09:10 Compose validation passed
 2026-09-18 22:12:24 Image pull completed
 2026-09-18 22:12:25 Compose update completed
 2026-09-18 22:15:44 LibreChat API recreated for deployed runtime configuration
@@ -38,3 +33,8 @@
 2026-09-18 22:39:20 Cloudflare tunnel integration enabled
 2026-09-18 22:39:20 Synology Admin Settings integration enabled
 2026-09-18 22:39:51 ERROR: repository is on chore/skills-audited-baseline-v2, expected server/synology
+2026-09-18 22:46:06 Sanitised GitHub telemetry published
+2026-09-18 22:46:11 LibreChat deployment check started
+2026-09-18 22:46:11 Cloudflare tunnel integration enabled
+2026-09-18 22:46:11 Synology Admin Settings integration enabled
+2026-09-18 22:47:32 ERROR: repository is on chore/skills-audited-baseline-v2, expected server/synology
