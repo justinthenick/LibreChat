@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.2.1**
+Version: **0.2.2**
 
 ## Purpose
 
@@ -15,24 +15,24 @@ This Skill is **reconstruction only**. It does not rewrite prose, line-edit chap
 
 ## Core principle
 
-**Describe the manuscript that exists before suggesting the manuscript it could become.**
+**Describe only the manuscript that exists.**
 
 ## Required method
 
 1. **Reconstruct chapter-by-chapter events.** Summarise what materially happens, who acts, what changes, and what new information becomes available.
-2. **Separate evidence from interpretation.** Label important claims as `Explicit fact`, `Strong inference`, `Possible interpretation`, or `Unknown / unresolved`.
+2. **Separate evidence from interpretation.** Use `Explicit fact` for narration, `Character statement` for attributed statements, `Character recollection` for memories, and `Recorded question` for recorded questions. `Strong inference` and `Possible interpretation` belong only in explicitly labelled interpretation; `Unknown / unresolved` describes uncertainty, not a replacement for attribution.
 3. **Build the chronology.** Distinguish present action, backstory, remembered events, reported events and uncertain timing. Do not silently reconcile conflicting dates or times. Order only events whose timing is established by the manuscript; list document timestamps, service labels and uncertain event times separately when their relationship is not explicit.
 4. **Map characters and relationships.** Record only goals, beliefs, history and relationships supported by the text. Do not invent hidden motives, diagnoses, arcs or backstory.
 5. **Map causal links.** Distinguish `A caused B` from `A happened before B`, `a character believes A caused B`, and `the manuscript leaves the relationship unresolved`.
 6. **Track reveals and information state.** Note what the reader learns, what a character learns, and what remains uncertain after each chapter.
 7. **Identify recurring motifs and themes cautiously.** Repetition can support a motif; theme is interpretive. Use confidence labels and textual evidence rather than presenting theme as authorial intent.
 8. **Flag contradictions and continuity risks without fixing them.** Record conflicting ages, dates, times, locations, object states or accounts as discrepancies. If both can coexist, say so.
-9. **Maintain an unresolved-thread register.** Questions, mysteries, promises, ambiguous identities, missing evidence and competing explanations stay open until the manuscript resolves them.
+9. **Maintain an unresolved-thread register.** Render only the source-licensed unresolved points from Pass A, preserving the subject of each uncertainty until the manuscript resolves it.
 10. **Produce an editorial-brief seed, not an edit plan.** The final synthesis should describe the current story architecture and its uncertainties. Do not propose chapter rewrites or craft improvements in this Skill.
 
 ## Evidence discipline
 
-- A character statement is evidence that the character said or believes something; it is not automatically objective truth. In the evidence register, classify it as `Character statement` unless the manuscript independently corroborates it. Do not relabel a character statement as `Strong inference` or `Possible interpretation` merely because it might be true or false.
+- A character statement establishes that the character says something, not necessarily that they believe it or that it is objectively true. In the evidence register, keep it as `Character statement`; record independent corroboration as a separate atom. Do not relabel a character statement as `Strong inference` or `Possible interpretation` merely because it might be true or false.
 - A memory, recording, archive, note, log, rumour or confession may have different evidentiary weight. Preserve that distinction.
 - Do not identify an unnamed voice, pronoun referent, initial, culprit, relationship or motive unless the manuscript establishes it.
 - Do not convert `could mean` into `means`.
@@ -55,7 +55,7 @@ This Skill is **reconstruction only**. It does not rewrite prose, line-edit chap
 - Do not derive event order from a label, schedule, timestamp or object time unless the text establishes when the event itself occurred. A receipt printed at 6:32 and a passenger boarding the `6:40 ferry` do not establish that the receipt was printed before the boarding event. When in doubt, state the two time-bearing facts separately and do not compare them chronologically.
 - Do not upgrade familiarity or relationship detail from a single observation. A witness recognizing a coat does not establish broader familiarity with the wearer's appearance, habits or wardrobe unless the text says so.
 - Preserve role and place labels at the source text's level of specificity. Use the source noun itself when possible rather than a broader or inferred paraphrase: `Inspector` stays `Inspector`; `deckhand` stays `deckhand`; `north road` stays `north road`. Do not convert an indefinite place such as `the cottage` into ownership or residence language such as `their cottage`, and do not append contextual location to a role (`deckhand at the harbour`) unless the text states that role/location relation.
-- Do not add secondary unknowns merely because they are conceivable. Track an unknown only when the manuscript itself creates it or when it is necessary to explain why a claim cannot be established. Do not add questions about residence, vantage point, distance, broader familiarity, wardrobe knowledge, ambient conditions, or similar background details unless the manuscript itself makes that detail material.
+- Do not add secondary unknowns merely because they are conceivable. Track an unknown only when Pass A records a source passage that licenses that uncertainty. Do not add questions about residence, vantage point, distance, broader familiarity, wardrobe knowledge, ambient conditions, or similar background details unless the manuscript itself makes that detail material.
 - Prefer omission over speculative completeness. If filling a table cell would require adding a new unstated question, role, mechanism or candidate, write `Unstated` / `Unknown` or leave the cell neutral rather than expanding beyond the manuscript.
 - Preserve modality exactly. A notebook question such as `M. knew about harbour before I mentioned it?` is a recorded question, not proof that Vale suspects, believes, concludes, or establishes prior knowledge. In evidence tables, the claim label itself must preserve that modality (for example, `Vale's notebook contains a question about whether M. knew...`), rather than rewriting the question as a declarative claim and relying on `Unknown / unresolved` to soften it.
 - Preserve the referent class of ambiguous language. An unspecified `you` does not establish that the addressee is a person or individual; report the addressee/referent as unresolved unless the text establishes its nature.
@@ -72,7 +72,7 @@ Before drafting the visible reconstruction, perform these two passes:
 
 Build an internal ledger of atomic source claims. For each claim preserve, where present:
 
-`Chapter | Source/actor | Exact predicate/action type | Explicit recipient | Content/object | Explicit location | Explicit time | Modality/evidence type | Source-licensed unresolved point`
+`Atom ID | Chapter | Source passage | Source/actor | Exact predicate/action type | Explicit recipient | Content/object | Explicit location | Explicit time | Modality/evidence type | Canonical claim | Source-licensed unresolved point (subject + licensing passage)`
 
 Rules for the ledger:
 
@@ -101,6 +101,17 @@ Construct every visible section only from ledger atoms plus clearly labelled int
 - If a table cell cannot be populated directly from ledger atoms, use `Unstated`, `Unknown`, `None established`, `—`, or leave it neutral.
 - `Open threads`, `Unknowns`, `What remains unresolved`, and `Items requiring author confirmation` may only render the ledger's `Source-licensed unresolved point` values. They are closed-world views, not prompts to brainstorm missing causes, actors, purchases, uses, arrivals, parking, or other hypothetical precursor events.
 
+### Canonical claims and render boundaries
+
+For each atom, write one self-contained `Canonical claim` from its source passage before filling any output section. Include the full attribution chain, source predicate and question modality in that claim. Keep location, time and state within the scope actually established for that atom.
+
+Render factual content by selecting and reusing these canonical claims. Do not independently paraphrase the same fact for each table, summary, motif or brief. Shorten a section by selecting fewer claims, not by removing their source or merging their modifiers.
+
+- **Claim cells stand alone.** The evidence-register `Claim` cell is the canonical claim itself. A source in the `Evidence` column or a strength label cannot supply missing attribution or repair a declarative version of a question.
+- **Separate summary units.** Use one complete sentence or bullet per canonical claim in the current-ending-state and living brief. Each unit supplies its own actor and any licensed modifiers. Use neutral topic headings; do not place heterogeneous claims under a shared location/time lead-in. A following sentence does not inherit the preceding sentence's location.
+- **Uncertainty has a subject.** Store both the unresolved subject and its licensing passage. A character who witnesses or remembers an unresolved subject does not thereby acquire an identity mystery. In a character row, include only unresolved points whose subject is that character; keep other uncertainties in the evidence/open-thread register. If none apply, write `None established`.
+- **Check the rendered claim, not just the ledger.** Read each claim cell and summary unit without neighbouring columns or sentences. If attribution, predicate, modality or scope no longer matches the canonical claim, replace the entire unit with the canonical claim before returning it.
+
 ## Source-preserving output contract
 
 Apply this contract to every section, table cell, summary sentence and bullet:
@@ -119,7 +130,7 @@ For the character map specifically:
 - Do not add `what Mara knew about the harbour` to Mara's unknowns merely because Mara is one possible referent of `M.`.
 - A deckhand recollection does not establish that the deckhand `spoke with Vale` or was `at the harbour` unless the manuscript explicitly states that interaction/location relation.
 - In relationship-evidence cells, record only relationships/interactions explicitly stated by the manuscript. If the source gives a recollection but no recipient, use `None established` rather than inventing `spoke to Vale`.
-- In `Unknowns`, include only `Source-licensed unresolved point` values tied to that character's own atoms or an explicitly unresolved referent involving that character. Do not turn an unnamed role into an identity mystery. `A deckhand` does not license `identity of the deckhand`; only the passenger identity is licensed because the deckhand explicitly cannot tell whether the passenger was Leon.
+- In `Unknowns`, include only `Source-licensed unresolved point` values whose unresolved subject is that character or an explicitly unresolved referent involving that character. Do not turn an unnamed role into an identity mystery. `A deckhand` does not license `identity of the deckhand`; only the passenger identity is licensed because the deckhand explicitly cannot tell whether the passenger was Leon.
 
 ## Chapter-map column contract
 
@@ -148,7 +159,7 @@ List confirmed sequence first, then uncertain/conflicting timing. Include causal
 
 ### 5. Evidence and uncertainty register
 `Claim | Strength | Evidence | Source-licensed unresolved point`
-Use `—` when the ledger licenses no unresolved point for that claim. Do not generate new precursor events or investigative questions to fill the final column.
+Copy the self-contained canonical claim into `Claim`, including its attribution and modality. Use `—` when the ledger licenses no unresolved point for that claim. Do not generate new precursor events or investigative questions to fill the final column.
 
 ### 6. Motifs / possible themes
 Separate repeated textual motifs from interpretive thematic readings and label confidence.
@@ -202,7 +213,7 @@ Before returning the analysis, check:
 - Did every rendered unresolved/open-thread/author-confirmation item come from a `Source-licensed unresolved point` in the ledger, rather than being reverse-engineered from a static state or object presence?
 - Did I keep sentence-local location/time modifiers attached only to the atoms they explicitly modify, rather than propagating them to adjacent material?
 - Did every location/time-grouped summary contain only atoms that independently carry that same modifier, with unlocated atoms rendered separately?
-- In character-map `Unknowns`, did I avoid turning unnamed roles into identity mysteries and restrict entries to source-licensed unresolved points tied to that character?
+- In character-map `Unknowns`, did I avoid turning unnamed roles into identity mysteries and restrict entries to source-licensed unresolved points whose subject is that character?
 - In the chapter map, did I use `Character-state change` only for explicit state changes and write `None established` rather than using that column to paraphrase events or dialogue?
 - Did I preserve nested attribution and clause boundaries, rather than collapsing `X says A; Y told X B` into a single factual claim `A and B`?
 - Did I avoid editorial recommendations?

@@ -1,0 +1,28 @@
+name: Managed Skill Regression Checks
+
+on:
+  pull_request:
+    paths:
+      - 'managed-skills/**'
+      - '.github/workflows/managed-skills.yml'
+  push:
+    branches:
+      - server/synology
+    paths:
+      - 'managed-skills/**'
+      - '.github/workflows/managed-skills.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  triage-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test known-regression triage and unchanged fixture
+        run: python -m unittest discover -s managed-skills/benchmarks/MSA-001 -p 'test_*.py' -v

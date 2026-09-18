@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.2.1 strengthens the evidence-discipline rules further:
+Current hardening through version 0.2.2 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -239,6 +239,58 @@ This controlled rerun showed that the closed-world unresolved ledger fixed the e
 - the Deckhand character-map row introduced `Identity of the deckhand` as an unknown even though the manuscript does not create that identity as a mystery; the licensed unresolved point is the passenger identity, not the deckhand's identity.
 
 Version 0.2.1 therefore requires location-homogeneous grouped prose and restricts character-map unknowns to source-licensed unresolved points tied to that character's own atoms or explicit referent uncertainty.
+
+
+## v0.2.2 candidate — runtime pending
+
+The [Codex handoff](https://github.com/justinthenick/LibreChat/pull/91#issuecomment-5725214523)
+reports continued aggregate-location drift, an invented deckhand identity unknown,
+and lost recollection attribution in an evidence-register Claim cell. This is
+handoff-reported failure evidence; no complete v0.2.1 capture is archived here,
+so this entry does not invent a separately verified attempt or passing score.
+
+v0.2.2 retains the two-pass ledger and adds reusable, self-contained canonical
+claims, separate summary units, and unresolved-subject/licensing-passage fields.
+It also reconciles the initial evidence labels and unresolved-thread instructions
+with the later source-preserving contract. Tool permissions and invocation are unchanged.
+
+### Repeatable preflight
+
+From the repository root (Python 3.8+; no third-party packages):
+
+```sh
+python3 -m unittest discover -s managed-skills/benchmarks/MSA-001 -p 'test_*.py' -v
+python3 managed-skills/benchmarks/MSA-001/triage.py /path/to/complete-runtime-response.md
+```
+
+The test suite pins the original MIG-001 fixture's Git blob and exercises known
+location, attribution and invented-unknown regressions. Test strings are synthetic
+minimal examples, not claimed runtime captures. The triage tool scans captured
+Markdown and reports line-numbered review candidates for those three failure
+families. It can miss paraphrases and flag quoted or negated examples; review each
+finding against the source. Exit 1 means candidates were found, exit 0 means none
+were detected, and exit 2 is invalid CLI input. Every report remains
+`REVIEW_REQUIRED` with `semantic_pass: false`.
+
+These checks do not evaluate all of criteria 2–6 and cannot establish semantic
+PASS, model identity, skill loading, or live sync success. The GitHub workflow
+runs these same checks without model credentials.
+
+### Fresh runtime procedure
+
+1. Sync this branch through the existing managed-skills source; verify the
+   loaded skill version and source revision. Do not manually edit the synced skill.
+2. Start a fresh LibreChat chat using the Google connector and Gemini 3.8 Flash.
+   Invoke the managed skill with the unchanged manuscript from
+   [MIG-001/fixture.md](../MIG-001/fixture.md); do not send evaluator guidance or
+   expected answers as manuscript content.
+3. Preserve the complete response, exact prompt, connector/model, loaded version,
+   branch SHA and sync result. Run triage and independently score every criterion
+   2–6, including every output section. Record failures as failures.
+4. Keep the PR draft until a fresh runtime passes all of criteria 2–6 unchanged.
+5. After an authorized merge, restore the managed-skills sync branch to
+   `server/synology`, run sync, and record the source commit, updated skill
+   version, and zero attributable skipped skills/files for criterion 7.
 
 ## Promotion rule
 

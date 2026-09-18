@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""Advisory triage of captured MSA-001 Markdown; never a semantic PASS gate."""
+import argparse
+import json
+from pathlib import Path
+import re
+
+ATTRIBUTION = re.compile(r"\bdeckhand\b.{0,50}\b(remembers?|recollects?|recalls?|recollection|memory)\b", re.I)
+BOARDING = re.compile(r"\bpassenger\b.{0,100}\bboard(?:ed|ing|s)?\b", re.I)
+IDENTITY = re.compile(r"\bidentity of (?:the |a )?deckhand\b|\bwho (?:is|was) the deckhand\b", re.I)
+LOCATION = re.compile(r"\b(?:at|in) the harbour\b", re.I)
+DECKHAND = re.compile(r"\bdeckhand\b", re.I)
+
+
+def plain(text):
+    return re.sub(r"[*_]", "", text).replace(chr(96), "").strip()
+
+
+def cells(line):
+    return [plain(cell) for cell in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
+
+
+def scan(text):
+    """Return advisory review candidates, including possible false positives.
+
+    Handles only the handoff's three known regression families.
+    A warning is not a semantic verdict; an empty result is not evidence of PASS.
+    """
+    findings = []
+    claim_column = None
+    heading_locations = {}
+    paragraph = []
+    paragraph_start = None
+
+    def add(line, code, message):
+        item = {"line": line, "code": code, "message": message}
+        if item not in findings:
+            findings.append(item)
+
+    def check_scope(value, line, inherited=False):
+        if DECKHAND.search(value) and (LOCATION.search(value) or inherited):
+            add(line, "location-scope",
+                "Check whether the deckhand memory inherited a harbour location; "
+                "only the fabric discovery is explicitly located there.")
+
+    def flush():
+        nonlocal paragraph, paragraph_start
+        if paragraph:
+            value = plain(" ".join(paragraph))
+            for sentence in re.split(r"(?<=[.!?])\s+", value):
+                check_scope(sentence, paragraph_start, any(heading_locations.values()))
+        paragraph = []
+        paragraph_start = None
+
+    for number, raw in enumerate(text.splitlines(), 1):
+        value = plain(raw)
+        if IDENTITY.search(value):
+            add(number, "unlicensed-unknown",
+                "Check invented deckhand identity uncertainty; the licensed identity "
+                "uncertainty concerns the passenger.")
+        heading = re.match(r"^(#{1,6})\s+(.*)", raw.strip())
+        if heading:
+            flush()
+            level = len(heading.group(1))
+            heading_locations = {k: v for k, v in heading_locations.items() if k < level}
+            heading_locations[level] = bool(re.search(r"\bharbour\b", heading.group(2), re.I))
+            claim_column = None
+            continue
+        if "|" in raw:
+            flush()
+            row = cells(raw)
+            lowered = [cell.lower() for cell in row]
+            if "claim" in lowered and "evidence" in lowered:
+                claim_column = lowered.index("claim")
+                continue
+            if row and all(re.fullmatch(r":?-+:?", cell or " ") for cell in row):
+                continue
+            if claim_column is not None and len(row) > claim_column:
+                claim = row[claim_column]
+                if BOARDING.search(claim) and not ATTRIBUTION.search(claim):
+                    add(number, "claim-attribution",
+                        "The boarding claim needs the deckhand's memory attribution "
+                        "inside the Claim cell; neighbouring columns cannot supply it.")
+            for cell in row:
+                check_scope(cell, number, any(heading_locations.values()))
+            continue
+        claim_column = None
+        if not value:
+            flush()
+            continue
+        if re.match(r"^\s*(?:[-*+]|\d+[.)])\s", raw):
+            flush()
+        if paragraph_start is None:
+            paragraph_start = number
+        paragraph.append(raw)
+    flush()
+    return findings
+
+
+def report(text):
+    return {
+        "status": "REVIEW_REQUIRED",
+        "semantic_pass": False,
+        "scope": "Known-regression triage only; manually evaluate unchanged criteria 2-6.",
+        "findings": scan(text),
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("capture", type=Path, help="Complete saved LibreChat response, UTF-8 Markdown")
+    args = parser.parse_args()
+    text = args.capture.read_text(encoding="utf-8-sig")
+    if not text.strip():
+        parser.error("capture is empty")
+    result = report(text)
+    print(json.dumps(result, indent=2))
+    return 1 if result["findings"] else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
