@@ -1,6 +1,6 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "pr93-postrepair-progress-20260918-014",
-  "recipe": "custom/ba-agent/diagnostics/pr93-postrepair-progress-20260918-014.json"
+  "request_id": "msa001-postmerge-sync-20260918-003",
+  "recipe": "custom/ba-agent/diagnostics/msa001-postmerge-sync-20260918-001.json"
 }
