@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.2.6**
+Version: **0.2.7**
 
 ## Purpose and boundary
 
@@ -91,6 +91,13 @@ unidentified passenger does not thereby become an unidentified-character mystery
 A possible referent of an unresolved initial does not inherit the initial's
 knowledge, motive, actions or uncertainties.
 
+For an unanswered recorded or spoken question, preserve the unresolved proposition
+as a question/uncertainty rather than collapsing it to only one ambiguous noun.
+If both a referent and the proposition are unresolved, record both aspects
+neutrally without asserting the proposition as true. For example, a question of
+the form `M. knew X before Y?` may license uncertainty about who `M.` is and
+whether the questioned prior knowledge held; it does not establish that knowledge.
+
 Do not add candidate answers, mechanisms, motives, hidden actors, hypothetical
 precursor events, authorial explanations or intended outcomes. An unnamed role
 is simply an unnamed role. When no uncertainty is licensed, record `—`.
@@ -139,16 +146,22 @@ general evidence bucket.
   mental state for that row subject. Third-party claims, questions, inability to
   identify/confirm, preferences merely alleged by another character, and general
   uncertainty do not qualify.
-- Recorded or spoken questions remain questions and must not populate fields such
-  as explicit goals/beliefs unless the source independently establishes the
-  corresponding belief or goal. Attribution of a question to a character does not
-  establish that character's belief, goal, intention, fact, motive or conclusion.
+- Recorded or spoken questions remain questions and do not populate any typed
+  character-map field merely because a label appears inside the question.
+  `Explicit role/history`, `Explicit goals/beliefs`, and
+  `Explicit relationships/interactions` each require independent declarative
+  source support for the corresponding field. A question may license an
+  uncertainty row/U-ID while all three typed character fields remain
+  `None established`.
 - Attach a U-ID to a character/source row only when that U-ID's unresolved subject
   is that row subject itself, or when the manuscript explicitly makes the
   uncertainty about that subject's own state. Being a possible candidate answer
   to an identity/referent uncertainty does not transfer the U-ID to the candidate.
-  Keep unidentified-person/passenger/referent uncertainties on their unresolved
-  subject rows.
+  Likewise, uncertainty about the addressee, referent, or meaning of a character's
+  utterance is not automatically uncertainty about the speaker; keep that U-ID on
+  the unresolved addressee/referent/meaning subject rather than the source
+  character. Keep unidentified-person/passenger/referent uncertainties on their
+  unresolved subject rows.
 - Preserve possessive/document wording exactly. A source phrase such as
   `Vale's notebook contains...` establishes only that source wording; it does
   not by itself establish that Vale keeps, owns, carries, writes in, created, or
@@ -279,9 +292,10 @@ Compare the visible output with the source, not merely with the internal ledger.
    proven event order. Later object appearances do not inherit earlier readings.
 6. Interpretation supplies no unsupported facts, identity linkage, motive,
    mechanism, authorial intent or edit recommendation. Character-map fields obey
-   their typed semantics: statements/questions/uncertainties do not become
-   goals/beliefs, and candidate identities do not inherit U-IDs. Recorded or
-   spoken questions remain questions and do not populate explicit goals/beliefs.
+   their typed semantics: a recorded/spoken question does not populate
+   role/history, goals/beliefs, or relationships/interactions without independent
+   declarative support; candidate identities and source speakers do not inherit
+   U-IDs for another unresolved subject.
 7. Time-bearing views never convert a service name or document/object timestamp
    into an event time, schedule, departure, or boarding time unless the source
    explicitly establishes that relation.
