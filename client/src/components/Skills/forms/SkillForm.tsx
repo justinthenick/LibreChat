@@ -159,6 +159,7 @@ export default function SkillForm({ skillId }: SkillFormProps) {
     );
   }
 
+  const externallyManaged = skill.source !== 'inline';
   const readOnly = !permissions.canEdit;
   const saveDisabled = !isDirty || !isValid || isSubmitting || updateSkill.isLoading;
 
@@ -249,7 +250,11 @@ export default function SkillForm({ skillId }: SkillFormProps) {
             className="mt-4 flex items-start gap-2 rounded-md border border-status-warning-border bg-status-warning-subtle p-3 text-sm text-status-warning"
           >
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <span>{localize('com_ui_skill_no_edit_permission')}</span>
+            <span>
+              {externallyManaged
+                ? 'Managed from an external source. Edit the upstream GitHub skill and let Skill Sync publish the change.'
+                : localize('com_ui_skill_no_edit_permission')}
+            </span>
           </div>
         )}
 
