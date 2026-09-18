@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "name": "PR93 final live log and lock check",
+  "checks": [
+    {
+      "type": "lock_status",
+      "label": "Autodeploy process",
+      "path": "/tmp/librechat-autodeploy.lock",
+      "process_contains": "autodeploy.sh"
+    },
+    {
+      "type": "tail",
+      "label": "Recent deployment event log",
+      "path": "/volume1/docker/librechat-deploy-events.log",
+      "lines": 40
+    },
+    {
+      "type": "tail",
+      "label": "Recent deployment log",
+      "path": "/volume1/docker/librechat-deploy.log",
+      "lines": 80
+    }
+  ]
+}
