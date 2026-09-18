@@ -873,6 +873,7 @@ export async function initializeAgent(
         ? resolveManualSkills({
             names: params.manualSkills,
             getSkillByName: db.getSkillByName,
+            getSkillById: db.getSkillById,
             accessibleSkillIds: params.accessibleSkillIds!,
             userId: req.user?.id,
             skillStates: params.skillStates,
