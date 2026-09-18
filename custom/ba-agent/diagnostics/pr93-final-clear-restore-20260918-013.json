@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "name": "Final PR93 stale deploy cleanup and YAML restore",
+  "checks": [
+    {
+      "type": "clear_failed_autodeploy",
+      "label": "Clear failed autodeploy cleanup chain"
+    },
+    {
+      "type": "restore_librechat_yaml_from_last_success",
+      "label": "Restore LibreChat YAML from last successful deployment"
+    },
+    {
+      "type": "lock_status",
+      "label": "Autodeploy lock after repair",
+      "path": "/tmp/librechat-autodeploy.lock",
+      "process_contains": "autodeploy.sh"
+    },
+    {
+      "type": "tail",
+      "label": "Last successful deployed SHA",
+      "path": "/volume1/docker/librechat-deploy.last-success",
+      "lines": 5
+    },
+    {
+      "type": "skill_sync_status",
+      "label": "Managed skills GitHub sync status",
+      "source_id": "managed-skills"
+    }
+  ]
+}
