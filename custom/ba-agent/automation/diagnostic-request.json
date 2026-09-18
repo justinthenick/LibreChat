@@ -1,6 +1,6 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "skills-audited-baseline-postmerge-20260918-002",
+  "request_id": "skills-audited-baseline-postmerge-20260918-003",
   "recipe": "custom/ba-agent/diagnostics/skills-audited-baseline-20260918-001.json"
 }
