@@ -363,6 +363,232 @@ async function setManagedDraftLifecycleHandler(req, res) {
   }
 }
 
+
+
+function githubPathSegment(value) {
+  return String(value)
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+}
+
+async function githubJson(token, method, url, body) {
+  const response = await fetch(url, {
+    method,
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${token}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'LibreChat-Skill-Publisher',
+      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  const text = await response.text();
+  let payload = null;
+  if (text) {
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      payload = { message: text };
+    }
+  }
+  if (!response.ok) {
+    const error = new Error(
+      payload?.message || `GitHub API request failed with status ${response.status}`,
+    );
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
+  }
+  return payload;
+}
+
+async function readSkillFileBuffer(req, file) {
+  const strategy = getStrategyFunctions(file.source);
+  if (!strategy.getDownloadStream) {
+    throw new Error(`Storage backend "${file.source}" cannot read skill files`);
+  }
+  const stream = await strategy.getDownloadStream(req, file.storageKey || file.filepath);
+  const chunks = [];
+  for await (const raw of stream) {
+    chunks.push(Buffer.isBuffer(raw) ? raw : Buffer.from(raw));
+  }
+  return Buffer.concat(chunks);
+}
+
+async function publishManagedDraftHandler(req, res) {
+  try {
+    const draftId = req.params.id;
+    const draft = await getSkillById(draftId);
+    if (!draft) {
+      return res.status(404).json({ error: 'Skill not found' });
+    }
+    if (!isManagedDraft(draft)) {
+      return res.status(400).json({ error: 'Skill is not a managed draft' });
+    }
+
+    const metadata = draft.sourceMetadata ?? {};
+    const published = await getSkillById(metadata.draftOfSkillId);
+    if (!published || published.source !== 'github') {
+      return res.status(409).json({ error: 'Published source skill is no longer available' });
+    }
+
+    const publishedMetadata = published.sourceMetadata ?? {};
+    const sourceId = metadata.sourceId ?? publishedMetadata.sourceId;
+    const owner = metadata.owner ?? publishedMetadata.owner;
+    const repo = metadata.repo ?? publishedMetadata.repo;
+    const ref = metadata.ref ?? publishedMetadata.ref;
+    const skillPath = metadata.skillPath ?? publishedMetadata.skillPath;
+    if (![sourceId, owner, repo, ref, skillPath].every((value) => typeof value === 'string' && value)) {
+      return res.status(409).json({ error: 'Managed draft is missing GitHub source metadata' });
+    }
+
+    const status = await db.getSkillSyncStatus('github', sourceId, resolveRequestTenantId(req));
+    const credentialKey = status?.credentialKey;
+    if (!credentialKey) {
+      return res.status(409).json({ error: 'No GitHub credential is configured for this skill source' });
+    }
+    const token = await db.getSkillSyncCredentialToken('github', credentialKey);
+    if (!token) {
+      return res.status(409).json({ error: 'GitHub credential is not available' });
+    }
+
+    const baseApi = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+    const refPath = githubPathSegment(ref);
+    const refPayload = await githubJson(token, 'GET', `${baseApi}/git/ref/heads/${refPath}`);
+    const baseCommitSha = refPayload?.object?.sha;
+    if (!baseCommitSha) {
+      throw new Error('Unable to resolve GitHub base commit');
+    }
+    const baseCommit = await githubJson(token, 'GET', `${baseApi}/git/commits/${baseCommitSha}`);
+    const baseTreeSha = baseCommit?.tree?.sha;
+    if (!baseTreeSha) {
+      throw new Error('Unable to resolve GitHub base tree');
+    }
+
+    const draftFiles = await db.listSkillFiles(draft._id);
+    const publishedFiles = await db.listSkillFiles(published._id);
+    const tree = [];
+
+    const skillBlob = await githubJson(token, 'POST', `${baseApi}/git/blobs`, {
+      content: Buffer.from(draft.body ?? '', 'utf8').toString('base64'),
+      encoding: 'base64',
+    });
+    tree.push({
+      path: `${skillPath}/SKILL.md`,
+      mode: '100644',
+      type: 'blob',
+      sha: skillBlob.sha,
+    });
+
+    const draftPaths = new Set();
+    for (const file of draftFiles) {
+      draftPaths.add(file.relativePath);
+      const buffer = await readSkillFileBuffer(req, file);
+      const blob = await githubJson(token, 'POST', `${baseApi}/git/blobs`, {
+        content: buffer.toString('base64'),
+        encoding: 'base64',
+      });
+      tree.push({
+        path: `${skillPath}/${file.relativePath}`,
+        mode: '100644',
+        type: 'blob',
+        sha: blob.sha,
+      });
+    }
+
+    for (const file of publishedFiles) {
+      if (!draftPaths.has(file.relativePath)) {
+        tree.push({
+          path: `${skillPath}/${file.relativePath}`,
+          mode: '100644',
+          type: 'blob',
+          sha: null,
+        });
+      }
+    }
+
+    const treePayload = await githubJson(token, 'POST', `${baseApi}/git/trees`, {
+      base_tree: baseTreeSha,
+      tree,
+    });
+    const logicalName = metadata.logicalName ?? published.name;
+    const commitPayload = await githubJson(token, 'POST', `${baseApi}/git/commits`, {
+      message: `feat(skill): publish draft for ${logicalName}`,
+      tree: treePayload.sha,
+      parents: [baseCommitSha],
+    });
+
+    const safeLogicalName = String(logicalName)
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+    const branchName = `skill/${safeLogicalName || 'draft'}-${draft._id.toString().slice(-6)}`;
+    await githubJson(token, 'POST', `${baseApi}/git/refs`, {
+      ref: `refs/heads/${branchName}`,
+      sha: commitPayload.sha,
+    });
+
+    const pull = await githubJson(token, 'POST', `${baseApi}/pulls`, {
+      title: `feat(skill): update ${logicalName}`,
+      head: branchName,
+      base: ref,
+      body:
+        'Published from a LibreChat managed skill draft. The existing published skill remains active until this PR is merged and Skill Sync completes.',
+    });
+
+    const result = await updateSkill({
+      id: draftId,
+      expectedVersion: draft.version,
+      update: {
+        sourceMetadata: {
+          ...metadata,
+          lifecycle: 'publish_pending',
+          lifecycleUpdatedAt: new Date().toISOString(),
+          publishBaseCommitSha: baseCommitSha,
+          publishCommitSha: commitPayload.sha,
+          githubBranch: branchName,
+          githubPrNumber: pull.number,
+          githubPrUrl: pull.html_url,
+        },
+      },
+    });
+    if (result.status !== 'updated') {
+      return res.status(409).json({
+        error: 'skill_version_conflict',
+        message: 'Draft was published to GitHub, but LibreChat could not record the pending state.',
+        githubPrUrl: pull.html_url,
+      });
+    }
+
+    return res.status(201).json({
+      skill: result.skill,
+      branch: branchName,
+      commitSha: commitPayload.sha,
+      pullRequestNumber: pull.number,
+      pullRequestUrl: pull.html_url,
+    });
+  } catch (error) {
+    logger.error('[POST /skills/:id/publish] Error publishing managed draft', error);
+    const status = Number.isInteger(error?.status) ? error.status : 500;
+    if (status === 401 || status === 403) {
+      return res.status(409).json({
+        error: 'github_publish_permission_required',
+        message:
+          'The configured GitHub credential can read Skill Sync content but cannot publish. Grant Contents and Pull Requests write access, then retry.',
+      });
+    }
+    if (status === 422) {
+      return res.status(409).json({
+        error: 'github_publish_conflict',
+        message: error?.payload?.message || 'GitHub rejected the draft publication request',
+      });
+    }
+    return res.status(500).json({ error: 'Failed to publish managed skill draft' });
+  }
+}
 // ---------------------------------------------------------------------------
 // Per-file upload handler (add a single file to an existing skill)
 // ---------------------------------------------------------------------------
@@ -525,6 +751,13 @@ router.post(
   checkSkillCreate,
   canAccessSkillResource({ requiredPermission: PermissionBits.EDIT }),
   setManagedDraftLifecycleHandler,
+);
+
+router.post(
+  '/:id/publish',
+  checkSkillCreate,
+  canAccessSkillResource({ requiredPermission: PermissionBits.EDIT }),
+  publishManagedDraftHandler,
 );
 
 router.get(
