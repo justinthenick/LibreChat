@@ -1,0 +1,54 @@
+{
+  "checks": [
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 20954
+          },
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 21989
+          }
+        ]
+      },
+      "index": 1,
+      "label": "Autodeploy process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lines": 40,
+        "path": "/volume1/docker/librechat-deploy-events.log",
+        "text": "2026-09-18 18:59:16 No deployment change; healthy deployment already recorded at adb82762\n2026-09-18 19:00:02 LibreChat deployment check started\n2026-09-18 19:00:02 Cloudflare tunnel integration enabled\n2026-09-18 19:00:02 Synology Admin Settings integration enabled\n2026-09-18 19:03:39 No deployment change; healthy deployment already recorded at adb82762\n2026-09-18 19:05:02 LibreChat deployment check started\n2026-09-18 19:05:02 Cloudflare tunnel integration enabled\n2026-09-18 19:05:02 Synology Admin Settings integration enabled\n2026-09-18 19:07:43 Change detected: adb82762 -> 5c610170\n2026-09-18 19:11:58 Official LibreChat Admin Panel dedicated session secret ready\n2026-09-18 19:12:02 Synology Admin Settings privileged worker ready\n2026-09-18 19:12:04 NAS read-only infrastructure worker ready\n2026-09-18 19:12:06 Compose validation passed\n2026-09-18 19:17:30 Image pull completed\n2026-09-18 19:22:26 Compose update completed\n2026-09-18 19:27:11 LibreChat API recreated for deployed runtime configuration\n2026-09-18 19:27:12 LibreChat health check passed\n2026-09-18 19:27:57 Production agents and coding-agent pilot seeded and validated\n2026-09-18 19:28:01 MCP workspace mount passed write/read/delete check\n2026-09-18 19:28:04 Cloudflare tunnel connector registered\n2026-09-18 19:28:07 Synology Admin Settings panel and worker healthy\n2026-09-18 19:28:23 Official LibreChat Admin Panel healthy on its configured host port (default 3220)\n2026-09-18 19:28:26 NAS read-only infrastructure worker and MCP bridge healthy\n2026-09-18 19:34:29 Sanitised GitHub telemetry published\n2026-09-18 19:35:11 Deployment healthy at 5c610170580951ee0b26819d13036568b72f3edb\n2026-09-18 19:35:32 LibreChat deployment check started\n2026-09-18 19:35:32 Cloudflare tunnel integration enabled\n2026-09-18 19:35:32 Synology Admin Settings integration enabled\n2026-09-18 19:37:52 Change detected: 5c610170 -> 883386fc\n2026-09-18 19:39:31 ERROR: Git fast-forward update failed\n2026-09-18 19:46:04 Sanitised GitHub telemetry published\n2026-09-18 19:47:36 LibreChat deployment check started\n2026-09-18 19:47:36 Cloudflare tunnel integration enabled\n2026-09-18 19:47:36 Synology Admin Settings integration enabled\n2026-09-18 19:51:54 Change detected: 5c610170 -> 883386fc\n2026-09-18 19:54:10 ERROR: Git fast-forward update failed\n2026-09-18 20:00:38 Sanitised GitHub telemetry published\n2026-09-18 20:03:14 LibreChat deployment check started\n2026-09-18 20:03:14 Cloudflare tunnel integration enabled\n2026-09-18 20:03:14 Synology Admin Settings integration enabled"
+      },
+      "index": 2,
+      "label": "Recent deployment event log",
+      "status": "ok",
+      "type": "tail"
+    },
+    {
+      "data": {
+        "lines": 80,
+        "path": "/volume1/docker/librechat-deploy.log",
+        "text": "  ]\n}\n2026-09-18 09:27:47 \u001b[31merror\u001b[39m: \u001b[31mIndex build failed for \"Conversation\": Operation interrupted because client was closed\u001b[39m\n\u001b[33mWarming up the engines...\u001b[0m\n2026-09-18 09:27:56 \u001b[32minfo\u001b[39m: \u001b[32mMongo Connection options\u001b[39m\n2026-09-18 09:27:56 \u001b[32minfo\u001b[39m: \u001b[32m{\u001b[39m\n\u001b[32m  \"bufferCommands\": false\u001b[39m\n\u001b[32m}\u001b[39m\n{\n  \"ok\": true,\n  \"id\": \"agent_software_engineering_pilot_v01\",\n  \"outcome\": \"updated\",\n  \"owner\": \"6a93c514d9841aaa6a15343d\",\n  \"provider\": \"google\",\n  \"model\": \"gemini-3.8-flash\",\n  \"mcpServerNames\": [\n    \"coding_executor\"\n  ],\n  \"tools\": [\n    \"apply_patch_mcp_coding_executor\",\n    \"create_task_mcp_coding_executor\",\n    \"git_diff_mcp_coding_executor\",\n    \"list_files_mcp_coding_executor\",\n    \"list_repositories_mcp_coding_executor\",\n    \"read_file_mcp_coding_executor\",\n    \"run_check_mcp_coding_executor\",\n    \"search_text_mcp_coding_executor\",\n    \"task_status_mcp_coding_executor\"\n  ]\n}\n2026-09-18 09:27:57 \u001b[31merror\u001b[39m: \u001b[31mIndex build failed for \"Prompt\": Operation interrupted because client was closed\u001b[39m\n2026-09-18 09:27:57 \u001b[31merror\u001b[39m: \u001b[31mIndex build failed for \"SharedLink\": Operation interrupted because client was closed\u001b[39m\n2026-09-18 09:27:57 \u001b[31merror\u001b[39m: \u001b[31mIndex build failed for \"Agent\": Operation interrupted because client was closed\u001b[39m\n2026-09-18 09:27:57 \u001b[31merror\u001b[39m: \u001b[31mIndex build failed for \"Config\": Operation interrupted because client was closed\u001b[39m\n2026-09-18 09:27:57 \u001b[31merror\u001b[39m: \u001b[31mIndex build failed for \"Group\": Operation interrupted because client was closed\u001b[39m\n2026-09-18 09:27:57 \u001b[31merror\u001b[39m: \u001b[31mIndex build failed for \"AclEntry\": Operation interrupted because client was closed\u001b[39m\n2026-09-18 09:27:57 \u001b[31merror\u001b[39m: \u001b[31mIndex build failed for \"Schedule\": Operation interrupted because client was closed\u001b[39m\n2026-09-18 09:27:57 \u001b[31merror\u001b[39m: \u001b[31mIndex build failed for \"ScheduleRun\": Operation interrupted because client was closed\u001b[39m\n2026-09-18 09:27:57 \u001b[31merror\u001b[39m: \u001b[31mIndex build failed for \"File\": Operation interrupted because client was closed\u001b[39m\n2026-09-18 09:27:57 \u001b[31merror\u001b[39m: \u001b[31mIndex build failed for \"AgentTriggerDelivery\": Operation interrupted because client was closed\u001b[39m\n2026-09-18 09:27:57 \u001b[31merror\u001b[39m: \u001b[31mIndex build failed for \"Skill\": Socket connection establishment was cancelled after 74\u001b[39m\n2026-09-18 09:27:57 \u001b[31merror\u001b[39m: \u001b[31mIndex build failed for \"Conversation\": Operation interrupted because client was closed\u001b[39m\n2026-09-18 19:27:57 Production agents and coding-agent pilot seeded and validated\n2026-09-18 19:28:01 MCP workspace mount passed write/read/delete check\n2026-09-18 19:28:04 Cloudflare tunnel connector registered\n2026-09-18 19:28:07 Synology Admin Settings panel and worker healthy\n2026-09-18 19:28:23 Official LibreChat Admin Panel healthy on its configured host port (default 3220)\n2026-09-18 19:28:26 NAS read-only infrastructure worker and MCP bridge healthy\n2026-09-18 19:34:29 Sanitised GitHub telemetry published\n2026-09-18 19:35:11 Deployment healthy at 5c610170580951ee0b26819d13036568b72f3edb\n2026-09-18 19:35:32 LibreChat deployment check started\n2026-09-18 19:35:32 Cloudflare tunnel integration enabled\n2026-09-18 19:35:32 Synology Admin Settings integration enabled\n2026-09-18 19:37:52 Change detected: 5c610170 -> 883386fc\nFrom https://github.com/justinthenick/LibreChat\n * branch                server/synology -> FETCH_HEAD\n   5c6101705..883386fc6  server/synology -> origin/server/synology\nUpdating 5c6101705..883386fc6\nerror: Your local changes to the following files would be overwritten by merge:\n\tdeploy/synology/librechat.yaml\nPlease commit your changes or stash them before you merge.\nAborting\n2026-09-18 19:39:31 ERROR: Git fast-forward update failed\n2026-09-18 19:46:04 Sanitised GitHub telemetry published\n2026-09-18 19:47:36 LibreChat deployment check started\n2026-09-18 19:47:36 Cloudflare tunnel integration enabled\n2026-09-18 19:47:36 Synology Admin Settings integration enabled\n2026-09-18 19:51:54 Change detected: 5c610170 -> 883386fc\nFrom https://github.com/justinthenick/LibreChat\n * branch                server/synology -> FETCH_HEAD\nUpdating 5c6101705..883386fc6\nerror: Your local changes to the following files would be overwritten by merge:\n\tdeploy/synology/librechat.yaml\nPlease commit your changes or stash them before you merge.\nAborting\n2026-09-18 19:54:10 ERROR: Git fast-forward update failed\n2026-09-18 20:00:38 Sanitised GitHub telemetry published\n2026-09-18 20:03:14 LibreChat deployment check started\n2026-09-18 20:03:14 Cloudflare tunnel integration enabled\n2026-09-18 20:03:14 Synology Admin Settings integration enabled"
+      },
+      "index": 3,
+      "label": "Recent deployment log",
+      "status": "ok",
+      "type": "tail"
+    }
+  ],
+  "ended_at": "2026-09-18T10:05:09Z",
+  "hostname": "NAS",
+  "overall": "ok",
+  "recipe": "custom/ba-agent/diagnostics/pr93-final-live-log-check-20260918-011.json",
+  "recipe_name": "PR93 final live log and lock check",
+  "request_id": "pr93-final-live-log-check-20260918-011",
+  "schema": 1,
+  "started_at": "2026-09-18T10:05:09Z"
+}
