@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.1.12**
+Version: **0.1.13**
 
 ## Purpose
 
@@ -69,10 +69,10 @@ This Skill is **reconstruction only**. It does not rewrite prose, line-edit chap
 Apply this contract to every section, table cell, summary sentence and bullet:
 
 1. **Narrator-established fact:** State only what narration directly establishes.
-2. **Attributed statement/recollection:** Keep the speaker/source attached to the claim every time it is repeated.
+2. **Attributed statement/recollection:** Keep the speaker/source attached to the claim every time it is repeated. Preserve the source predicate as well as the source: `remembers` stays a memory/recollection, `says` stays a statement, `tells X` stays a statement to X, `writes` stays recorded text. Do not convert `remembers` into `reports`, `states`, `tells`, or another communication act unless the manuscript explicitly establishes that act.
 3. **Recorded text/question:** Preserve its modality exactly; a question stays a question.
 4. **Unresolved item:** State only the unknown the manuscript itself creates. Do not propagate an ambiguous clue onto candidate characters or create secondary unknowns to fill a row.
-5. **Interaction/action:** Do not infer that two characters spoke, interviewed, met, investigated or exchanged information merely because their material appears in the same scene or paragraph. Recipient attribution must be explicit in the source: `Mara says Leon hated boats` does not become `Mara tells Vale Leon hated boats`; `a deckhand remembers...` does not become `the deckhand tells/speaks to Vale...` unless the manuscript states that recipient or interaction.
+5. **Interaction/action:** Do not infer that two characters spoke, interviewed, met, investigated, reported, or exchanged information merely because their material appears in the same scene or paragraph. Recipient attribution must be explicit in the source: `Mara says Leon hated boats` does not become `Mara tells Vale Leon hated boats`; `a deckhand remembers...` does not become `the deckhand reports/tells/speaks to Vale...` unless the manuscript states that communication or recipient.
 6. **Empty cells are acceptable:** If a relationship, goal, unknown, character-state change or causal link is not established, use `Unstated`, `Unknown`, `None established`, or leave the cell neutral rather than inventing connective tissue.
 7. **One provenance per clause:** If a sentence combines material from different sources, split it into separate clauses/sentences with explicit attribution rather than compressing them into a single actor's knowledge or collection.
 
@@ -144,5 +144,6 @@ Before returning the analysis, check:
 - Did every character-map unknown come from the manuscript itself rather than from propagating an unresolved clue onto possible candidates?
 - Did I avoid inventing interactions (spoke/interviewed/met/informed) from scene adjacency or narrative sequence?
 - For every character statement/recollection, did I preserve whether a recipient was explicitly stated, rather than assigning one from context?
+- Did I preserve the source predicate/action type itself (for example, `remembers` as memory rather than turning it into `reports` or another speech act)?
 - Did I avoid editorial recommendations?
 - Could a later editing agent safely use this as a factual map without inheriting invented canon?
