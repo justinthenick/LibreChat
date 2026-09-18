@@ -1243,6 +1243,51 @@ describe('resolveManualSkills', () => {
     expect(result).toEqual([{ _id: owned._id, name: 'my-skill', body: 'MY SKILL BODY' }]);
   });
 
+  it('resolves a revision-aware manual selection by exact accessible skill id', async () => {
+    const draft = mkSkill('published-draft-123456', userOid, 'DRAFT BODY');
+    const getSkillById = jest.fn(async (id: string | Types.ObjectId) =>
+      id.toString() === draft._id.toString() ? draft : null,
+    );
+    const getSkillByName = jest.fn(buildGetSkillByName({}));
+
+    const result = await resolveManualSkills({
+      names: [`published@@${draft._id.toString()}`],
+      getSkillByName,
+      getSkillById,
+      accessibleSkillIds: [draft._id],
+      userId,
+    });
+
+    expect(result).toEqual([
+      { _id: draft._id, name: 'published-draft-123456', body: 'DRAFT BODY' },
+    ]);
+    expect(getSkillById).toHaveBeenCalledWith(draft._id.toString());
+    expect(getSkillByName).not.toHaveBeenCalled();
+  });
+
+  it('does not use an exact revision id outside the ACL-accessible set', async () => {
+    const inaccessible = mkSkill('private-draft', userOid, 'PRIVATE');
+    const published = mkSkill('published', userOid, 'PUBLISHED');
+    const getSkillById = jest.fn(async () => inaccessible);
+    const getSkillByName = jest.fn(buildGetSkillByName({ published }));
+
+    const result = await resolveManualSkills({
+      names: [`published@@${inaccessible._id.toString()}`],
+      getSkillByName,
+      getSkillById,
+      accessibleSkillIds: [published._id],
+      userId,
+    });
+
+    expect(result).toEqual([
+      { _id: published._id, name: 'published', body: 'PUBLISHED' },
+    ]);
+    expect(getSkillById).not.toHaveBeenCalled();
+    expect(getSkillByName).toHaveBeenCalledWith('published', [published._id], {
+      preferUserInvocable: true,
+    });
+  });
+
   it('passes allowedTools through when the skill doc carries the field', async () => {
     const owned: SkillDoc = {
       ...mkSkill('with-tools', userOid, 'body'),
