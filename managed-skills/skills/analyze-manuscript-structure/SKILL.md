@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.2.8**
+Version: **0.2.9**
 
 ## Purpose and boundary
 
@@ -22,19 +22,30 @@ they do not write fresh narrative paraphrases of the same evidence.
 
 ### Pass A: source ledger
 
-Read chapter by chapter. Assign each distinct source sentence/clause an ID.
-Preserve a complete statement or question when splitting it would lose a source,
-pronoun antecedent, negation, modality, attribution chain, or modifier scope.
+Read chapter by chapter. Assign each source atom an ID. Start from distinct
+sentences/clauses, but do **not** emit a dependent sentence as its own visible
+atom when doing so would lose a source, pronoun antecedent, negation, modality,
+attribution chain, or modifier scope.
+
+If a sentence begins with or depends on a pronoun/deictic reference such as
+`he`, `she`, `her`, `his`, `they`, `their`, `it`, `this`, or
+`that` whose referent is only supplied by preceding text, extend that atom
+backward to the minimum **contiguous verbatim source span** that makes the
+referent explicit. Do not rewrite the pronoun, insert a bracketed name, or rely on
+a neighbouring register row to supply its antecedent. The dependent sentence is
+not also emitted as a standalone Claim cell.
 
 Record internally:
 
 `ID | Chapter | Verbatim source passage | Evidence type | Source/actor | Predicate | Explicit recipient | Explicit location | Explicit time | Explicit state | Licensed uncertainty ID`
 
 Build the claim from the **verbatim source passage**, with quotation marks.
-Use a longer excerpt when needed for context instead of completing a shortened
-fragment with inferred words. A passage may contain multiple clauses when that is
-necessary to preserve nested attribution; do not split a character's quotation
-into independently asserted events.
+Use the minimum longer **contiguous** excerpt needed for self-contained context
+instead of completing a shortened fragment with inferred words. A passage may
+contain multiple sentences/clauses when necessary to preserve an antecedent,
+nested attribution, negation, modality, or modifier scope; do not split a
+character's quotation into independently asserted events. If the resulting span
+contains more than one evidence type, label it `Mixed source passage`.
 
 Evidence types:
 
@@ -113,9 +124,11 @@ premise paragraph before the register.**
 `ID | Chapter | Claim: verbatim source passage | Evidence type | Licensed uncertainty IDs`
 
 Every Claim cell must be self-contained: include the speaker/recollection source
-or document and preserve quotation boundaries and question punctuation. Copy
-the source passage exactly; a source/type in another cell cannot repair omitted
-attribution. Use multiple complete quoted sentences if needed to retain context.
+or document, resolve any pronoun/deictic antecedent **within the same verbatim
+Claim cell**, and preserve quotation boundaries and question punctuation. Copy
+the source passage exactly; another register row, source/type column, or later
+character map cannot repair missing antecedent/attribution. Use the minimum
+contiguous set of complete quoted sentences needed to retain context.
 
 Then show:
 
@@ -292,8 +305,10 @@ Apply these to every cell, heading, bullet and interpretation:
 
 Compare the visible output with the source, not merely with the internal ledger.
 
-1. Every register claim is an exact source excerpt with complete attribution and
-   modality; no excerpt silently converts quoted testimony to narration.
+1. Every register claim is an exact, self-contained source excerpt with complete
+   attribution, modality and pronoun/deictic antecedents inside the same Claim
+   cell; no excerpt silently converts quoted testimony to narration. A dependent
+   sentence is not emitted as a standalone claim.
 2. Every factual reuse is an ID reference or the same complete register claim.
    No ellipses, shortened inner quotations, or bracketed paraphrases replace the
    canonical claim. Prefer an ID alone if full repetition is not useful.
