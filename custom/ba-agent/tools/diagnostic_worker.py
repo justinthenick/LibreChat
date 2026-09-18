@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import re
 import socket
+import subprocess
 import sys
 import urllib.error
 import urllib.parse
@@ -38,6 +39,16 @@ MAX_CHECKS = 20
 MAX_TAIL_LINES = 200
 MAX_TEXT = 20000
 GITHUB_READ_TOKEN = None
+
+# Additional fixed, read-only production diagnostics. These are intentionally
+# exact files rather than directory roots so a GitHub recipe cannot browse the
+# deployment tree or private .env.
+SAFE_PRODUCTION_FILES = {
+    Path("/volume1/docker/librechat-deploy.log"),
+    Path("/volume1/docker/librechat-deploy-events.log"),
+    Path("/volume1/docker/librechat-deploy.last-success"),
+    Path("/volume1/docker/librechat/deploy/synology/librechat.yaml"),
+}
 
 
 class DiagnosticError(RuntimeError):
@@ -175,6 +186,8 @@ def is_allowed_path(path, root, env_file):
     ]
     if resolved == env_file.resolve():
         return True
+    if resolved in {p.resolve() for p in SAFE_PRODUCTION_FILES}:
+        return True
     for allowed in allowed_roots:
         try:
             resolved.relative_to(allowed)
@@ -310,6 +323,70 @@ def check_env_presence(check, root, env_file, repo, branch):
     return {"path": str(path), "present": {name: bool(values.get(name, "").strip()) for name in names}}
 
 
+def check_skill_sync_status(check, root, env_file, repo, branch):
+    """Read only the managed-skills SkillSyncStatus document from local MongoDB."""
+    source_id = str(check.get("source_id") or "managed-skills").strip()
+    if source_id != "managed-skills":
+        raise DiagnosticError("skill_sync_status supports only source_id managed-skills")
+
+    projection = {
+        "_id": 0,
+        "provider": 1,
+        "sourceId": 1,
+        "status": 1,
+        "credentialKey": 1,
+        "owner": 1,
+        "repo": 1,
+        "ref": 1,
+        "paths": 1,
+        "startedAt": 1,
+        "finishedAt": 1,
+        "lastSuccessAt": 1,
+        "lastFailureAt": 1,
+        "errorCode": 1,
+        "errorMessage": 1,
+        "syncedSkillCount": 1,
+        "syncedFileCount": 1,
+        "deletedSkillCount": 1,
+        "deletedFileCount": 1,
+        "skippedSkillCount": 1,
+        "skippedFileCount": 1,
+        "updatedAt": 1,
+    }
+    script = (
+        "var d=db.skillsyncstatuses.findOne("
+        + json.dumps({"provider": "github", "sourceId": source_id})
+        + ","
+        + json.dumps(projection)
+        + "); print(d ? JSON.stringify(d) : 'null');"
+    )
+    try:
+        proc = subprocess.run(
+            ["docker", "exec", "librechat-mongodb", "mongo", "LibreChat", "--quiet", "--eval", script],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=20,
+            check=False,
+        )
+    except Exception as exc:
+        raise DiagnosticError("Skill sync status query failed to start: {}".format(exc))
+    if proc.returncode != 0:
+        raise DiagnosticError(
+            "Skill sync status query failed rc={}: {}".format(
+                proc.returncode, sanitize_text(proc.stderr or proc.stdout)
+            )
+        )
+    output = (proc.stdout or "").strip()
+    if not output:
+        return {"source_id": source_id, "document": None}
+    try:
+        value = json.loads(output.splitlines()[-1])
+    except Exception:
+        raise DiagnosticError("Skill sync status returned non-JSON output: {}".format(sanitize_text(output)))
+    return {"source_id": source_id, "document": value}
+
+
 CHECKS = {
     "path_exists": check_path_exists,
     "tail": check_tail,
@@ -319,6 +396,7 @@ CHECKS = {
     "queue_compare": check_queue_compare,
     "disk_usage": check_disk_usage,
     "env_presence": check_env_presence,
+    "skill_sync_status": check_skill_sync_status,
 }
 
 
