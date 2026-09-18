@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.1.18 strengthens the evidence-discipline rules further:
+Current hardening through version 0.2.0 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -217,6 +217,18 @@ This controlled rerun fixed the Chapter 1 state-change-column compression and pr
 - sentence-local location was still propagated to a separate atom: summaries grouped the deckhand's memory under `at the harbour` / described recollections as situated at the harbour, although the source explicitly locates Vale's fabric discovery there but does not explicitly locate the deckhand or the remembering act.
 
 Version 0.1.18 therefore tightens the atomic ledger itself: states cannot imply prior transitions/actions, and location/time/recipient/state modifiers remain atom-local rather than propagating across adjacent sentences.
+
+
+### Attempt 18 — v0.1.18 — FAIL
+
+This controlled rerun preserved the main ambiguity, chronology, modality, recipient attribution, nested attribution, chapter-state handling, clock-state isolation, and predicate fidelity. Two source-ledger failures remained:
+
+- static states were still reverse-engineered into unsupported precursor events and processes, including `who drove or parked the car`, `when it arrived`, `when the engine cooled`, `who purchased the receipt`, and `whether it was used`;
+- the deckhand memory still inherited an unstated harbour location in aggregate summaries and the living brief, even though only Vale's fabric discovery is explicitly located there.
+
+Related open-thread wording such as `Who left Leon's car...` and `Who obtained the ferry receipt?` came from the same open-world completion behavior.
+
+Version 0.2.0 formalizes the source ledger as closed-world. Each atom now carries a `Source-licensed unresolved point` field; open threads, unknowns, evidence-register unresolved cells, and author-confirmation items may render only those licensed uncertainties. Static states/object presence cannot generate reverse-engineered driver/parking/arrival/cooling/purchase/use events, and adjacent statements cannot inherit scene location unless their own atoms carry it.
 
 ## Promotion rule
 
