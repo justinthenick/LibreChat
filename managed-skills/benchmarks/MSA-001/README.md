@@ -59,6 +59,17 @@ It still failed criterion 6 under the stricter reconstruction standard because i
 
 The benchmark remains failed rather than weakening the acceptance criteria.
 
+### Attempt 3 — v0.1.3 — FAIL
+
+This controlled rerun used Gemini 3.8 Flash in a fresh chat with the loaded skill version explicitly confirmed as v0.1.3. It passed the core ambiguity, non-accusatory, and neutral-unresolved requirements, but still failed strict criterion 6 because it introduced several unsupported factual upgrades:
+
+- the manuscript-level reconstruction grouped the ferry receipt under the harbour even though the receipt was found in the car on the north road;
+- it promoted `boarding the 6:40 ferry` into a confirmed `6:40 p.m. departure`;
+- it upgraded Mrs Pell's narrow coat recognition into broader familiarity language such as Leon being known to her `by sight and clothing`;
+- it continued to include some secondary unknowns (for example vantage point / broader wardrobe familiarity) that are not established as relevant by the manuscript.
+
+The benchmark therefore remains failed rather than accepting small provenance/timing drift into the factual map. Version 0.1.4 adds explicit controls for service-document location, timetable/event wording, and narrow-vs-broad familiarity claims.
+
 ## Promotion rule
 
 Do not merge the semantic hardening change until a fresh runtime invocation of the MIG-001 fixture satisfies criteria 2–6. MIG-001 remains valid as evidence that the GitHub migration/cutover mechanism worked; MSA-001 is the quality gate for the manuscript skill itself.
