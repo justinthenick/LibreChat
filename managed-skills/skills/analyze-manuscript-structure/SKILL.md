@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.1.6**
+Version: **0.1.7**
 
 ## Purpose
 
@@ -32,7 +32,7 @@ This Skill is **reconstruction only**. It does not rewrite prose, line-edit chap
 
 ## Evidence discipline
 
-- A character statement is evidence that the character said or believes something; it is not automatically objective truth.
+- A character statement is evidence that the character said or believes something; it is not automatically objective truth. In the evidence register, classify it as `Character statement` unless the manuscript independently corroborates it. Do not relabel a character statement as `Strong inference` or `Possible interpretation` merely because it might be true or false.
 - A memory, recording, archive, note, log, rumour or confession may have different evidentiary weight. Preserve that distinction.
 - Do not identify an unnamed voice, pronoun referent, initial, culprit, relationship or motive unless the manuscript establishes it.
 - Do not convert `could mean` into `means`.
@@ -54,9 +54,12 @@ This Skill is **reconstruction only**. It does not rewrite prose, line-edit chap
 - Preserve event wording and timing exactly. A `6:40 ferry` or a passenger `boarding the 6:40 ferry` does not by itself establish the ferry's departure time unless the text explicitly says it departed at 6:40.
 - Do not derive event order from a label, schedule, timestamp or object time unless the text establishes when the event itself occurred. A receipt printed at 6:32 and a passenger boarding the `6:40 ferry` do not establish that the receipt was printed before the boarding event. When in doubt, state the two time-bearing facts separately and do not compare them chronologically.
 - Do not upgrade familiarity or relationship detail from a single observation. A witness recognizing a coat does not establish broader familiarity with the wearer's appearance, habits or wardrobe unless the text says so.
-- Preserve role and place labels at the source text's level of specificity. Use the source noun itself when possible rather than a broader or inferred paraphrase: `Inspector` stays `Inspector`; `deckhand` stays `deckhand`; `north road` stays `north road`.
+- Preserve role and place labels at the source text's level of specificity. Use the source noun itself when possible rather than a broader or inferred paraphrase: `Inspector` stays `Inspector`; `deckhand` stays `deckhand`; `north road` stays `north road`. Do not convert an indefinite place such as `the cottage` into ownership or residence language such as `their cottage`.
 - Do not add secondary unknowns merely because they are conceivable. Track an unknown only when the manuscript itself creates it or when it is necessary to explain why a claim cannot be established. Do not add questions about residence, vantage point, distance, broader familiarity, wardrobe knowledge, ambient conditions, or similar background details unless the manuscript itself makes that detail material.
 - Prefer omission over speculative completeness. If filling a table cell would require adding a new unstated question, role, mechanism or candidate, write `Unstated` / `Unknown` or leave the cell neutral rather than expanding beyond the manuscript.
+- Preserve modality exactly. A notebook question such as `M. knew about harbour before I mentioned it?` is a recorded question, not proof that Vale suspects, believes, concludes, or establishes prior knowledge.
+- Preserve the referent class of ambiguous language. An unspecified `you` does not establish that the addressee is a person or individual; report the addressee/referent as unresolved unless the text establishes its nature.
+- Avoid converting neutral spatial descriptions into route or domain labels. `north road` and `harbour` need not become `land route`, `maritime route`, `inland`, `coastal`, or similar abstractions unless the text uses them.
 - Do not recast an unresolved clue as a craft device, continuity error, authorial choice or narrative function unless the manuscript or supplied author note explicitly establishes that framing.
 
 ## Recommended output
@@ -100,7 +103,7 @@ A compact, neutral summary of current premise, story movement, major reveals, un
 Before returning the analysis, check:
 
 - Did I reconstruct rather than rewrite?
-- Did I distinguish fact from inference and character belief?
+- Did I distinguish fact from inference and character belief, and did I keep direct character statements labeled as character statements rather than upgrading/downgrading them to inference categories?
 - Did I leave ambiguous identities and outcomes unresolved?
 - Did I preserve contradictory accounts instead of choosing one without evidence?
 - Did I avoid inventing authorial intent?
@@ -110,8 +113,11 @@ Before returning the analysis, check:
 - Did I preserve event wording and timing without turning a labelled/scheduled time into an unstated departure time or unsupported event ordering? If two time-bearing facts were not explicitly ordered, did I avoid ordering them myself?
 - Did I avoid treating shared descriptors or independent witness reports as matches or corroboration without support?
 - Did I avoid upgrading a narrow observation into broader familiarity or relationship knowledge?
-- Did I preserve role and place labels at the source text's exact level of specificity and avoid inferred paraphrases?
+- Did I preserve role and place labels at the source text's exact level of specificity and avoid inferred paraphrases or ownership/residence language?
 - Did I avoid adding secondary unknowns that the manuscript itself does not create, including residence/vantage-point/familiarity questions?
+- Did I preserve modality, keeping questions as questions rather than converting them into suspicion, belief or conclusion?
+- Did I keep ambiguous referents neutral rather than assuming they denote a person/individual?
+- Did I avoid abstracting source places into unstated route/domain labels?
 - Did I prefer omission or `Unstated` over speculative completeness?
 - Did I avoid editorial recommendations?
 - Could a later editing agent safely use this as a factual map without inheriting invented canon?
