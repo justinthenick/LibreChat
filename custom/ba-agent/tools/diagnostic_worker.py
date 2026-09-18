@@ -397,7 +397,7 @@ def check_repair_skill_sync_checkout(check, root, env_file, repo, branch):
     repo_dir = Path("/volume1/docker/librechat")
     tracked = "deploy/synology/librechat.yaml"
 
-    def git_run(args, timeout=30):
+    def git_run(args, timeout=180):
         cmd = [
             "docker", "run", "--rm", "--user", "1026:100",
             "-v", "{}:/repo".format(repo_dir),
