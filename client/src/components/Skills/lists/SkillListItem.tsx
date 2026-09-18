@@ -1,7 +1,7 @@
 import { memo, useState, useMemo, useCallback } from 'react';
 import { FixedSizeTree } from 'react-vtree';
 import { useNavigate } from 'react-router-dom';
-import { ScrollText, ChevronDown, ChevronRight, Folder, Pin } from 'lucide-react';
+import { ScrollText, ChevronDown, ChevronRight, Folder, Pin, GitBranch, PencilLine } from 'lucide-react';
 import type { FixedSizeNodeData, TreeWalkerValue, TreeWalker } from 'react-vtree';
 import type { TSkillSummary, TSkillFile } from 'librechat-data-provider';
 import { useListSkillFilesQuery } from '~/data-provider';
@@ -325,6 +325,26 @@ function SkillListItem({
 
         <span className="flex min-w-0 flex-1 items-center gap-1.5">
           <span className="truncate">{skill.name}</span>
+          <span
+            className={cn(
+              'inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none',
+              skill.source === 'github'
+                ? 'border-border-medium bg-surface-secondary text-text-secondary'
+                : 'border-status-warning-border bg-status-warning-subtle text-status-warning',
+            )}
+            title={
+              skill.source === 'github'
+                ? 'Managed from GitHub'
+                : 'Local skill — not managed by GitHub Skill Sync'
+            }
+          >
+            {skill.source === 'github' ? (
+              <GitBranch className="size-2.5" aria-hidden="true" />
+            ) : (
+              <PencilLine className="size-2.5" aria-hidden="true" />
+            )}
+            {skill.source === 'github' ? 'GitHub' : 'Local'}
+          </span>
           {skill.alwaysApply === true && (
             <Pin
               className="size-3 shrink-0 text-cyan-500"
