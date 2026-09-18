@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.1.10 strengthens the evidence-discipline rules further:
+Current hardening through version 0.1.11 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -135,6 +135,16 @@ This controlled rerun fixed the prior notebook-modality and witness-attribution 
 - the current-ending-state summary said Vale had `gathered witness statements and found physical items across the cottage, north road, and harbour`, collapsing Mara's cottage observations into Vale's evidence collection.
 
 The benchmark remains failed rather than accepting a known violation of the skill's mixed-provenance rule. Version 0.1.10 adds an explicit summary-section audit for this exact failure mode without broadening the benchmark.
+
+
+### Attempt 10 — v0.1.10 — FAIL
+
+This controlled rerun fixed the prior aggregate-provenance issue in the current-ending-state summary and remained clean on the main ambiguity, chronology, modality, and evidence-attribution requirements. It still failed strict criterion 6 on two residual table-completion inferences:
+
+- Mara's character-map unknowns included `what she knew about the harbour`, propagating the unresolved `M.` clue onto Mara even though the manuscript does not establish that `M.` is Mara;
+- the character/relationship map stated that the deckhand `spoke with Vale at the harbour`, inferring an interaction/location relation that the manuscript does not explicitly establish.
+
+These failures indicate a structural tendency to invent connective tissue when completing table cells rather than a need for more isolated phrase bans. Version 0.1.11 therefore adds a source-preserving output contract: narrator facts stay narrator facts, statements/recollections stay attributed, questions preserve modality, unknowns do not propagate to candidate characters, interactions are not inferred from adjacency, and neutral/empty cells are explicitly allowed.
 
 ## Promotion rule
 
