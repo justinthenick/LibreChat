@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.1.7 strengthens the evidence-discipline rules further:
+Current hardening through version 0.1.8 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -103,6 +103,18 @@ This controlled rerun improved chronology handling substantially and kept the ce
 - the output introduced source-expanding labels such as `their cottage`, `land route`, and `maritime route`.
 
 The benchmark remains failed. Version 0.1.7 now explicitly preserves character-statement classification, modality, ambiguous referent class, exact ownership/residence wording, and source-level spatial labels.
+
+
+### Attempt 7 — v0.1.7 — FAIL
+
+This controlled rerun was the strongest result so far. It preserved the central ambiguities, used `Character statement` correctly, avoided unsupported chronology, and kept Vale's notebook entry as a question. It still failed strict criterion 6 on narrow provenance and summary-scope drift:
+
+- the ending summary said Vale had collected physical findings at the cottage, north road, and harbour, although the cottage observations were Mara's rather than Vale's;
+- the living brief said the harbour was where a ferry receipt `points`, which adds a spatial linkage not established by the manuscript and weakens exact evidence provenance;
+- `Mara reports Leon missing` strengthened the text's actual action (phoning Vale and reporting Leon's stated departure/absence) into an explicit missing-person report;
+- `deckhand at the harbour` appended a role/location relation beyond the source noun.
+
+The benchmark remains failed. Version 0.1.8 tightens observer/finder attribution, report/action scope, exact role/location wording, and prohibits `points to` spatial summaries for service-related documents.
 
 ## Promotion rule
 
