@@ -1,0 +1,85 @@
+{
+  "checks": [
+    {
+      "data": {
+        "lock_exists": true,
+        "lock_path": "/tmp/librechat-autodeploy.lock",
+        "matching_processes": [
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 28242
+          },
+          {
+            "cmdline": "sh /volume1/docker/librechat/deploy/synology/autodeploy.sh ",
+            "pid": 29173
+          }
+        ]
+      },
+      "index": 1,
+      "label": "Autodeploy process",
+      "status": "ok",
+      "type": "lock_status"
+    },
+    {
+      "data": {
+        "lines": 25,
+        "path": "/volume1/docker/librechat-deploy-events.log",
+        "text": "2026-09-18 19:28:07 Synology Admin Settings panel and worker healthy\n2026-09-18 19:28:23 Official LibreChat Admin Panel healthy on its configured host port (default 3220)\n2026-09-18 19:28:26 NAS read-only infrastructure worker and MCP bridge healthy\n2026-09-18 19:34:29 Sanitised GitHub telemetry published\n2026-09-18 19:35:11 Deployment healthy at 5c610170580951ee0b26819d13036568b72f3edb\n2026-09-18 19:35:32 LibreChat deployment check started\n2026-09-18 19:35:32 Cloudflare tunnel integration enabled\n2026-09-18 19:35:32 Synology Admin Settings integration enabled\n2026-09-18 19:37:52 Change detected: 5c610170 -> 883386fc\n2026-09-18 19:39:31 ERROR: Git fast-forward update failed\n2026-09-18 19:46:04 Sanitised GitHub telemetry published\n2026-09-18 19:47:36 LibreChat deployment check started\n2026-09-18 19:47:36 Cloudflare tunnel integration enabled\n2026-09-18 19:47:36 Synology Admin Settings integration enabled\n2026-09-18 19:51:54 Change detected: 5c610170 -> 883386fc\n2026-09-18 19:54:10 ERROR: Git fast-forward update failed\n2026-09-18 20:00:38 Sanitised GitHub telemetry published\n2026-09-18 20:03:14 LibreChat deployment check started\n2026-09-18 20:03:14 Cloudflare tunnel integration enabled\n2026-09-18 20:03:14 Synology Admin Settings integration enabled\n2026-09-18 20:07:05 Change detected: 5c610170 -> 883386fc\n2026-09-18 20:09:15 ERROR: Git fast-forward update failed\n2026-09-18 20:14:54 LibreChat deployment check started\n2026-09-18 20:14:54 Cloudflare tunnel integration enabled\n2026-09-18 20:14:54 Synology Admin Settings integration enabled"
+      },
+      "index": 2,
+      "label": "Recent deployment event log",
+      "status": "ok",
+      "type": "tail"
+    },
+    {
+      "data": {
+        "lines": 5,
+        "path": "/volume1/docker/librechat-deploy.last-success",
+        "text": "5c610170580951ee0b26819d13036568b72f3edb"
+      },
+      "index": 3,
+      "label": "Last successful deployed SHA",
+      "status": "ok",
+      "type": "tail"
+    },
+    {
+      "data": {
+        "document": {
+          "deletedFileCount": 0,
+          "deletedSkillCount": 0,
+          "finishedAt": "2026-09-18T10:16:45.591Z",
+          "lastFailureAt": "2026-09-18T09:07:14.782Z",
+          "lastSuccessAt": "2026-09-18T10:16:45.591Z",
+          "owner": "justinthenick",
+          "paths": [
+            "managed-skills/skills"
+          ],
+          "provider": "github",
+          "ref": "server/synology",
+          "repo": "LibreChat",
+          "skippedFileCount": 0,
+          "skippedSkillCount": 0,
+          "sourceId": "managed-skills",
+          "startedAt": "2026-09-18T10:16:43.482Z",
+          "status": "succeeded",
+          "syncedFileCount": 0,
+          "syncedSkillCount": 2,
+          "updatedAt": "2026-09-18T10:16:45.592Z"
+        },
+        "source_id": "managed-skills"
+      },
+      "index": 4,
+      "label": "Managed skills GitHub sync status",
+      "status": "ok",
+      "type": "skill_sync_status"
+    }
+  ],
+  "ended_at": "2026-09-18T10:17:09Z",
+  "hostname": "NAS",
+  "overall": "ok",
+  "recipe": "custom/ba-agent/diagnostics/pr93-postrepair-progress-20260918-014.json",
+  "recipe_name": "PR93 post-repair deployment progress",
+  "request_id": "pr93-postrepair-progress-20260918-014",
+  "schema": 1,
+  "started_at": "2026-09-18T10:17:09Z"
+}
