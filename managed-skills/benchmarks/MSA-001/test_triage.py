@@ -122,6 +122,56 @@ class TriageTests(unittest.TestCase):
         self.assertNotIn("scene-location-summary", self.codes(
             "- Chapter 1: presentation order S01-S07."))
 
+    def test_recorded_question_id_in_role_history_is_flagged(self):
+        text = """| ID | Claim: verbatim source passage | Evidence type |
+| --- | --- | --- |
+| ID 13 | "Vale's notebook contains: M. knew about harbour before I mentioned it?" | Recorded question |
+
+| Character/source label | Explicit role/history: source IDs | Explicit goals/beliefs: source IDs | Explicit relationships/interactions: source IDs | Uncertainty IDs about this subject |
+| --- | --- | --- | --- | --- |
+| "M." | ID 13 | None established | None established | U-3 |"""
+        self.assertIn("question-as-typed-field", self.codes(text))
+
+    def test_recorded_question_id_in_relationship_is_flagged(self):
+        text = """| ID | Claim: verbatim source passage | Evidence type |
+| --- | --- | --- |
+| ID-13 | "M. knew about harbour before I mentioned it?" | Recorded question |
+
+| Character/source label | Explicit role/history: source IDs | Explicit goals/beliefs: source IDs | Explicit relationships/interactions: source IDs | Uncertainty IDs about this subject |
+| --- | --- | --- | --- | --- |
+| "M." | None established | None established | ID-13 | U-3 |"""
+        self.assertIn("question-as-typed-field", self.codes(text))
+
+    def test_recorded_question_with_only_uid_is_clean(self):
+        text = """| ID | Claim: verbatim source passage | Evidence type |
+| --- | --- | --- |
+| ID 13 | "M. knew about harbour before I mentioned it?" | Recorded question |
+
+| Character/source label | Explicit role/history: source IDs | Explicit goals/beliefs: source IDs | Explicit relationships/interactions: source IDs | Uncertainty IDs about this subject |
+| --- | --- | --- | --- | --- |
+| "M." | None established | None established | None established | U-3 |"""
+        self.assertNotIn("question-as-typed-field", self.codes(text))
+
+    def test_speaker_does_not_inherit_addressee_meaning_uncertainty(self):
+        text = """| U-ID | Unresolved subject | Neutral unresolved point |
+| --- | --- | --- |
+| U-6 | Addressee and meaning of Mara's whisper | Unknown |
+
+| Character/source label | Explicit role/history: source IDs | Explicit goals/beliefs: source IDs | Explicit relationships/interactions: source IDs | Uncertainty IDs about this subject |
+| --- | --- | --- | --- | --- |
+| Mara | ID 3 | None established | ID 5 | U-6 |"""
+        self.assertIn("source-speaker-uncertainty", self.codes(text))
+
+    def test_speaker_without_other_subject_uncertainty_is_clean(self):
+        text = """| U-ID | Unresolved subject | Neutral unresolved point |
+| --- | --- | --- |
+| U-6 | Addressee and meaning of Mara's whisper | Unknown |
+
+| Character/source label | Explicit role/history: source IDs | Explicit goals/beliefs: source IDs | Explicit relationships/interactions: source IDs | Uncertainty IDs about this subject |
+| --- | --- | --- | --- | --- |
+| Mara | ID 3 | None established | ID 5 | None established |"""
+        self.assertNotIn("source-speaker-uncertainty", self.codes(text))
+
     def test_negated_example_remains_advisory(self):
         result = report("Do not invent identity of the deckhand.")
         self.assertTrue(result["findings"])
