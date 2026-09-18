@@ -893,6 +893,107 @@ def check_skill_reference_audit(check, root, env_file, repo, branch):
     raise DiagnosticError("Skill reference audit failed: {}".format(" | ".join(errors)))
 
 
+def check_finalize_inline_skill_cleanup(check, root, env_file, repo, branch):
+    approved = {
+        "analyze-requirements",
+        "decompose-requirements",
+        "frontend-design",
+        "improve-codebase-architecture",
+        "technical-writer",
+    }
+    names = check.get("names") or []
+    cleaned = [str(x or "").strip() for x in names]
+    if set(cleaned) != approved or len(cleaned) != len(approved):
+        raise DiagnosticError("Cleanup scope must exactly match the audited five-skill baseline")
+    expected_commit = str(check.get("expected_commit") or "").strip()
+    if expected_commit != "c521ee2eb4b34abadf7d81a2fec1e1a6acee0c51":
+        raise DiagnosticError("Unexpected baseline commit")
+    script = (
+        "var names=" + json.dumps(cleaned) + ";"
+        "var skills=db.skills.find({name:{$in:names}},"
+        "{_id:1,name:1,source:1,description:1,sourceMetadata:1}).toArray();"
+        "var oldIds=skills.filter(function(s){return s.source==='inline';}).map(function(s){return String(s._id);});"
+        "var agents=db.agents.find({skills:{$in:oldIds}},{_id:1,name:1,skills:1}).toArray();"
+        "print(JSON.stringify({skills:skills,agents:agents}));"
+    )
+    commands = [
+        ["docker", "exec", "librechat-mongodb", "mongosh", "LibreChat", "--quiet", "--eval", script],
+        ["docker", "exec", "librechat-mongodb", "mongo", "LibreChat", "--quiet", "--eval", script],
+    ]
+    snapshot = None
+    errors = []
+    for cmd in commands:
+        try:
+            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=30, check=False)
+        except Exception as exc:
+            errors.append(str(exc)); continue
+        if proc.returncode != 0:
+            errors.append(sanitize_text(proc.stderr or proc.stdout)); continue
+        output=(proc.stdout or "").strip()
+        try:
+            snapshot=json.loads(output.splitlines()[-1])
+        except Exception:
+            raise DiagnosticError("Cleanup preflight returned non-JSON output")
+        break
+    if snapshot is None:
+        raise DiagnosticError("Cleanup preflight failed: {}".format(" | ".join(errors)))
+    if snapshot.get("agents"):
+        raise DiagnosticError("Inline skill ids are still referenced by agents")
+    rows = snapshot.get("skills") or []
+    inline_by = {}
+    github_by = {}
+    for row in rows:
+        name = row.get("name")
+        if row.get("source") == "inline":
+            inline_by.setdefault(name, []).append(row)
+        elif row.get("source") == "github":
+            meta = row.get("sourceMetadata") or {}
+            if meta.get("sourceId") == "managed-skills" and meta.get("commitSha") == expected_commit:
+                github_by.setdefault(name, []).append(row)
+    for name in sorted(approved):
+        if len(inline_by.get(name, [])) != 1:
+            raise DiagnosticError("Expected exactly one inline row for {}".format(name))
+        if len(github_by.get(name, [])) != 1:
+            raise DiagnosticError("Expected exactly one audited GitHub row for {}".format(name))
+        if inline_by[name][0].get("description") != github_by[name][0].get("description"):
+            raise DiagnosticError("Description mismatch for {}".format(name))
+    ids = [inline_by[name][0]["_id"]["$oid"] for name in sorted(approved)]
+    node_script = r"""
+const path = require("path");
+require("module-alias")({ base: path.resolve("/app/api") });
+const connect = require("/app/config/connect");
+(async () => {
+  await connect();
+  require("~/db/models");
+  const db = require("~/models");
+  const ids = JSON.parse(process.env.SKILL_IDS_JSON || "[]");
+  const results = [];
+  for (const id of ids) {
+    results.push({ id, ...(await db.deleteSkill(id)) });
+  }
+  console.log(JSON.stringify(results));
+  await require("mongoose").disconnect();
+})().catch((err) => { console.error(err); process.exit(1); });
+"""
+    env = dict(os.environ)
+    env["SKILL_IDS_JSON"] = json.dumps(ids)
+    proc = subprocess.run(
+        ["docker", "exec", "-e", "SKILL_IDS_JSON=" + json.dumps(ids), "librechat", "node", "-e", node_script],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60, check=False
+    )
+    if proc.returncode != 0:
+        raise DiagnosticError("Cleanup delete failed rc={}: {}".format(proc.returncode, sanitize_text(proc.stderr or proc.stdout)))
+    output = (proc.stdout or "").strip()
+    result_line = output.splitlines()[-1] if output else "[]"
+    try:
+        results = json.loads(result_line)
+    except Exception:
+        raise DiagnosticError("Cleanup delete returned non-JSON output: {}".format(sanitize_text(output)))
+    if len(results) != len(ids) or not all(item.get("deleted") is True for item in results):
+        raise DiagnosticError("One or more inline skill deletions did not complete")
+    return {"deleted": len(results), "ids": ids, "results": results}
+
+
 CHECKS = {
     "path_exists": check_path_exists,
     "tail": check_tail,
@@ -908,6 +1009,7 @@ CHECKS = {
     "inline_skill_files": check_inline_skill_files,
     "inline_skill_file_content": check_inline_skill_file_content,
     "skill_reference_audit": check_skill_reference_audit,
+    "finalize_inline_skill_cleanup": check_finalize_inline_skill_cleanup,
     "repair_skill_sync_checkout": check_repair_skill_sync_checkout,
     "restore_librechat_yaml_from_last_success": check_restore_librechat_yaml_from_last_success,
     "clear_failed_autodeploy": check_clear_failed_autodeploy,
