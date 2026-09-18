@@ -70,8 +70,10 @@ def scan(text):
             flush()
             row = cells(raw)
             lowered = [cell.lower() for cell in row]
-            if "claim" in lowered and "evidence" in lowered:
-                claim_column = lowered.index("claim")
+            claim_headers = [i for i, cell in enumerate(lowered)
+                             if cell == "claim" or cell.startswith("claim:")]
+            if claim_headers:
+                claim_column = claim_headers[0]
                 continue
             if row and all(re.fullmatch(r":?-+:?", cell or " ") for cell in row):
                 continue

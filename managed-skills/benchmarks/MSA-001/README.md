@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.2.2 strengthens the evidence-discipline rules further:
+Current hardening through version 0.2.3 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -241,7 +241,7 @@ This controlled rerun showed that the closed-world unresolved ledger fixed the e
 Version 0.2.1 therefore requires location-homogeneous grouped prose and restricts character-map unknowns to source-licensed unresolved points tied to that character's own atoms or explicit referent uncertainty.
 
 
-## v0.2.2 candidate — runtime pending
+## v0.2.2 renderer change
 
 The [Codex handoff](https://github.com/justinthenick/LibreChat/pull/91#issuecomment-5725214523)
 reports continued aggregate-location drift, an invented deckhand identity unknown,
@@ -291,6 +291,49 @@ runs these same checks without model credentials.
 5. After an authorized merge, restore the managed-skills sync branch to
    `server/synology`, run sync, and record the source commit, updated skill
    version, and zero attributable skipped skills/files for criterion 7.
+
+
+### Attempt 20 — v0.2.2 — FAIL (controlled, 2026-09-18)
+
+Fresh LibreChat chat on Google / `gemini-3.8-flash`, skill explicitly selected
+through the skill picker. The runtime confirmed `0.2.2` before receiving the
+unchanged MIG-001 manuscript and the instruction to reconstruct it exactly.
+Tested commit: `f086ced11b00c70cab607481fff3bdd4117701d1`.
+Skill blob: `84a9f39c9db4999ceab16193c6d93d0316c6291f`.
+
+Complete response remains in the
+[validation conversation](http://192.168.1.5:3200/c/bd31aec9-f17e-51cc-a618-1afbea52635e).
+This is a private deployment link, not a public archival capture.
+
+Criteria 2–5 preserved the central ambiguities and avoided accusing Mara.
+Criterion 6 failed across the reconstructed premise, chronology, motifs,
+continuity register and living brief:
+
+- `Leon left before six taking the north road` collapsed nested testimony into action.
+- `their cottage` added ownership/residence.
+- `Mrs Pell sees` lost statement attribution in chronology/motifs.
+- `when Mara enters` invented an entry action.
+- `Scheduled ferry reference` promoted a source time-bearing name into a schedule.
+- `who purchased or possessed the receipt` invented precursor uncertainty.
+- Chapter 3 story movement grouped the deckhand under the harbour again.
+- `Vale makes/has an entry` weakened the distinction between a document containing text and a writing act.
+- Author-confirmation wording added `unintroduced party` and `intended resolution`.
+
+The evidence-register passenger claim retained recollection attribution, and
+the deckhand Unknowns cell was `None established`. Those improvements do not
+compensate for failures elsewhere.
+
+The direct-Google preflight without explicit skill selection could not load
+the skill. That preflight contained no manuscript and is not a scored attempt.
+
+### v0.2.3 candidate — runtime pending
+
+Retains the two-pass ledger but consolidates duplicated instructions and makes
+the source register the first visible section. Register claims use complete
+verbatim source passages; the remaining structural views reference IDs or reuse
+the exact claims. This removes the competing invitation to write eight fresh
+paraphrases while preserving all reconstruction sections and the strict gate.
+No benchmark criteria or fixture content changes.
 
 ## Promotion rule
 

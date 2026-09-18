@@ -24,6 +24,10 @@ class TriageTests(unittest.TestCase):
 | A deckhand remembers a passenger in a dark coat boarding the 6:40 ferry | Character recollection | Chapter 3 | Passenger identity |"""
         self.assertNotIn("claim-attribution", self.codes(text))
 
+    def test_verbatim_claim_header(self):
+        text = "| ID | Claim: verbatim source passage | Evidence type |\n| --- | --- | --- |\n| A1 | A passenger boarded | Character recollection |"
+        self.assertIn("claim-attribution", self.codes(text))
+
     def test_reordered_columns(self):
         text = "| Evidence | Claim |\n| --- | --- |\n| A deckhand remembers | A passenger boarded the ferry |"
         self.assertIn("claim-attribution", self.codes(text))
