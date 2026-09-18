@@ -20,7 +20,7 @@ import type {
   ImportSkillOptions,
   DeleteSkillFileOptions,
 } from 'librechat-data-provider';
-import type { InfiniteData, QueryKey, UseMutationResult } from '@tanstack/react-query';
+import type { InfiniteData, QueryKey, UseMutationOptions, UseMutationResult } from '@tanstack/react-query';
 
 function isInfiniteSkillData(
   data: TSkillListResponse | InfiniteData<TSkillListResponse>,
@@ -158,6 +158,49 @@ export const useImportSkillMutation = (
       queryClient.setQueryData<TSkill>([QueryKeys.skill, skill._id], skill);
       addSkillToCachedLists(queryClient, skill);
       void queryClient.invalidateQueries([QueryKeys.skills]);
+      if (onSuccess) onSuccess(skill, variables, context);
+    },
+  });
+};
+
+export const useCreateSkillDraftMutation = (
+  options?: UseMutationOptions<TSkill, unknown, { skillId: string }>,
+): UseMutationResult<TSkill, unknown, { skillId: string }> => {
+  const queryClient = useQueryClient();
+  const { onSuccess, ...rest } = options ?? {};
+  return useMutation({
+    mutationFn: ({ skillId }: { skillId: string }) => dataService.createSkillDraft(skillId),
+    ...rest,
+    onSuccess: async (skill, variables, context) => {
+      await queryClient.cancelQueries([QueryKeys.skills]);
+      queryClient.setQueryData<TSkill>([QueryKeys.skill, skill._id], skill);
+      addSkillToCachedLists(queryClient, skill);
+      void queryClient.invalidateQueries([QueryKeys.skills]);
+      if (onSuccess) onSuccess(skill, variables, context);
+    },
+  });
+};
+
+export const useSetSkillLifecycleMutation = (
+  options?: UseMutationOptions<
+    TSkill,
+    unknown,
+    { skillId: string; lifecycle: 'draft' | 'trial' | 'publish_pending' }
+  >,
+): UseMutationResult<
+  TSkill,
+  unknown,
+  { skillId: string; lifecycle: 'draft' | 'trial' | 'publish_pending' }
+> => {
+  const queryClient = useQueryClient();
+  const { onSuccess, ...rest } = options ?? {};
+  return useMutation({
+    mutationFn: ({ skillId, lifecycle }) =>
+      dataService.setSkillLifecycle(skillId, { lifecycle }),
+    ...rest,
+    onSuccess: (skill, variables, context) => {
+      queryClient.setQueryData<TSkill>([QueryKeys.skill, skill._id], skill);
+      replaceSkillInCachedLists(queryClient, skill);
       if (onSuccess) onSuccess(skill, variables, context);
     },
   });
