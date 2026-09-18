@@ -5,7 +5,7 @@ description: Reconstruct the structure, factual state, chronology, character rel
 
 # Manuscript Structure Analyst
 
-Version: **0.2.0**
+Version: **0.2.1**
 
 ## Purpose
 
@@ -97,6 +97,7 @@ Construct every visible section only from ledger atoms plus clearly labelled int
 - A later reference to an object must not repeat an earlier state unless the later atom restates it.
 - Do not render a state as a transition/process question. If the ledger says `engine: cold`, output may say the engine is cold; it must not ask when/why it cooled. If the ledger says `car: beside north road`, do not introduce `arrived`, `parked`, `left`, or a driver unless another atom establishes that action.
 - Do not group a separate atom under a location/time heading unless that atom itself carries that modifier in the ledger.
+- **Location-homogeneous grouping:** a grouped clause/list headed by a place or time may contain only atoms whose own ledger location/time matches that heading. If one atom is unlocated, render it in a separate sentence/bullet with no inherited place. For example, `At the harbour, Vale finds the fabric` and `A deckhand remembers...` must not be compressed into a single harbour-grouped clause unless the deckhand-memory atom itself carries `harbour`.
 - If a table cell cannot be populated directly from ledger atoms, use `Unstated`, `Unknown`, `None established`, `—`, or leave it neutral.
 - `Open threads`, `Unknowns`, `What remains unresolved`, and `Items requiring author confirmation` may only render the ledger's `Source-licensed unresolved point` values. They are closed-world views, not prompts to brainstorm missing causes, actors, purchases, uses, arrivals, parking, or other hypothetical precursor events.
 
@@ -118,6 +119,7 @@ For the character map specifically:
 - Do not add `what Mara knew about the harbour` to Mara's unknowns merely because Mara is one possible referent of `M.`.
 - A deckhand recollection does not establish that the deckhand `spoke with Vale` or was `at the harbour` unless the manuscript explicitly states that interaction/location relation.
 - In relationship-evidence cells, record only relationships/interactions explicitly stated by the manuscript. If the source gives a recollection but no recipient, use `None established` rather than inventing `spoke to Vale`.
+- In `Unknowns`, include only `Source-licensed unresolved point` values tied to that character's own atoms or an explicitly unresolved referent involving that character. Do not turn an unnamed role into an identity mystery. `A deckhand` does not license `identity of the deckhand`; only the passenger identity is licensed because the deckhand explicitly cannot tell whether the passenger was Leon.
 
 ## Chapter-map column contract
 
@@ -199,6 +201,8 @@ Before returning the analysis, check:
 - Did I keep static states as states rather than inventing implied transitions/processes (cold→cooled, located→arrived/parked, receipt present→purchased/used)?
 - Did every rendered unresolved/open-thread/author-confirmation item come from a `Source-licensed unresolved point` in the ledger, rather than being reverse-engineered from a static state or object presence?
 - Did I keep sentence-local location/time modifiers attached only to the atoms they explicitly modify, rather than propagating them to adjacent material?
+- Did every location/time-grouped summary contain only atoms that independently carry that same modifier, with unlocated atoms rendered separately?
+- In character-map `Unknowns`, did I avoid turning unnamed roles into identity mysteries and restrict entries to source-licensed unresolved points tied to that character?
 - In the chapter map, did I use `Character-state change` only for explicit state changes and write `None established` rather than using that column to paraphrase events or dialogue?
 - Did I preserve nested attribution and clause boundaries, rather than collapsing `X says A; Y told X B` into a single factual claim `A and B`?
 - Did I avoid editorial recommendations?
