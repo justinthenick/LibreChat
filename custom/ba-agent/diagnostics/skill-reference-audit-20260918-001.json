@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "name": "Audit agent references before inline skill cleanup",
+  "checks": [
+    {
+      "type": "skill_reference_audit",
+      "label": "Agent skill allowlist references",
+      "names": [
+        "analyze-requirements",
+        "decompose-requirements",
+        "frontend-design",
+        "improve-codebase-architecture",
+        "technical-writer"
+      ]
+    }
+  ]
+}
