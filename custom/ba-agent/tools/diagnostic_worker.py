@@ -854,6 +854,45 @@ def check_inline_skill_file_content(check, root, env_file, repo, branch):
     return {"count": len(results), "files": results}
 
 
+def check_skill_reference_audit(check, root, env_file, repo, branch):
+    names = check.get("names") or []
+    if not isinstance(names, list) or not names or len(names) > 20:
+        raise DiagnosticError("skill reference audit requires 1-20 names")
+    cleaned = []
+    for name in names:
+        value = str(name or "").strip()
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", value):
+            raise DiagnosticError("Invalid skill name")
+        cleaned.append(value)
+    script = (
+        "var skills=db.skills.find({name:{$in:" + json.dumps(cleaned) + "}},"
+        "{_id:1,name:1,source:1,sourceMetadata:1}).toArray();"
+        "var ids=skills.map(function(s){return String(s._id);});"
+        "var agents=db.agents.find({skills:{$in:ids}},"
+        "{_id:1,name:1,skills:1,skills_enabled:1}).toArray();"
+        "print(JSON.stringify({skills:skills,agents:agents}));"
+    )
+    commands = [
+        ["docker", "exec", "librechat-mongodb", "mongosh", "LibreChat", "--quiet", "--eval", script],
+        ["docker", "exec", "librechat-mongodb", "mongo", "LibreChat", "--quiet", "--eval", script],
+    ]
+    errors = []
+    for cmd in commands:
+        try:
+            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=30, check=False)
+        except Exception as exc:
+            errors.append(str(exc)); continue
+        if proc.returncode != 0:
+            errors.append(sanitize_text(proc.stderr or proc.stdout)); continue
+        output=(proc.stdout or "").strip()
+        try:
+            value=json.loads(output.splitlines()[-1]) if output else {"skills":[],"agents":[]}
+        except Exception:
+            raise DiagnosticError("Skill reference audit returned non-JSON output")
+        return value
+    raise DiagnosticError("Skill reference audit failed: {}".format(" | ".join(errors)))
+
+
 CHECKS = {
     "path_exists": check_path_exists,
     "tail": check_tail,
@@ -868,6 +907,7 @@ CHECKS = {
     "inline_skill_export": check_inline_skill_export,
     "inline_skill_files": check_inline_skill_files,
     "inline_skill_file_content": check_inline_skill_file_content,
+    "skill_reference_audit": check_skill_reference_audit,
     "repair_skill_sync_checkout": check_repair_skill_sync_checkout,
     "restore_librechat_yaml_from_last_success": check_restore_librechat_yaml_from_last_success,
     "clear_failed_autodeploy": check_clear_failed_autodeploy,
