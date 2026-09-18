@@ -16,6 +16,9 @@ SERVICE_TIME_PROMOTION = re.compile(
 SOURCE_ID = re.compile(r"\b(?:ID|E|S)\s*-?\s*\d+\b", re.I)
 U_ID = re.compile(r"\bU\s*-?\s*\d+\b", re.I)
 ELLIPSIS = re.compile(r"(?:\.\.\.|…)" )
+DEPENDENT_CLAIM_START = re.compile(
+    r'^[\"“”\'\s]*(?:he|she|her|his|they|their|them|it|its|this|that|these|those)\b',
+    re.I)
 NOTEBOOK_ACTION = re.compile(
     r"\b(?:keeps?|kept|owns?|owned|carries|carried|writes?|wrote|maintains?|maintained|has|had)\b"
     r".{0,30}\bnotebook\b", re.I)
@@ -202,6 +205,11 @@ def scan(text):
                     unresolved_subjects[uid] = row[unresolved_subject_column]
             if claim_column is not None and len(row) > claim_column:
                 claim = row[claim_column]
+                if DEPENDENT_CLAIM_START.search(claim):
+                    add(number, "dependent-claim-fragment",
+                        "Claim appears to begin with a pronoun/deictic whose antecedent "
+                        "may live only in another row; the Claim cell must be "
+                        "self-contained using a contiguous verbatim source span.")
                 if BOARDING.search(claim) and not ATTRIBUTION.search(claim):
                     add(number, "claim-attribution",
                         "The boarding claim needs the deckhand's memory attribution "
