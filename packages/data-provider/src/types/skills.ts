@@ -41,7 +41,9 @@ export type SkillLifecycle = 'published' | 'draft' | 'trial' | 'publish_pending'
 export const SKILL_SELECTION_SEPARATOR = '@@';
 
 export function encodeSkillSelection(skill: Pick<TSkillSummary, '_id' | 'name'>): string {
-  return `${skill.name}${SKILL_SELECTION_SEPARATOR}${skill._id}`;
+  return /^[a-fA-F0-9]{24}$/.test(skill._id)
+    ? `${skill.name}${SKILL_SELECTION_SEPARATOR}${skill._id}`
+    : skill.name;
 }
 
 export function parseSkillSelection(value: string): { name: string; skillId?: string } {
