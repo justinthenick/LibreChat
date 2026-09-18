@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.2.4 strengthens the evidence-discipline rules further:
+Current hardening through version 0.2.5 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -28,6 +28,10 @@ Current hardening through version 0.2.4 strengthens the evidence-discipline rule
 - evidence location and provenance must be preserved exactly;
 - unresolved clues must not be recast as craft devices, continuity errors, deliberate misdirection, authorial choices, red herrings or intended twists without explicit support;
 - recorded or spoken questions must remain questions and must not populate explicit goals/beliefs unless independent source evidence establishes the corresponding belief or goal;
+- character-map columns are typed: statements, third-party claims, inability to identify/confirm and unresolved questions do not become goals/beliefs merely to fill the column;
+- identity/referent uncertainties remain attached to their unresolved subject and are not copied onto candidate characters;
+- factual claim reuse is exact when text is shown; ellipses, shortened inner quotations and fresh bracketed paraphrases are not substitutes for the canonical Claim cell;
+- a time embedded in a service name must not be labelled as boarding/departure/scheduled/event time without explicit source support;
 - the final editorial-brief seed must state unresolved items neutrally and must not invent candidate answers or mechanisms.
 
 ## Acceptance criteria
@@ -265,10 +269,10 @@ python3 managed-skills/benchmarks/MSA-001/triage.py /path/to/complete-runtime-re
 ```
 
 The test suite pins the original MIG-001 fixture's Git blob and exercises known
-location, attribution, invented-unknown and question-to-belief regressions. Test strings are synthetic
-minimal examples, not claimed runtime captures. The triage tool scans captured
-Markdown and reports line-numbered review candidates for those three failure
-families. It can miss paraphrases and flag quoted or negated examples; review each
+location, attribution, invented-unknown, question-to-belief, typed-character-map,
+service-time and shortened-claim regressions. Test strings are synthetic minimal
+examples, not claimed runtime captures. The triage tool scans captured Markdown
+and reports line-numbered review candidates for those known failure families. It can miss paraphrases and flag quoted or negated examples; review each
 finding against the source. Exit 1 means candidates were found, exit 0 means none
 were detected, and exit 2 is invalid CLI input. Every report remains
 `REVIEW_REQUIRED` with `semantic_pass: false`.
@@ -344,14 +348,41 @@ though the quotation itself remains verbatim.
 The benchmark remains failed rather than accepting the column-level semantic
 promotion.
 
-### v0.2.4 candidate — runtime pending
+### Attempt 22 — v0.2.4 — FAIL (controlled, 2026-09-18)
 
-Retains the v0.2.3 two-pass/register architecture and adds a column-safe question
-rule: recorded or spoken questions remain questions and must not populate explicit
-goals/beliefs unless separate source evidence independently establishes the
-corresponding belief or goal. Advisory triage now flags question punctuation
-inside an `Explicit goals/beliefs` column for manual review. Existing criteria
-and the MIG-001 fixture are unchanged.
+The fresh v0.2.4 runtime fixed the immediate ID-13 defect: Inspector Vale's
+`Explicit goals/beliefs` cell was `None established`. The output also continued
+to avoid the historical charged labels and speculative global chronology.
+
+Strict criterion 6 still failed on typed-field and canonical-reuse discipline:
+
+- Mara's statement that Leon hated boats was placed under `Explicit goals/beliefs`
+  for both Mara and Leon, even though a statement is not automatically the
+  speaker's belief and a third-party statement does not establish the subject's
+  belief or goal.
+- The deckhand's inability to tell whether the passenger was Leon was placed under
+  the deckhand's `Explicit goals/beliefs`, although it is an epistemic limitation
+  supporting the passenger-identity uncertainty rather than a goal/belief.
+- U-04, whose unresolved subject is the referent `M.`, was copied onto Mara and
+  Mrs Pell as candidate referents. Candidate identities must not inherit the
+  unresolved subject's U-ID.
+- The chronology labelled the `6:40 ferry` reference as a `boarding time`,
+  promoting a time embedded in a service name into an event time.
+- Some chronology/motif reuses shortened canonical claims or used ellipses rather
+  than reusing the complete evidence-register Claim cell.
+
+The benchmark remains failed rather than accepting column semantics, uncertainty
+propagation, service-time promotion or shortened evidence reuse.
+
+### v0.2.5 candidate — runtime pending
+
+Retains the v0.2.4 question protection and treats character-map columns as typed
+fields. Goals/beliefs require direct source support for the row subject;
+candidate identities do not inherit another unresolved subject's U-ID. Factual
+claim text must be reused completely or omitted in favour of the ID alone, and
+service-name times cannot be relabelled as event/boarding/departure/scheduled
+times without explicit source support. Existing acceptance criteria and the
+MIG-001 fixture remain unchanged.
 
 ## Promotion rule
 
