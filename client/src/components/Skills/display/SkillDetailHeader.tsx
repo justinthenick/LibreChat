@@ -2,7 +2,7 @@ import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { InvocationMode } from 'librechat-data-provider';
 import { Button, TooltipAnchor } from '@librechat/client';
-import { Pencil, Pin, User, Calendar, EarthIcon, Sparkles } from 'lucide-react';
+import { Pencil, Pin, User, Calendar, EarthIcon, Sparkles, GitBranch, PencilLine } from 'lucide-react';
 import type { TSkill } from 'librechat-data-provider';
 import type { TranslationKeys } from '~/hooks';
 import { useLocalize, useAuthContext } from '~/hooks';
@@ -28,6 +28,7 @@ const SkillDetailHeader = ({ skill, showActions = true }: SkillDetailHeaderProps
   const isOwner = skill.author === user?.id;
   const isShared = !isOwner && Boolean(skill.authorName);
   const isPublic = skill.isPublic === true;
+  const externallyManaged = skill.source !== 'inline';
 
   return (
     <div className="flex flex-col gap-3 py-2 sm:flex-row sm:items-center sm:gap-4">
@@ -48,6 +49,25 @@ const SkillDetailHeader = ({ skill, showActions = true }: SkillDetailHeaderProps
               }
             />
           )}
+          <span
+            className={
+              skill.source === 'github'
+                ? 'inline-flex shrink-0 items-center gap-1 rounded-full border border-border-medium bg-surface-secondary px-2 py-1 text-xs font-medium text-text-secondary'
+                : 'inline-flex shrink-0 items-center gap-1 rounded-full border border-status-warning-border bg-status-warning-subtle px-2 py-1 text-xs font-medium text-status-warning'
+            }
+            title={
+              skill.source === 'github'
+                ? 'Managed from GitHub'
+                : 'Local skill — not managed by GitHub Skill Sync'
+            }
+          >
+            {skill.source === 'github' ? (
+              <GitBranch className="size-3" aria-hidden="true" />
+            ) : (
+              <PencilLine className="size-3" aria-hidden="true" />
+            )}
+            {skill.source === 'github' ? 'GitHub managed' : 'Local'}
+          </span>
           {skill.alwaysApply === true && (
             <TooltipAnchor
               description={localize('com_ui_skills_always_apply_pin_title')}
@@ -87,7 +107,7 @@ const SkillDetailHeader = ({ skill, showActions = true }: SkillDetailHeaderProps
       {showActions && (
         <div className="flex shrink-0 items-center gap-2">
           <ShareSkill skill={skill} />
-          {isOwner && (
+          {isOwner && !externallyManaged && (
             <>
               <TooltipAnchor
                 description={localize('com_ui_edit')}
