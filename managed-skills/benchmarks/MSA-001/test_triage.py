@@ -202,6 +202,24 @@ class TriageTests(unittest.TestCase):
 - E-01: "At 7:10 p.m., Mara finds the back door open."'''
         self.assertNotIn("chronology-annotation", self.codes(text))
 
+    def test_dependent_claim_fragment_is_flagged(self):
+        text = """| ID | Chapter | Claim: verbatim source passage | Evidence type |
+| --- | --- | --- | --- |
+| C1-07 | Chapter 1 | "She could not see the person's face." | Narration |"""
+        self.assertIn("dependent-claim-fragment", self.codes(text))
+
+    def test_self_contained_claim_with_antecedent_is_clean(self):
+        text = """| ID | Chapter | Claim: verbatim source passage | Evidence type |
+| --- | --- | --- | --- |
+| C1-06 | Chapter 1 | "A neighbour, Mrs Pell, tells Vale that she saw someone. She could not see the person's face." | Character statement |"""
+        self.assertNotIn("dependent-claim-fragment", self.codes(text))
+
+    def test_dependent_possessive_claim_is_flagged(self):
+        text = """| ID | Chapter | Claim: verbatim source passage | Evidence type |
+| --- | --- | --- | --- |
+| C1-03 | Chapter 1 | "Her brother Leon is not there." | Narration |"""
+        self.assertIn("dependent-claim-fragment", self.codes(text))
+
     def test_explained_none_chronology_is_flagged(self):
         text = """## Established event chronology
 None established. The manuscript has several timestamps."""
