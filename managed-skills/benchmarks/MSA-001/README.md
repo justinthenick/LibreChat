@@ -14,7 +14,7 @@ A second v0.1.2 runtime rerun fixed those charged labels and preserved the major
 
 ## Change
 
-Current hardening through version 0.2.7 strengthens the evidence-discipline rules further:
+Current hardening through version 0.2.8 strengthens the evidence-discipline rules further:
 
 - ambiguity alone cannot support guilt, deception, fabrication, complicity, foreknowledge, premeditation, intent or motive;
 - charged labels such as `fabrication`, `premeditation`, `cover-up`, `alibi`, `deception`, `accomplice`, `conspiracy`, `setup`, and `red herring` require explicit textual support and must not be introduced merely as hypothetical possibilities;
@@ -29,8 +29,10 @@ Current hardening through version 0.2.7 strengthens the evidence-discipline rule
 - unresolved clues must not be recast as craft devices, continuity errors, deliberate misdirection, authorial choices, red herrings or intended twists without explicit support;
 - recorded or spoken questions must remain questions and must not populate role/history, goals/beliefs, or relationships/interactions merely because a label appears inside the question; each typed field requires independent declarative support;
 - character-map columns are typed: statements, third-party claims, inability to identify/confirm and unresolved questions do not become goals/beliefs merely to fill the column;
+- character-map role/history, goals/beliefs and relationships/interactions cells render source IDs only (or `None established`) so free-text paraphrase cannot change the typed-field semantics;
 - identity/referent/addressee/meaning uncertainties remain attached to their unresolved subject and are not copied onto candidate characters or the source speaker merely because that character supplied the ambiguous statement;
 - factual claim reuse is exact when text is shown; ellipses, shortened inner quotations and fresh bracketed paraphrases are not substitutes for the canonical Claim cell;
+- chronology claim bullets do not append parenthetical classifications, and absent established chronology/causality renders as `None established` without explanatory paraphrase;
 - a time embedded in a service name must not be labelled as boarding/departure/scheduled/event time without explicit source support;
 - possessive/document associations must not be promoted into actions such as keeping, owning, carrying, writing or maintaining unless the source states the action;
 - point-of-view/structure summaries must not invent scene boundaries or assign whole chapters/sequences to atom-local locations;
@@ -423,16 +425,42 @@ proposition to remain represented without asserting it as fact.
 The benchmark remains failed rather than accepting typed-field reuse of a
 question or source-speaker uncertainty propagation.
 
-### v0.2.7 candidate — runtime pending
+### Attempt 25 — v0.2.7 — FAIL (controlled, 2026-09-18)
 
-Retains all v0.2.6 hardening and applies question modality to every typed
-character-map column, not only goals/beliefs. Recorded/spoken questions may
-license unresolved subjects but cannot populate role/history or
-relationships/interactions without independent declarative support. U-IDs for an
-utterance's addressee/referent/meaning stay with that unresolved subject rather
-than the source speaker. Unanswered recorded questions preserve their unresolved
-proposition as uncertainty without promoting it to fact. Existing acceptance
-criteria and the MIG-001 fixture remain unchanged.
+The fresh v0.2.7 runtime fixed the v0.2.6 question-to-other-field and
+source-speaker uncertainty failures. The `M.` row kept its typed fields neutral,
+Mara no longer inherited the whisper addressee/meaning uncertainty, and the
+notebook question preserved both referent uncertainty and the questioned prior
+knowledge without asserting that proposition as fact.
+
+Strict criterion 6 still failed through free-text rendering:
+
+- The Deckhand row populated `Explicit goals/beliefs` with the deckhand's
+  recollection and inability to identify the passenger. Neither is an established
+  goal/belief.
+- `Explicit role/history` for Leon and Inspector Vale became a generic
+  association bucket (`possessive association with car/coat/scarf/notebook`)
+  rather than role/history evidence; some associated content originated inside
+  attributed character statements.
+- Character-map typed fields used fresh descriptive paraphrases beside source IDs,
+  allowing semantic promotion even when the cited source was correct.
+- Time-bearing chronology bullets appended parenthetical classifications after
+  canonical claims, and the `Established event chronology` / causal sections
+  added explanatory paraphrase even though no cross-source chronology or causal
+  relationship was established.
+
+The benchmark remains failed rather than accepting semantic drift through
+free-text attached to otherwise correct source IDs.
+
+### v0.2.8 candidate — runtime pending
+
+v0.2.8 removes that remaining rendering surface. Character-map typed evidence
+cells contain source IDs only or `None established`, with every selected ID
+required to directly establish that typed field for the row subject. Time-bearing
+claims may be shown only as complete canonical claims without appended
+annotations; absent established chronology/causality renders as
+`None established` only. Existing acceptance criteria and the MIG-001 fixture
+remain unchanged.
 
 ## Promotion rule
 
