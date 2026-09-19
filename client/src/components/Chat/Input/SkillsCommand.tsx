@@ -168,7 +168,10 @@ function SkillsCommandContent({
       const logicalName = getSkillLogicalName(skill);
       options.push({
         label: skill.displayTitle ?? logicalName,
-        value: encodeSkillSelection({ _id: skill._id, name: logicalName }),
+        value:
+          lifecycle === 'published'
+            ? logicalName
+            : encodeSkillSelection({ _id: skill._id, name: logicalName }),
         description: skill.description,
         badge:
           lifecycle === 'draft'
