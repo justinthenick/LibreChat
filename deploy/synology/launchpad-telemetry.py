@@ -71,17 +71,50 @@ def mongo_json(script):
 
 
 def checkout_snapshot():
+    """Read branch/commit directly from .git without starting another Git container.
+
+    Synology can take tens of seconds to start the alpine/git bind-mounted probe.
+    Deployment correctness is already enforced by autodeploy.sh, so telemetry
+    reports the exact checked-out ref cheaply and leaves worktree cleanliness as
+    an explicit/manual diagnostic rather than turning a timeout into a false
+    launchpad failure.
+    """
     try:
-        branch = git_value(["rev-parse", "--abbrev-ref", "HEAD"])
-        commit = git_value(["rev-parse", "HEAD"])
-        status = git_value(["status", "--porcelain"])
-        dirty = [line for line in status.splitlines() if line.strip()]
+        git_dir = REPO_DIR + "/.git"
+        with open(git_dir + "/HEAD", "r", encoding="utf-8") as handle:
+            head = handle.read().strip()
+
+        branch = None
+        commit = None
+        if head.startswith("ref: "):
+            ref = head[5:].strip()
+            prefix = "refs/heads/"
+            branch = ref[len(prefix):] if ref.startswith(prefix) else ref
+            ref_path = git_dir + "/" + ref
+            try:
+                with open(ref_path, "r", encoding="utf-8") as handle:
+                    commit = handle.read().strip()
+            except FileNotFoundError:
+                with open(git_dir + "/packed-refs", "r", encoding="utf-8") as handle:
+                    for raw in handle:
+                        line = raw.strip()
+                        if not line or line.startswith("#") or line.startswith("^"):
+                            continue
+                        sha, name = line.split(" ", 1)
+                        if name == ref:
+                            commit = sha
+                            break
+        else:
+            commit = head
+
+        if not commit:
+            raise RuntimeError("could not resolve HEAD commit")
+
         return {
             "ok": True,
             "branch": branch,
             "commit": commit,
-            "clean": not dirty,
-            "dirty_count": len(dirty),
+            "cleanliness": "not_polled",
         }
     except Exception as exc:
         return safe_error("checkout_probe_failed", exc)
