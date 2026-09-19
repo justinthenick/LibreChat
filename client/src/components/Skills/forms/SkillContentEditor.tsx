@@ -57,6 +57,7 @@ const SkillContentEditor: React.FC<SkillContentEditorProps> = ({
 
   const editing = !readOnly && isEditing;
   const EditorIcon = editing ? Check : EditIcon;
+  const interactionClass = editing || readOnly ? '' : 'cursor-pointer hover:bg-surface-tertiary';
 
   return (
     <div className="flex max-h-[85vh] flex-col sm:max-h-[85vh]">
@@ -64,7 +65,7 @@ const SkillContentEditor: React.FC<SkillContentEditorProps> = ({
       <div
         className={cn(
           'relative w-full flex-1 overflow-auto rounded-xl border border-border-medium p-3 text-left transition-all duration-200 sm:p-4',
-          editing ? '' : readOnly ? '' : 'cursor-pointer hover:bg-surface-tertiary',
+          interactionClass,
         )}
       >
         {!readOnly && (
