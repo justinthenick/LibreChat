@@ -38,6 +38,28 @@ docker exec "$MONGO_NAME" mongo LibreChat --quiet --eval '
   db.users.insertOne({name:"Image smoke owner",username:"image-smoke",email:"image-smoke@example.invalid",provider:"local",role:"ADMIN",createdAt:new Date()});
 ' >/dev/null
 
+# A production database already contains LibreChat's built-in user/access roles.
+# This disposable smoke database starts empty, so bootstrap it exactly through
+# LibreChat's own seedDatabase path before validating the production-agent
+# seeders. Do not hand-create role documents in the fixture.
+docker run --rm --network "$RUN_NAME" \
+  -e MONGO_URI="mongodb://$MONGO_NAME:27017/LibreChat" \
+  "$IMAGE" node -e '
+    const mongoose = require("mongoose");
+    const connect = require("./config/connect");
+    const { runAsSystem } = require("@librechat/data-schemas");
+    (async () => {
+      await connect();
+      const { seedDatabase } = require("./api/models");
+      await runAsSystem(seedDatabase);
+      await mongoose.disconnect();
+      console.log("Fresh smoke database roles seeded through LibreChat bootstrap");
+    })().catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
+  '
+
 docker run -d --name "$API_NAME" --network "$RUN_NAME" \
   -e HOST=0.0.0.0 -e PORT=3080 -e NODE_ENV=production \
   -e MONGO_URI="mongodb://$MONGO_NAME:27017/LibreChat" \
