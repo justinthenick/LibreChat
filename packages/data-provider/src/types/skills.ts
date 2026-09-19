@@ -67,19 +67,13 @@ export function getSkillLifecycle(
       ? (skill.sourceMetadata as Record<string, unknown>)
       : undefined;
   const lifecycle = metadata?.lifecycle;
-  if (
-    lifecycle === 'draft' ||
-    lifecycle === 'trial' ||
-    lifecycle === 'publish_pending'
-  ) {
+  if (lifecycle === 'draft' || lifecycle === 'trial' || lifecycle === 'publish_pending') {
     return lifecycle;
   }
   return 'published';
 }
 
-export function getSkillLogicalName(
-  skill: Pick<TSkillSummary, 'name' | 'sourceMetadata'>,
-): string {
+export function getSkillLogicalName(skill: Pick<TSkillSummary, 'name' | 'sourceMetadata'>): string {
   const metadata =
     skill.sourceMetadata && typeof skill.sourceMetadata === 'object'
       ? (skill.sourceMetadata as Record<string, unknown>)
