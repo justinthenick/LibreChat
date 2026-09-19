@@ -1,4 +1,4 @@
-# LibreChat coding executor v0.1.1
+# LibreChat coding executor v0.1.2
 
 This service gives a LibreChat Agent a deliberately narrow coding surface without granting access to the NAS Docker socket or the host filesystem.
 
@@ -8,7 +8,7 @@ This service gives a LibreChat Agent a deliberately narrow coding surface withou
 - All paths are resolved beneath that task worktree.
 - Edits are unified diffs checked by `git apply --check` before application.
 - Final `git_diff` output includes tracked changes and untracked regular files; it fails closed rather than returning a truncated patch.
-- Shell strings are never evaluated. Only test, lint, build and `git diff --check` command prefixes are accepted.
+- Shell strings are never evaluated. Only explicit check prefixes are accepted. Zero-dependency options include `git diff --check`, `python[3] -m unittest`, `python[3] -m py_compile`, `node --check`, `sh -n`, and `bash -n`; repository test/lint/build prefixes remain available when their dependencies are already installed.
 - Child commands receive a minimal environment that excludes the MCP bearer token.
 - The MCP server has no commit, push, delete-task, package-install or Docker tools.
 - The container runs non-root, drops Linux capabilities, has no Docker socket and has CPU, memory and process limits.
@@ -33,7 +33,7 @@ Use the Linux filesystem inside WSL, not `/mnt/c`, for the repositories and work
 3. Replace the example address with the Windows host LAN address that the Synology NAS can reach.
 4. Set `CODING_REPOSITORY_HOST_PATH` and `CODING_TASK_HOST_PATH` to their absolute WSL paths. Compose mounts each directory at the identical path inside the container so Git worktree metadata remains usable from both WSL and the executor.
 5. Create `repos` and `tasks`, clone only approved repositories under `repos`, and run `docker compose -f compose.example.yaml up -d --build`.
-6. Confirm `curl http://127.0.0.1:8765/health` returns `{"status":"ok","version":"0.1.1"}`.
+6. Confirm `curl http://127.0.0.1:8765/health` returns `{"status":"ok","version":"0.1.2"}`.
 
 Do not expose port 8765 to the public internet. Permit it only from the NAS address in Windows Firewall.
 
@@ -93,5 +93,7 @@ git -C ~/coding-agent/tasks/<task-id> diff
 Host `git diff` shows tracked changes only. Use the Agent's final `git_diff` result and the complete-patch procedure in [PROMOTION.md](./PROMOTION.md) whenever the task contains `??` entries. Empty untracked files are rejected because they cannot be represented as an unstaged content patch.
 
 A rejected command returns exit code `126` and a `command_not_allowed` result without spawning the requested process.
+
+When selecting a check, prefer a zero-dependency prefix unless the repository's dependencies are known to be present in the executor. A missing optional test runner (for example `pytest`, `eslint`, or `jest`) is not a reason to install packages or repeatedly probe command variants.
 
 After review, follow [PROMOTION.md](./PROMOTION.md) for the fail-closed, human-authorised patch transfer into the source repository. The executor itself never commits, pushes, merges or promotes changes.
