@@ -536,7 +536,6 @@ describe('filterSkillsForPopover', () => {
     expect(out.map((s) => s._id)).toEqual(['2']);
   });
 
-
   it('allows a managed draft when its published parent is in agent scope', () => {
     const draft = makeSkill({
       _id: 'draft-id',
