@@ -9,9 +9,10 @@ import { cn } from '~/utils';
 
 interface CategorySelectorProps {
   className?: string;
+  disabled?: boolean;
 }
 
-const CategorySelector: React.FC<CategorySelectorProps> = ({ className = '' }) => {
+const CategorySelector: React.FC<CategorySelectorProps> = ({ className = '', disabled = false }) => {
   const localize = useLocalize();
   const { control, watch, setValue } = useFormContext();
   const [isOpen, setIsOpen] = useState(false);
@@ -33,11 +34,14 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ className = '' }) =
       label: category.label,
       icon: category.icon,
       onClick: () => {
+        if (disabled) {
+          return;
+        }
         setValue('category', category.value || '', { shouldDirty: true });
         setIsOpen(false);
       },
     }));
-  }, [categories, setValue]);
+  }, [categories, disabled, setValue]);
 
   const trigger = (
     <Ariakit.MenuButton
@@ -46,7 +50,12 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ className = '' }) =
         'gap-2 sm:w-fit',
         className,
       )}
-      onClick={() => setIsOpen(!isOpen)}
+      disabled={disabled}
+      onClick={() => {
+        if (!disabled) {
+          setIsOpen(!isOpen);
+        }
+      }}
       aria-label={localize('com_ui_category')}
     >
       <div className="flex items-center space-x-2">
@@ -68,7 +77,11 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ className = '' }) =
           trigger={trigger}
           items={menuItems}
           isOpen={isOpen}
-          setIsOpen={setIsOpen}
+          setIsOpen={(open) => {
+            if (!disabled) {
+              setIsOpen(open);
+            }
+          }}
           menuId="skill-category-selector-menu"
           className="mt-2"
           portal={true}
