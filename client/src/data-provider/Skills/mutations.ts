@@ -21,7 +21,12 @@ import type {
   ImportSkillOptions,
   DeleteSkillFileOptions,
 } from 'librechat-data-provider';
-import type { InfiniteData, QueryKey, UseMutationOptions, UseMutationResult } from '@tanstack/react-query';
+import type {
+  InfiniteData,
+  QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
+} from '@tanstack/react-query';
 
 function isInfiniteSkillData(
   data: TSkillListResponse | InfiniteData<TSkillListResponse>,
@@ -196,8 +201,7 @@ export const useSetSkillLifecycleMutation = (
   const queryClient = useQueryClient();
   const { onSuccess, ...rest } = options ?? {};
   return useMutation({
-    mutationFn: ({ skillId, lifecycle }) =>
-      dataService.setSkillLifecycle(skillId, { lifecycle }),
+    mutationFn: ({ skillId, lifecycle }) => dataService.setSkillLifecycle(skillId, { lifecycle }),
     ...rest,
     onSuccess: (skill, variables, context) => {
       queryClient.setQueryData<TSkill>([QueryKeys.skill, skill._id], skill);
@@ -208,16 +212,8 @@ export const useSetSkillLifecycleMutation = (
 };
 
 export const usePublishSkillDraftMutation = (
-  options?: UseMutationOptions<
-    TPublishSkillDraftResponse,
-    unknown,
-    { skillId: string }
-  >,
-): UseMutationResult<
-  TPublishSkillDraftResponse,
-  unknown,
-  { skillId: string }
-> => {
+  options?: UseMutationOptions<TPublishSkillDraftResponse, unknown, { skillId: string }>,
+): UseMutationResult<TPublishSkillDraftResponse, unknown, { skillId: string }> => {
   const queryClient = useQueryClient();
   const { onSuccess, ...rest } = options ?? {};
   return useMutation({
