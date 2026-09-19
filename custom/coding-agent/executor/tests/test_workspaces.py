@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from coding_executor.workspaces import WorkspaceManager
+from coding_executor.workspaces import ALLOWED_COMMANDS, WorkspaceManager
 
 
 class WorkspaceManagerTest(unittest.TestCase):
@@ -107,6 +107,32 @@ class WorkspaceManagerTest(unittest.TestCase):
         task = self.manager.create_task("demo", "checks", "main")
         result = self.manager.run_check(task["task_id"], "git diff --check")
         self.assertEqual(result.exit_code, 0)
+
+        smoke_test = Path(task["path"]) / "test_smoke.py"
+        smoke_test.write_text(
+            "import unittest\n\n"
+            "class SmokeTest(unittest.TestCase):\n"
+            "    def test_ok(self):\n"
+            "        self.assertTrue(True)\n",
+            encoding="utf-8",
+        )
+        unittest_result = self.manager.run_check(task["task_id"], "python3 -m unittest test_smoke.py")
+        self.assertEqual(unittest_result.exit_code, 0, unittest_result.stderr)
+
+        compile_result = self.manager.run_check(task["task_id"], "python3 -m py_compile test_smoke.py")
+        self.assertEqual(compile_result.exit_code, 0, compile_result.stderr)
+
+        for prefix in (
+            ("python", "-m", "unittest"),
+            ("python3", "-m", "unittest"),
+            ("python", "-m", "py_compile"),
+            ("python3", "-m", "py_compile"),
+            ("node", "--check"),
+            ("sh", "-n"),
+            ("bash", "-n"),
+        ):
+            self.assertIn(prefix, ALLOWED_COMMANDS)
+
         marker = Path(task["path"]) / "unsafe-marker"
         rejected = self.manager.run_check(
             task["task_id"],
