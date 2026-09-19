@@ -13,6 +13,7 @@ from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.transport_security import TransportSecuritySettings
 
+from coding_executor import __version__
 from coding_executor.config import Settings
 from coding_executor.workspaces import WorkspaceManager
 
@@ -45,8 +46,11 @@ def build_server(settings: Settings) -> MCPServer:
     server = MCPServer(
         "librechat-coding-executor",
         instructions=(
-            "Work only in isolated task worktrees. Inspect before editing, make the smallest justified patch, "
-            "run relevant allowlisted checks, and finish with status plus diff. This server cannot commit or push."
+            "Work only in isolated task worktrees. Use task IDs exactly as returned by create_task; never "
+            "invent or reconstruct them. Inspect before editing, make the smallest justified patch, and prefer "
+            "zero-dependency allowlisted checks when repository test dependencies are not known to be installed. "
+            "If a check fails because tooling is missing, do not brute-force command variants. Finish with status "
+            "plus diff. This server cannot commit or push."
         ),
         token_verifier=StaticTokenVerifier(settings.bearer_token, settings.public_url),
         auth=AuthSettings(
@@ -59,7 +63,7 @@ def build_server(settings: Settings) -> MCPServer:
 
     @server.custom_route("/health", methods=["GET"])
     async def health(_request: object) -> JSONResponse:
-        return JSONResponse({"status": "ok", "version": "0.1.1"})
+        return JSONResponse({"status": "ok", "version": __version__})
 
     @server.tool(description="List Git repositories explicitly mounted into the executor.")
     def list_repositories() -> list[str]:
@@ -89,7 +93,7 @@ def build_server(settings: Settings) -> MCPServer:
     def apply_patch(task_id: str, patch: str) -> dict[str, str]:
         return manager.apply_patch(task_id, patch)
 
-    @server.tool(description="Run a bounded test, lint, build, or git diff check from the executor allowlist.")
+    @server.tool(description="Run a bounded allowlisted check. Prefer built-in zero-dependency checks when repository dependencies are unavailable.")
     def run_check(task_id: str, command: str, timeout_seconds: int | None = None) -> dict[str, object]:
         return asdict(manager.run_check(task_id, command, timeout_seconds))
 
