@@ -26,6 +26,7 @@ GIT_IMAGE="alpine/git:latest"
 GIT_UID_GID="1026:100"
 GIT_REMOTE_TIMEOUT="${GIT_REMOTE_TIMEOUT:-30}"
 GIT_PULL_TIMEOUT="${GIT_PULL_TIMEOUT:-180}"
+TELEMETRY_TIMEOUT="${TELEMETRY_TIMEOUT:-180}"
 STATUS_IMAGE="curlimages/curl:8.10.1"
 STATUS_REPO="justinthenick/LibreChat"
 STATUS_CONTEXT="nas/librechat"
@@ -125,7 +126,7 @@ publish_telemetry() {
     log "WARN: telemetry token is configured but publisher script is missing"
     return 1
   fi
-  if ! sh "$TELEMETRY_SCRIPT" "$RESULT" "$STAGE" "$SHA" >/dev/null 2>&1; then
+  if ! timeout "$TELEMETRY_TIMEOUT" sh "$TELEMETRY_SCRIPT" "$RESULT" "$STAGE" "$SHA" >/dev/null 2>&1; then
     log "WARN: sanitised GitHub telemetry publish failed"
     return 1
   fi
