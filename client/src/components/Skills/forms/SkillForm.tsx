@@ -225,7 +225,7 @@ export default function SkillForm({ skillId }: SkillFormProps) {
               )}
             />
             <div className="flex shrink-0 items-center gap-2">
-              <CategorySelector />
+              <CategorySelector disabled={readOnly} />
               <ShareSkill skill={skill} />
               {permissions.canDelete && (
                 <DeleteSkill
@@ -252,7 +252,7 @@ export default function SkillForm({ skillId }: SkillFormProps) {
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             <span>
               {externallyManaged
-                ? 'Managed from an external source. Edit the upstream GitHub skill and let Skill Sync publish the change.'
+                ? localize('com_ui_skill_external_readonly')
                 : localize('com_ui_skill_no_edit_permission')}
             </span>
           </div>
@@ -328,6 +328,7 @@ export default function SkillForm({ skillId }: SkillFormProps) {
             name="body"
             isEditing={isEditingContent}
             setIsEditing={setIsEditingContent}
+            readOnly={readOnly}
           />
 
           {!readOnly && (
