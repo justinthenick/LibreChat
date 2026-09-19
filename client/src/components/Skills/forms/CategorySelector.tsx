@@ -12,7 +12,10 @@ interface CategorySelectorProps {
   disabled?: boolean;
 }
 
-const CategorySelector: React.FC<CategorySelectorProps> = ({ className = '', disabled = false }) => {
+const CategorySelector: React.FC<CategorySelectorProps> = ({
+  className = '',
+  disabled = false,
+}) => {
   const localize = useLocalize();
   const { control, watch, setValue } = useFormContext();
   const [isOpen, setIsOpen] = useState(false);
