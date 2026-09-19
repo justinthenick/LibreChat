@@ -26,7 +26,9 @@ GIT_IMAGE="alpine/git:latest"
 GIT_UID_GID="1026:100"
 GIT_REMOTE_TIMEOUT="${GIT_REMOTE_TIMEOUT:-30}"
 GIT_PULL_TIMEOUT="${GIT_PULL_TIMEOUT:-180}"
+TELEMETRY_TIMEOUT="${TELEMETRY_TIMEOUT:-180}"
 STATUS_IMAGE="curlimages/curl:8.10.1"
+STATUS_DOCKER_RUN_TIMEOUT="${STATUS_DOCKER_RUN_TIMEOUT:-30}"
 STATUS_REPO="justinthenick/LibreChat"
 STATUS_CONTEXT="nas/librechat"
 FORCE_DEPLOY="${FORCE_DEPLOY:-0}"
@@ -125,7 +127,7 @@ publish_telemetry() {
     log "WARN: telemetry token is configured but publisher script is missing"
     return 1
   fi
-  if ! sh "$TELEMETRY_SCRIPT" "$RESULT" "$STAGE" "$SHA" >/dev/null 2>&1; then
+  if ! timeout "$TELEMETRY_TIMEOUT" sh "$TELEMETRY_SCRIPT" "$RESULT" "$STAGE" "$SHA" >/dev/null 2>&1; then
     log "WARN: sanitised GitHub telemetry publish failed"
     return 1
   fi
@@ -173,7 +175,8 @@ post_status() {
     log "WARN: GitHub deployment status token is not configured; status not reported"
     return 0
   fi
-  if ! docker run --rm -e GH_TOKEN="$TOKEN" -e GH_STATE="$STATE" -e GH_SHA="$SHA" -e GH_DESCRIPTION="$DESCRIPTION" -e GH_REPO="$STATUS_REPO" -e GH_CONTEXT="$STATUS_CONTEXT" --entrypoint sh "$STATUS_IMAGE" -c '
+  if ! GH_TOKEN="$TOKEN" GH_STATE="$STATE" GH_SHA="$SHA" GH_DESCRIPTION="$DESCRIPTION" GH_REPO="$STATUS_REPO" GH_CONTEXT="$STATUS_CONTEXT" \
+    timeout "$STATUS_DOCKER_RUN_TIMEOUT" docker run --rm -e GH_TOKEN -e GH_STATE -e GH_SHA -e GH_DESCRIPTION -e GH_REPO -e GH_CONTEXT --entrypoint sh "$STATUS_IMAGE" -c '
       payload=$(printf "{\"state\":\"%s\",\"description\":\"%s\",\"context\":\"%s\"}" "$GH_STATE" "$GH_DESCRIPTION" "$GH_CONTEXT")
       curl -fsS --connect-timeout 5 --max-time 20 --retry 2 --retry-delay 1 --retry-all-errors -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/$GH_REPO/statuses/$GH_SHA" -d "$payload" >/dev/null
     '; then
