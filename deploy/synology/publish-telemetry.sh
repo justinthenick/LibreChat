@@ -5,6 +5,7 @@ DEPLOY_DIR="/volume1/docker/librechat/deploy/synology"
 EVENT_LOG_FILE="/volume1/docker/librechat-deploy-events.log"
 LAST_FAILURE_FILE="/volume1/docker/librechat-deploy.last-failure"
 TELEMETRY_MARKER="/volume1/docker/librechat-telemetry.last-publish"
+LAUNCHPAD_SCRIPT="$DEPLOY_DIR/launchpad-telemetry.py"
 STATUS_IMAGE="curlimages/curl:8.10.1"
 STATUS_REPO="justinthenick/LibreChat"
 STATUS_CONTEXT="nas/librechat"
@@ -183,6 +184,17 @@ post_recovery_status() {
     '
 }
 
+LAUNCHPAD_JSON='{"schema":1,"status":"unavailable"}'
+if [ -f "$LAUNCHPAD_SCRIPT" ]; then
+  if python3 "$LAUNCHPAD_SCRIPT" > "$TMP_DIR/launchpad.json" 2>/dev/null; then
+    LAUNCHPAD_JSON="$(cat "$TMP_DIR/launchpad.json")"
+  else
+    printf '%s\n' "$LAUNCHPAD_JSON" > "$TMP_DIR/launchpad.json"
+  fi
+else
+  printf '%s\n' "$LAUNCHPAD_JSON" > "$TMP_DIR/launchpad.json"
+fi
+
 NOW="$(timestamp)"
 API_STATUS="$(container_field librechat '{{.State.Status}}')"
 API_EXIT="$(container_field librechat '{{.State.ExitCode}}')"
@@ -219,6 +231,7 @@ cat > "$TMP_DIR/latest.json" <<EOF
   "result": "$PUBLIC_RESULT",
   "stage": "$PUBLIC_STAGE",
   "commit": "$SHA",
+  "launchpad": $LAUNCHPAD_JSON,
   "runtime": {
     "librechat_container": "$API_STATUS",
     "librechat_exit_code": "$API_EXIT",
@@ -248,6 +261,7 @@ else
 fi
 
 put_file "telemetry/latest.json" "$TMP_DIR/latest.json" "Update NAS telemetry snapshot"
+put_file "telemetry/launchpad.json" "$TMP_DIR/launchpad.json" "Update NAS launchpad snapshot"
 put_file "telemetry/latest.log" "$TMP_DIR/latest.log" "Update NAS telemetry event log"
 
 if [ "$PUBLIC_RESULT" = "failure" ] || [ "$PUBLIC_RESULT" = "success" ]; then
