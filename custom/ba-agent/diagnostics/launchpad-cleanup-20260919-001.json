@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "name": "LibreChat clean launchpad verification",
+  "checks": [
+    {
+      "type": "production_checkout_status",
+      "label": "Production checkout branch, HEAD and cleanliness"
+    },
+    {
+      "type": "skill_sync_status",
+      "label": "Managed Skill Sync status",
+      "source_id": "managed-skills"
+    },
+    {
+      "type": "managed_skill_inventory",
+      "label": "Managed production skill inventory",
+      "source_id": "managed-skills"
+    },
+    {
+      "type": "coding_executor_health",
+      "label": "LibreChat to WSL coding executor health"
+    }
+  ]
+}
