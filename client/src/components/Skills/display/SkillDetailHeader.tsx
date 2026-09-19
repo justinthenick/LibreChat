@@ -26,12 +26,7 @@ import {
   usePublishSkillDraftMutation,
   useSetSkillLifecycleMutation,
 } from '~/data-provider';
-import {
-  useAuthContext,
-  useHasAccess,
-  useLocalize,
-  useSkillActiveState,
-} from '~/hooks';
+import { useAuthContext, useHasAccess, useLocalize, useSkillActiveState } from '~/hooks';
 import { ShareSkill, SkillToggle } from '../buttons';
 import DeleteSkill from '../dialogs/DeleteSkill';
 
@@ -151,12 +146,12 @@ const SkillDetailHeader = ({
           </h2>
           {isPublic && (
             <TooltipAnchor
-              description={localize('com_ui_sr_public_skill')}
+              description={localize('com_ui_skill_sr_public')}
               side="top"
               render={
                 <EarthIcon
                   className="h-5 w-5 shrink-0 text-accent-primary"
-                  aria-label={localize('com_ui_sr_public_skill')}
+                  aria-label={localize('com_ui_skill_sr_public')}
                 />
               }
             />
@@ -236,9 +231,7 @@ const SkillDetailHeader = ({
                 <Button
                   variant="outline"
                   disabled={setLifecycle.isLoading || lifecycle === 'publish_pending'}
-                  onClick={() =>
-                    setLifecycle.mutate({ skillId: skill._id, lifecycle: 'trial' })
-                  }
+                  onClick={() => setLifecycle.mutate({ skillId: skill._id, lifecycle: 'trial' })}
                 >
                   {localize('com_ui_skill_test_draft')}
                 </Button>
@@ -246,9 +239,7 @@ const SkillDetailHeader = ({
                 <Button
                   variant="outline"
                   disabled={setLifecycle.isLoading}
-                  onClick={() =>
-                    setLifecycle.mutate({ skillId: skill._id, lifecycle: 'draft' })
-                  }
+                  onClick={() => setLifecycle.mutate({ skillId: skill._id, lifecycle: 'draft' })}
                 >
                   {localize('com_ui_skill_end_trial')}
                 </Button>
