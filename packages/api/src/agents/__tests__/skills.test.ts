@@ -1279,9 +1279,7 @@ describe('resolveManualSkills', () => {
       userId,
     });
 
-    expect(result).toEqual([
-      { _id: published._id, name: 'published', body: 'PUBLISHED' },
-    ]);
+    expect(result).toEqual([{ _id: published._id, name: 'published', body: 'PUBLISHED' }]);
     expect(getSkillById).not.toHaveBeenCalled();
     expect(getSkillByName).toHaveBeenCalledWith('published', [published._id], {
       preferUserInvocable: true,
