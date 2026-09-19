@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -120,7 +121,7 @@ const SkillDetailHeader = ({
   const handleEdit = onEdit ?? (() => navigate(`/skills/${skill._id}/edit`));
   const handleDelete = onDelete ?? (() => navigate('/skills'));
 
-  let publishAction: React.ReactNode = null;
+  let publishAction: ReactNode = null;
   if (lifecycle !== 'publish_pending') {
     publishAction = (
       <Button
