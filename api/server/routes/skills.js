@@ -435,9 +435,7 @@ async function publishManagedDraftHandler(req, res) {
     const metadata = draft.sourceMetadata ?? {};
     const published = await getSkillById(metadata.draftOfSkillId);
     if (!published || published.source !== 'github') {
-      return res
-        .status(409)
-        .json({ error: 'Published source skill is no longer available' });
+      return res.status(409).json({ error: 'Published source skill is no longer available' });
     }
 
     const publishedMetadata = published.sourceMetadata ?? {};
@@ -455,7 +453,9 @@ async function publishManagedDraftHandler(req, res) {
     const status = await getSkillSyncStatus('github', sourceId, resolveRequestTenantId(req));
     const credentialKey = status?.credentialKey;
     if (!credentialKey) {
-      return res.status(409).json({ error: 'No GitHub credential is configured for this skill source' });
+      return res
+        .status(409)
+        .json({ error: 'No GitHub credential is configured for this skill source' });
     }
     const token = await getSkillSyncCredentialToken('github', credentialKey);
     if (!token) {
