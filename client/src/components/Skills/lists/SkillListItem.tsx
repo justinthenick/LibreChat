@@ -2,7 +2,15 @@ import { memo, useState, useMemo, useCallback } from 'react';
 import { FixedSizeTree } from 'react-vtree';
 import { useNavigate } from 'react-router-dom';
 import { getSkillLifecycle, getSkillLogicalName } from 'librechat-data-provider';
-import { ScrollText, ChevronDown, ChevronRight, Folder, Pin, GitBranch, PencilLine } from 'lucide-react';
+import {
+  ScrollText,
+  ChevronDown,
+  ChevronRight,
+  Folder,
+  Pin,
+  GitBranch,
+  PencilLine,
+} from 'lucide-react';
 import type { FixedSizeNodeData, TreeWalkerValue, TreeWalker } from 'react-vtree';
 import type { TSkillSummary, TSkillFile } from 'librechat-data-provider';
 import type { TranslationKeys } from '~/hooks';
