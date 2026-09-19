@@ -224,7 +224,9 @@ async function createManagedDraftHandler(req, res) {
       return res.status(404).json({ error: 'Skill not found' });
     }
     if (published.source !== 'github') {
-      return res.status(400).json({ error: 'Only GitHub-managed skills can create managed drafts' });
+      return res
+        .status(400)
+        .json({ error: 'Only GitHub-managed skills can create managed drafts' });
     }
 
     const author = req.user?._id ?? req.user?.id;
@@ -367,8 +369,6 @@ async function setManagedDraftLifecycleHandler(req, res) {
   }
 }
 
-
-
 function githubPathSegment(value) {
   return String(value)
     .split('/')
@@ -435,7 +435,9 @@ async function publishManagedDraftHandler(req, res) {
     const metadata = draft.sourceMetadata ?? {};
     const published = await getSkillById(metadata.draftOfSkillId);
     if (!published || published.source !== 'github') {
-      return res.status(409).json({ error: 'Published source skill is no longer available' });
+      return res
+        .status(409)
+        .json({ error: 'Published source skill is no longer available' });
     }
 
     const publishedMetadata = published.sourceMetadata ?? {};
@@ -444,7 +446,9 @@ async function publishManagedDraftHandler(req, res) {
     const repo = metadata.repo ?? publishedMetadata.repo;
     const ref = metadata.ref ?? publishedMetadata.ref;
     const skillPath = metadata.skillPath ?? publishedMetadata.skillPath;
-    if (![sourceId, owner, repo, ref, skillPath].every((value) => typeof value === 'string' && value)) {
+    if (
+      ![sourceId, owner, repo, ref, skillPath].every((value) => typeof value === 'string' && value)
+    ) {
       return res.status(409).json({ error: 'Managed draft is missing GitHub source metadata' });
     }
 
@@ -539,8 +543,7 @@ async function publishManagedDraftHandler(req, res) {
       title: `feat(skill): update ${logicalName}`,
       head: branchName,
       base: ref,
-      body:
-        'Published from a LibreChat managed skill draft. The existing published skill remains active until this PR is merged and Skill Sync completes.',
+      body: 'Published from a LibreChat managed skill draft. The existing published skill remains active until this PR is merged and Skill Sync completes.',
     });
 
     const result = await updateSkill({
