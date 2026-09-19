@@ -15,6 +15,13 @@ READ_LIMIT_BYTES = 262_144
 
 ALLOWED_COMMANDS: tuple[tuple[str, ...], ...] = (
     ("git", "diff", "--check"),
+    ("python", "-m", "unittest"),
+    ("python3", "-m", "unittest"),
+    ("python", "-m", "py_compile"),
+    ("python3", "-m", "py_compile"),
+    ("node", "--check"),
+    ("sh", "-n"),
+    ("bash", "-n"),
     ("python", "-m", "pytest"),
     ("python3", "-m", "pytest"),
     ("pytest",),
