@@ -7,6 +7,7 @@ import { getSkillLifecycle, getSkillLogicalName } from 'librechat-data-provider'
 import type { TSkillSummary, TSkillFile } from 'librechat-data-provider';
 import { useListSkillFilesQuery } from '~/data-provider';
 import { Collapse } from '~/components/ui';
+import type { TranslationKeys } from '~/hooks';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 
@@ -267,6 +268,23 @@ function SkillListItem({
   const localize = useLocalize();
   const lifecycle = getSkillLifecycle(skill);
   const logicalName = getSkillLogicalName(skill);
+  const isPublishedGithub = lifecycle === 'published' && skill.source === 'github';
+
+  let lifecycleTitleKey: TranslationKeys = 'com_ui_skill_lifecycle_local_description';
+  let lifecycleLabelKey: TranslationKeys = 'com_ui_skill_lifecycle_local';
+  if (isPublishedGithub) {
+    lifecycleTitleKey = 'com_ui_skill_lifecycle_published_description';
+    lifecycleLabelKey = 'com_ui_skill_lifecycle_github';
+  } else if (lifecycle === 'trial') {
+    lifecycleTitleKey = 'com_ui_skill_lifecycle_trial_description';
+    lifecycleLabelKey = 'com_ui_skill_lifecycle_trial';
+  } else if (lifecycle === 'publish_pending') {
+    lifecycleTitleKey = 'com_ui_skill_lifecycle_publish_pending_description';
+    lifecycleLabelKey = 'com_ui_skill_lifecycle_publish_pending_short';
+  } else if (lifecycle === 'draft') {
+    lifecycleTitleKey = 'com_ui_skill_lifecycle_draft_description';
+    lifecycleLabelKey = 'com_ui_skill_lifecycle_draft';
+  }
 
   // Fetch files for active skill (always, since cached fileCount may be stale)
   // or expanded skills. The response is small (metadata only, no content).
@@ -331,36 +349,18 @@ function SkillListItem({
           <span
             className={cn(
               'inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none',
-              lifecycle === 'published' && skill.source === 'github'
+              isPublishedGithub
                 ? 'border-border-medium bg-surface-secondary text-text-secondary'
                 : 'border-status-warning-border bg-status-warning-subtle text-status-warning',
             )}
-            title={
-              lifecycle === 'trial'
-                ? 'Author draft enabled for trial'
-                : lifecycle === 'publish_pending'
-                  ? 'Draft queued for publication'
-                  : lifecycle === 'draft'
-                    ? 'Editable author draft'
-                    : skill.source === 'github'
-                      ? 'Managed from GitHub'
-                      : 'Local skill — not managed by GitHub Skill Sync'
-            }
+            title={localize(lifecycleTitleKey)}
           >
-            {lifecycle === 'published' && skill.source === 'github' ? (
+            {isPublishedGithub ? (
               <GitBranch className="size-2.5" aria-hidden="true" />
             ) : (
               <PencilLine className="size-2.5" aria-hidden="true" />
             )}
-            {lifecycle === 'trial'
-              ? 'Draft · Trial'
-              : lifecycle === 'publish_pending'
-                ? 'Draft · Pending'
-                : lifecycle === 'draft'
-                  ? 'Draft'
-                  : skill.source === 'github'
-                    ? 'GitHub'
-                    : 'Local'}
+            {localize(lifecycleLabelKey)}
           </span>
           {skill.alwaysApply === true && (
             <Pin
