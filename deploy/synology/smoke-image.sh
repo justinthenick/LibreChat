@@ -38,28 +38,6 @@ docker exec "$MONGO_NAME" mongo LibreChat --quiet --eval '
   db.users.insertOne({name:"Image smoke owner",username:"image-smoke",email:"image-smoke@example.invalid",provider:"local",role:"ADMIN",createdAt:new Date()});
 ' >/dev/null
 
-# A production database already contains LibreChat's built-in user/access roles.
-# This disposable smoke database starts empty, so bootstrap it exactly through
-# LibreChat's own seedDatabase path before validating the production-agent
-# seeders. Do not hand-create role documents in the fixture.
-docker run --rm --network "$RUN_NAME" \
-  -e MONGO_URI="mongodb://$MONGO_NAME:27017/LibreChat" \
-  "$IMAGE" node -e '
-    const mongoose = require("mongoose");
-    const connect = require("./config/connect");
-    const { runAsSystem } = require("@librechat/data-schemas");
-    (async () => {
-      await connect();
-      const { seedDatabase } = require("./api/models");
-      await runAsSystem(seedDatabase);
-      await mongoose.disconnect();
-      console.log("Fresh smoke database roles seeded through LibreChat bootstrap");
-    })().catch((error) => {
-      console.error(error);
-      process.exit(1);
-    });
-  '
-
 docker run -d --name "$API_NAME" --network "$RUN_NAME" \
   -e HOST=0.0.0.0 -e PORT=3080 -e NODE_ENV=production \
   -e MONGO_URI="mongodb://$MONGO_NAME:27017/LibreChat" \
@@ -69,11 +47,7 @@ docker run -d --name "$API_NAME" --network "$RUN_NAME" \
   -e JWT_REFRESH_SECRET=image-smoke-disposable-refresh \
   -e SEARCH=false -e SCHEDULES_SINGLE_PROCESS=true \
   -e DEPLOYMENT_SKILLS_DIR=/app/custom/ba-agent/skills \
-  "$IMAGE" sh -ec '
-    node config/seed-production-agents.js /app/custom/ba-agent/production
-    node config/seed-coding-agent-pilot.js /app/custom/coding-agent/production
-    exec npm run backend
-  ' >/dev/null
+  "$IMAGE" npm run backend >/dev/null
 
 ready=0
 for attempt in $(seq 1 90); do
@@ -90,7 +64,12 @@ for attempt in $(seq 1 90); do
   sleep 2
 done
 docker logs --tail 100 "$API_NAME"
-[ "$ready" = 1 ] || { echo 'Image failed production seeding or readiness'; exit 1; }
+[ "$ready" = 1 ] || { echo 'Image failed startup or readiness'; exit 1; }
+
+# Match production ordering: normal LibreChat startup seeds built-in access roles;
+# only after readiness do the deployment agent seeders run.
+docker exec "$API_NAME" node config/seed-production-agents.js /app/custom/ba-agent/production
+docker exec "$API_NAME" node config/seed-coding-agent-pilot.js /app/custom/coding-agent/production
 docker exec "$API_NAME" node -e '
   fetch("http://127.0.0.1:3080/api/config", {signal:AbortSignal.timeout(5000)})
     .then(r => { if (r.status !== 200) throw new Error(`HTTP ${r.status}`); return r.json(); })
