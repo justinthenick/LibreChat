@@ -205,7 +205,7 @@ jobs:
           assert 'return OPENROUTER_ENDPOINT_NAME;' in seeder
           assert 'Providers.OPENROUTER' not in seeder
 
-          compatible_image = 'image: librechat/lc-dev:cdd4c09076aa43ae9d94bba8f43c55ee35c181d5'
+          compatible_image = 'image: ghcr.io/justinthenick/librechat-synology@sha256:2ad8336c7b4c657cd9014ed09e1f7a00c08b99f54fb22235a8d0ec28a5581c30'
           assert compatible_image in compose, (
               'Synology API image must stay pinned to the runtime commit validated for '
               'deployment-skill external IDs and native handoff edges'
