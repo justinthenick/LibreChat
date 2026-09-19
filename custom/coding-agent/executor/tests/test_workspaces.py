@@ -107,6 +107,12 @@ class WorkspaceManagerTest(unittest.TestCase):
         task = self.manager.create_task("demo", "checks", "main")
         result = self.manager.run_check(task["task_id"], "git diff --check")
         self.assertEqual(result.exit_code, 0)
+
+        unittest_result = self.manager.run_check(
+            task["task_id"], "python3 -m unittest --help"
+        )
+        self.assertEqual(unittest_result.exit_code, 0)
+
         marker = Path(task["path"]) / "unsafe-marker"
         rejected = self.manager.run_check(
             task["task_id"],

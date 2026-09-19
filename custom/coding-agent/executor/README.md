@@ -1,4 +1,4 @@
-# LibreChat coding executor v0.1.1
+# LibreChat coding executor v0.1.2
 
 This service gives a LibreChat Agent a deliberately narrow coding surface without granting access to the NAS Docker socket or the host filesystem.
 

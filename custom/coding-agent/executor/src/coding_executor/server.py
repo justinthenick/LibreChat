@@ -59,7 +59,7 @@ def build_server(settings: Settings) -> MCPServer:
 
     @server.custom_route("/health", methods=["GET"])
     async def health(_request: object) -> JSONResponse:
-        return JSONResponse({"status": "ok", "version": "0.1.1"})
+        return JSONResponse({"status": "ok", "version": "0.1.2"})
 
     @server.tool(description="List Git repositories explicitly mounted into the executor.")
     def list_repositories() -> list[str]:
