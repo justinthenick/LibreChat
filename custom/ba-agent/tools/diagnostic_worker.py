@@ -893,6 +893,148 @@ def check_skill_reference_audit(check, root, env_file, repo, branch):
 
 
 
+def check_production_checkout_status(check, root, env_file, repo, branch):
+    """Report only branch/HEAD/cleanliness for the fixed production checkout."""
+    checkout = "/volume1/docker/librechat/deploy/synology"
+
+    def git(args):
+        proc = subprocess.run(
+            ["git", "-C", checkout] + args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=20,
+            check=False,
+        )
+        if proc.returncode != 0:
+            raise DiagnosticError(
+                "Production git check failed rc={}: {}".format(
+                    proc.returncode, sanitize_text(proc.stderr or proc.stdout)
+                )
+            )
+        return (proc.stdout or "").strip()
+
+    current_branch = git(["branch", "--show-current"])
+    head = git(["rev-parse", "HEAD"])
+    dirty_lines = [line for line in git(["status", "--porcelain"]).splitlines() if line.strip()]
+    return {
+        "branch": current_branch,
+        "head": head,
+        "clean": len(dirty_lines) == 0,
+        "dirty_count": len(dirty_lines),
+    }
+
+
+def check_managed_skill_inventory(check, root, env_file, repo, branch):
+    """Return only non-sensitive identity/version metadata for GitHub-managed skills."""
+    source_id = str(check.get("source_id") or "managed-skills").strip()
+    if source_id != "managed-skills":
+        raise DiagnosticError("managed_skill_inventory supports only source_id managed-skills")
+    script = (
+        "var rows=db.skills.find({source:'github','sourceMetadata.sourceId':'managed-skills'},"
+        "{_id:0,name:1,version:1,source:1,'sourceMetadata.ref':1,"
+        "'sourceMetadata.commitSha':1,'sourceMetadata.skillPath':1})"
+        ".sort({name:1}).toArray(); print(JSON.stringify(rows));"
+    )
+    commands = [
+        ["docker", "exec", "librechat-mongodb", "mongosh", "LibreChat", "--quiet", "--eval", script],
+        ["docker", "exec", "librechat-mongodb", "mongo", "LibreChat", "--quiet", "--eval", script],
+    ]
+    errors = []
+    for cmd in commands:
+        try:
+            proc = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+        except Exception as exc:
+            errors.append(str(exc))
+            continue
+        if proc.returncode != 0:
+            errors.append(sanitize_text(proc.stderr or proc.stdout))
+            continue
+        output = (proc.stdout or "").strip()
+        try:
+            rows = json.loads(output.splitlines()[-1]) if output else []
+        except Exception:
+            raise DiagnosticError(
+                "Managed skill inventory returned non-JSON output: {}".format(sanitize_text(output))
+            )
+        return {
+            "source_id": source_id,
+            "count": len(rows),
+            "names": [str(row.get("name") or "") for row in rows],
+            "skills": rows,
+        }
+    raise DiagnosticError("Managed skill inventory query failed: {}".format(" | ".join(errors)))
+
+
+def check_coding_executor_health(check, root, env_file, repo, branch):
+    """Probe the configured coding executor from inside the LibreChat container."""
+    js = r"""
+const host = process.env.CODING_EXECUTOR_HOST || "";
+const port = process.env.CODING_EXECUTOR_PORT || "";
+const token = process.env.CODING_EXECUTOR_TOKEN || "";
+if (!host || !port) {
+  console.log(JSON.stringify({endpoint_configured:false, token_configured:Boolean(token)}));
+  process.exit(3);
+}
+const url = "http://" + host + ":" + port + "/health";
+const headers = token ? {Authorization: "Bearer " + token} : {};
+fetch(url, {headers})
+  .then(async (response) => {
+    const raw = await response.text();
+    let body = {};
+    try { body = JSON.parse(raw); } catch (_) {}
+    console.log(JSON.stringify({
+      endpoint_configured: true,
+      token_configured: Boolean(token),
+      http_status: response.status,
+      ok: response.ok,
+      service_status: typeof body.status === "string" ? body.status : null,
+      version: typeof body.version === "string" ? body.version : null
+    }));
+    if (!response.ok) process.exit(4);
+  })
+  .catch((error) => {
+    console.log(JSON.stringify({
+      endpoint_configured: true,
+      token_configured: Boolean(token),
+      ok: false,
+      error: String(error && error.message ? error.message : error)
+    }));
+    process.exit(5);
+  });
+"""
+    proc = subprocess.run(
+        ["docker", "exec", "librechat", "node", "-e", js],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=20,
+        check=False,
+    )
+    output = (proc.stdout or "").strip()
+    if proc.returncode != 0:
+        detail = output or proc.stderr or "executor health probe failed"
+        raise DiagnosticError(
+            "Coding executor health probe failed rc={}: {}".format(
+                proc.returncode, sanitize_text(detail)
+            )
+        )
+    try:
+        value = json.loads(output.splitlines()[-1])
+    except Exception:
+        raise DiagnosticError(
+            "Coding executor health returned non-JSON output: {}".format(sanitize_text(output))
+        )
+    return value
+
+
 CHECKS = {
     "path_exists": check_path_exists,
     "tail": check_tail,
@@ -903,6 +1045,9 @@ CHECKS = {
     "disk_usage": check_disk_usage,
     "env_presence": check_env_presence,
     "skill_sync_status": check_skill_sync_status,
+    "production_checkout_status": check_production_checkout_status,
+    "managed_skill_inventory": check_managed_skill_inventory,
+    "coding_executor_health": check_coding_executor_health,
     "skill_inventory": check_skill_inventory,
     "inline_skill_export": check_inline_skill_export,
     "inline_skill_files": check_inline_skill_files,
