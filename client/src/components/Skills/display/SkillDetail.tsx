@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import type { TSkill } from 'librechat-data-provider';
-import { useLocalize } from '~/hooks';
-import SkillDetailHeader from './SkillDetailHeader';
 import SkillMarkdownRenderer from './SkillMarkdownRenderer';
-import ViewToggle from './ViewToggle';
+import SkillDetailHeader from './SkillDetailHeader';
 import { parseFrontmatter } from '../utils';
+import { useLocalize } from '~/hooks';
+import ViewToggle from './ViewToggle';
 
 interface SkillDetailProps {
   skill: TSkill;
