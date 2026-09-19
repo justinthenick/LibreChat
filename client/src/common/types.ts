@@ -563,6 +563,7 @@ export type MentionOption = OptionWithIcon & {
   type: string;
   value: string;
   description?: string;
+  badge?: string;
 };
 export type PromptOption = MentionOption & {
   id: string;

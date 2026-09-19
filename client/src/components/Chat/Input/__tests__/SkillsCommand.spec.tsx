@@ -536,6 +536,33 @@ describe('filterSkillsForPopover', () => {
     expect(out.map((s) => s._id)).toEqual(['2']);
   });
 
+  it('allows a managed draft when its published parent is in agent scope', () => {
+    const draft = makeSkill({
+      _id: 'draft-id',
+      name: 'a-draft',
+      source: 'inline',
+      sourceMetadata: {
+        lifecycle: 'trial',
+        draftOfSkillId: '1',
+        logicalName: 'a',
+      },
+    });
+    const out = filterSkillsForPopover([s1, draft, s2], {
+      agentSkillIds: ['1'],
+      isActive: active,
+    });
+    expect(out.map((s) => s._id)).toEqual(['1', 'draft-id']);
+  });
+
+  it('does not inherit agent scope for an unrelated local skill', () => {
+    const local = makeSkill({ _id: 'local-id', name: 'local' });
+    const out = filterSkillsForPopover([s1, local], {
+      agentSkillIds: ['1'],
+      isActive: active,
+    });
+    expect(out.map((s) => s._id)).toEqual(['1']);
+  });
+
   it('excludes inactive skills', () => {
     const isActive = (skill: { _id: string }) => skill._id !== '1';
     const out = filterSkillsForPopover([s1, s2], { agentSkillIds: null, isActive });

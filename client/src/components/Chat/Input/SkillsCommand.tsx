@@ -3,6 +3,11 @@ import { ScrollText } from 'lucide-react';
 import { AutoSizer, List } from 'react-virtualized';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { Input, Spinner, useCombobox } from '@librechat/client';
+import {
+  encodeSkillSelection,
+  getSkillLifecycle,
+  getSkillLogicalName,
+} from 'librechat-data-provider';
 import type { TSkillSummary } from 'librechat-data-provider';
 import type { MentionOption } from '~/common';
 import useInitPopoverInput from '~/hooks/Input/useInitPopoverInput';
@@ -61,7 +66,15 @@ export function filterSkillsForPopover(
   const result: TSkillSummary[] = [];
   for (const skill of skills) {
     if (agentSet && !agentSet.has(skill._id)) {
-      continue;
+      const metadata =
+        skill.sourceMetadata && typeof skill.sourceMetadata === 'object'
+          ? (skill.sourceMetadata as Record<string, unknown>)
+          : undefined;
+      const draftOfSkillId =
+        typeof metadata?.draftOfSkillId === 'string' ? metadata.draftOfSkillId : undefined;
+      if (!draftOfSkillId || !agentSet.has(draftOfSkillId)) {
+        continue;
+      }
     }
     if (!isActive(skill)) {
       continue;
@@ -151,16 +164,33 @@ function SkillsCommandContent({
     const filtered = filterSkillsForPopover(allSkills, { agentSkillIds, isActive });
     const options: MentionOption[] = [];
     for (const skill of filtered) {
+      const lifecycle = getSkillLifecycle(skill);
+      const logicalName = getSkillLogicalName(skill);
+      let badge = localize('com_ui_skill_lifecycle_local');
+      if (lifecycle === 'draft') {
+        badge = localize('com_ui_skill_lifecycle_draft');
+      } else if (lifecycle === 'trial') {
+        badge = localize('com_ui_skill_lifecycle_trial');
+      } else if (lifecycle === 'publish_pending') {
+        badge = localize('com_ui_skill_lifecycle_publish_pending');
+      } else if (skill.source === 'github') {
+        badge = localize('com_ui_skill_lifecycle_published');
+      }
+
       options.push({
-        label: skill.displayTitle ?? skill.name,
-        value: skill.name,
+        label: skill.displayTitle ?? logicalName,
+        value:
+          lifecycle === 'published'
+            ? logicalName
+            : encodeSkillSelection({ _id: skill._id, name: logicalName }),
         description: skill.description,
+        badge,
         type: 'skill',
         icon: skillIcon,
       });
     }
     return options;
-  }, [data?.pages, agentSkillIds, isActive]);
+  }, [data?.pages, agentSkillIds, isActive, localize]);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -269,6 +299,7 @@ function SkillsCommandContent({
         name={mention.label ?? ''}
         icon={mention.icon}
         description={mention.description}
+        badge={mention.badge}
         isActive={index === activeIndex}
       />
     );

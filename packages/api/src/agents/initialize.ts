@@ -34,6 +34,7 @@ import type {
   ResolvedSkillCatalog,
   TListSkillsByAccess,
   TGetSkillByName,
+  TGetSkillById,
 } from './skills';
 import type {
   ServerRequest,
@@ -674,6 +675,8 @@ export interface InitializeAgentDbMethods extends EndpointDbMethods {
   listSkillsByAccess?: TListSkillsByAccess;
   /** Load a single skill by name, constrained to an ACL-accessible ID set. */
   getSkillByName?: TGetSkillByName;
+  /** Load one exact skill revision by id for revision-aware manual invocation. */
+  getSkillById?: TGetSkillById;
   /**
    * Load accessible skills with `alwaysApply: true`, eagerly including
    * `body` so the priming pipeline can splice at turn start without a
@@ -873,6 +876,7 @@ export async function initializeAgent(
         ? resolveManualSkills({
             names: params.manualSkills,
             getSkillByName: db.getSkillByName,
+            getSkillById: db.getSkillById,
             accessibleSkillIds: params.accessibleSkillIds!,
             userId: req.user?.id,
             skillStates: params.skillStates,

@@ -140,6 +140,18 @@ function serializeSourceMetadata(
   return metadata as TSkill['sourceMetadata'];
 }
 
+function isExternallyManagedSkill(skill: ISkill | null | undefined): boolean {
+  return Boolean(skill && skill.source !== 'inline');
+}
+
+function externallyManagedSkillResponse(res: Response): Response {
+  return res.status(409).json({
+    error: 'skill_external_source_read_only',
+    message:
+      'Externally managed skills are read-only in LibreChat. Update the upstream source and run Skill Sync.',
+  });
+}
+
 /** Converts a skill document to the wire format returned by the API. */
 function serializeSkill(
   skill: ISkill & { _id: Types.ObjectId },
@@ -513,6 +525,13 @@ export function createSkillsHandlers(deps: SkillsHandlersDeps): {
   async function patchHandler(req: ServerRequest, res: Response) {
     try {
       const { id } = req.params as { id: string };
+      const existingSkill = await getSkillById(id);
+      if (!existingSkill) {
+        return res.status(404).json({ error: 'Skill not found' });
+      }
+      if (isExternallyManagedSkill(existingSkill)) {
+        return externallyManagedSkillResponse(res);
+      }
       const body = (req.body ?? {}) as TUpdateSkillPayload & { expectedVersion?: number };
       const { expectedVersion, ...rest } = body;
       // `typeof NaN === 'number'` is true, so we need the stricter isFinite/isInteger
@@ -587,6 +606,13 @@ export function createSkillsHandlers(deps: SkillsHandlersDeps): {
       if (!isValidObjectIdString(id)) {
         return res.status(400).json({ error: 'Invalid skill id' });
       }
+      const existingSkill = await getSkillById(id);
+      if (!existingSkill) {
+        return res.status(404).json({ error: 'Skill not found' });
+      }
+      if (isExternallyManagedSkill(existingSkill)) {
+        return externallyManagedSkillResponse(res);
+      }
 
       // Collect file records before deletion so we can clean up storage blobs
       const files = await listSkillFiles(id);
@@ -598,6 +624,9 @@ export function createSkillsHandlers(deps: SkillsHandlersDeps): {
 
       // Fire-and-forget blob cleanup for each file
       for (const file of files) {
+        if (file.sourceMetadata?.sharedStorage === true) {
+          continue;
+        }
         const { deleteFile: deleteBlob } = getStrategyFunctions(file.source);
         if (deleteBlob) {
           deleteBlob(req, {
@@ -785,6 +814,13 @@ export function createSkillsHandlers(deps: SkillsHandlersDeps): {
   async function deleteFileHandler(req: ServerRequest, res: Response) {
     try {
       const { id } = req.params as { id: string };
+      const existingSkill = await getSkillById(id);
+      if (!existingSkill) {
+        return res.status(404).json({ error: 'Skill not found' });
+      }
+      if (isExternallyManagedSkill(existingSkill)) {
+        return externallyManagedSkillResponse(res);
+      }
       const decodedPath = resolveSkillFilePathParam(
         (req.params as { relativePath?: string | string[] }).relativePath,
       );
@@ -805,7 +841,7 @@ export function createSkillsHandlers(deps: SkillsHandlersDeps): {
 
       // Clean up the stored blob — fire-and-forget so the response isn't delayed
       const { deleteFile: deleteBlob } = getStrategyFunctions(file.source);
-      if (deleteBlob) {
+      if (deleteBlob && file.sourceMetadata?.sharedStorage !== true) {
         deleteBlob(req, {
           filepath: file.filepath,
           storageKey: file.storageKey,

@@ -419,6 +419,9 @@ export const skills = () => `${BASE_URL}/api/skills`;
 export const importSkill = () => `${skills()}/import`;
 
 export const getSkill = (id: string) => `${skills()}/${encodeURIComponent(id)}`;
+export const createSkillDraft = (id: string) => `${getSkill(id)}/draft`;
+export const setSkillLifecycle = (id: string) => `${getSkill(id)}/lifecycle`;
+export const publishSkillDraft = (id: string) => `${getSkill(id)}/publish`;
 
 export const listSkillsWithFilters = (
   filter: Record<string, string | number | undefined | null>,

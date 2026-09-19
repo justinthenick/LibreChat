@@ -1,6 +1,6 @@
 import { logger } from '@librechat/data-schemas';
-import { isEphemeralAgentId } from 'librechat-data-provider';
 import { HumanMessage } from '@librechat/agents/langchain/messages';
+import { isEphemeralAgentId, parseSkillSelection } from 'librechat-data-provider';
 import { formatSkillCatalog, SkillToolDefinition, ReadFileToolDefinition } from '@librechat/agents';
 import type { LCToolRegistry, LCTool, InjectedMessage } from '@librechat/agents';
 import type { BaseMessage } from '@librechat/agents/langchain/messages';
@@ -57,6 +57,18 @@ export type TGetSkillByName = (
   userInvocable?: boolean;
   /** True for deployment-directory skills that are loaded in memory. */
   deployment?: boolean;
+} | null>;
+
+export type TGetSkillById = (id: string | Types.ObjectId) => Promise<{
+  _id: Types.ObjectId;
+  name: string;
+  body: string;
+  version?: number;
+  author: Types.ObjectId | string;
+  deployment?: boolean;
+  frontmatter?: Record<string, unknown>;
+  allowedTools?: string[];
+  userInvocable?: boolean;
 } | null>;
 
 /** List skill summaries for catalog injection (paginated, omits body/frontmatter). */
@@ -841,6 +853,8 @@ export interface ResolveManualSkillsParams {
      */
     userInvocable?: boolean;
   } | null>;
+  /** Exact-id lookup used by revision-aware `$skill` selections. */
+  getSkillById?: TGetSkillById;
   /** ACL-accessible skill IDs for this user (already scoped by `scopeSkillIds`). */
   accessibleSkillIds: Types.ObjectId[];
   /** Current user ID — required for ownership-based active-state defaults. */
@@ -922,8 +936,15 @@ export type ResolvedAlwaysApplySkill = ResolvedSkillPrime;
 export async function resolveManualSkills(
   params: ResolveManualSkillsParams,
 ): Promise<ResolvedManualSkill[]> {
-  const { names, getSkillByName, accessibleSkillIds, userId, skillStates, defaultActiveOnShare } =
-    params;
+  const {
+    names,
+    getSkillByName,
+    getSkillById,
+    accessibleSkillIds,
+    userId,
+    skillStates,
+    defaultActiveOnShare,
+  } = params;
 
   if (!names.length || accessibleSkillIds.length === 0) {
     return [];
@@ -937,6 +958,7 @@ export async function resolveManualSkills(
     seen.add(n);
     return true;
   });
+  const accessibleIdSet = new Set(accessibleSkillIds.map((id) => id.toString()));
 
   /**
    * Truncate after dedup so a user repeating the same name doesn't consume
@@ -952,21 +974,19 @@ export async function resolveManualSkills(
   }
 
   const resolved = await Promise.all(
-    boundedNames.map(async (name) => {
+    boundedNames.map(async (selection) => {
       try {
-        /* `preferUserInvocable` lets the lookup return the older
-           user-invocable variant when a newer same-name duplicate has
-           `userInvocable: false` (model-only). Without this, the
-           popover-visible skill the user picked would silently no-op
-           because `getSkillByName`'s `updatedAt desc` tiebreak returns
-           the model-only newer doc and the resolver skips it on the
-           userInvocable check below. We deliberately do NOT also pass
-           `preferModelInvocable` — manually invoking a `disable-model-
-           invocation: true` skill is the supported path (iter 4) and
-           the model-only filter would interfere with that. */
-        const skill = await getSkillByName(name, accessibleSkillIds, {
-          preferUserInvocable: true,
-        });
+        const { name, skillId } = parseSkillSelection(selection);
+        /* Revision-aware UI selections carry the exact skill id. Resolve it
+           only when that id is already inside the caller's ACL-scoped set;
+           crafted ids cannot widen access. Legacy name-only payloads keep
+           the established preference-based lookup. */
+        const skill =
+          skillId && getSkillById && accessibleIdSet.has(skillId)
+            ? await getSkillById(skillId)
+            : await getSkillByName(name, accessibleSkillIds, {
+                preferUserInvocable: true,
+              });
         if (!skill) {
           logger.warn('[resolveManualSkills] Requested skill not found or not accessible');
           return null;

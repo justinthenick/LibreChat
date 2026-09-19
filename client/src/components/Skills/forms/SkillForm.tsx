@@ -159,6 +159,7 @@ export default function SkillForm({ skillId }: SkillFormProps) {
     );
   }
 
+  const externallyManaged = skill.source !== 'inline';
   const readOnly = !permissions.canEdit;
   const saveDisabled = !isDirty || !isValid || isSubmitting || updateSkill.isLoading;
 
@@ -224,7 +225,7 @@ export default function SkillForm({ skillId }: SkillFormProps) {
               )}
             />
             <div className="flex shrink-0 items-center gap-2">
-              <CategorySelector />
+              <CategorySelector disabled={readOnly} />
               <ShareSkill skill={skill} />
               {permissions.canDelete && (
                 <DeleteSkill
@@ -249,7 +250,11 @@ export default function SkillForm({ skillId }: SkillFormProps) {
             className="mt-4 flex items-start gap-2 rounded-md border border-status-warning-border bg-status-warning-subtle p-3 text-sm text-status-warning"
           >
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <span>{localize('com_ui_skill_no_edit_permission')}</span>
+            <span>
+              {externallyManaged
+                ? localize('com_ui_skill_external_readonly')
+                : localize('com_ui_skill_no_edit_permission')}
+            </span>
           </div>
         )}
 
@@ -323,6 +328,7 @@ export default function SkillForm({ skillId }: SkillFormProps) {
             name="body"
             isEditing={isEditingContent}
             setIsEditing={setIsEditingContent}
+            readOnly={readOnly}
           />
 
           {!readOnly && (

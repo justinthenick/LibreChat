@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Pin, ScrollText } from 'lucide-react';
+import { parseSkillSelection } from 'librechat-data-provider';
 import { useLocalize } from '~/hooks';
 
 /**
@@ -45,21 +46,24 @@ function SkillPills({
 
   return (
     <div className="flex flex-wrap gap-1.5 py-0.5" role="list" aria-label={localize(ariaLabelKey)}>
-      {skills.map((name) => (
-        <span
-          key={name}
-          role="listitem"
-          data-skill-source={source}
-          className="inline-flex items-center gap-1 rounded-full border border-border-light bg-surface-secondary px-2 py-1 text-xs text-text-secondary"
-        >
-          {source === 'always-apply' ? (
-            <Pin className="h-3 w-3 text-cyan-500" aria-hidden="true" />
-          ) : (
-            <ScrollText className="h-3 w-3 text-cyan-500" aria-hidden="true" />
-          )}
-          <span className="max-w-[12rem] truncate">{name}</span>
-        </span>
-      ))}
+      {skills.map((name) => {
+        const displayName = parseSkillSelection(name).name;
+        return (
+          <span
+            key={name}
+            role="listitem"
+            data-skill-source={source}
+            className="inline-flex items-center gap-1 rounded-full border border-border-light bg-surface-secondary px-2 py-1 text-xs text-text-secondary"
+          >
+            {source === 'always-apply' ? (
+              <Pin className="h-3 w-3 text-cyan-500" aria-hidden="true" />
+            ) : (
+              <ScrollText className="h-3 w-3 text-cyan-500" aria-hidden="true" />
+            )}
+            <span className="max-w-[12rem] truncate">{displayName}</span>
+          </span>
+        );
+      })}
     </div>
   );
 }
