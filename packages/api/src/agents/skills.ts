@@ -59,9 +59,7 @@ export type TGetSkillByName = (
   deployment?: boolean;
 } | null>;
 
-export type TGetSkillById = (
-  id: string | Types.ObjectId,
-) => Promise<{
+export type TGetSkillById = (id: string | Types.ObjectId) => Promise<{
   _id: Types.ObjectId;
   name: string;
   body: string;
