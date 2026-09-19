@@ -166,6 +166,17 @@ function SkillsCommandContent({
     for (const skill of filtered) {
       const lifecycle = getSkillLifecycle(skill);
       const logicalName = getSkillLogicalName(skill);
+      let badge = localize('com_ui_skill_lifecycle_local');
+      if (lifecycle === 'draft') {
+        badge = localize('com_ui_skill_lifecycle_draft');
+      } else if (lifecycle === 'trial') {
+        badge = localize('com_ui_skill_lifecycle_trial');
+      } else if (lifecycle === 'publish_pending') {
+        badge = localize('com_ui_skill_lifecycle_publish_pending');
+      } else if (skill.source === 'github') {
+        badge = localize('com_ui_skill_lifecycle_published');
+      }
+
       options.push({
         label: skill.displayTitle ?? logicalName,
         value:
@@ -173,22 +184,13 @@ function SkillsCommandContent({
             ? logicalName
             : encodeSkillSelection({ _id: skill._id, name: logicalName }),
         description: skill.description,
-        badge:
-          lifecycle === 'draft'
-            ? 'Draft'
-            : lifecycle === 'trial'
-              ? 'Draft · Trial'
-              : lifecycle === 'publish_pending'
-                ? 'Draft · Publish pending'
-                : skill.source === 'github'
-                  ? 'Published'
-                  : 'Local',
+        badge,
         type: 'skill',
         icon: skillIcon,
       });
     }
     return options;
-  }, [data?.pages, agentSkillIds, isActive]);
+  }, [data?.pages, agentSkillIds, isActive, localize]);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
