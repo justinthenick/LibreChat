@@ -24,6 +24,8 @@ TELEMETRY_MARKER="/volume1/docker/librechat-telemetry.last-publish"
 LOCK_DIR="/tmp/librechat-autodeploy.lock"
 GIT_IMAGE="alpine/git:latest"
 GIT_UID_GID="1026:100"
+GIT_REMOTE_TIMEOUT="${GIT_REMOTE_TIMEOUT:-30}"
+GIT_PULL_TIMEOUT="${GIT_PULL_TIMEOUT:-180}"
 STATUS_IMAGE="curlimages/curl:8.10.1"
 STATUS_REPO="justinthenick/LibreChat"
 STATUS_CONTEXT="nas/librechat"
@@ -43,12 +45,38 @@ log() {
   printf '%s\n' "$LINE" | tee -a "$LOG_FILE" "$EVENT_LOG_FILE"
 }
 
-git_repo() {
-  docker run --rm --user "$GIT_UID_GID" -v "$REPO_DIR:/repo" "$GIT_IMAGE" -C /repo "$@"
+local_branch() {
+  HEAD_LINE="$(sed -n '1p' "$REPO_DIR/.git/HEAD")"
+  case "$HEAD_LINE" in
+    "ref: refs/heads/"*) printf '%s\n' "${HEAD_LINE#ref: refs/heads/}" ;;
+    *) printf '%s\n' "HEAD" ;;
+  esac
+}
+
+local_sha() {
+  HEAD_LINE="$(sed -n '1p' "$REPO_DIR/.git/HEAD")"
+  case "$HEAD_LINE" in
+    "ref: "*)
+      REF="${HEAD_LINE#ref: }"
+      if [ -f "$REPO_DIR/.git/$REF" ]; then
+        sed -n '1p' "$REPO_DIR/.git/$REF"
+      elif [ -f "$REPO_DIR/.git/packed-refs" ]; then
+        awk -v ref="$REF" '$2 == ref { print $1; exit }' "$REPO_DIR/.git/packed-refs"
+      fi
+      ;;
+    *) printf '%s\n' "$HEAD_LINE" ;;
+  esac
+}
+
+git_pull() {
+  docker run --rm --user "$GIT_UID_GID" -v "$REPO_DIR:/repo" --entrypoint sh "$GIT_IMAGE" -c \
+    'exec timeout "$1" git -C /repo pull --ff-only origin "$2"' sh "$GIT_PULL_TIMEOUT" "$BRANCH"
 }
 
 remote_sha() {
-  docker run --rm "$GIT_IMAGE" ls-remote "$REMOTE_URL" "refs/heads/$BRANCH" | awk '{print $1}'
+  docker run --rm --entrypoint sh "$GIT_IMAGE" -c \
+    'exec timeout "$1" git ls-remote "$2" "$3"' sh "$GIT_REMOTE_TIMEOUT" "$REMOTE_URL" "refs/heads/$BRANCH" |
+    awk '{print $1}'
 }
 
 short_sha() {
@@ -392,9 +420,10 @@ else
 fi
 
 prepare_workspace
-CURRENT_BRANCH="$(git_repo rev-parse --abbrev-ref HEAD)"
+CURRENT_BRANCH="$(local_branch)"
 if [ "$CURRENT_BRANCH" != "$BRANCH" ]; then log "ERROR: repository is on $CURRENT_BRANCH, expected $BRANCH"; exit 1; fi
-LOCAL_SHA="$(git_repo rev-parse HEAD)"
+LOCAL_SHA="$(local_sha)"
+if [ -z "$LOCAL_SHA" ]; then log "ERROR: could not resolve local checkout SHA from .git metadata"; exit 1; fi
 REMOTE_SHA="$(remote_sha)"
 LAST_SUCCESS_SHA="$(read_last_success)"
 if [ -z "$REMOTE_SHA" ]; then log "ERROR: could not resolve remote branch $BRANCH"; exit 1; fi
@@ -419,9 +448,9 @@ else log "Change detected: $(short_sha "$LOCAL_SHA") -> $(short_sha "$REMOTE_SHA
 post_status pending "$REMOTE_SHA" "Synology deployment in progress"
 FAILED_STAGE="git_update"
 if [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
-  if ! git_repo pull --ff-only origin "$BRANCH" >> "$LOG_FILE" 2>&1; then log "ERROR: Git fast-forward update failed"; exit 1; fi
+  if ! git_pull >> "$LOG_FILE" 2>&1; then log "ERROR: Git fast-forward update failed or timed out"; exit 1; fi
 fi
-CHECKED_OUT_SHA="$(git_repo rev-parse HEAD)"
+CHECKED_OUT_SHA="$(local_sha)"
 if [ "$CHECKED_OUT_SHA" != "$REMOTE_SHA" ]; then log "ERROR: checkout is at $(short_sha "$CHECKED_OUT_SHA"), expected $(short_sha "$REMOTE_SHA")"; exit 1; fi
 
 # Re-evaluate optional integrations after the pull because a local bootstrap may
@@ -511,7 +540,7 @@ until nas_infra_runtime_check; do COUNT=$((COUNT+1)); if [ "$COUNT" -ge 12 ]; th
 log "NAS read-only infrastructure worker and MCP bridge healthy"
 
 FAILED_STAGE="state_record"
-DEPLOYED_SHA="$(git_repo rev-parse HEAD)"
+DEPLOYED_SHA="$(local_sha)"
 if [ "$DEPLOYED_SHA" != "$REMOTE_SHA" ]; then log "ERROR: deployed checkout changed unexpectedly to $(short_sha "$DEPLOYED_SHA")"; exit 1; fi
 write_last_success "$DEPLOYED_SHA"
 
