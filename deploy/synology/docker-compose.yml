@@ -5,7 +5,7 @@ services:
     # Pinned upstream commit includes deployment-skill external IDs and native
     # agent handoff edges required by the validated production-agent seeder.
     # Do not replace with a moving latest/stable tag without revalidating these contracts.
-    image: librechat/lc-dev:cdd4c09076aa43ae9d94bba8f43c55ee35c181d5
+    image: ghcr.io/justinthenick/librechat-synology@sha256:2ad8336c7b4c657cd9014ed09e1f7a00c08b99f54fb22235a8d0ec28a5581c30
     container_name: librechat
     restart: unless-stopped
     ports:
