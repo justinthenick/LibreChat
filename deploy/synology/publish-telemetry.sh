@@ -7,6 +7,7 @@ LAST_FAILURE_FILE="/volume1/docker/librechat-deploy.last-failure"
 TELEMETRY_MARKER="/volume1/docker/librechat-telemetry.last-publish"
 LAUNCHPAD_SCRIPT="$DEPLOY_DIR/launchpad-telemetry.py"
 STATUS_IMAGE="curlimages/curl:8.10.1"
+DOCKER_RUN_TIMEOUT="${DOCKER_RUN_TIMEOUT:-30}"
 STATUS_REPO="justinthenick/LibreChat"
 STATUS_CONTEXT="nas/librechat"
 TELEMETRY_BRANCH="nas-status"
@@ -113,7 +114,7 @@ github_api() {
   PAYLOAD="${3:-}"
 
   if [ -n "$PAYLOAD" ]; then
-    docker run --rm \
+    timeout "$DOCKER_RUN_TIMEOUT" docker run --rm \
       -e GH_TOKEN="$TOKEN" \
       -e GH_URL="$URL" \
       -e GH_METHOD="$METHOD" \
@@ -128,7 +129,7 @@ github_api() {
           "$GH_URL"
       '
   else
-    docker run --rm \
+    timeout "$DOCKER_RUN_TIMEOUT" docker run --rm \
       -e GH_TOKEN="$TOKEN" \
       -e GH_URL="$URL" \
       -e GH_METHOD="$METHOD" \
@@ -168,7 +169,7 @@ post_recovery_status() {
   if [ -z "$STATUS_TOKEN" ]; then
     return 0
   fi
-  docker run --rm \
+  timeout "$DOCKER_RUN_TIMEOUT" docker run --rm \
     -e GH_TOKEN="$STATUS_TOKEN" \
     -e GH_SHA="$SHA" \
     -e GH_REPO="$STATUS_REPO" \
