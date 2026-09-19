@@ -114,11 +114,12 @@ github_api() {
   PAYLOAD="${3:-}"
 
   if [ -n "$PAYLOAD" ]; then
-    timeout "$DOCKER_RUN_TIMEOUT" docker run --rm \
-      -e GH_TOKEN="$TOKEN" \
-      -e GH_URL="$URL" \
-      -e GH_METHOD="$METHOD" \
-      -e GH_PAYLOAD="$PAYLOAD" \
+    GH_TOKEN="$TOKEN" GH_URL="$URL" GH_METHOD="$METHOD" GH_PAYLOAD="$PAYLOAD" \
+      timeout "$DOCKER_RUN_TIMEOUT" docker run --rm \
+      -e GH_TOKEN \
+      -e GH_URL \
+      -e GH_METHOD \
+      -e GH_PAYLOAD \
       -v "$TMP_DIR:/work:ro" \
       --entrypoint sh "$STATUS_IMAGE" -c '
         curl -fsS --connect-timeout 5 --max-time 20 -X "$GH_METHOD" \
@@ -129,10 +130,11 @@ github_api() {
           "$GH_URL"
       '
   else
-    timeout "$DOCKER_RUN_TIMEOUT" docker run --rm \
-      -e GH_TOKEN="$TOKEN" \
-      -e GH_URL="$URL" \
-      -e GH_METHOD="$METHOD" \
+    GH_TOKEN="$TOKEN" GH_URL="$URL" GH_METHOD="$METHOD" \
+      timeout "$DOCKER_RUN_TIMEOUT" docker run --rm \
+      -e GH_TOKEN \
+      -e GH_URL \
+      -e GH_METHOD \
       --entrypoint sh "$STATUS_IMAGE" -c '
         curl -fsS --connect-timeout 5 --max-time 20 -X "$GH_METHOD" \
           -H "Accept: application/vnd.github+json" \
@@ -169,11 +171,12 @@ post_recovery_status() {
   if [ -z "$STATUS_TOKEN" ]; then
     return 0
   fi
-  timeout "$DOCKER_RUN_TIMEOUT" docker run --rm \
-    -e GH_TOKEN="$STATUS_TOKEN" \
-    -e GH_SHA="$SHA" \
-    -e GH_REPO="$STATUS_REPO" \
-    -e GH_CONTEXT="$STATUS_CONTEXT" \
+  GH_TOKEN="$STATUS_TOKEN" GH_SHA="$SHA" GH_REPO="$STATUS_REPO" GH_CONTEXT="$STATUS_CONTEXT" \
+    timeout "$DOCKER_RUN_TIMEOUT" docker run --rm \
+    -e GH_TOKEN \
+    -e GH_SHA \
+    -e GH_REPO \
+    -e GH_CONTEXT \
     --entrypoint sh "$STATUS_IMAGE" -c '
       payload=$(printf "{\"state\":\"success\",\"description\":\"Synology deployment healthy after recovery\",\"context\":\"%s\"}" "$GH_CONTEXT")
       curl -fsS --connect-timeout 5 --max-time 20 -X POST \
