@@ -154,6 +154,8 @@ endpoints:
   # ask_user_question must not be advertised here because schema validation is
   # fatal and prevents the API from starting.
   agents:
+    recursionLimit: 80
+    maxRecursionLimit: 120
     capabilities:
       - deferred_tools
       - file_search
