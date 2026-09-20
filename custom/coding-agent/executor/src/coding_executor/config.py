@@ -21,6 +21,16 @@ def _absolute_directory(name: str, default: str) -> Path:
     return path.resolve()
 
 
+def _optional_absolute_path(name: str) -> Path | None:
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return None
+    path = Path(raw).expanduser()
+    if not path.is_absolute():
+        raise ValueError(f"{name} must be an absolute path")
+    return path
+
+
 def _positive_int(name: str, default: int, maximum: int) -> int:
     raw = os.environ.get(name, str(default))
     try:
@@ -43,6 +53,7 @@ class Settings:
     port: int
     command_timeout_seconds: int
     max_output_bytes: int
+    selfdev_socket: Path | None
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -78,4 +89,5 @@ class Settings:
             port=_positive_int("CODING_EXECUTOR_PORT", 8765, 65535),
             command_timeout_seconds=_positive_int("CODING_COMMAND_TIMEOUT_SECONDS", 300, 1800),
             max_output_bytes=_positive_int("CODING_MAX_OUTPUT_BYTES", 65536, 1048576),
+            selfdev_socket=_optional_absolute_path("CODING_SELF_DEV_SOCKET"),
         )
