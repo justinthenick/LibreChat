@@ -66,6 +66,36 @@ class SelfDevWorkerTest(unittest.TestCase):
         self.assertNotIn("token", public or {})
         self.assertEqual(public["task_id"], state["task_id"])
 
+
+    def test_candidate_compile_uses_tmpfs_for_bytecode(self) -> None:
+        self.worker._write_state(
+            {
+                "task_id": "selfdev-demo-12345678",
+                "image": "candidate:test",
+            }
+        )
+
+        commands: list[list[str]] = []
+
+        def fake_run(args: list[str], **_kwargs: object) -> dict[str, object]:
+            commands.append(args)
+            return {
+                "exit_code": 0,
+                "stdout": "",
+                "stderr": "",
+                "truncated": False,
+            }
+
+        with patch.object(self.worker, "_run", side_effect=fake_run):
+            result = self.worker.test_candidate("selfdev-demo-12345678")
+
+        self.assertTrue(result["passed"])
+        self.assertGreaterEqual(len(commands), 2)
+        compile_command = commands[0]
+        self.assertIn("PYTHONPYCACHEPREFIX=/tmp/pycache", compile_command)
+        self.assertIn("--read-only", compile_command)
+        self.assertIn("/tmp:rw,noexec,nosuid,size=256m", compile_command)
+
     def test_candidate_image_name_is_fixed_from_task_id(self) -> None:
         first = self.worker._image_name("selfdev-demo-12345678")
         second = self.worker._image_name("selfdev-demo-12345678")
