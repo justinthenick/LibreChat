@@ -18,6 +18,25 @@ SAFE_TASK_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
 OUTPUT_LIMIT_BYTES = 65_536
 REQUEST_LIMIT_BYTES = 65_536
 CANDIDATE_CONTAINER = "librechat-coding-executor-candidate"
+EXPECTED_CANDIDATE_TOOLS = (
+    "list_repositories",
+    "create_task",
+    "task_status",
+    "list_files",
+    "read_file",
+    "search_text",
+    "apply_patch",
+    "run_check",
+    "git_diff",
+)
+SELFDEV_ONLY_TOOLS = (
+    "build_candidate",
+    "test_candidate",
+    "start_candidate",
+    "run_candidate_gate",
+    "candidate_status",
+    "destroy_candidate",
+)
 
 
 def _bounded(value: str) -> tuple[str, bool]:
@@ -57,6 +76,7 @@ class SelfDevWorker:
             "build_candidate": self.build_candidate,
             "test_candidate": self.test_candidate,
             "start_candidate": self.start_candidate,
+            "run_candidate_gate": self.run_candidate_gate,
             "candidate_status": self.candidate_status,
             "destroy_candidate": self.destroy_candidate,
         }
@@ -132,6 +152,7 @@ class SelfDevWorker:
                 "/app/src",
             ],
             timeout=180,
+            check=False,
         )
 
         test_result = self._run(
@@ -168,6 +189,7 @@ class SelfDevWorker:
                 "-v",
             ],
             timeout=600,
+            check=False,
         )
 
         return {
@@ -176,6 +198,57 @@ class SelfDevWorker:
             "unit_tests": test_result,
             "passed": compile_result["exit_code"] == 0 and test_result["exit_code"] == 0,
         }
+
+    def run_candidate_gate(self, task_id: str) -> dict[str, object]:
+        self._task_executor(task_id)
+        if self._read_state() is not None or self._container_exists():
+            raise RuntimeError("candidate state already exists; destroy it before running the gate")
+
+        result: dict[str, object] = {
+            "task_id": task_id,
+            "passed": False,
+            "stage": "build",
+        }
+        try:
+            result["build"] = self.build_candidate(task_id)
+
+            result["stage"] = "test"
+            tests = self.test_candidate(task_id)
+            result["tests"] = tests
+            if tests.get("passed") is not True:
+                result["error"] = "candidate validation failed"
+                return result
+
+            result["stage"] = "start"
+            result["start"] = self.start_candidate(task_id)
+
+            result["stage"] = "mcp_smoke"
+            smoke = self._mcp_smoke()
+            result["mcp_smoke"] = smoke
+            if smoke.get("ok") is not True:
+                result["error"] = "candidate MCP smoke failed"
+                return result
+
+            result["stage"] = "status"
+            status = self.candidate_status()
+            result["status"] = status
+            if status.get("container_exists") is not True:
+                result["error"] = "candidate container disappeared during gate"
+                return result
+
+            result["passed"] = True
+            result["stage"] = "complete"
+            return result
+        except Exception as error:
+            result["error"] = str(error)
+            return result
+        finally:
+            try:
+                result["cleanup"] = self.destroy_candidate()
+            except Exception as error:
+                result["cleanup"] = {"error": str(error)}
+                result["passed"] = False
+                result["stage"] = "cleanup"
 
     def start_candidate(self, task_id: str) -> dict[str, object]:
         self._task_executor(task_id)
@@ -370,6 +443,56 @@ class SelfDevWorker:
         (repository / "example.txt").write_text("alpha\nbeta\n", encoding="utf-8")
         self._run(["git", "add", "example.txt"], cwd=repository, timeout=30)
         self._run(["git", "commit", "-m", "initial fixture"], cwd=repository, timeout=30)
+
+    def _mcp_smoke(self) -> dict[str, object]:
+        state = self._read_state()
+        if not state or not isinstance(state.get("token"), str):
+            raise RuntimeError("candidate runtime token is unavailable")
+
+        payload = json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": "selfdev-candidate-smoke",
+                "method": "server/discover",
+                "params": {},
+            },
+            separators=(",", ":"),
+        ).encode("utf-8")
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{self.candidate_port}/mcp",
+            data=payload,
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {state['token']}",
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/event-stream",
+                "MCP-Protocol-Version": "2026-07-28",
+            },
+        )
+
+        with urllib.request.urlopen(request, timeout=10) as response:
+            body = response.read(262_144).decode("utf-8", errors="replace")
+            status = response.status
+
+        missing = [name for name in EXPECTED_CANDIDATE_TOOLS if name not in body]
+        leaked = [name for name in SELFDEV_ONLY_TOOLS if name in body]
+        if status < 200 or status >= 300:
+            raise RuntimeError(f"candidate MCP discovery returned HTTP {status}")
+        if missing:
+            raise RuntimeError(
+                "candidate MCP discovery omitted expected tools: " + ", ".join(missing)
+            )
+        if leaked:
+            raise RuntimeError(
+                "candidate unexpectedly exposed self-development tools: " + ", ".join(leaked)
+            )
+
+        return {
+            "ok": True,
+            "http_status": status,
+            "expected_tools_present": list(EXPECTED_CANDIDATE_TOOLS),
+            "selfdev_tools_absent": True,
+        }
 
     def _wait_for_health(self) -> dict[str, object]:
         url = f"http://127.0.0.1:{self.candidate_port}/health"
