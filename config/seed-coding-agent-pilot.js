@@ -52,7 +52,9 @@ function chooseModel(manifest) {
 }
 
 function normalizeProvider(value) {
-  const normalized = String(value || '').trim().toLowerCase();
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
   if (normalized === 'google') {
     return GOOGLE_ENDPOINT_NAME;
   }
@@ -102,7 +104,9 @@ function loadManifest() {
 }
 
 async function resolveOwner(User) {
-  const requestedEmail = String(process.env.PRODUCTION_AGENT_OWNER_EMAIL || '').trim().toLowerCase();
+  const requestedEmail = String(process.env.PRODUCTION_AGENT_OWNER_EMAIL || '')
+    .trim()
+    .toLowerCase();
   if (requestedEmail) {
     const owner = await User.findOne({ email: requestedEmail, role: SystemRoles.ADMIN })
       .select('_id email role createdAt')
@@ -224,8 +228,8 @@ async function seed() {
     const sameName = await db.getAgents({ name: manifest.name, author: owner._id });
     if (sameName.length > 1) {
       throw new Error(
-      `Multiple admin-owned agents are named ${manifest.name}; refusing ambiguous adoption`,
-    );
+        `Multiple admin-owned agents are named ${manifest.name}; refusing ambiguous adoption`,
+      );
     }
     existing = sameName[0] || null;
     adoptedManualAgent = Boolean(existing);
@@ -236,15 +240,11 @@ async function seed() {
   let agent;
   let outcome;
   if (existing) {
-    const { author, ...updates } = desired;
+    const { author: _author, ...updates } = desired;
     if (existing.id === manifest.id) {
       delete updates.id;
     }
-    agent = await db.updateAgent(
-      { _id: existing._id },
-      updates,
-      { updatingUserId: ownerId },
-    );
+    agent = await db.updateAgent({ _id: existing._id }, updates, { updatingUserId: ownerId });
     outcome = adoptedManualAgent ? 'adopted-and-updated' : 'updated';
   } else {
     agent = await db.createAgent(desired);
@@ -271,19 +271,41 @@ async function seed() {
   return result;
 }
 
+async function disconnectMongoose({ throwOnInitFailure = true } = {}) {
+  const mongoose = require('mongoose');
+  const models = Object.values(mongoose.models || {});
+  const initResults = await Promise.allSettled(
+    models.map((model) => (typeof model.init === 'function' ? model.init() : Promise.resolve())),
+  );
+
+  await mongoose.disconnect();
+
+  const initFailures = initResults
+    .filter((result) => result.status === 'rejected')
+    .map((result) => result.reason);
+
+  if (throwOnInitFailure && initFailures.length > 0) {
+    throw new AggregateError(
+      initFailures,
+      `${initFailures.length} Mongoose model initialization(s) failed before disconnect`,
+    );
+  }
+}
+
 if (require.main === module) {
   seed()
     .then(async () => {
-      const mongoose = require('mongoose');
-      await mongoose.disconnect();
-      process.exit(0);
+      try {
+        await disconnectMongoose();
+        process.exit(0);
+      } catch (error) {
+        console.error(`Coding-agent pilot shutdown failed: ${error.message}`);
+        process.exit(1);
+      }
     })
     .catch(async (error) => {
       console.error(`Coding-agent pilot seed failed: ${error.message}`);
-      try {
-        const mongoose = require('mongoose');
-        await mongoose.disconnect();
-      } catch (_) {}
+      await disconnectMongoose({ throwOnInitFailure: false }).catch(() => {});
       process.exit(1);
     });
 }
@@ -297,4 +319,5 @@ module.exports = {
   parseAllowedModels,
   chooseModel,
   normalizeProvider,
+  disconnectMongoose,
 };
