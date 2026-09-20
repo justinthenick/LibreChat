@@ -23,6 +23,9 @@ class SelfDevClient:
     def start_candidate(self, task_id: str) -> dict[str, object]:
         return self._task_call("start_candidate", task_id)
 
+    def run_candidate_gate(self, task_id: str) -> dict[str, object]:
+        return self._task_call("run_candidate_gate", task_id)
+
     def candidate_status(self) -> dict[str, object]:
         return self._call("candidate_status", {})
 
