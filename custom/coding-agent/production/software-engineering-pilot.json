@@ -2,11 +2,11 @@
   "schema": 1,
   "id": "agent_software_engineering_pilot_v01",
   "name": "Software Engineering Pilot",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "status": "validated-for-persistent-pilot",
   "description": "Restricted software-engineering agent that works only in executor-created Git worktrees and leaves all changes uncommitted for human review.",
   "provider": "google",
-  "preferred_model": "gemini-3.8-flash",
+  "preferred_model": "gemini-3.7-flash",
   "model_policy": "preferred-model; enforce configured allowlist when present",
   "mcp_server": "coding_executor",
   "mcp_tools": [
