@@ -24,7 +24,7 @@ function staticCache(staticPath, options = {}) {
   const setHeaders = (res, filePath) => {
     if (res.locals?.privateImageCache) {
       res.setHeader('Cache-Control', 'private, no-store');
-      res.setHeader('Vary', 'Cookie');
+      res.vary('Cookie');
       return;
     }
     if (process.env.NODE_ENV?.toLowerCase() !== 'production') {

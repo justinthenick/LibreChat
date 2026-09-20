@@ -143,7 +143,21 @@ describe('staticCache', () => {
       const response = await request(app).get('/test.js').expect(200);
 
       expect(response.headers['cache-control']).toBe('private, no-store');
-      expect(response.headers.vary).toBe('Cookie');
+      expect(response.headers.vary).toContain('Cookie');
+    });
+
+    it('should preserve existing Vary header values when marking an image private', async () => {
+      app.use((_req, res, next) => {
+        res.setHeader('Vary', 'Accept-Encoding');
+        res.locals.privateImageCache = true;
+        next();
+      });
+      app.use(staticCache(testDir));
+
+      const response = await request(app).get('/test.js').expect(200);
+
+      expect(response.headers['cache-control']).toBe('private, no-store');
+      expect(response.headers.vary).toBe('Accept-Encoding, Cookie');
     });
   });
 
