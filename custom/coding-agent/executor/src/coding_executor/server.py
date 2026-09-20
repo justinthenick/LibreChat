@@ -128,6 +128,15 @@ def build_server(settings: Settings) -> MCPServer:
         def start_candidate(task_id: str) -> dict[str, object]:
             return selfdev.start_candidate(task_id)
 
+        @server.tool(
+            description=(
+                "Run the fixed end-to-end self-development gate for an existing task: build, "
+                "compile/unit-test, start, authenticated MCP discovery, status validation and cleanup."
+            )
+        )
+        def run_candidate_gate(task_id: str) -> dict[str, object]:
+            return selfdev.run_candidate_gate(task_id)
+
         @server.tool(description="Report the current self-development candidate state.")
         def candidate_status() -> dict[str, object]:
             return selfdev.candidate_status()
