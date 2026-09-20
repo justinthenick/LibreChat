@@ -219,7 +219,7 @@ class SelfDevWorkerTest(unittest.TestCase):
 
 
 class SelfDevRuntimeContractTest(unittest.TestCase):
-    def test_mcp_smoke_requires_original_tools_and_rejects_selfdev_tools(self) -> None:
+    def test_mcp_smoke_uses_modern_wire_contract_and_validates_tools(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             tasks = root / "tasks"
@@ -228,10 +228,127 @@ class SelfDevRuntimeContractTest(unittest.TestCase):
             worker = SelfDevWorker(tasks, candidates, 8767)
             worker._write_state({"token": "candidate-secret"})
 
-            response = MagicMock()
-            response.status = 200
-            response.read.return_value = json.dumps(
+            calls: list[tuple[str, dict[str, object]]] = []
+
+            def response(body: dict[str, object]) -> MagicMock:
+                value = MagicMock()
+                value.status = 200
+                value.read.return_value = json.dumps(body).encode("utf-8")
+                value.__enter__.return_value = value
+                value.__exit__.return_value = False
+                return value
+
+            def urlopen(request: object, timeout: int = 0) -> MagicMock:
+                self.assertEqual(timeout, 10)
+                headers = {
+                    key.lower(): value
+                    for key, value in request.header_items()
+                }
+                payload = json.loads(request.data.decode("utf-8"))
+                method = payload["method"]
+                calls.append((method, payload))
+
+                self.assertEqual(
+                    headers["mcp-protocol-version"],
+                    "2026-07-28",
+                )
+                self.assertEqual(headers["mcp-method"], method)
+                self.assertEqual(
+                    headers["authorization"],
+                    "Bearer candidate-secret",
+                )
+                meta = payload["params"]["_meta"]
+                self.assertEqual(
+                    meta["io.modelcontextprotocol/protocolVersion"],
+                    "2026-07-28",
+                )
+                self.assertEqual(
+                    meta["io.modelcontextprotocol/clientCapabilities"],
+                    {},
+                )
+                self.assertEqual(
+                    meta["io.modelcontextprotocol/clientInfo"]["name"],
+                    "librechat-selfdev-worker",
+                )
+
+                if method == "server/discover":
+                    return response(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": payload["id"],
+                            "result": {
+                                "supportedVersions": ["2026-07-28"],
+                                "capabilities": {"tools": {}},
+                            },
+                        }
+                    )
+                if method == "tools/list":
+                    return response(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": payload["id"],
+                            "result": {
+                                "tools": [
+                                    {"name": name}
+                                    for name in (
+                                        "list_repositories",
+                                        "create_task",
+                                        "task_status",
+                                        "list_files",
+                                        "read_file",
+                                        "search_text",
+                                        "apply_patch",
+                                        "run_check",
+                                        "git_diff",
+                                    )
+                                ]
+                            },
+                        }
+                    )
+                self.fail(f"unexpected MCP method: {method}")
+
+            with patch("urllib.request.urlopen", side_effect=urlopen):
+                result = worker._mcp_smoke()
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["discover_http_status"], 200)
+            self.assertEqual(result["tools_http_status"], 200)
+            self.assertTrue(result["selfdev_tools_absent"])
+            self.assertEqual(
+                [method for method, _payload in calls],
+                ["server/discover", "tools/list"],
+            )
+
+    def test_mcp_smoke_rejects_selfdev_tool_leak(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            tasks = root / "tasks"
+            candidates = root / "candidates"
+            tasks.mkdir()
+            worker = SelfDevWorker(tasks, candidates, 8767)
+            worker._write_state({"token": "candidate-secret"})
+
+            discover = MagicMock()
+            discover.status = 200
+            discover.read.return_value = json.dumps(
                 {
+                    "jsonrpc": "2.0",
+                    "id": "discover",
+                    "result": {
+                        "supportedVersions": ["2026-07-28"],
+                        "capabilities": {"tools": {}},
+                    },
+                }
+            ).encode("utf-8")
+            discover.__enter__.return_value = discover
+            discover.__exit__.return_value = False
+
+            tools = MagicMock()
+            tools.status = 200
+            tools.read.return_value = json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": "tools",
                     "result": {
                         "tools": [
                             {"name": name}
@@ -245,33 +362,23 @@ class SelfDevRuntimeContractTest(unittest.TestCase):
                                 "apply_patch",
                                 "run_check",
                                 "git_diff",
+                                "run_candidate_gate",
                             )
                         ]
-                    }
+                    },
                 }
             ).encode("utf-8")
-            response.__enter__.return_value = response
-            response.__exit__.return_value = False
+            tools.__enter__.return_value = tools
+            tools.__exit__.return_value = False
 
-            with patch("urllib.request.urlopen", return_value=response):
-                result = worker._mcp_smoke()
-
-            self.assertTrue(result["ok"])
-            self.assertTrue(result["selfdev_tools_absent"])
-
-            response.read.return_value = json.dumps(
-                {
-                    "result": {
-                        "tools": [
-                            {"name": "list_repositories"},
-                            {"name": "run_candidate_gate"},
-                        ]
-                    }
-                }
-            ).encode("utf-8")
-
-            with patch("urllib.request.urlopen", return_value=response):
-                with self.assertRaisesRegex(RuntimeError, "omitted expected tools"):
+            with patch(
+                "urllib.request.urlopen",
+                side_effect=[discover, tools],
+            ):
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "unexpectedly exposed self-development tools",
+                ):
                     worker._mcp_smoke()
 
     def test_systemd_unit_keeps_worker_unprivileged_and_no_docker_socket_mount(self) -> None:
