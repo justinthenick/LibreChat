@@ -17,6 +17,8 @@ class SelfDevClientTest(unittest.TestCase):
         client = SelfDevClient(Path("/tmp/does-not-exist.sock"))
         with self.assertRaisesRegex(ValueError, "invalid task id"):
             client.build_candidate("../escape")
+        with self.assertRaisesRegex(ValueError, "invalid task id"):
+            client.run_candidate_gate("../escape")
 
 
 class SelfDevWorkerTest(unittest.TestCase):
@@ -49,6 +51,12 @@ class SelfDevWorkerTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "requires only task_id"):
             self.worker.handle(
                 "build_candidate",
+                {"task_id": "selfdev-demo-12345678", "command": "docker ps"},
+            )
+
+        with self.assertRaisesRegex(ValueError, "requires only task_id"):
+            self.worker.handle(
+                "run_candidate_gate",
                 {"task_id": "selfdev-demo-12345678", "command": "docker ps"},
             )
 
@@ -95,6 +103,112 @@ class SelfDevWorkerTest(unittest.TestCase):
         self.assertIn("PYTHONPYCACHEPREFIX=/tmp/pycache", compile_command)
         self.assertIn("--read-only", compile_command)
         self.assertIn("/tmp:rw,noexec,nosuid,size=256m", compile_command)
+
+    def test_candidate_validation_returns_failure_without_raising(self) -> None:
+        self.worker._write_state(
+            {
+                "task_id": "selfdev-demo-12345678",
+                "image": "candidate:test",
+            }
+        )
+
+        results = iter(
+            [
+                {
+                    "exit_code": 1,
+                    "stdout": "",
+                    "stderr": "compile failed",
+                    "truncated": False,
+                },
+                {
+                    "exit_code": 0,
+                    "stdout": "tests passed",
+                    "stderr": "",
+                    "truncated": False,
+                },
+            ]
+        )
+
+        with patch.object(self.worker, "_run", side_effect=lambda *_args, **_kwargs: next(results)):
+            result = self.worker.test_candidate("selfdev-demo-12345678")
+
+        self.assertFalse(result["passed"])
+        self.assertEqual(result["compileall"]["exit_code"], 1)
+        self.assertEqual(result["unit_tests"]["exit_code"], 0)
+
+    def test_candidate_gate_cleans_up_after_success(self) -> None:
+        with (
+            patch.object(self.worker, "_read_state", return_value=None),
+            patch.object(self.worker, "_container_exists", return_value=False),
+            patch.object(
+                self.worker,
+                "build_candidate",
+                return_value={"task_id": "selfdev-demo-12345678", "exit_code": 0},
+            ),
+            patch.object(
+                self.worker,
+                "test_candidate",
+                return_value={"passed": True},
+            ),
+            patch.object(
+                self.worker,
+                "start_candidate",
+                return_value={"health": {"ok": True}},
+            ),
+            patch.object(
+                self.worker,
+                "_mcp_smoke",
+                return_value={"ok": True},
+            ),
+            patch.object(
+                self.worker,
+                "candidate_status",
+                return_value={"container_exists": True},
+            ),
+            patch.object(
+                self.worker,
+                "destroy_candidate",
+                return_value={"removed_container": True, "removed_image": True},
+            ) as cleanup,
+        ):
+            result = self.worker.run_candidate_gate("selfdev-demo-12345678")
+
+        self.assertTrue(result["passed"])
+        self.assertEqual(result["stage"], "complete")
+        self.assertEqual(
+            result["cleanup"],
+            {"removed_container": True, "removed_image": True},
+        )
+        cleanup.assert_called_once_with()
+
+    def test_candidate_gate_cleans_up_after_validation_failure(self) -> None:
+        with (
+            patch.object(self.worker, "_read_state", return_value=None),
+            patch.object(self.worker, "_container_exists", return_value=False),
+            patch.object(
+                self.worker,
+                "build_candidate",
+                return_value={"task_id": "selfdev-demo-12345678", "exit_code": 0},
+            ),
+            patch.object(
+                self.worker,
+                "test_candidate",
+                return_value={"passed": False},
+            ),
+            patch.object(self.worker, "start_candidate") as start,
+            patch.object(
+                self.worker,
+                "destroy_candidate",
+                return_value={"removed_container": False, "removed_image": True},
+            ) as cleanup,
+        ):
+            result = self.worker.run_candidate_gate("selfdev-demo-12345678")
+
+        self.assertFalse(result["passed"])
+        self.assertEqual(result["stage"], "test")
+        self.assertEqual(result["error"], "candidate validation failed")
+        start.assert_not_called()
+        cleanup.assert_called_once_with()
 
     def test_candidate_image_name_is_fixed_from_task_id(self) -> None:
         first = self.worker._image_name("selfdev-demo-12345678")
