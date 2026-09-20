@@ -135,8 +135,8 @@ The candidate does not receive the Docker socket or production repositories.
 2. read-only compile validation with Python bytecode redirected to the `/tmp` tmpfs;
 3. the complete executor unit-test suite with networking disabled;
 4. candidate startup on loopback-only port `8767`;
-5. authenticated MCP `server/discover` using the worker-held candidate token;
-6. verification that the original nine coding tools are present and self-development tools are absent from the candidate runtime;
+5. authenticated MCP `server/discover` using the worker-held candidate token and the `2026-07-28` request metadata/header contract;
+6. authenticated MCP `tools/list` and verification that the original nine coding tools are present while self-development tools are absent from the candidate runtime;
 7. candidate status validation;
 8. candidate container/image cleanup in a `finally` path.
 
