@@ -52,13 +52,17 @@ jobs:
           }
           assert manifest['id'] == 'agent_software_engineering_pilot_v01'
           assert manifest['status'] == 'validated-for-persistent-pilot'
-          assert manifest['version'] == '0.1.3'
+          assert manifest['version'] == '0.1.6'
           assert manifest['provider'] == 'google'
           assert manifest['preferred_model'] == 'gemini-3.7-flash'
           assert manifest['mcp_server'] == 'coding_executor'
           assert set(manifest['mcp_tools']) == expected
           assert len(manifest['mcp_tools']) == len(expected)
           assert manifest['deployment']['production_seeder'] == 'enabled'
+          instructions = manifest['instructions']
+          assert 'task_mode=read_only' in instructions
+          assert 'task_mode=modification' in instructions
+          assert 'Never create a replacement task to bypass an exploration budget.' in instructions
 
           seeder = Path('config/seed-coding-agent-pilot.js').read_text()
           compose = Path('deploy/synology/docker-compose.yml').read_text()
