@@ -11,6 +11,7 @@ import socketserver
 import stat
 import subprocess
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -444,7 +445,7 @@ class SelfDevWorker:
         self._run(["git", "add", "example.txt"], cwd=repository, timeout=30)
         self._run(["git", "commit", "-m", "initial fixture"], cwd=repository, timeout=30)
 
-    def _mcp_smoke(self) -> dict[str, object]:
+    def _mcp_request(self, method: str) -> tuple[int, dict[str, object]]:
         state = self._read_state()
         if not state or not isinstance(state.get("token"), str):
             raise RuntimeError("candidate runtime token is unavailable")
@@ -452,12 +453,22 @@ class SelfDevWorker:
         payload = json.dumps(
             {
                 "jsonrpc": "2.0",
-                "id": "selfdev-candidate-smoke",
-                "method": "server/discover",
-                "params": {},
+                "id": f"selfdev-{method.replace('/', '-')}",
+                "method": method,
+                "params": {
+                    "_meta": {
+                        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                        "io.modelcontextprotocol/clientCapabilities": {},
+                        "io.modelcontextprotocol/clientInfo": {
+                            "name": "librechat-selfdev-worker",
+                            "version": "1.0",
+                        },
+                    }
+                },
             },
             separators=(",", ":"),
         ).encode("utf-8")
+
         request = urllib.request.Request(
             f"http://127.0.0.1:{self.candidate_port}/mcp",
             data=payload,
@@ -467,20 +478,68 @@ class SelfDevWorker:
                 "Content-Type": "application/json",
                 "Accept": "application/json, text/event-stream",
                 "MCP-Protocol-Version": "2026-07-28",
+                "Mcp-Method": method,
             },
         )
 
-        with urllib.request.urlopen(request, timeout=10) as response:
-            body = response.read(262_144).decode("utf-8", errors="replace")
-            status = response.status
+        try:
+            with urllib.request.urlopen(request, timeout=10) as response:
+                raw = response.read(262_144).decode("utf-8", errors="replace")
+                status = response.status
+        except urllib.error.HTTPError as error:
+            raw = error.read(65_536).decode("utf-8", errors="replace")
+            detail = raw.strip() or error.reason
+            raise RuntimeError(
+                f"candidate MCP {method} returned HTTP {error.code}: {detail}"
+            ) from error
 
-        missing = [name for name in EXPECTED_CANDIDATE_TOOLS if name not in body]
-        leaked = [name for name in SELFDEV_ONLY_TOOLS if name in body]
+        try:
+            body = json.loads(raw)
+        except json.JSONDecodeError as error:
+            raise RuntimeError(
+                f"candidate MCP {method} returned non-JSON response"
+            ) from error
+
+        if not isinstance(body, dict):
+            raise RuntimeError(f"candidate MCP {method} returned invalid response")
         if status < 200 or status >= 300:
-            raise RuntimeError(f"candidate MCP discovery returned HTTP {status}")
+            raise RuntimeError(f"candidate MCP {method} returned HTTP {status}")
+        if "error" in body:
+            raise RuntimeError(
+                f"candidate MCP {method} returned protocol error: {body['error']}"
+            )
+        return status, body
+
+    def _mcp_smoke(self) -> dict[str, object]:
+        discover_status, discover = self._mcp_request("server/discover")
+        discover_result = discover.get("result")
+        if not isinstance(discover_result, dict):
+            raise RuntimeError("candidate MCP discovery result is invalid")
+
+        supported = discover_result.get("supportedVersions")
+        if not isinstance(supported, list) or "2026-07-28" not in supported:
+            raise RuntimeError(
+                "candidate MCP discovery did not advertise protocol 2026-07-28"
+            )
+
+        tools_status, tools_response = self._mcp_request("tools/list")
+        tools_result = tools_response.get("result")
+        if not isinstance(tools_result, dict):
+            raise RuntimeError("candidate MCP tools/list result is invalid")
+        tools = tools_result.get("tools")
+        if not isinstance(tools, list):
+            raise RuntimeError("candidate MCP tools/list omitted tool catalogue")
+
+        names = {
+            item.get("name")
+            for item in tools
+            if isinstance(item, dict) and isinstance(item.get("name"), str)
+        }
+        missing = [name for name in EXPECTED_CANDIDATE_TOOLS if name not in names]
+        leaked = [name for name in SELFDEV_ONLY_TOOLS if name in names]
         if missing:
             raise RuntimeError(
-                "candidate MCP discovery omitted expected tools: " + ", ".join(missing)
+                "candidate MCP tools/list omitted expected tools: " + ", ".join(missing)
             )
         if leaked:
             raise RuntimeError(
@@ -489,7 +548,9 @@ class SelfDevWorker:
 
         return {
             "ok": True,
-            "http_status": status,
+            "discover_http_status": discover_status,
+            "tools_http_status": tools_status,
+            "supported_versions": supported,
             "expected_tools_present": list(EXPECTED_CANDIDATE_TOOLS),
             "selfdev_tools_absent": True,
         }
