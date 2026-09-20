@@ -122,6 +122,8 @@ class SelfDevWorker:
                 "2g",
                 "--cpus",
                 "2",
+                "-e",
+                "PYTHONPYCACHEPREFIX=/tmp/pycache",
                 image,
                 "python3",
                 "-m",
