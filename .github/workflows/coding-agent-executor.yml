@@ -1,0 +1,41 @@
+name: Coding Agent Executor
+
+on:
+  pull_request:
+    paths:
+      - 'custom/coding-agent/executor/**'
+      - 'custom/coding-agent/benchmarks/C002-real-extension-regression/activation-evidence.json'
+      - 'custom/coding-agent/benchmarks/C003-new-file-module-extraction/**'
+      - '.github/workflows/coding-agent-executor.yml'
+  push:
+    branches:
+      - server/synology
+    paths:
+      - 'custom/coding-agent/executor/**'
+      - 'custom/coding-agent/benchmarks/C002-real-extension-regression/activation-evidence.json'
+      - 'custom/coding-agent/benchmarks/C003-new-file-module-extraction/**'
+      - '.github/workflows/coding-agent-executor.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install executor
+        working-directory: custom/coding-agent/executor
+        run: python -m pip install -e .
+
+      - name: Run executor tests
+        working-directory: custom/coding-agent/executor
+        run: |
+          PYTHONPATH=src python -m unittest discover -s tests -v
+          python -m compileall -q src tests
