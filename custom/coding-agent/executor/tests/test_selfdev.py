@@ -5,7 +5,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from coding_executor.config import Settings
 from coding_executor.selfdev_client import SelfDevClient
@@ -216,6 +216,83 @@ class SelfDevWorkerTest(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertTrue(first.startswith("librechat-coding-executor-candidate:selfdev-"))
         self.assertNotIn("selfdev-demo-12345678", first)
+
+
+class SelfDevRuntimeContractTest(unittest.TestCase):
+    def test_mcp_smoke_requires_original_tools_and_rejects_selfdev_tools(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            tasks = root / "tasks"
+            candidates = root / "candidates"
+            tasks.mkdir()
+            worker = SelfDevWorker(tasks, candidates, 8767)
+            worker._write_state({"token": "candidate-secret"})
+
+            response = MagicMock()
+            response.status = 200
+            response.read.return_value = json.dumps(
+                {
+                    "result": {
+                        "tools": [
+                            {"name": name}
+                            for name in (
+                                "list_repositories",
+                                "create_task",
+                                "task_status",
+                                "list_files",
+                                "read_file",
+                                "search_text",
+                                "apply_patch",
+                                "run_check",
+                                "git_diff",
+                            )
+                        ]
+                    }
+                }
+            ).encode("utf-8")
+            response.__enter__.return_value = response
+            response.__exit__.return_value = False
+
+            with patch("urllib.request.urlopen", return_value=response):
+                result = worker._mcp_smoke()
+
+            self.assertTrue(result["ok"])
+            self.assertTrue(result["selfdev_tools_absent"])
+
+            response.read.return_value = json.dumps(
+                {
+                    "result": {
+                        "tools": [
+                            {"name": "list_repositories"},
+                            {"name": "run_candidate_gate"},
+                        ]
+                    }
+                }
+            ).encode("utf-8")
+
+            with patch("urllib.request.urlopen", return_value=response):
+                with self.assertRaisesRegex(RuntimeError, "omitted expected tools"):
+                    worker._mcp_smoke()
+
+    def test_systemd_unit_keeps_worker_unprivileged_and_no_docker_socket_mount(self) -> None:
+        executor_root = Path(__file__).resolve().parents[1]
+        unit = (
+            executor_root
+            / "systemd"
+            / "librechat-coding-selfdev-worker.service"
+        ).read_text(encoding="utf-8")
+        installer = (
+            executor_root
+            / "systemd"
+            / "install-user-service.sh"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("NoNewPrivileges=true", unit)
+        self.assertIn("Restart=on-failure", unit)
+        self.assertIn("worker.sock", unit)
+        self.assertNotIn("/var/run/docker.sock", unit)
+        self.assertNotIn("sudo ", installer)
+        self.assertIn("systemctl --user", installer)
 
 
 class SelfDevSettingsTest(unittest.TestCase):
