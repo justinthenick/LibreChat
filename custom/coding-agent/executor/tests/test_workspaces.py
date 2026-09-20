@@ -43,6 +43,26 @@ class WorkspaceManagerTest(unittest.TestCase):
         self.assertIn("example.txt", result["status"])
         self.assertIn("+gamma", self.manager.diff(task_id))
 
+    def test_apply_patch_recounts_incorrect_hunk_lengths(self) -> None:
+        task = self.manager.create_task("demo", "recount patch", "main")
+        task_id = task["task_id"]
+
+        patch = """--- a/example.txt
++++ b/example.txt
+@@ -1,2 +1,3 @@
+ alpha
+-beta
++gamma
+"""
+
+        result = self.manager.apply_patch(task_id, patch)
+
+        self.assertIn("example.txt", result["status"])
+        self.assertEqual(
+            self.manager.read_file(task_id, "example.txt"),
+            "1: alpha\n2: gamma",
+        )
+
     def test_diff_includes_untracked_regular_files(self) -> None:
         task = self.manager.create_task("demo", "add notes", "main")
         task_id = task["task_id"]

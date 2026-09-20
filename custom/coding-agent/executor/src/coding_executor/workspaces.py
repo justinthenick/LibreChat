@@ -167,8 +167,8 @@ class WorkspaceManager:
         if not encoded or len(encoded) > PATCH_LIMIT_BYTES:
             raise ValueError(f"patch must contain between 1 and {PATCH_LIMIT_BYTES} bytes")
         self._validate_patch_paths(task, patch)
-        self._git_input(task, patch, "apply", "--check", "--whitespace=error-all")
-        self._git_input(task, patch, "apply", "--whitespace=nowarn")
+        self._git_input(task, patch, "apply", "--check", "--recount", "--whitespace=error-all")
+        self._git_input(task, patch, "apply", "--recount", "--whitespace=nowarn")
         return self.task_status(task_id)
 
     def run_check(self, task_id: str, command: str, timeout_seconds: int | None = None) -> CommandResult:
