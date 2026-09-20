@@ -13,13 +13,14 @@ Production remains unchanged:
 
 Self-development is opt-in and is intended only for the loopback-only development executor.
 
-The development executor talks to a host worker through one Unix socket. The host worker owns Docker access and accepts only five fixed actions:
+The development executor talks to a host worker through one Unix socket. The host worker owns Docker access and accepts only six fixed actions:
 
 1. `build_candidate(task_id)`
 2. `test_candidate(task_id)`
 3. `start_candidate(task_id)`
-4. `candidate_status()`
-5. `destroy_candidate()`
+4. `run_candidate_gate(task_id)`
+5. `candidate_status()`
+6. `destroy_candidate()`
 
 The worker does not accept shell commands, Docker arguments, image names, paths, environment variables, ports, or arbitrary command lines from the agent.
 
@@ -47,17 +48,23 @@ Recommended ports:
 
 ## Start the host worker
 
-Run the worker from the same source revision used to build the development executor:
+For one-off testing, run the worker from the same source revision used to build the development executor:
 
 ```bash
-python3 ~/coding-agent/control/custom/coding-agent/executor/src/coding_executor/selfdev_host.py \
+python3 ~/coding-agent/dev/repos/LibreChat/custom/coding-agent/executor/src/coding_executor/selfdev_host.py \
   --task-root ~/coding-agent/dev/tasks \
   --candidate-root ~/coding-agent/dev/candidate \
   --socket ~/coding-agent/dev/selfdev/worker.sock \
   --candidate-port 8767
 ```
 
-The socket directory and socket are private to the WSL user. The worker serializes requests so two candidate lifecycle operations cannot race each other.
+For normal WSL operation, install the included user service instead:
+
+```bash
+bash ~/coding-agent/dev/repos/LibreChat/custom/coding-agent/executor/systemd/install-user-service.sh
+```
+
+The user service uses `systemctl --user`, restarts on failure, runs with `NoNewPrivileges=true`, and does not require root. The socket directory and socket remain private to the WSL user. The worker serializes requests so two candidate lifecycle operations cannot race each other.
 
 ## Connect only the dev executor
 
@@ -70,12 +77,14 @@ environment:
   CODING_SELF_DEV_SOCKET: /run/selfdev/worker.sock
 
 volumes:
-  - "/home/<user>/coding-agent/dev/selfdev/worker.sock:/run/selfdev/worker.sock"
+  - "/home/<user>/coding-agent/dev/selfdev:/run/selfdev:ro"
 ```
 
 Do not add either setting to production.
 
-After recreating the development executor, its MCP tool list should contain the original nine tools plus the five self-development tools. Production should still expose only the original nine.
+Mount the private socket **directory**, not the socket inode itself. The worker replaces the Unix socket when it restarts; a directory bind mount makes the replacement visible without recreating the dev container.
+
+After recreating the development executor, its MCP tool list should contain the original nine tools plus the six self-development tools. Production should still expose only the original nine.
 
 ## Candidate lifecycle
 
@@ -86,13 +95,11 @@ create_task
   -> inspect/edit executor source in the task worktree
   -> run_check for lightweight checks
   -> git_diff for reviewable evidence
-  -> build_candidate
-  -> test_candidate
-  -> start_candidate
-  -> candidate_status
-  -> human review
-  -> destroy_candidate
+  -> run_candidate_gate
+  -> human review of diff + gate evidence
 ```
+
+The individual `build_candidate`, `test_candidate`, `start_candidate`, `candidate_status` and `destroy_candidate` actions remain available for diagnosis and controlled manual testing. The normal self-improvement path should use `run_candidate_gate` because it performs the fixed lifecycle and always attempts cleanup.
 
 `build_candidate` always builds from:
 
@@ -119,6 +126,21 @@ The image name is derived by the worker. The agent cannot choose another Docker 
 - bounded CPU, RAM and PID limits.
 
 The candidate does not receive the Docker socket or production repositories.
+
+### Atomic candidate gate
+
+`run_candidate_gate(task_id)` is the preferred validation path. The agent supplies only the existing task ID. The worker performs, in order:
+
+1. fixed candidate image build;
+2. read-only compile validation with Python bytecode redirected to the `/tmp` tmpfs;
+3. the complete executor unit-test suite with networking disabled;
+4. candidate startup on loopback-only port `8767`;
+5. authenticated MCP `server/discover` using the worker-held candidate token and the `2026-07-28` request metadata/header contract;
+6. authenticated MCP `tools/list` and verification that the original nine coding tools are present while self-development tools are absent from the candidate runtime;
+7. candidate status validation;
+8. candidate container/image cleanup in a `finally` path.
+
+The gate refuses to start if another candidate state/container already exists. Validation failures are returned as structured gate evidence and cleanup is still attempted.
 
 ## Human promotion gate
 

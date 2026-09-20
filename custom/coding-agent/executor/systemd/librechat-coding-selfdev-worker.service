@@ -1,0 +1,16 @@
+[Unit]
+Description=LibreChat coding-agent self-development host worker
+ConditionPathExists=%h/coding-agent/dev/repos/LibreChat/custom/coding-agent/executor/src/coding_executor/selfdev_host.py
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/coding-agent/dev/repos/LibreChat/custom/coding-agent/executor/src/coding_executor/selfdev_host.py --task-root %h/coding-agent/dev/tasks --candidate-root %h/coding-agent/dev/candidate --socket %h/coding-agent/dev/selfdev/worker.sock --candidate-port 8767
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target
