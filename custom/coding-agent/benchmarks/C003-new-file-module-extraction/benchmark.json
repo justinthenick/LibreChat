@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "id": "C003",
+  "name": "New-file module extraction and integration",
+  "agent": "../../production/software-engineering-pilot.json",
+  "type": "live-private-repository-feature-and-new-file",
+  "repository_alias": "synology-magnet-c003",
+  "source_profile": "private Chrome Manifest V3 extension",
+  "pass_threshold": 90,
+  "critical_penalties_allowed": 0,
+  "required_existing_file_changes": ["package.json", "popup.html", "popup.js"],
+  "required_new_files": ["synology-host.js", "tests/synology-host.test.mjs"],
+  "source_identifiers": "operator-held; intentionally omitted"
+}
