@@ -14,6 +14,7 @@ from mcp.server.auth.settings import AuthSettings
 from mcp.server.transport_security import TransportSecuritySettings
 
 from coding_executor.config import Settings
+from coding_executor.selfdev_client import SelfDevClient
 from coding_executor.workspaces import WorkspaceManager
 
 
@@ -96,6 +97,49 @@ def build_server(settings: Settings) -> MCPServer:
     @server.tool(description="Return the bounded uncommitted Git diff for final human review.")
     def git_diff(task_id: str) -> str:
         return manager.diff(task_id)
+
+    if settings.selfdev_socket is not None:
+        selfdev = SelfDevClient(settings.selfdev_socket)
+
+        @server.tool(
+            description=(
+                "Build a candidate coding-executor image from an existing self-development task. "
+                "The host worker chooses the Docker command, image name and build context."
+            )
+        )
+        def build_candidate(task_id: str) -> dict[str, object]:
+            return selfdev.build_candidate(task_id)
+
+        @server.tool(
+            description=(
+                "Run the fixed compile and executor unit-test suite against the candidate image "
+                "for an existing self-development task."
+            )
+        )
+        def test_candidate(task_id: str) -> dict[str, object]:
+            return selfdev.test_candidate(task_id)
+
+        @server.tool(
+            description=(
+                "Start the already-built candidate executor on the dedicated loopback-only "
+                "candidate port using isolated fixture repositories and task storage."
+            )
+        )
+        def start_candidate(task_id: str) -> dict[str, object]:
+            return selfdev.start_candidate(task_id)
+
+        @server.tool(description="Report the current self-development candidate state.")
+        def candidate_status() -> dict[str, object]:
+            return selfdev.candidate_status()
+
+        @server.tool(
+            description=(
+                "Destroy the current self-development candidate container and its candidate image. "
+                "This cannot modify production."
+            )
+        )
+        def destroy_candidate() -> dict[str, object]:
+            return selfdev.destroy_candidate()
 
     return server
 
