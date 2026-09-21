@@ -27,8 +27,9 @@ GIT_UID_GID="1026:100"
 GIT_REMOTE_TIMEOUT="${GIT_REMOTE_TIMEOUT:-30}"
 GIT_PULL_TIMEOUT="${GIT_PULL_TIMEOUT:-180}"
 TELEMETRY_TIMEOUT="${TELEMETRY_TIMEOUT:-180}"
-STATUS_IMAGE="curlimages/curl:8.10.1"
-STATUS_DOCKER_RUN_TIMEOUT="${STATUS_DOCKER_RUN_TIMEOUT:-30}"
+# Use host Python for GitHub API calls. Keep the legacy timeout variable as a fallback
+# so existing private NAS configuration does not need to change.
+STATUS_HTTP_TIMEOUT="${STATUS_HTTP_TIMEOUT:-${STATUS_DOCKER_RUN_TIMEOUT:-30}}"
 STATUS_REPO="justinthenick/LibreChat"
 STATUS_CONTEXT="nas/librechat"
 FORCE_DEPLOY="${FORCE_DEPLOY:-0}"
@@ -176,15 +177,53 @@ post_status() {
     return 0
   fi
   if ! GH_TOKEN="$TOKEN" GH_STATE="$STATE" GH_SHA="$SHA" GH_DESCRIPTION="$DESCRIPTION" GH_REPO="$STATUS_REPO" GH_CONTEXT="$STATUS_CONTEXT" \
-    timeout "$STATUS_DOCKER_RUN_TIMEOUT" docker run --rm -e GH_TOKEN -e GH_STATE -e GH_SHA -e GH_DESCRIPTION -e GH_REPO -e GH_CONTEXT --entrypoint sh "$STATUS_IMAGE" -c '
-      payload=$(printf "{\"state\":\"%s\",\"description\":\"%s\",\"context\":\"%s\"}" "$GH_STATE" "$GH_DESCRIPTION" "$GH_CONTEXT")
-      curl -fsS --connect-timeout 5 --max-time 20 --retry 2 --retry-delay 1 --retry-all-errors -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/$GH_REPO/statuses/$GH_SHA" -d "$payload" >/dev/null
-    '; then
+    timeout "$STATUS_HTTP_TIMEOUT" python3 - <<'PY'
+import json
+import os
+import sys
+import time
+import urllib.request
+
+payload = json.dumps(
+    {
+        "state": os.environ["GH_STATE"],
+        "description": os.environ["GH_DESCRIPTION"],
+        "context": os.environ["GH_CONTEXT"],
+    }
+).encode("utf-8")
+url = "https://api.github.com/repos/{}/statuses/{}".format(
+    os.environ["GH_REPO"], os.environ["GH_SHA"]
+)
+headers = {
+    "Accept": "application/vnd.github+json",
+    "Authorization": "Bearer {}".format(os.environ["GH_TOKEN"]),
+    "Content-Type": "application/json",
+    "X-GitHub-Api-Version": "2022-11-28",
+}
+
+last_error = None
+for attempt in range(3):
+    try:
+        request = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+        with urllib.request.urlopen(request, timeout=20) as response:
+            response.read()
+            if 200 <= response.status < 300:
+                raise SystemExit(0)
+            last_error = RuntimeError("unexpected HTTP status {}".format(response.status))
+    except Exception as exc:
+        last_error = exc
+
+    if attempt < 2:
+        time.sleep(1)
+
+print("GitHub status request failed: {}".format(last_error), file=sys.stderr)
+raise SystemExit(1)
+PY
+  then
     log "WARN: could not report GitHub commit status for $(short_sha "$SHA")"
   fi
   return 0
 }
-
 collect_diagnostics() {
   log "Collecting deployment diagnostics for stage $FAILED_STAGE"
   {
