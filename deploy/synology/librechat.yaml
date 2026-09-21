@@ -2,7 +2,7 @@ version: 1.3.13
 
 cache: false
 
-# Managed GitHub Skill Sync. The source id remains stable across promotion;
+# Managed GitHub Skill Sync. Source ids remain stable across promotion;
 # production follows server/synology.
 skillSync:
   github:
@@ -16,6 +16,14 @@ skillSync:
         ref: server/synology
         paths:
           - managed-skills/skills
+        credentialKey: github-skills-prod
+      - id: coding-agent-skills
+        owner: justinthenick
+        repo: LibreChat
+        ref: server/synology
+        paths:
+          - .agents/skills
+        skillDiscoveryDepth: 2
         credentialKey: github-skills-prod
 
 interface:
