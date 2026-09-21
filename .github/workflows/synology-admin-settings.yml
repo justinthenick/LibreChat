@@ -128,4 +128,9 @@ jobs:
       - name: Validate shell syntax and API runtime refresh
         run: |
           sh -n deploy/synology/autodeploy.sh
+          sh -n deploy/synology/publish-telemetry.sh
           grep -Fq 'compose up -d --no-deps --force-recreate api' deploy/synology/autodeploy.sh
+          ! grep -Fq 'curlimages/curl' deploy/synology/autodeploy.sh
+          ! grep -Fq 'curlimages/curl' deploy/synology/publish-telemetry.sh
+          grep -Fq 'timeout "$STATUS_HTTP_TIMEOUT" python3' deploy/synology/autodeploy.sh
+          grep -Fq 'timeout "$HTTP_TIMEOUT" python3' deploy/synology/publish-telemetry.sh
