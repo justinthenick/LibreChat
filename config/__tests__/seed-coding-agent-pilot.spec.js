@@ -1,7 +1,29 @@
 jest.mock('../connect', () => jest.fn());
 
 const mongoose = require('mongoose');
-const { disconnectMongoose } = require('../seed-coding-agent-pilot');
+const {
+  disconnectMongoose,
+  validateManifestSkillPolicy,
+  resolveSkillAllowlist,
+} = require('../seed-coding-agent-pilot');
+
+function validSkillManifest() {
+  return {
+    id: 'agent_software_engineering_pilot_v01',
+    skills_enabled: true,
+    skills: [
+      {
+        name: 'codebase-design',
+        source: 'github',
+        source_id: 'coding-agent-skills',
+        owner: 'justinthenick',
+        repo: 'LibreChat',
+        ref: 'server/synology',
+        path: '.agents/skills/codebase-design',
+      },
+    ],
+  };
+}
 
 describe('disconnectMongoose', () => {
   const originalModels = mongoose.models;
@@ -79,5 +101,56 @@ describe('disconnectMongoose', () => {
     await expect(disconnectMongoose({ throwOnInitFailure: false })).resolves.toBeUndefined();
 
     expect(disconnectSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+
+describe('coding-agent skill allowlist', () => {
+  it('accepts only the validated codebase-design manifest identity', () => {
+    expect(() => validateManifestSkillPolicy(validSkillManifest())).not.toThrow();
+
+    const widened = validSkillManifest();
+    widened.skills.push({ ...widened.skills[0], name: 'another-skill' });
+    expect(() => validateManifestSkillPolicy(widened)).toThrow(/exactly one validated skill/);
+  });
+
+  it('resolves the mirrored GitHub skill by stable upstream identity', async () => {
+    const db = {
+      findSkillBySourceIdentity: jest.fn().mockResolvedValue({
+        _id: { toString: () => '64b000000000000000000001' },
+        name: 'codebase-design',
+        disableModelInvocation: false,
+        sourceMetadata: {
+          sourceId: 'coding-agent-skills',
+          owner: 'justinthenick',
+          repo: 'LibreChat',
+          ref: 'server/synology',
+          skillPath: '.agents/skills/codebase-design',
+          syncStatus: 'synced',
+        },
+      }),
+    };
+
+    await expect(resolveSkillAllowlist(db, validSkillManifest())).resolves.toEqual([
+      {
+        id: '64b000000000000000000001',
+        name: 'codebase-design',
+        upstreamId: 'coding-agent-skills:.agents/skills/codebase-design',
+      },
+    ]);
+    expect(db.findSkillBySourceIdentity).toHaveBeenCalledWith({
+      source: 'github',
+      upstreamId: 'coding-agent-skills:.agents/skills/codebase-design',
+    });
+  });
+
+  it('fails closed when the mirrored skill is unavailable', async () => {
+    const db = {
+      findSkillBySourceIdentity: jest.fn().mockResolvedValue(null),
+    };
+
+    await expect(resolveSkillAllowlist(db, validSkillManifest())).rejects.toThrow(
+      /refusing to widen the allowlist/,
+    );
   });
 });
