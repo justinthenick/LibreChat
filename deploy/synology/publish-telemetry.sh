@@ -6,8 +6,9 @@ EVENT_LOG_FILE="/volume1/docker/librechat-deploy-events.log"
 LAST_FAILURE_FILE="/volume1/docker/librechat-deploy.last-failure"
 TELEMETRY_MARKER="/volume1/docker/librechat-telemetry.last-publish"
 LAUNCHPAD_SCRIPT="$DEPLOY_DIR/launchpad-telemetry.py"
-STATUS_IMAGE="curlimages/curl:8.10.1"
-DOCKER_RUN_TIMEOUT="${DOCKER_RUN_TIMEOUT:-30}"
+# GitHub API calls run through host Python to avoid short-lived Docker containers.
+# Preserve the old timeout variable as a compatibility fallback for existing NAS config.
+HTTP_TIMEOUT="${HTTP_TIMEOUT:-${DOCKER_RUN_TIMEOUT:-30}}"
 STATUS_REPO="justinthenick/LibreChat"
 STATUS_CONTEXT="nas/librechat"
 TELEMETRY_BRANCH="nas-status"
@@ -112,39 +113,42 @@ github_api() {
   METHOD="$1"
   URL="$2"
   PAYLOAD="${3:-}"
-
+  API_TOKEN="${4:-$TOKEN}"
+  PAYLOAD_PATH=""
   if [ -n "$PAYLOAD" ]; then
-    GH_TOKEN="$TOKEN" GH_URL="$URL" GH_METHOD="$METHOD" GH_PAYLOAD="$PAYLOAD" \
-      timeout "$DOCKER_RUN_TIMEOUT" docker run --rm \
-      -e GH_TOKEN \
-      -e GH_URL \
-      -e GH_METHOD \
-      -e GH_PAYLOAD \
-      -v "$TMP_DIR:/work:ro" \
-      --entrypoint sh "$STATUS_IMAGE" -c '
-        curl -fsS --connect-timeout 5 --max-time 20 -X "$GH_METHOD" \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer $GH_TOKEN" \
-          -H "X-GitHub-Api-Version: 2022-11-28" \
-          --data-binary "@/work/$GH_PAYLOAD" \
-          "$GH_URL"
-      '
-  else
-    GH_TOKEN="$TOKEN" GH_URL="$URL" GH_METHOD="$METHOD" \
-      timeout "$DOCKER_RUN_TIMEOUT" docker run --rm \
-      -e GH_TOKEN \
-      -e GH_URL \
-      -e GH_METHOD \
-      --entrypoint sh "$STATUS_IMAGE" -c '
-        curl -fsS --connect-timeout 5 --max-time 20 -X "$GH_METHOD" \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer $GH_TOKEN" \
-          -H "X-GitHub-Api-Version: 2022-11-28" \
-          "$GH_URL"
-      '
+    PAYLOAD_PATH="$TMP_DIR/$PAYLOAD"
   fi
-}
 
+  GH_TOKEN="$API_TOKEN" GH_URL="$URL" GH_METHOD="$METHOD" GH_PAYLOAD_PATH="$PAYLOAD_PATH" \
+    timeout "$HTTP_TIMEOUT" python3 - <<'PY'
+import os
+import pathlib
+import sys
+import urllib.request
+
+payload_path = os.environ.get("GH_PAYLOAD_PATH", "")
+data = pathlib.Path(payload_path).read_bytes() if payload_path else None
+headers = {
+    "Accept": "application/vnd.github+json",
+    "Authorization": "Bearer {}".format(os.environ["GH_TOKEN"]),
+    "X-GitHub-Api-Version": "2022-11-28",
+}
+if data is not None:
+    headers["Content-Type"] = "application/json"
+
+request = urllib.request.Request(
+    os.environ["GH_URL"],
+    data=data,
+    headers=headers,
+    method=os.environ["GH_METHOD"],
+)
+with urllib.request.urlopen(request, timeout=20) as response:
+    body = response.read()
+    if not 200 <= response.status < 300:
+        raise RuntimeError("unexpected HTTP status {}".format(response.status))
+    sys.stdout.buffer.write(body)
+PY
+}
 put_file() {
   PATH_NAME="$1"
   SOURCE_FILE="$2"
@@ -171,23 +175,17 @@ post_recovery_status() {
   if [ -z "$STATUS_TOKEN" ]; then
     return 0
   fi
-  GH_TOKEN="$STATUS_TOKEN" GH_SHA="$SHA" GH_REPO="$STATUS_REPO" GH_CONTEXT="$STATUS_CONTEXT" \
-    timeout "$DOCKER_RUN_TIMEOUT" docker run --rm \
-    -e GH_TOKEN \
-    -e GH_SHA \
-    -e GH_REPO \
-    -e GH_CONTEXT \
-    --entrypoint sh "$STATUS_IMAGE" -c '
-      payload=$(printf "{\"state\":\"success\",\"description\":\"Synology deployment healthy after recovery\",\"context\":\"%s\"}" "$GH_CONTEXT")
-      curl -fsS --connect-timeout 5 --max-time 20 -X POST \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer $GH_TOKEN" \
-        -H "X-GitHub-Api-Version: 2022-11-28" \
-        "https://api.github.com/repos/$GH_REPO/statuses/$GH_SHA" \
-        -d "$payload" >/dev/null
-    '
-}
 
+  printf '{"state":"success","description":"Synology deployment healthy after recovery","context":"%s"}' \
+    "$STATUS_CONTEXT" > "$TMP_DIR/recovery-status.json"
+
+  github_api \
+    POST \
+    "https://api.github.com/repos/$STATUS_REPO/statuses/$SHA" \
+    recovery-status.json \
+    "$STATUS_TOKEN" \
+    >/dev/null
+}
 LAUNCHPAD_JSON='{"schema":1,"status":"unavailable"}'
 if [ -f "$LAUNCHPAD_SCRIPT" ]; then
   if python3 "$LAUNCHPAD_SCRIPT" > "$TMP_DIR/launchpad.json" 2>/dev/null; then
