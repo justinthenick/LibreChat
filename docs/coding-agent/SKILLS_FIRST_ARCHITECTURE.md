@@ -4,11 +4,11 @@
 
 LibreChat's coding executor remains a narrow security and execution boundary. It should not become a bespoke coding-agent framework.
 
-Reusable engineering behaviour belongs in interoperable Agent Skills and repository instructions. The same skill definitions should be consumable by LibreChat, Codex and Gemini CLI wherever practical.
+Reusable engineering behaviour belongs in repository instructions and interoperable Agent Skills. Before authoring a new skill, prefer an existing repository skill or a maintained upstream skill that already solves the problem.
 
 ## Why
 
-The current executor already provides the deployment-specific controls we need:
+The executor already provides the deployment-specific controls we need:
 
 - approved repositories only;
 - one isolated Git worktree per task;
@@ -20,7 +20,21 @@ The current executor already provides the deployment-specific controls we need:
 
 Those controls are specific to this deployment and should stay local.
 
-Planning, debugging, test authoring, code review, release checks and other software-engineering workflows are not deployment-specific. Mature coding agents already support reusable skills and repository instructions, so we should reuse that ecosystem rather than encode more behaviour into the executor or one large agent prompt.
+Planning, debugging, review, architecture and validation workflows are not executor responsibilities. Mature coding agents already provide the generic coding loop and support progressively disclosed skills. We should compose those capabilities rather than recreate them in one giant prompt or in executor code.
+
+## Reuse-first policy
+
+Use this order:
+
+1. built-in coding-agent capability;
+2. existing repository skill;
+3. maintained upstream skill with a compatible license;
+4. small repository-specific adaptation;
+5. new skill only when the first four options do not fit.
+
+Every copied or adapted third-party skill must retain its license and attribution.
+
+The first interoperability fixture is `codebase-design`, already present under `.claude/skills`. It is mirrored into `.agents/skills` unchanged, including its MIT license, so Codex, Gemini CLI and LibreChat can exercise the same skill content without inventing a replacement.
 
 ## Target
 
@@ -31,7 +45,7 @@ Software Engineering Agent
   |
   +-- Agent Skills (.agents/skills)
   |     |
-  |     +-- reusable engineering workflows
+  |     +-- reused / adapted repository workflows
   |
   +-- coding_executor (MCP)
         |
@@ -40,7 +54,7 @@ Software Engineering Agent
         +-- constrained checks and patches
 ```
 
-Codex and Gemini CLI can also consume repository-level skills from `.agents/skills`, allowing the same engineering workflows to follow the repository across runtimes.
+Codex and Gemini CLI both discover repository skills from `.agents/skills`. LibreChat mirrors the same path through GitHub Skill Sync.
 
 ## Responsibilities
 
@@ -48,7 +62,7 @@ Codex and Gemini CLI can also consume repository-level skills from `.agents/skil
 
 Keep the executor deliberately boring. Its responsibilities are policy enforcement, isolation, bounded access, checks, patch application, status and diff evidence.
 
-Do not add planning frameworks, role-specific engineering knowledge, code-review methodology or task-specific heuristics to the executor unless they are required to enforce a security or reliability invariant.
+Do not add planning frameworks, role-specific engineering knowledge, review methodology or task-specific heuristics unless they enforce a security or reliability invariant.
 
 ### Repository instructions
 
@@ -56,60 +70,57 @@ Use `AGENTS.md` for durable repository-wide constraints and project context that
 
 ### Skills
 
-Use skills for reusable workflows that should activate only when relevant. Initial candidates:
+Use skills for reusable workflows that should activate only when relevant. Good candidates are repository-specific verification, architecture, release, CI diagnosis and security workflows.
 
-- software-engineering;
-- bug-investigation;
-- code-review;
-- test-authoring;
-- ci-failure-analysis;
-- release-readiness;
-- security-review.
-
-Keep skills focused and composable. Put deterministic helpers in a skill's `scripts/` only when instructions alone are insufficient.
+Do not create a generic "software engineering" skill merely to restate the coding loop already supplied by Codex, Gemini CLI, Claude Code or LibreChat's model.
 
 ## LibreChat integration
 
-The current production managed-skill lifecycle under `managed-skills/skills` remains unchanged until a deliberate migration is approved.
+The existing `managed-skills/skills` production source remains intact.
 
-The first interoperability phase develops and evaluates coding skills under `.agents/skills`. Once stable, LibreChat Skill Sync can either:
+A second GitHub Skill Sync source named `coding-agent-skills` mirrors `.agents/skills`. This keeps the interoperability workspace separate from the existing managed production-skill lifecycle while using the same read-only GitHub credential.
 
-1. add `.agents/skills` as a dedicated source for coding skills, or
-2. repoint a dedicated coding-skill source to that path.
+The Software Engineering Pilot remains skill-disabled until interoperability and sync are validated. Enabling or narrowing its skill allowlist is a separate change.
 
-Do not disrupt the existing managed production skill source merely to gain interoperability.
+## Existing ecosystems
+
+The repository already contains Claude-oriented skills under `.claude/skills`. Treat those as reuse candidates, not as a competing framework.
+
+When a skill proves portable, prefer one canonical definition long term. During the first phase, duplication is acceptable only as a temporary compatibility bridge while discovery behaviour is verified across runtimes.
 
 ## Pilot simplification
 
 After skills are active in LibreChat, reduce the Software Engineering Pilot instructions to:
 
-- security/task-isolation invariants;
+- security and task-isolation invariants;
 - task-mode selection;
 - executor tool contract;
-- concise routing guidance for skills;
+- concise skill-routing guidance;
 - final evidence requirements.
 
-Move debugging, test strategy, code review and workflow detail out of the permanent agent prompt and into skills.
+Workflow expertise should live in skills or repository instructions instead of the permanent agent prompt.
 
 ## Evaluation
 
-Evaluate skills, not bespoke prompt growth.
+Evaluate portability and triggering rather than prompt size.
 
 For each coding skill:
 
-1. define trigger/non-trigger cases;
-2. define a small benchmark corpus;
-3. measure task completion and safety;
-4. verify the correct skill activates;
-5. keep the skill only if it improves results without unnecessary tool use.
+1. verify discovery in each target runtime;
+2. verify one positive trigger;
+3. verify one nearby non-trigger;
+4. verify the skill does not request capabilities forbidden by that runtime;
+5. keep it only if it improves task quality or consistency.
 
-Existing executor benchmarks remain useful as boundary tests, but they should not evolve into a parallel coding-agent framework.
+Existing executor benchmarks remain boundary tests. They should not grow into a parallel coding-agent framework.
 
 ## Immediate sequence
 
-1. Establish `.agents/skills` as the interoperable coding-skill workspace.
-2. Start with one general `software-engineering` skill.
-3. Test it with Codex and Gemini CLI skill discovery.
-4. Expose the same skill to the LibreChat pilot through Skill Sync.
-5. Trim duplicated workflow text from the pilot instructions.
-6. Add specialized skills only when repeated tasks justify them.
+1. Reuse `codebase-design` as the first interoperability fixture.
+2. Verify Codex discovers it from `.agents/skills`.
+3. Verify Gemini CLI discovers it from `.agents/skills`.
+4. Merge the Skill Sync source only after those checks are clean.
+5. Confirm LibreChat mirrors the same skill.
+6. Enable the pilot for a narrow skill allowlist in a separate change.
+7. Trim duplicated workflow text from the pilot instructions.
+8. Add or port more skills only when repeated work justifies them.
