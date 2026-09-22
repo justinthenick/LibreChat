@@ -87,6 +87,7 @@ class WorkspaceManager:
         source = self._repository(repository)
         if not SAFE_REF.fullmatch(base_ref):
             raise ValueError("invalid base ref")
+        self._ensure_source_fresh(source, base_ref)
         slug = self._slug(task_name)
         task_id = f"{slug}-{uuid.uuid4().hex[:8]}"
         destination = self.task_root / task_id
@@ -365,6 +366,45 @@ class WorkspaceManager:
                 f"soft_limit={soft_limit}; hard_limit={hard_limit}; "
                 f"remaining={remaining}. {action}"
             )
+
+    def _ensure_source_fresh(self, source: Path, base_ref: str = "HEAD") -> None:
+        """Validate that the source repository is clean and not behind upstream.
+
+        If the source repository has tracked, staged, or untracked changes, task creation
+        is rejected to prevent dirty state from leaking or being overwritten.
+        If the source ref has a configured upstream tracking branch and is behind it,
+        task creation is rejected to prevent working against stale commits.
+        If the source ref has no configured upstream tracking branch (e.g., local-only
+        branch, detached HEAD, or unannotated tag), upstream freshness cannot be evaluated;
+        the freshness gate permits task creation as long as the source repository is clean.
+        """
+        status_result = self._git(source, "status", "--porcelain")
+        if status_result.stdout.strip():
+            raise ValueError(
+                f"source repository {source.name} is not clean (contains tracked, staged, or untracked changes); "
+                "refresh or clean the source repository before creating tasks"
+            )
+
+        upstream_ref = f"{base_ref}@{{upstream}}"
+        upstream_check = subprocess.run(
+            ["git", "-c", "core.hooksPath=/dev/null", "rev-parse", "--verify", "--quiet", upstream_ref],
+            cwd=source,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=self._child_environment(),
+        )
+        if upstream_check.returncode == 0:
+            rev_list = self._git(source, "rev-list", "--count", f"{base_ref}..{upstream_ref}")
+            behind_count = int(rev_list.stdout.strip() or "0")
+            if behind_count > 0:
+                commits_text = "commit" if behind_count == 1 else "commits"
+                raise ValueError(
+                    f"source repository {source.name} is behind its configured upstream "
+                    f"({behind_count} {commits_text} behind); "
+                    "refresh the source repository before creating tasks"
+                )
 
     def _repository(self, name: str) -> Path:
         if not SAFE_NAME.fullmatch(name):

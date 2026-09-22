@@ -32,6 +32,13 @@ class WorkspaceManagerTest(unittest.TestCase):
     def _git(self, *args: str) -> None:
         subprocess.run(["git", *args], cwd=self.repository, check=True, capture_output=True, text=True)
 
+    def _setup_upstream(self) -> Path:
+        upstream_dir = Path(self.temporary.name) / "upstream.git"
+        subprocess.run(["git", "init", "--bare", str(upstream_dir)], check=True, capture_output=True)
+        self._git("remote", "add", "origin", str(upstream_dir))
+        self._git("push", "-u", "origin", "main")
+        return upstream_dir
+
     def test_create_read_patch_and_diff(self) -> None:
         task = self.manager.create_task("demo", "fix greeting", "main")
         task_id = task["task_id"]
@@ -209,6 +216,59 @@ class WorkspaceManagerTest(unittest.TestCase):
                 task_id,
                 "--- a/example.txt\n+++ b/example.txt\n@@ -1,2 +1,2 @@\n alpha\n-beta\n+gamma\n",
             )
+
+    def test_create_task_succeeds_when_clean_and_current_with_upstream(self) -> None:
+        self._setup_upstream()
+        task = self.manager.create_task("demo", "clean task", "main")
+        self.assertTrue(task["task_id"].startswith("clean-task-"))
+        self.assertTrue(Path(task["path"]).is_dir())
+
+    def test_create_task_rejects_when_behind_upstream(self) -> None:
+        upstream_dir = self._setup_upstream()
+        other_repo = Path(self.temporary.name) / "other_clone"
+        subprocess.run(["git", "clone", "-b", "main", str(upstream_dir), str(other_repo)], check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=other_repo, check=True)
+        subprocess.run(["git", "config", "user.name", "Executor Test"], cwd=other_repo, check=True)
+        (other_repo / "upstream_change.txt").write_text("remote update\n", encoding="utf-8")
+        subprocess.run(["git", "add", "upstream_change.txt"], cwd=other_repo, check=True)
+        subprocess.run(["git", "commit", "-m", "upstream commit"], cwd=other_repo, check=True)
+        subprocess.run(["git", "push", "origin", "main"], cwd=other_repo, check=True)
+
+        # Fetch in source repository to update local remote-tracking metadata without merging
+        self._git("fetch", "origin")
+
+        with self.assertRaisesRegex(ValueError, "behind its configured upstream"):
+            self.manager.create_task("demo", "stale task", "main")
+
+    def test_create_task_rejects_when_source_has_tracked_changes(self) -> None:
+        (self.repository / "example.txt").write_text("dirty\n", encoding="utf-8")
+        with self.assertRaisesRegex(
+            ValueError,
+            r"is not clean \(contains tracked, staged, or untracked changes\)",
+        ):
+            self.manager.create_task("demo", "dirty task", "main")
+
+    def test_create_task_rejects_when_source_has_staged_changes(self) -> None:
+        (self.repository / "staged.txt").write_text("staged\n", encoding="utf-8")
+        self._git("add", "staged.txt")
+        with self.assertRaisesRegex(
+            ValueError,
+            r"is not clean \(contains tracked, staged, or untracked changes\)",
+        ):
+            self.manager.create_task("demo", "staged task", "main")
+
+    def test_create_task_rejects_when_source_has_untracked_files(self) -> None:
+        (self.repository / "untracked.txt").write_text("untracked\n", encoding="utf-8")
+        with self.assertRaisesRegex(
+            ValueError,
+            r"is not clean \(contains tracked, staged, or untracked changes\)",
+        ):
+            self.manager.create_task("demo", "untracked task", "main")
+
+    def test_create_task_succeeds_when_source_has_no_configured_upstream(self) -> None:
+        task = self.manager.create_task("demo", "no upstream task", "main")
+        self.assertTrue(task["task_id"].startswith("no-upstream-task-"))
+        self.assertTrue(Path(task["path"]).is_dir())
 
 
 if __name__ == "__main__":
