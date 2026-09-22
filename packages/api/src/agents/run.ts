@@ -90,6 +90,12 @@ import { buildLangfuseConfig } from '~/langfuse/config';
 import { resolveConfigHeaders } from '~/utils/headers';
 import { applyTestRunHook } from '~/agents/testHook';
 import { isUserProvided } from '~/utils/common';
+import {
+  TOOL_SCHEMA_DIAGNOSTIC_PREFIX,
+  collectToolSchemaNames,
+  createToolSchemaDiagnosticCallback,
+  isToolSchemaDiagnosticsEnabled,
+} from '~/agents/toolSchemaDiagnostics';
 
 /** Expected shape of JSON tool search results */
 interface ToolSearchJsonResult {
@@ -831,7 +837,7 @@ type CallbackClientOptions = {
  */
 function withModelCallbacks<T extends object>(
   options: T,
-  modelCallbacks: readonly ModelBoundChatModelCallback[] | undefined,
+  modelCallbacks: readonly CallbackHandlerMethods[] | undefined,
 ): T {
   if (!modelCallbacks?.length) {
     return options;
@@ -1572,6 +1578,20 @@ export async function createRun({
       : shapedSummarization;
 
     const modelParameters = normalizeAgentModelParameters(agent.model_parameters);
+    const toolSchemaDiagnosticCallback =
+      isToolSchemaDiagnosticsEnabled() && provider === Providers.GOOGLE
+        ? createToolSchemaDiagnosticCallback({
+            agentId: agent.id,
+            provider,
+            model: selfModel,
+            conversationId,
+            log: (message) => logger.warn(message),
+          })
+        : undefined;
+    const effectiveModelCallbacks =
+      toolSchemaDiagnosticCallback == null
+        ? modelCallbacks
+        : [...(modelCallbacks ?? []), toolSchemaDiagnosticCallback];
     const hasExplicitStreamUsage = Object.prototype.hasOwnProperty.call(
       modelParameters ?? {},
       'streamUsage',
@@ -1585,7 +1605,7 @@ export async function createRun({
         },
         modelParameters,
       ) as t.RunLLMConfig,
-      modelCallbacks,
+      effectiveModelCallbacks,
     );
 
     const joinInstructionMap = (map?: Record<string, unknown>) =>
@@ -1811,6 +1831,26 @@ export async function createRun({
         toolDefinitions: agentInput.toolDefinitions,
         subagentCompletionWakeups: agentUsesSubagentCompletionWakeups(subagentTasks, agent.id),
       }).toolDefinitions;
+    }
+    if (isToolSchemaDiagnosticsEnabled() && agentInput.provider === Providers.GOOGLE) {
+      const graphTools = (agentInput as AgentInputs & { graphTools?: unknown }).graphTools;
+      const toolRegistry =
+        agentInput.toolRegistry == null ? [] : Array.from(agentInput.toolRegistry.values());
+      logger.warn(
+        `${TOOL_SCHEMA_DIAGNOSTIC_PREFIX} ${JSON.stringify({
+          phase: 'assembled',
+          conversationId,
+          agentId: agent.id,
+          provider: agentInput.provider,
+          model: agent.model_parameters?.model ?? agent.model,
+          toolNames: collectToolSchemaNames({
+            toolDefinitions: agentInput.toolDefinitions,
+            tools: agentInput.tools,
+            graphTools,
+            toolRegistry,
+          }),
+        })}`,
+      );
     }
     agentInputs.push(agentInput);
   }
