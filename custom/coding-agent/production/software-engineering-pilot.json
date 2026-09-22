@@ -49,7 +49,7 @@
   "evidence": {
     "benchmark": "C001-executor-smoke-test",
     "activation_date": "2026-09-12",
-    "model": "google/gemini-3.8-flash",
+    "model": "google/gemini-3.7-flash",
     "result": "PASS",
     "score": 100,
     "interoperability_benchmark": "SKILL-INT-001",
