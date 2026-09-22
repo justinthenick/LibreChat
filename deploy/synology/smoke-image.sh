@@ -77,6 +77,8 @@ docker exec "$API_NAME" node -e '
   const crypto = require("node:crypto");
   const path = require("node:path");
   const mongoose = require("mongoose");
+  process.env.MONGO_AUTO_INDEX = "false";
+  process.env.MONGO_AUTO_CREATE = "false";
   require("module-alias")({ base: path.resolve("/app/api") });
   const connect = require("/app/config/connect");
   const { createModels } = require("@librechat/data-schemas");
