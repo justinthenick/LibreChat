@@ -57,6 +57,7 @@ jobs:
           assert manifest['version'] == '0.1.7'
           assert manifest['provider'] == 'google'
           assert manifest['preferred_model'] == 'gemini-3.7-flash'
+          assert manifest['evidence']['model'] == 'google/gemini-3.7-flash'
           assert manifest['mcp_server'] == 'coding_executor'
           assert set(manifest['mcp_tools']) == expected
           assert len(manifest['mcp_tools']) == len(expected)
