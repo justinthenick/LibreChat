@@ -76,6 +76,10 @@ jobs:
           assert 'task_mode=modification' in instructions
           assert 'Never create a replacement task to bypass an exploration budget.' in instructions
           assert 'SKILL POLICY: codebase-design is the only enabled skill.' in instructions
+          assert 'invoke the codebase-design skill tool before substantive repository analysis' in instructions
+          assert 'Do not substitute generic design knowledge for a requested skill invocation.' in instructions
+          assert 'EXECUTOR AVAILABILITY POLICY:' in instructions
+          assert 'Do not repeat a tool call after a circuit-breaker-open error.' in instructions
           assert 'never expands coding_executor permissions' in instructions
 
           seeder = Path('config/seed-coding-agent-pilot.js').read_text()
