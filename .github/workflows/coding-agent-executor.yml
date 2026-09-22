@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'custom/coding-agent/executor/**'
+      - 'custom/coding-agent/host/**'
+      - 'custom/coding-agent/benchmarks/SRC-PREFLIGHT-001/**'
       - 'custom/coding-agent/benchmarks/C002-real-extension-regression/activation-evidence.json'
       - 'custom/coding-agent/benchmarks/C003-new-file-module-extraction/**'
       - '.github/workflows/coding-agent-executor.yml'
@@ -12,6 +14,8 @@ on:
       - server/synology
     paths:
       - 'custom/coding-agent/executor/**'
+      - 'custom/coding-agent/host/**'
+      - 'custom/coding-agent/benchmarks/SRC-PREFLIGHT-001/**'
       - 'custom/coding-agent/benchmarks/C002-real-extension-regression/activation-evidence.json'
       - 'custom/coding-agent/benchmarks/C003-new-file-module-extraction/**'
       - '.github/workflows/coding-agent-executor.yml'
@@ -36,6 +40,12 @@ jobs:
 
       - name: Run executor tests
         working-directory: custom/coding-agent/executor
+        run: |
+          PYTHONPATH=src python -m unittest discover -s tests -v
+          python -m compileall -q src tests
+
+      - name: Run host preflight tests
+        working-directory: custom/coding-agent/host
         run: |
           PYTHONPATH=src python -m unittest discover -s tests -v
           python -m compileall -q src tests
