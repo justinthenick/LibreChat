@@ -55,9 +55,10 @@ Use the codebase-design skill to review the coding executor workspace manager in
 
 Expected evidence:
 
-- the model invokes `codebase-design`;
+- the model invokes `codebase-design` before substantive repository analysis;
 - the skill vocabulary is visible in the result, especially module, interface, depth, seam, leverage, and/or locality;
 - the executor task is created with `task_mode=read_only`;
+- if the executor is unavailable or reports an open circuit breaker, the agent stops instead of inventing repository-specific findings;
 - no `apply_patch` call occurs;
 - repository inspection stays within the existing executor;
 - the response does not claim a commit, push, merge, deployment, package installation, arbitrary shell access, or Docker access.
@@ -74,6 +75,7 @@ Expected evidence:
 
 - `codebase-design` is not invoked;
 - the task remains read-only;
+- if the executor is unavailable or reports an open circuit breaker, the agent reports that limitation and does not substitute guessed repository status;
 - the response reports status only;
 - no patch is attempted.
 
@@ -111,3 +113,7 @@ Record:
 - executor task mode and whether any patch call occurred.
 
 Do not enable additional skills as part of SKILL-PILOT-001.
+
+## Invalidated-run rule
+
+A run with an unavailable `coding_executor` does not establish positive repository-analysis behavior. Any repository-specific design findings produced after a circuit-breaker-open or task-creation failure are invalid evidence and must be rerun after connectivity is restored.
