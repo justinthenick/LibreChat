@@ -68,6 +68,73 @@ docker logs --tail 100 "$API_NAME"
 
 # Match production ordering: normal LibreChat startup seeds built-in access roles;
 # only after readiness do the deployment agent seeders run.
+#
+# Production mirrors the coding skill from GitHub before the pilot seeder runs.
+# This disposable smoke intentionally has no production GitHub credential, so
+# create the same source-identity prerequisite through LibreChat's own skill
+# model API rather than weakening the pilot seeder or inserting raw Mongo data.
+docker exec "$API_NAME" node -e '
+  const crypto = require("node:crypto");
+  const path = require("node:path");
+  const mongoose = require("mongoose");
+  require("module-alias")({ base: path.resolve("/app/api") });
+  const connect = require("/app/config/connect");
+
+  const sourceId = "coding-agent-skills";
+  const upstreamId = "coding-agent-skills:.agents/skills/codebase-design";
+
+  (async () => {
+    await connect();
+    const db = require("~/models");
+    let skill = await db.findSkillBySourceIdentity({ source: "github", upstreamId });
+
+    if (!skill) {
+      const author = new mongoose.Types.ObjectId(
+        crypto.createHash("sha256").update(`github:${sourceId}`).digest("hex").slice(0, 24),
+      );
+      const created = await db.createSkill({
+        name: "codebase-design",
+        description:
+          "Disposable image-smoke fixture for the validated codebase-design GitHub mirror.",
+        body:
+          "---\\nname: codebase-design\\ndescription: Disposable image-smoke fixture for the validated codebase-design GitHub mirror.\\n---\\n\\nSmoke fixture only.",
+        author,
+        authorName: "GitHub Sync",
+        source: "github",
+        sourceMetadata: {
+          provider: "github",
+          sourceId,
+          upstreamId,
+          owner: "justinthenick",
+          repo: "LibreChat",
+          ref: "server/synology",
+          skillPath: ".agents/skills/codebase-design",
+          commitSha: process.env.BUILD_COMMIT || "smoke-fixture",
+          skillBlobSha: "smoke-fixture",
+          syncedAt: new Date().toISOString(),
+          syncStatus: "synced",
+        },
+      });
+      skill = created.skill;
+    }
+
+    if (
+      skill.name !== "codebase-design" ||
+      skill.source !== "github" ||
+      skill.sourceMetadata?.upstreamId !== upstreamId ||
+      skill.sourceMetadata?.syncStatus !== "synced"
+    ) {
+      throw new Error("Coding-agent smoke skill fixture does not match the validated mirror identity");
+    }
+    console.log("Coding-agent mirrored skill prerequisite verified");
+  })()
+    .then(() => mongoose.disconnect())
+    .catch(async (error) => {
+      console.error(error);
+      await mongoose.disconnect().catch(() => {});
+      process.exit(1);
+    });
+'
 docker exec "$API_NAME" node config/seed-production-agents.js /app/custom/ba-agent/production
 docker exec "$API_NAME" node config/seed-coding-agent-pilot.js /app/custom/coding-agent/production
 docker exec "$API_NAME" node -e '
