@@ -132,7 +132,10 @@ docker exec "$API_NAME" node -e '
     }
     console.log("Coding-agent mirrored skill prerequisite verified");
   })()
-    .then(() => mongoose.disconnect())
+    .then(async () => {
+      await mongoose.disconnect();
+      process.exit(0);
+    })
     .catch(async (error) => {
       console.error(error);
       await mongoose.disconnect().catch(() => {});
