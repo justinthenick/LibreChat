@@ -205,10 +205,21 @@ jobs:
           assert 'return OPENROUTER_ENDPOINT_NAME;' in seeder
           assert 'Providers.OPENROUTER' not in seeder
 
-          import re
-
-          image_pins = re.findall(
-              r'^\s*image:\s*ghcr\.io/justinthenick/librechat-synology@sha256:([0-9a-f]{64})\s*          assert 'image: registry.librechat.ai/danny-avila/librechat:latest' not in compose
+          image_prefix = 'image: ghcr.io/justinthenick/librechat-synology@sha256:'
+          image_lines = [
+              line.strip()
+              for line in compose.splitlines()
+              if line.strip().startswith(image_prefix)
+          ]
+          assert len(image_lines) == 1, (
+              'Synology API image must use exactly one immutable '
+              'ghcr.io/justinthenick/librechat-synology@sha256:<64-hex> pin'
+          )
+          digest = image_lines[0][len(image_prefix):]
+          assert len(digest) == 64 and all(c in '0123456789abcdef' for c in digest), (
+              'Synology API image digest must be a lowercase 64-character SHA-256 hex value'
+          )
+          assert 'image: registry.librechat.ai/danny-avila/librechat:latest' not in compose
           assert 'DEPLOYMENT_SKILLS_DIR: /app/deployment-skills' in compose
           assert 'PRODUCTION_AGENTS_DIR: /app/production-agents' in compose
           assert '/volume1/docker/librechat/config/seed-production-agents.js:/app/config/seed-production-agents.js:ro' in compose
