@@ -622,6 +622,38 @@ const initializeClient = async ({
   logger.debug(
     `[initializeClient] Storing tool context for ${primaryConfig.id}: ${primaryConfig.toolDefinitions?.length ?? 0} tools, registry size: ${primaryConfig.toolRegistry?.size ?? '0'}`,
   );
+
+  /**
+   * Temporary diagnostic trace for the controlled coding-agent Gemini A/B.
+   * Logs only final model-bound tool names (never tool arguments, outputs,
+   * credentials, or user content) and is inert unless explicitly enabled.
+   */
+  if (
+    process.env.CODING_AGENT_TOOL_SCHEMA_TRACE === '1' &&
+    (primaryConfig.id === 'agent_software_engineering_pilot_v01' ||
+      primaryConfig.id === 'agent_software_engineering_pilot_gemini38_diag_v01')
+  ) {
+    const toolDefinitions = Array.isArray(primaryConfig.toolDefinitions)
+      ? primaryConfig.toolDefinitions
+      : [];
+    const toolNames = toolDefinitions
+      .map(
+        (definition) =>
+          definition?.function?.name ?? definition?.name ?? definition?.tool?.name ?? null,
+      )
+      .filter((name) => typeof name === 'string' && name.length > 0);
+
+    logger.info('[coding-agent-tool-schema-trace]', {
+      conversationId,
+      agentId: primaryConfig.id,
+      provider: primaryConfig.provider,
+      model: primaryConfig.model,
+      toolDefinitionCount: toolDefinitions.length,
+      toolNames,
+      suspiciousWeatherTools: toolNames.filter((name) => /weather/i.test(name)),
+    });
+  }
+
   agentToolContexts.set(
     primaryConfig.id,
     buildAgentToolContext({ agent: primaryAgent, config: primaryConfig }),
