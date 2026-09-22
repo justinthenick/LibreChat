@@ -79,12 +79,14 @@ docker exec "$API_NAME" node -e '
   const mongoose = require("mongoose");
   require("module-alias")({ base: path.resolve("/app/api") });
   const connect = require("/app/config/connect");
+  const { createModels } = require("@librechat/data-schemas");
 
   const sourceId = "coding-agent-skills";
   const upstreamId = "coding-agent-skills:.agents/skills/codebase-design";
 
   (async () => {
     await connect();
+    createModels(mongoose);
     const db = require("~/models");
     let skill = await db.findSkillBySourceIdentity({ source: "github", upstreamId });
 
