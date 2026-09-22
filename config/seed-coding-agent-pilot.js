@@ -30,6 +30,16 @@ const EXPECTED_MCP_TOOLS = [
   'git_diff',
 ];
 
+const EXPECTED_SKILL = Object.freeze({
+  name: 'codebase-design',
+  source: 'github',
+  sourceId: 'coding-agent-skills',
+  owner: 'justinthenick',
+  repo: 'LibreChat',
+  ref: 'server/synology',
+  path: '.agents/skills/codebase-design',
+});
+
 function parseAllowedModels(raw) {
   return String(raw || '')
     .split(/[\r\n,]+/)
@@ -78,6 +88,86 @@ function persistedToolIds(manifest) {
   return manifest.mcp_tools.map((tool) => `${tool}_mcp_${manifest.mcp_server}`);
 }
 
+function expectedSkillUpstreamId(skill = EXPECTED_SKILL) {
+  return `${skill.sourceId}:${skill.path}`;
+}
+
+function validateManifestSkillPolicy(manifest) {
+  if (manifest.skills_enabled !== true) {
+    throw new Error(`${manifest.id} must explicitly enable its validated skill allowlist`);
+  }
+  if (!Array.isArray(manifest.skills) || manifest.skills.length !== 1) {
+    throw new Error(`${manifest.id} must declare exactly one validated skill`);
+  }
+
+  const skill = manifest.skills[0];
+  const expected = {
+    name: EXPECTED_SKILL.name,
+    source: EXPECTED_SKILL.source,
+    source_id: EXPECTED_SKILL.sourceId,
+    owner: EXPECTED_SKILL.owner,
+    repo: EXPECTED_SKILL.repo,
+    ref: EXPECTED_SKILL.ref,
+    path: EXPECTED_SKILL.path,
+  };
+  for (const [key, value] of Object.entries(expected)) {
+    if (skill?.[key] !== value) {
+      throw new Error(
+        `${manifest.id} skill allowlist differs from validated ${EXPECTED_SKILL.name} identity at ${key}`,
+      );
+    }
+  }
+}
+
+async function resolveSkillAllowlist(db, manifest) {
+  validateManifestSkillPolicy(manifest);
+  const declared = manifest.skills[0];
+  const upstreamId = expectedSkillUpstreamId({
+    sourceId: declared.source_id,
+    path: declared.path,
+  });
+  const skill = await db.findSkillBySourceIdentity({
+    source: declared.source,
+    upstreamId,
+  });
+
+  if (!skill) {
+    throw new Error(
+      `${manifest.id} requires mirrored skill ${upstreamId}, but it is not available; refusing to widen the allowlist`,
+    );
+  }
+
+  const metadata = skill.sourceMetadata || {};
+  const expectedMetadata = {
+    sourceId: declared.source_id,
+    owner: declared.owner,
+    repo: declared.repo,
+    ref: declared.ref,
+    skillPath: declared.path,
+    syncStatus: 'synced',
+  };
+  for (const [key, value] of Object.entries(expectedMetadata)) {
+    if (metadata[key] !== value) {
+      throw new Error(
+        `${manifest.id} resolved skill ${declared.name} has unexpected source metadata ${key}`,
+      );
+    }
+  }
+  if (skill.name !== declared.name || skill.disableModelInvocation === true) {
+    throw new Error(
+      `${manifest.id} resolved skill does not match the validated model-invocable ${declared.name} contract`,
+    );
+  }
+
+  return [
+    {
+      id: skill._id.toString(),
+      name: skill.name,
+      upstreamId,
+    },
+  ];
+}
+
 function loadManifest() {
   const fullPath = path.resolve(MANIFEST_DIR, MANIFEST_FILE);
   const root = path.resolve(MANIFEST_DIR) + path.sep;
@@ -100,6 +190,7 @@ function loadManifest() {
   if (manifest.deployment?.production_seeder !== 'enabled') {
     throw new Error(`${manifest.id} persistent seeding has not been explicitly enabled`);
   }
+  validateManifestSkillPolicy(manifest);
   return manifest;
 }
 
@@ -132,7 +223,8 @@ async function resolveOwner(User) {
   return admins[0];
 }
 
-function desiredAgent(manifest, author) {
+function desiredAgent(manifest, author, resolvedSkills) {
+  const skillIds = resolvedSkills.map((skill) => String(skill.id));
   return {
     id: manifest.id,
     name: manifest.name,
@@ -143,8 +235,8 @@ function desiredAgent(manifest, author) {
     model_parameters: {},
     tools: persistedToolIds(manifest),
     mcpServerNames: [manifest.mcp_server],
-    skills: [],
-    skills_enabled: false,
+    skills: skillIds,
+    skills_enabled: manifest.skills_enabled === true,
     execute_code: false,
     web_search: false,
     file_search: false,
@@ -177,8 +269,9 @@ async function ensureOwnerPermissions({ grantPermission, agent, ownerId }) {
   }
 }
 
-function validatePersistedAgent(agent, manifest) {
+function validatePersistedAgent(agent, manifest, resolvedSkills) {
   const expectedTools = persistedToolIds(manifest);
+  const expectedSkillIds = resolvedSkills.map((skill) => String(skill.id));
   if (agent.id !== manifest.id) {
     throw new Error(`${manifest.id} did not retain its stable id`);
   }
@@ -191,8 +284,14 @@ function validatePersistedAgent(agent, manifest) {
   if ((agent.tools || []).some((tool) => String(tool).startsWith('sys__all__sys_mcp_'))) {
     throw new Error(`${manifest.id} unexpectedly retained an MCP wildcard token`);
   }
-  if ((agent.skills || []).length !== 0 || agent.skills_enabled === true) {
-    throw new Error(`${manifest.id} unexpectedly retained skills`);
+  if (
+    agent.skills_enabled !== true ||
+    expectedSkillIds.length !== 1 ||
+    !sameStrings(agent.skills, expectedSkillIds)
+  ) {
+    throw new Error(
+      `${manifest.id} skill allowlist was pruned, widened, or disabled; refusing persistent seed`,
+    );
   }
   if (agent.edges?.length || agent.subagents != null) {
     throw new Error(`${manifest.id} unexpectedly retained orchestration wiring`);
@@ -221,6 +320,7 @@ async function seed() {
   const { grantPermission } = require('~/server/services/PermissionService');
   const owner = await resolveOwner(User);
   const defaultOwnerId = owner._id.toString();
+  const resolvedSkills = await resolveSkillAllowlist(db, manifest);
 
   let existing = await db.getAgent({ id: manifest.id });
   let adoptedManualAgent = false;
@@ -236,7 +336,7 @@ async function seed() {
   }
 
   const ownerId = existing?.author?.toString() || defaultOwnerId;
-  const desired = desiredAgent(manifest, ownerId);
+  const desired = desiredAgent(manifest, ownerId, resolvedSkills);
   let agent;
   let outcome;
   if (existing) {
@@ -254,7 +354,7 @@ async function seed() {
   if (!agent) {
     throw new Error(`Seeder did not return ${manifest.id}`);
   }
-  validatePersistedAgent(agent, manifest);
+  validatePersistedAgent(agent, manifest, resolvedSkills);
   await ensureOwnerPermissions({ grantPermission, agent, ownerId });
 
   const result = {
@@ -266,6 +366,8 @@ async function seed() {
     model: agent.model,
     mcpServerNames: sortedStrings(agent.mcpServerNames),
     tools: sortedStrings(agent.tools),
+    skills_enabled: agent.skills_enabled === true,
+    skills: resolvedSkills.map(({ id, name, upstreamId }) => ({ id, name, upstreamId })),
   };
   console.log(JSON.stringify(result, null, 2));
   return result;
@@ -314,6 +416,9 @@ module.exports = {
   seed,
   loadManifest,
   persistedToolIds,
+  expectedSkillUpstreamId,
+  validateManifestSkillPolicy,
+  resolveSkillAllowlist,
   desiredAgent,
   validatePersistedAgent,
   parseAllowedModels,

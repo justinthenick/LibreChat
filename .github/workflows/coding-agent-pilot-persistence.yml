@@ -5,6 +5,7 @@ on:
     paths:
       - 'config/seed-coding-agent-pilot.js'
       - 'custom/coding-agent/production/software-engineering-pilot.json'
+      - 'custom/coding-agent/benchmarks/SKILL-PILOT-001/**'
       - 'deploy/synology/docker-compose.yml'
       - 'deploy/synology/autodeploy.sh'
       - '.github/workflows/coding-agent-pilot-persistence.yml'
@@ -14,6 +15,7 @@ on:
     paths:
       - 'config/seed-coding-agent-pilot.js'
       - 'custom/coding-agent/production/software-engineering-pilot.json'
+      - 'custom/coding-agent/benchmarks/SKILL-PILOT-001/**'
       - 'deploy/synology/docker-compose.yml'
       - 'deploy/synology/autodeploy.sh'
       - '.github/workflows/coding-agent-pilot-persistence.yml'
@@ -52,17 +54,34 @@ jobs:
           }
           assert manifest['id'] == 'agent_software_engineering_pilot_v01'
           assert manifest['status'] == 'validated-for-persistent-pilot'
-          assert manifest['version'] == '0.1.6'
+          assert manifest['version'] == '0.1.7'
           assert manifest['provider'] == 'google'
           assert manifest['preferred_model'] == 'gemini-3.7-flash'
+          assert manifest['evidence']['model'] == 'google/gemini-3.7-flash'
           assert manifest['mcp_server'] == 'coding_executor'
           assert set(manifest['mcp_tools']) == expected
           assert len(manifest['mcp_tools']) == len(expected)
           assert manifest['deployment']['production_seeder'] == 'enabled'
+          assert manifest['skills_enabled'] is True
+          assert manifest['skills'] == [{
+              'name': 'codebase-design',
+              'source': 'github',
+              'source_id': 'coding-agent-skills',
+              'owner': 'justinthenick',
+              'repo': 'LibreChat',
+              'ref': 'server/synology',
+              'path': '.agents/skills/codebase-design',
+          }]
           instructions = manifest['instructions']
           assert 'task_mode=read_only' in instructions
           assert 'task_mode=modification' in instructions
           assert 'Never create a replacement task to bypass an exploration budget.' in instructions
+          assert 'SKILL POLICY: codebase-design is the only enabled skill.' in instructions
+          assert 'invoke the codebase-design skill tool before substantive repository analysis' in instructions
+          assert 'Do not substitute generic design knowledge for a requested skill invocation.' in instructions
+          assert 'EXECUTOR AVAILABILITY POLICY:' in instructions
+          assert 'Do not repeat a tool call after a circuit-breaker-open error.' in instructions
+          assert 'never expands coding_executor permissions' in instructions
 
           seeder = Path('config/seed-coding-agent-pilot.js').read_text()
           compose = Path('deploy/synology/docker-compose.yml').read_text()
@@ -75,6 +94,13 @@ jobs:
           assert "normalized === 'google'" in seeder
           assert 'agent.provider !== expectedProvider' in seeder
           assert 'provider: agent.provider' in seeder
+          assert 'findSkillBySourceIdentity' in seeder
+          assert "sourceId: 'coding-agent-skills'" in seeder
+          assert "path: '.agents/skills/codebase-design'" in seeder
+          assert 'skills: skillIds' in seeder
+          assert 'skills_enabled: manifest.skills_enabled === true' in seeder
+          assert 'expectedSkillIds.length !== 1' in seeder
+          assert 'refusing to widen the allowlist' in seeder
           assert 'seed-coding-agent-pilot.js /app/coding-agent-pilot' in compose
           assert '/custom/coding-agent/production:/app/coding-agent-pilot:ro' in compose
           assert 'node /app/config/seed-coding-agent-pilot.js /app/coding-agent-pilot' in deploy
