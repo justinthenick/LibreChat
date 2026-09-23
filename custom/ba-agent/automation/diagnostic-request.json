@@ -1,6 +1,6 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "launchpad-cleanup-20260919-001",
-  "recipe": "custom/ba-agent/diagnostics/launchpad-cleanup-20260919-001.json"
+  "request_id": "wsl-repo-check-20260923-001",
+  "recipe": "custom/ba-agent/diagnostics/wsl-relay-read.json"
 }
