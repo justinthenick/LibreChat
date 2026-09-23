@@ -643,15 +643,17 @@ const initializeClient = async ({
       )
       .filter((name) => typeof name === 'string' && name.length > 0);
 
-    logger.info('[coding-agent-tool-schema-trace]', {
-      conversationId,
-      agentId: primaryConfig.id,
-      provider: primaryConfig.provider,
-      model: primaryConfig.model,
-      toolDefinitionCount: toolDefinitions.length,
-      toolNames,
-      suspiciousWeatherTools: toolNames.filter((name) => /weather/i.test(name)),
-    });
+    logger.info(
+      `[coding-agent-tool-schema-trace] ${JSON.stringify({
+        conversationId,
+        agentId: primaryConfig.id,
+        provider: primaryConfig.provider,
+        model: primaryConfig.model,
+        toolDefinitionCount: toolDefinitions.length,
+        toolNames,
+        suspiciousWeatherTools: toolNames.filter((name) => /weather/i.test(name)),
+      })}`,
+    );
   }
 
   agentToolContexts.set(
