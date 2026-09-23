@@ -5,12 +5,12 @@
     {
       "type": "path_exists",
       "label": "WSL relay file",
-      "path": "custom/ba-agent/automation/wsl-relay.txt"
+      "path": "/tmp/wsl-relay.txt"
     },
     {
       "type": "tail",
       "label": "WSL relay contents",
-      "path": "custom/ba-agent/automation/wsl-relay.txt",
+      "path": "/tmp/wsl-relay.txt",
       "lines": 200
     }
   ]
