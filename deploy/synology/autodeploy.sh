@@ -128,10 +128,19 @@ publish_telemetry() {
     log "WARN: telemetry token is configured but publisher script is missing"
     return 1
   fi
-  if ! timeout "$TELEMETRY_TIMEOUT" sh "$TELEMETRY_SCRIPT" "$RESULT" "$STAGE" "$SHA" >/dev/null 2>&1; then
-    log "WARN: sanitised GitHub telemetry publish failed"
+  TELEMETRY_ERROR_FILE="/tmp/librechat-telemetry-error.$"
+  rm -f "$TELEMETRY_ERROR_FILE"
+  if ! timeout "$TELEMETRY_TIMEOUT" sh "$TELEMETRY_SCRIPT" "$RESULT" "$STAGE" "$SHA" >/dev/null 2>"$TELEMETRY_ERROR_FILE"; then
+    TELEMETRY_ERROR="$(sed -n 's/^TELEMETRY_ERROR: //p' "$TELEMETRY_ERROR_FILE" | tail -n 1)"
+    rm -f "$TELEMETRY_ERROR_FILE"
+    if [ -n "$TELEMETRY_ERROR" ]; then
+      log "WARN: sanitised GitHub telemetry publish failed ($TELEMETRY_ERROR)"
+    else
+      log "WARN: sanitised GitHub telemetry publish failed"
+    fi
     return 1
   fi
+  rm -f "$TELEMETRY_ERROR_FILE"
   log "Sanitised GitHub telemetry published"
   return 0
 }
