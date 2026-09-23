@@ -94,6 +94,16 @@ PYTHONPATH="$HOME/coding-agent/control/custom/coding-agent/host/src" \
   python3 -m source_preflight.cli ~/coding-agent/repos/LibreChat --expected-upstream origin/server/synology
 ```
 
-## Next Integration Steps
+## Trusted Host Automation
 
-Automatic before-task integration must eventually bind **approved repository path + expected upstream** from trusted host/controller configuration (e.g. WSL host daemon or preflight scheduler), not agent-provided arbitrary values. To maintain the strict security boundary, this must not be triggered by or delegated to the unauthenticated or sandboxed executor container.
+The WSL host can run the same reviewed preflight automatically through the user-level systemd units in `custom/coding-agent/host/systemd`.
+
+The timer invokes the repository-owned wrapper every five minutes. The wrapper binds the approved LibreChat source checkout to the expected upstream `origin/server/synology` and delegates all mutation decisions to `source_preflight`. A dirty, detached, local-ahead, diverged, unexpected-upstream, or fetch-failing checkout returns non-zero and is left untouched.
+
+Install or refresh the timer from the trusted WSL host after syncing this repository:
+
+```bash
+bash ~/coding-agent/repos/LibreChat/custom/coding-agent/host/bin/install-source-sync-timer.sh
+```
+
+The automation remains outside the executor sandbox. It does not grant the executor network credentials, commit/push capability, arbitrary repository selection, or permission to discard local changes.
