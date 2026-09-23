@@ -27,6 +27,13 @@ const { toolkits } = require('~/app/clients/tools/manifest');
  * @param {Array<string>} [params.adminIncluded=[]] - Array of admin-defined tool keys to include from loading.
  * @returns {Record<string, FunctionTool>} An object mapping each tool's plugin key to its instance.
  */
+function isRuntimeToolModule(file) {
+  if (!file.endsWith('.js')) {
+    return false;
+  }
+  return !file.endsWith('.spec.js') && !file.endsWith('.test.js');
+}
+
 function loadAndFormatTools({ directory, adminFilter = [], adminIncluded = [] }) {
   const filter = new Set([...adminFilter]);
   const included = new Set(adminIncluded);
@@ -42,7 +49,7 @@ function loadAndFormatTools({ directory, adminFilter = [], adminIncluded = [] })
 
   for (const file of files) {
     const filePath = path.join(directory, file);
-    if (!file.endsWith('.js') || (filter.has(file) && included.size === 0)) {
+    if (!isRuntimeToolModule(file) || (filter.has(file) && included.size === 0)) {
       continue;
     }
 
@@ -145,5 +152,6 @@ function formatToOpenAIAssistantTool(tool) {
 }
 
 module.exports = {
+  isRuntimeToolModule,
   loadAndFormatTools,
 };
