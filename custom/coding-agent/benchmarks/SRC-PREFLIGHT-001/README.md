@@ -98,7 +98,7 @@ PYTHONPATH="$HOME/coding-agent/control/custom/coding-agent/host/src" \
 
 The WSL host can run the same reviewed preflight automatically through the user-level systemd units in `custom/coding-agent/host/systemd`.
 
-The timer invokes the repository-owned wrapper every five minutes. The wrapper binds the approved LibreChat source checkout to the expected upstream `origin/server/synology` and delegates all mutation decisions to `source_preflight`. A dirty, detached, local-ahead, diverged, unexpected-upstream, or fetch-failing checkout returns non-zero and is left untouched.
+The timer invokes the repository-owned wrapper every five minutes. The wrapper binds the approved LibreChat source checkout to the expected upstream `origin/server/synology` and delegates all mutation decisions to `source_preflight`. Host refresh and executor task creation share `.source-sync.lock` under the mounted task root, so a fast-forward cannot overlap source identity capture and worktree creation. A dirty, detached, local-ahead, diverged, unexpected-upstream, or fetch-failing checkout returns non-zero and is left untouched.
 
 Install or refresh the timer from the trusted WSL host after syncing this repository:
 
