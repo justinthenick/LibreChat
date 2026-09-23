@@ -30,8 +30,9 @@ exec 9>"$TASK_ROOT/.source-sync.lock"
 flock -x 9
 
 export PYTHONPATH="$HOST_SRC${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONDONTWRITEBYTECODE=1
 
-exec python3 -m source_preflight.cli \
+exec python3 -B -m source_preflight.cli \
   "$REPO_ROOT" \
   --expected-upstream "$EXPECTED_UPSTREAM" \
   --json
