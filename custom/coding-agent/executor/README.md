@@ -1,4 +1,4 @@
-# LibreChat coding executor v0.1.4
+# LibreChat coding executor v0.1.5
 
 This service gives a LibreChat Agent a deliberately narrow coding surface without granting access to the NAS Docker socket or the host filesystem.
 
@@ -39,7 +39,7 @@ Use the Linux filesystem inside WSL, not `/mnt/c`, for the repositories and work
 3. Replace the example address with the Windows host LAN address that the Synology NAS can reach.
 4. Set `CODING_REPOSITORY_HOST_PATH` and `CODING_TASK_HOST_PATH` to their absolute WSL paths. Compose mounts each directory at the identical path inside the container so Git worktree metadata remains usable from both WSL and the executor.
 5. Create `repos` and `tasks`, clone only approved repositories under `repos`, and run `docker compose -f compose.example.yaml up -d --build`.
-6. Confirm `curl http://127.0.0.1:8765/health` returns `{"status":"ok","version":"0.1.1"}`.
+6. Confirm `curl http://127.0.0.1:8765/health` returns `{"status":"ok","version":"0.1.5"}`.
 
 Do not expose port 8765 to the public internet. Permit it only from the NAS address in Windows Firewall.
 
