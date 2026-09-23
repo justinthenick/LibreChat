@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "name": "WSL relay read",
+  "checks": [
+    {
+      "type": "path_exists",
+      "label": "WSL relay file",
+      "path": "custom/ba-agent/automation/wsl-relay.txt"
+    },
+    {
+      "type": "tail",
+      "label": "WSL relay contents",
+      "path": "custom/ba-agent/automation/wsl-relay.txt",
+      "lines": 200
+    }
+  ]
+}
