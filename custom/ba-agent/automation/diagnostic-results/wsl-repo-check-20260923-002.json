@@ -1,0 +1,37 @@
+{
+  "checks": [
+    {
+      "data": {
+        "exists": true,
+        "is_dir": false,
+        "is_file": true,
+        "mtime_epoch": 1790197065,
+        "path": "/tmp/wsl-relay.txt",
+        "size": 4381
+      },
+      "index": 1,
+      "label": "WSL relay file",
+      "status": "ok",
+      "type": "path_exists"
+    },
+    {
+      "data": {
+        "lines": 200,
+        "path": "/tmp/wsl-relay.txt",
+        "text": "=== REPOSITORY ===\n/home/justin_kemp/coding-agent/repos/LibreChat\n\n=== CURRENT BRANCH / STATUS ===\nserver/synology\n?? \"-files --others --exclude-standard\"\n?? \"tatus --porcelain=v1\"\n?? \"tream: $UPSTREAM\\\"\"\n## server/synology...origin/server/synology\n?? \"-files --others --exclude-standard\"\n?? \"tatus --porcelain=v1\"\n?? \"tream: $UPSTREAM\\\"\"\n\n=== LOCAL HEAD ===\nb200f6bcb1202fb42015f8d0074110295961df31\n\n=== FETCHING ===\nFetching origin\nFetching upstream\n\n=== TRACKING ===\n+ agent/check-status-762ad9cd                    8de6a3dc1 (/home/justin_kemp/coding-agent/tasks/check-status-762ad9cd) Merge pull request #130 from justinthenick/fix/coding-agent-source-status-reporting\n+ agent/fix-pilot-repo-status-8d02685a           5488d44ed (/home/justin_kemp/coding-agent/tasks/fix-pilot-repo-status-8d02685a) fix(synology): stop orphaning curl telemetry containers (#113)\n+ agent/fix-pilot-repo-status-db30cb67           968c4cce2 (/home/justin_kemp/coding-agent/tasks/fix-pilot-repo-status-db30cb67) [origin/agent/fix-pilot-repo-status-db30cb67: gone] fix(coding-agent): ground repository status in task status\n+ agent/inspect-librechat-status-62ee7723        3509424a9 (/home/justin_kemp/coding-agent/tasks/inspect-librechat-status-62ee7723) Merge pull request #129 from justinthenick/promote/synology-image-e9d4bc12\n+ agent/prevent-pycache-worktree-48f0e811        5488d44ed (/home/justin_kemp/coding-agent/tasks/prevent-pycache-worktree-48f0e811) fix(synology): stop orphaning curl telemetry containers (#113)\n+ agent/readonly-budget-tests-f466877c           5488d44ed (/home/justin_kemp/coding-agent/tasks/readonly-budget-tests-f466877c) fix(synology): stop orphaning curl telemetry containers (#113)\n+ agent/repo-freshness-gate-f5992e17             a86e42e48 (/home/justin_kemp/coding-agent/tasks/repo-freshness-gate-f5992e17) [origin/agent/repo-freshness-gate-f5992e17: gone] fix(executor): reject stale source repositories\n+ agent/repo-status-check-b8cecc3c               5488d44ed (/home/justin_kemp/coding-agent/tasks/repo-status-check-b8cecc3c) fix(synology): stop orphaning curl telemetry containers (#113)\n+ agent/review-workspace-manager-d2af4d64        5488d44ed (/home/justin_kemp/coding-agent/tasks/review-workspace-manager-d2af4d64) fix(synology): stop orphaning curl telemetry containers (#113)\n+ agent/src-preflight-001-3709e629               a7052e2f4 (/home/justin_kemp/coding-agent/tasks/src-preflight-001-3709e629) [origin/agent/src-preflight-001-3709e629: gone] feat(coding-agent): add trusted source preflight\n+ agent/static-cache-vary-37                     7e28d59d6 (/home/justin_kemp/coding-agent/tasks/static-cache-vary-37) fix(synology): bound telemetry publishing (#101)\n+ agent/static-cache-vary-38                     7e28d59d6 (/home/justin_kemp/coding-agent/tasks/static-cache-vary-38) fix(synology): bound telemetry publishing (#101)\n+ agent/status-check-a98d7cfe                    5e61037f4 (/home/justin_kemp/coding-agent/tasks/status-check-a98d7cfe) feat(coding-agent): enable codebase-design skill narrowly (#116)\n  agent/tracked-write-path-verification-9996ffed 8a8972798 fix(skills): render manuscript views from visible source register\n  fix/coding-agent-google-gemini-37              8bd2c05e8 [origin/fix/coding-agent-google-gemini-37: gone] chore(coding-agent): pin pilot to Google Gemini 3.7 Flash\n  fix/static-cache-vary-header                   abb1dbdff [origin/fix/static-cache-vary-header: gone] fix(api): preserve existing Vary headers for private images\n+ release/synology-image-baseline                923589058 (/home/justin_kemp/coding-agent/tasks/launchpad-image-release) [origin/release/synology-image-baseline: gone] build(synology): publish tested application images\n  release/synology-managed-lifecycle             5defe2102 Merge pull request #95 from justinthenick/chore/skills-audited-ui\n* server/synology                                b200f6bcb [origin/server/synology] Merge pull request #135 from justinthenick/fix/synology-telemetry-auth-diagnostics\n\n=== HEAD vs UPSTREAM ===\nUpstream: origin/server/synology\n0\t0\n\n--- commits only local ---\n\n--- commits only upstream ---\n\n=== DIRTY FILE DETAILS ===\n?? \"-files --others --exclude-standard\"\n?? \"tatus --porcelain=v1\"\n?? \"tream: $UPSTREAM\\\"\"\n\n=== DIFF SUMMARY ===\n\n=== UNTRACKED FILES ===\n-files --others --exclude-standard\ntatus --porcelain=v1\n\"tream: $UPSTREAM\\\"\""
+      },
+      "index": 2,
+      "label": "WSL relay contents",
+      "status": "ok",
+      "type": "tail"
+    }
+  ],
+  "ended_at": "2026-09-23T20:58:22Z",
+  "hostname": "NAS",
+  "overall": "ok",
+  "recipe": "custom/ba-agent/diagnostics/wsl-relay-read.json",
+  "recipe_name": "WSL relay read",
+  "request_id": "wsl-repo-check-20260923-002",
+  "schema": 1,
+  "started_at": "2026-09-23T20:58:22Z"
+}
