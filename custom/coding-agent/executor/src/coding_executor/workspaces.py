@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import fcntl
+import json
+import os
 import re
 import shlex
+import signal
+import stat
 import subprocess
 import threading
 import uuid
@@ -113,6 +117,7 @@ class WorkspaceManager:
         with self._budget_lock:
             self._task_modes[task_id] = task_mode
             self._exploration_calls[task_id] = 0
+            self._save_state(task_id)
         return {
             "task_id": task_id,
             "branch": branch,
@@ -250,21 +255,21 @@ class WorkspaceManager:
                 truncated=False,
             )
         timeout = min(timeout_seconds or self.command_timeout_seconds, self.command_timeout_seconds)
-        try:
-            result = subprocess.run(
-                args,
-                cwd=task,
-                check=False,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                env=self._child_environment(),
-            )
-        except subprocess.TimeoutExpired as error:
-            raise RuntimeError(f"command exceeded {timeout} second timeout") from error
-        stdout, stdout_cut = self._bounded(result.stdout)
-        stderr, stderr_cut = self._bounded(result.stderr)
-        return CommandResult(command=command, exit_code=result.returncode, stdout=stdout, stderr=stderr, truncated=stdout_cut or stderr_cut)
+        with subprocess.Popen(args, cwd=task, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              text=True, env=self._child_environment(), start_new_session=True) as process:
+            try:
+                raw_stdout, raw_stderr = process.communicate(timeout=timeout)
+            except subprocess.TimeoutExpired as error:
+                raise RuntimeError(f"command exceeded {timeout} second timeout") from error
+            finally:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.wait()
+        stdout, stdout_cut = self._bounded(raw_stdout)
+        stderr, stderr_cut = self._bounded(raw_stderr)
+        return CommandResult(command=command, exit_code=process.returncode, stdout=stdout, stderr=stderr, truncated=stdout_cut or stderr_cut)
 
     def diff(self, task_id: str) -> str:
         task = self._task(task_id)
@@ -322,12 +327,46 @@ class WorkspaceManager:
             return READ_ONLY_EXPLORATION_SOFT_LIMIT, READ_ONLY_EXPLORATION_HARD_LIMIT
         return MODIFICATION_EXPLORATION_SOFT_LIMIT, MODIFICATION_EXPLORATION_HARD_LIMIT
 
+    def _save_state(self, task_id: str) -> None:
+        target = self.task_root / f".state-{task_id}.json"
+        temporary = self.task_root / f".state-{uuid.uuid4().hex}.tmp"
+        payload = json.dumps({"mode": self._task_modes[task_id], "calls": self._exploration_calls[task_id]})
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(descriptor, "w") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, target)
+
+    def _load_state(self, task_id: str) -> None:
+        if task_id in self._task_modes:
+            return
+        if not SAFE_NAME.fullmatch(task_id):
+            raise ValueError("invalid task id")
+        target = self.task_root / f".state-{task_id}.json"
+        mode, calls = "read_only", READ_ONLY_EXPLORATION_HARD_LIMIT
+        try:
+            descriptor = os.open(target, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            with os.fdopen(descriptor) as stream:
+                info = os.fstat(stream.fileno())
+                if not stat.S_ISREG(info.st_mode) or info.st_size > 4096 or info.st_nlink != 1:
+                    raise ValueError("invalid persisted task state file")
+                state = json.loads(stream.read(4096))
+            if state["mode"] not in {"read_only", "modification"} or type(state["calls"]) is not int or state["calls"] < 0:
+                raise ValueError("invalid persisted task state")
+            mode, calls = state["mode"], state["calls"]
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
+        self._task_modes[task_id], self._exploration_calls[task_id] = mode, calls
+
     def _task_mode(self, task_id: str) -> str:
         with self._budget_lock:
+            self._load_state(task_id)
             return self._task_modes.get(task_id, "modification")
 
     def _budget_status(self, task_id: str) -> dict[str, object]:
         with self._budget_lock:
+            self._load_state(task_id)
             mode = self._task_modes.get(task_id, "modification")
             count = self._exploration_calls.get(task_id, 0)
             soft_limit, hard_limit = self._budget_limits(mode)
@@ -342,6 +381,7 @@ class WorkspaceManager:
 
     def _consume_exploration(self, task_id: str) -> str:
         with self._budget_lock:
+            self._load_state(task_id)
             mode = self._task_modes.get(task_id, "modification")
             count = self._exploration_calls.get(task_id, 0)
             soft_limit, hard_limit = self._budget_limits(mode)
@@ -367,6 +407,7 @@ class WorkspaceManager:
 
             count += 1
             self._exploration_calls[task_id] = count
+            self._save_state(task_id)
 
             if count < soft_limit:
                 return ""

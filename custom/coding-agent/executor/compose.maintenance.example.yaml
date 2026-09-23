@@ -1,0 +1,12 @@
+# Apply only to a reviewed staging deployment first. Pre-create the lock file.
+services:
+  coding-executor:
+    environment:
+      CODING_MAINTENANCE_LOCK: /run/coding-agent/maintenance.lock
+    volumes:
+      - type: bind
+        source: ${CODING_MAINTENANCE_LOCK_HOST_PATH}
+        target: /run/coding-agent/maintenance.lock
+        read_only: true
+        bind:
+          create_host_path: false

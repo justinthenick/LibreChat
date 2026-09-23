@@ -14,6 +14,7 @@ from mcp.server.auth.settings import AuthSettings
 from mcp.server.transport_security import TransportSecuritySettings
 
 from coding_executor import __version__
+from coding_executor.coordination import coordinated
 from coding_executor.config import Settings
 from coding_executor.workspaces import WorkspaceManager
 
@@ -64,6 +65,7 @@ def build_server(settings: Settings) -> MCPServer:
         return JSONResponse({"status": "ok", "version": __version__})
 
     @server.tool(description="List Git repositories explicitly mounted into the executor.")
+    @coordinated(settings.task_root)
     def list_repositories() -> list[str]:
         return manager.list_repositories()
 
@@ -76,6 +78,7 @@ def build_server(settings: Settings) -> MCPServer:
             "Use task_mode=modification for coding/fix tasks."
         )
     )
+    @coordinated(settings.task_root)
     def create_task(
         repository: str,
         task_name: str,
@@ -87,30 +90,37 @@ def build_server(settings: Settings) -> MCPServer:
     @server.tool(
         description="Show the isolated task branch, concise task-worktree Git status, task mode, and current server-enforced exploration budget."
     )
+    @coordinated(settings.task_root)
     def task_status(task_id: str) -> dict[str, object]:
         return manager.task_status(task_id)
 
     @server.tool(description="List task files. Paths remain inside the worktree and the call consumes exploration budget.")
+    @coordinated(settings.task_root)
     def list_files(task_id: str, path: str = "", max_results: int = 300) -> list[str]:
         return manager.list_files(task_id, path, max_results)
 
     @server.tool(description="Read a bounded UTF-8 line range from the task. The call consumes exploration budget.")
+    @coordinated(settings.task_root)
     def read_file(task_id: str, path: str, start_line: int = 1, end_line: int = 400) -> str:
         return manager.read_file(task_id, path, start_line, end_line)
 
     @server.tool(description="Search task files with ripgrep. The call consumes exploration budget.")
+    @coordinated(settings.task_root)
     def search_text(task_id: str, query: str, path: str = "", glob: str = "", max_results: int = 100) -> str:
         return manager.search_text(task_id, query, path, glob, max_results)
 
     @server.tool(description="Check and apply one unified diff inside a task worktree; traversal and symlink patches are rejected.")
+    @coordinated(settings.task_root)
     def apply_patch(task_id: str, patch: str) -> dict[str, object]:
         return manager.apply_patch(task_id, patch)
 
     @server.tool(description="Run a bounded test, lint, build, or git diff check from the executor allowlist.")
+    @coordinated(settings.task_root)
     def run_check(task_id: str, command: str, timeout_seconds: int | None = None) -> dict[str, object]:
         return asdict(manager.run_check(task_id, command, timeout_seconds))
 
     @server.tool(description="Return the bounded uncommitted Git diff for final human review.")
+    @coordinated(settings.task_root)
     def git_diff(task_id: str) -> str:
         return manager.diff(task_id)
 

@@ -1,0 +1,20 @@
+[Unit]
+Description=Allowlisted LibreChat coding executor maintenance
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/coding-maintenance.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=%h/.local/share/coding-maintenance/venv/bin/coding-agent-host-maintenance
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
