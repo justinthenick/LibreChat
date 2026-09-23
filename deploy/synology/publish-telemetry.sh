@@ -124,6 +124,7 @@ github_api() {
 import os
 import pathlib
 import sys
+import urllib.error
 import urllib.request
 
 payload_path = os.environ.get("GH_PAYLOAD_PATH", "")
@@ -142,11 +143,22 @@ request = urllib.request.Request(
     headers=headers,
     method=os.environ["GH_METHOD"],
 )
-with urllib.request.urlopen(request, timeout=20) as response:
-    body = response.read()
-    if not 200 <= response.status < 300:
-        raise RuntimeError("unexpected HTTP status {}".format(response.status))
-    sys.stdout.buffer.write(body)
+try:
+    with urllib.request.urlopen(request, timeout=20) as response:
+        body = response.read()
+        if not 200 <= response.status < 300:
+            print("TELEMETRY_ERROR: github_http_{}".format(response.status), file=sys.stderr)
+            raise SystemExit(1)
+        sys.stdout.buffer.write(body)
+except urllib.error.HTTPError as exc:
+    print("TELEMETRY_ERROR: github_http_{}".format(exc.code), file=sys.stderr)
+    raise SystemExit(1)
+except urllib.error.URLError:
+    print("TELEMETRY_ERROR: network_error", file=sys.stderr)
+    raise SystemExit(1)
+except Exception:
+    print("TELEMETRY_ERROR: transport_error", file=sys.stderr)
+    raise SystemExit(1)
 PY
 }
 put_file() {
