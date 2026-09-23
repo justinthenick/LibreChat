@@ -134,3 +134,5 @@ jobs:
           ! grep -Fq 'curlimages/curl' deploy/synology/publish-telemetry.sh
           grep -Fq 'timeout "$STATUS_HTTP_TIMEOUT" python3' deploy/synology/autodeploy.sh
           grep -Fq 'timeout "$HTTP_TIMEOUT" python3' deploy/synology/publish-telemetry.sh
+          grep -Fq 'TELEMETRY_ERROR: github_http_' deploy/synology/publish-telemetry.sh
+          grep -Fq 'sanitised GitHub telemetry publish failed ($TELEMETRY_ERROR)' deploy/synology/autodeploy.sh
