@@ -1,6 +1,6 @@
 {
   "schema": 1,
   "enabled": true,
-  "request_id": "wsl-repo-check-20260923-001",
+  "request_id": "wsl-repo-check-20260923-002",
   "recipe": "custom/ba-agent/diagnostics/wsl-relay-read.json"
 }
