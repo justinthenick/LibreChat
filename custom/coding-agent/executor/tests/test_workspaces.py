@@ -238,6 +238,9 @@ class WorkspaceManagerTest(unittest.TestCase):
         self.assertEqual(task["source_status"], "")
         self.assertEqual(task["task_branch"], task["branch"])
         self.assertTrue(task["task_branch"].startswith("agent/clean-task-"))
+        source_sync_lock = self.tasks / ".source-sync.lock"
+        self.assertTrue(source_sync_lock.is_file())
+        self.assertFalse(source_sync_lock.is_symlink())
 
     def test_create_task_rejects_when_behind_upstream(self) -> None:
         upstream_dir = self._setup_upstream()

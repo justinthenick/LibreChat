@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import fcntl
 import re
 import shlex
 import subprocess
 import threading
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
@@ -87,24 +89,27 @@ class WorkspaceManager:
         source = self._repository(repository)
         if not SAFE_REF.fullmatch(base_ref):
             raise ValueError("invalid base ref")
-        self._ensure_source_fresh(source, base_ref)
         slug = self._slug(task_name)
         task_id = f"{slug}-{uuid.uuid4().hex[:8]}"
         destination = self.task_root / task_id
         branch = f"agent/{task_id}"
-        source_commit = self._git(source, "rev-parse", "--verify", f"{base_ref}^{{commit}}").stdout.strip()
-        source_branch = self._git(source, "branch", "--show-current").stdout.strip()
-        self._git(
-            source,
-            "-c",
-            "core.hooksPath=/dev/null",
-            "worktree",
-            "add",
-            "-b",
-            branch,
-            str(destination),
-            base_ref,
-        )
+
+        with self._source_sync_lock():
+            self._ensure_source_fresh(source, base_ref)
+            source_commit = self._git(source, "rev-parse", "--verify", f"{base_ref}^{{commit}}").stdout.strip()
+            source_branch = self._git(source, "branch", "--show-current").stdout.strip()
+            self._git(
+                source,
+                "-c",
+                "core.hooksPath=/dev/null",
+                "worktree",
+                "add",
+                "-b",
+                branch,
+                str(destination),
+                base_ref,
+            )
+            source_status = self._git(source, "status", "--short").stdout
         with self._budget_lock:
             self._task_modes[task_id] = task_mode
             self._exploration_calls[task_id] = 0
@@ -118,8 +123,20 @@ class WorkspaceManager:
             "source_ref": base_ref,
             "source_branch": source_branch,
             "source_commit": source_commit,
-            "source_status": self._git(source, "status", "--short").stdout,
+            "source_status": source_status,
         }
+
+    @contextmanager
+    def _source_sync_lock(self):
+        lock_path = self.task_root / ".source-sync.lock"
+        if lock_path.is_symlink():
+            raise RuntimeError("source sync lock path must not be a symbolic link")
+        with lock_path.open("a+", encoding="utf-8") as lock_file:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
     def task_status(self, task_id: str) -> dict[str, object]:
         task = self._task(task_id)

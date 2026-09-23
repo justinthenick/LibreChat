@@ -1,0 +1,8 @@
+[Unit]
+Description=Safely refresh LibreChat coding-agent source checkout
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash %h/coding-agent/repos/LibreChat/custom/coding-agent/host/bin/sync-librechat-source.sh

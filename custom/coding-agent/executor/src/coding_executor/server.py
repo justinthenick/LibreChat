@@ -13,6 +13,7 @@ from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.transport_security import TransportSecuritySettings
 
+from coding_executor import __version__
 from coding_executor.config import Settings
 from coding_executor.workspaces import WorkspaceManager
 
@@ -60,7 +61,7 @@ def build_server(settings: Settings) -> MCPServer:
 
     @server.custom_route("/health", methods=["GET"])
     async def health(_request: object) -> JSONResponse:
-        return JSONResponse({"status": "ok", "version": "0.1.4"})
+        return JSONResponse({"status": "ok", "version": __version__})
 
     @server.tool(description="List Git repositories explicitly mounted into the executor.")
     def list_repositories() -> list[str]:

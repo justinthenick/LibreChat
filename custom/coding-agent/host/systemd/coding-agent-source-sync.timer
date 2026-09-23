@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh LibreChat coding-agent source checkout every five minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitInactiveSec=5min
+AccuracySec=15s
+Unit=coding-agent-source-sync.service
+
+[Install]
+WantedBy=timers.target
