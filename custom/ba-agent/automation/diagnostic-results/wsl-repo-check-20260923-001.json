@@ -1,0 +1,29 @@
+{
+  "checks": [
+    {
+      "data": {
+        "exists": false,
+        "path": "/tmp/wsl-relay.txt"
+      },
+      "index": 1,
+      "label": "WSL relay file",
+      "status": "ok",
+      "type": "path_exists"
+    },
+    {
+      "error": "Cannot read /tmp/wsl-relay.txt: [Errno 2] No such file or directory: '/tmp/wsl-relay.txt'",
+      "index": 2,
+      "label": "WSL relay contents",
+      "status": "error",
+      "type": "tail"
+    }
+  ],
+  "ended_at": "2026-09-23T11:34:48Z",
+  "hostname": "NAS",
+  "overall": "partial",
+  "recipe": "custom/ba-agent/diagnostics/wsl-relay-read.json",
+  "recipe_name": "WSL relay read",
+  "request_id": "wsl-repo-check-20260923-001",
+  "schema": 1,
+  "started_at": "2026-09-23T11:34:48Z"
+}
