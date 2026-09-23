@@ -56,4 +56,6 @@ jobs:
           bash -n custom/coding-agent/host/bin/install-source-sync-timer.sh
           grep -F 'OnUnitInactiveSec=5min' custom/coding-agent/host/systemd/coding-agent-source-sync.timer
           grep -F 'source_preflight.cli' custom/coding-agent/host/bin/sync-librechat-source.sh
+          grep -F '.source-sync.lock' custom/coding-agent/host/bin/sync-librechat-source.sh
+          grep -F '.source-sync.lock' custom/coding-agent/executor/src/coding_executor/workspaces.py
           ! grep -E 'reset --hard|clean -f|rebase|push --force' custom/coding-agent/host/bin/sync-librechat-source.sh
