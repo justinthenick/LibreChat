@@ -219,9 +219,25 @@ class WorkspaceManagerTest(unittest.TestCase):
 
     def test_create_task_succeeds_when_clean_and_current_with_upstream(self) -> None:
         self._setup_upstream()
+        expected_source_commit = subprocess.run(
+            ["git", "rev-parse", "main"],
+            cwd=self.repository,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
         task = self.manager.create_task("demo", "clean task", "main")
+
         self.assertTrue(task["task_id"].startswith("clean-task-"))
         self.assertTrue(Path(task["path"]).is_dir())
+        self.assertEqual(task["source_repository"], "demo")
+        self.assertEqual(task["source_ref"], "main")
+        self.assertEqual(task["source_branch"], "main")
+        self.assertEqual(task["source_commit"], expected_source_commit)
+        self.assertEqual(task["source_status"], "")
+        self.assertEqual(task["task_branch"], task["branch"])
+        self.assertTrue(task["task_branch"].startswith("agent/clean-task-"))
 
     def test_create_task_rejects_when_behind_upstream(self) -> None:
         upstream_dir = self._setup_upstream()

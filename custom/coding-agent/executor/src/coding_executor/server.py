@@ -68,8 +68,10 @@ def build_server(settings: Settings) -> MCPServer:
 
     @server.tool(
         description=(
-            "Create one isolated Git worktree and branch. Set task_mode=read_only for analysis/audit/review "
-            "tasks; read_only gets a larger exploration budget and cannot apply patches. "
+            "Create one isolated Git worktree and branch. The result distinguishes source repository identity "
+            "(source_repository/source_ref/source_branch/source_commit/source_status) from the isolated task "
+            "branch (task_branch/branch). Set task_mode=read_only for analysis/audit/review tasks; read_only gets "
+            "a larger exploration budget and cannot apply patches. "
             "Use task_mode=modification for coding/fix tasks."
         )
     )
@@ -82,7 +84,7 @@ def build_server(settings: Settings) -> MCPServer:
         return manager.create_task(repository, task_name, base_ref, task_mode)
 
     @server.tool(
-        description="Show branch, concise Git status, task mode, and current server-enforced exploration budget."
+        description="Show the isolated task branch, concise task-worktree Git status, task mode, and current server-enforced exploration budget."
     )
     def task_status(task_id: str) -> dict[str, object]:
         return manager.task_status(task_id)
