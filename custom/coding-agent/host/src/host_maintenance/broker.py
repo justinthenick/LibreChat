@@ -101,7 +101,8 @@ class Broker:
         data = self._inspect()
         state = data["State"]
         return {"container_id": data["Id"], "image_id": data["Image"], "status": state["Status"],
-                "started_at": state["StartedAt"], "health": state.get("Health", {}).get("Status", "unconfigured")}
+                "started_at": state["StartedAt"], "health": state.get("Health", {}).get("Status", "unconfigured"),
+                "version": self._helper("health")["version"] if state["Running"] else None}
 
     def repository_status(self, repository: str) -> dict:
         policy = self._repository(repository)

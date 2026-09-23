@@ -64,6 +64,8 @@ class BrokerTests(unittest.TestCase):
             self.container["State"]["StartedAt"] = "restarted"
             return self.container["Id"]
         if argv[1] == "exec":
+            if argv[-1] == "health":
+                return json.dumps({"version": "0.1.7"})
             return json.dumps(self.snapshot)
         raise AssertionError(argv)
 
@@ -86,6 +88,9 @@ class BrokerTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "disabled"):
                 function(argument)
         self.assertFalse(self.calls)
+
+    def test_health_includes_installed_executor_version(self):
+        self.assertEqual(self.broker.health()["version"], "0.1.7")
 
     def test_cleanup_requires_retirement_delay_and_clean_snapshot(self):
         for name in ("active", "../escape", "--help"):

@@ -41,8 +41,18 @@ def repository_status(repositories: Path, name: str, branch: str) -> dict[str, o
     head = git(source, "rev-parse", "HEAD").strip()
     dirty = bool(git(source, "status", "--porcelain=v1", "--untracked-files=all"))
     upstream = git(source, "for-each-ref", "--format=%(upstream:short)", f"refs/heads/{branch}").strip()
+    ahead = behind = None
+    if upstream:
+        try:
+            ahead, behind = map(int, git(source, "rev-list", "--left-right", "--count",
+                                         f"HEAD...refs/remotes/{upstream}").split())
+        except RuntimeError:
+            pass
     return {"repository": name, "branch": actual, "head": head, "dirty": dirty,
-            "expected_branch": branch, "upstream": upstream, "freshness": "not_fetched"}
+            "expected_branch": branch, "upstream": upstream, "freshness": "not_fetched",
+            "ahead": ahead, "behind": behind,
+            "diverged": bool(ahead and behind) if ahead is not None else None,
+            "comparison_basis": "cached_upstream" if ahead is not None else "unavailable"}
 
 
 def refresh(repositories: Path, name: str, branch: str, url: str) -> dict[str, object]:
@@ -97,7 +107,8 @@ def task_snapshot(repositories: Path, tasks: Path, task_id: str) -> dict[str, ob
                 "head": git(task, "rev-parse", "HEAD").strip(), "dirty": dirty,
                 "device": info.st_dev, "inode": info.st_ino}
     fingerprint = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
-    return {**identity, "fingerprint": fingerprint}
+    return {**identity, "fingerprint": fingerprint, "stale": False,
+            "state": "dirty" if dirty else "clean"}
 
 
 def remove_task(repositories: Path, tasks: Path, task_id: str, expected: str) -> dict[str, object]:
@@ -119,7 +130,24 @@ def inventory(repositories: Path, tasks: Path) -> dict[str, object]:
             result.append(task_snapshot(repositories, tasks, name))
         except (ValueError, RuntimeError, OSError):
             result.append({"task_id": name, "eligible": False, "reason": "manual_review_required"})
-    return {"tasks": result, "stale_registrations": "use operator inventory; never automatically pruned"}
+    stale = []
+    sources = sorted(path for path in repositories.iterdir() if not path.name.startswith("."))
+    if len(sources) > 200:
+        raise ValueError("too many repositories; operator inventory required")
+    for source in sources:
+        if source.is_symlink() or not (source / ".git").is_dir() or (source / ".git").is_symlink():
+            continue
+        for entry in git(source, "worktree", "list", "--porcelain", "-z").split("\0\0"):
+            fields = entry.split("\0")
+            if not fields[0].startswith("worktree "):
+                continue
+            path = Path(fields[0][9:])
+            if path.parent != tasks:
+                continue
+            if any(field.startswith("prunable") for field in fields) or not path.exists():
+                stale.append({"repository": source.name, "task_id": path.name, "stale": True,
+                              "state": "stale", "eligible": False, "reason": "manual_review_required"})
+    return {"tasks": result, "stale_registrations": stale, "automatically_pruned": False}
 
 
 def main() -> None:
@@ -128,13 +156,17 @@ def main() -> None:
     signal.signal(signal.SIGALRM, deadline_expired)
     signal.alarm(120)
     parser = argparse.ArgumentParser()
-    parser.add_argument("operation", choices=["status", "refresh", "inventory", "preview", "remove"])
+    parser.add_argument("operation", choices=["health", "status", "refresh", "inventory", "preview", "remove"])
     parser.add_argument("--repository", default="")
     parser.add_argument("--branch", default="")
     parser.add_argument("--url", default="")
     parser.add_argument("--task", default="")
     parser.add_argument("--fingerprint", default="")
     args = parser.parse_args()
+    if args.operation == "health":
+        from coding_executor import __version__
+        print(json.dumps({"version": __version__}))
+        return
     repositories = Path(os.environ["CODING_REPOSITORY_ROOT"]).resolve(strict=True)
     tasks = Path(os.environ["CODING_TASK_ROOT"]).resolve(strict=True)
     with maintenance_lock(tasks, exclusive=True):
