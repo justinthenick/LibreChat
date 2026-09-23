@@ -37,6 +37,31 @@ jobs:
             deploy/synology/render-librechat-config.py
       - name: Validate JSON schema document
         run: python -m json.tool deploy/synology/admin-settings.schema.json >/dev/null
+      - name: Validate deployed LibreChat config schema version
+        run: |
+          python - <<'PY'
+          import pathlib
+          import re
+
+          yaml_text = pathlib.Path("deploy/synology/librechat.yaml").read_text(encoding="utf-8")
+          source_text = pathlib.Path("packages/data-provider/src/config.ts").read_text(encoding="utf-8")
+
+          yaml_match = re.search(r"^version:\\s*([^\\s#]+)", yaml_text, re.MULTILINE)
+          source_match = re.search(r"CONFIG_VERSION\\s*=\\s*['\"]([^'\"]+)['\"]", source_text)
+
+          if not yaml_match or not source_match:
+              raise SystemExit("Could not determine LibreChat config schema versions")
+
+          deployed = yaml_match.group(1)
+          supported = source_match.group(1)
+          print(f"deployed config version: {deployed}")
+          print(f"supported config version: {supported}")
+
+          if deployed != supported:
+              raise SystemExit(
+                  f"deploy/synology/librechat.yaml is {deployed}, but runtime expects {supported}"
+              )
+          PY
       - name: Run settings and read-only infrastructure regression tests
         run: |
           python -m unittest -v \
