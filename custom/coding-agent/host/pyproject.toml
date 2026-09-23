@@ -4,16 +4,17 @@ build-backend = "hatchling.build"
 
 [project]
 name = "librechat-coding-agent-host"
-version = "0.1.0"
-description = "Trusted WSL host-side repository refresh and preflight layer for LibreChat coding-agent"
+version = "0.1.1"
+description = "Allowlisted WSL host maintenance and source preflight for LibreChat coding-agent"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["librechat-coding-executor==0.1.6"]
 
 [project.scripts]
+coding-agent-host-maintenance = "host_maintenance.server:main"
 coding-agent-source-preflight = "source_preflight.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/source_preflight"]
+packages = ["src/source_preflight", "src/host_maintenance"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

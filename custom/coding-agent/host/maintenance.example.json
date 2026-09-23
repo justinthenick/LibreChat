@@ -1,0 +1,15 @@
+{
+  "container": "librechat-coding-executor-staging",
+  "image_id": "sha256:REPLACE_WITH_VALIDATED_64_HEX_IMAGE_ID",
+  "repository_root": "/home/justin_kemp/coding-agent-maintenance-staging/repos",
+  "task_root": "/home/justin_kemp/coding-agent-maintenance-staging/tasks",
+  "lock_path": "/home/justin_kemp/.local/share/coding-maintenance/maintenance.lock",
+  "repositories": {
+    "LibreChat": {
+      "branch": "server/synology",
+      "url": "https://github.com/justinthenick/LibreChat.git"
+    }
+  },
+  "enabled_mutations": {"refresh": false, "cleanup": false, "restart": false},
+  "retired_tasks": {}
+}
