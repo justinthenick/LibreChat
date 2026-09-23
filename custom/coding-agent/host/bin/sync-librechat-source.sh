@@ -5,7 +5,7 @@ REPO_ROOT="${CODING_AGENT_LIBRECHAT_REPO:-$HOME/coding-agent/repos/LibreChat}"
 EXPECTED_UPSTREAM="${CODING_AGENT_LIBRECHAT_UPSTREAM:-origin/server/synology}"
 HOST_SRC="$REPO_ROOT/custom/coding-agent/host/src"
 
-if [ ! -d "$REPO_ROOT/.git" ]; then
+if [ ! -e "$REPO_ROOT/.git" ]; then
   echo "LibreChat source repository not found at $REPO_ROOT" >&2
   exit 1
 fi
