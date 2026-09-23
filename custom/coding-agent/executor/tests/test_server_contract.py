@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import ast
+import tomllib
 import unittest
 from pathlib import Path
+
+from coding_executor import __version__
 
 ROOT = Path(__file__).resolve().parents[1]
 SERVER = ROOT / "src/coding_executor/server.py"
@@ -25,6 +28,12 @@ def return_annotation(path: Path, function_name: str) -> str:
 
 
 class ServerContractTest(unittest.TestCase):
+    def test_executor_version_matches_package_metadata(self) -> None:
+        pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        self.assertEqual(__version__, pyproject["project"]["version"])
+        server_source = SERVER.read_text(encoding="utf-8")
+        self.assertIn('"version": __version__', server_source)
+
     def test_structured_task_status_return_contracts(self) -> None:
         self.assertEqual(
             return_annotation(SERVER, "task_status"),
