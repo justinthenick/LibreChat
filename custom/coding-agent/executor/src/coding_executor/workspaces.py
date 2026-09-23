@@ -92,7 +92,8 @@ class WorkspaceManager:
         task_id = f"{slug}-{uuid.uuid4().hex[:8]}"
         destination = self.task_root / task_id
         branch = f"agent/{task_id}"
-        self._git(source, "rev-parse", "--verify", f"{base_ref}^{{commit}}")
+        source_commit = self._git(source, "rev-parse", "--verify", f"{base_ref}^{{commit}}").stdout.strip()
+        source_branch = self._git(source, "branch", "--show-current").stdout.strip()
         self._git(
             source,
             "-c",
@@ -110,8 +111,14 @@ class WorkspaceManager:
         return {
             "task_id": task_id,
             "branch": branch,
+            "task_branch": branch,
             "path": str(destination),
             "task_mode": task_mode,
+            "source_repository": repository,
+            "source_ref": base_ref,
+            "source_branch": source_branch,
+            "source_commit": source_commit,
+            "source_status": self._git(source, "status", "--short").stdout,
         }
 
     def task_status(self, task_id: str) -> dict[str, object]:
