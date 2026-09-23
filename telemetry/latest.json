@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "timestamp": "2026-09-23T17:12:00+1000",
+  "timestamp": "2026-09-24T01:52:47+1000",
   "result": "success",
-  "stage": "complete",
+  "stage": "steady_state_recovered",
   "commit": "b200f6bcb1202fb42015f8d0074110295961df31",
-  "launchpad": {"checkout": {"branch": "server/synology", "cleanliness": "not_polled", "commit": "b200f6bcb1202fb42015f8d0074110295961df31", "ok": true}, "coding_executor": {"endpoint_configured": true, "http_status": 200, "ok": true, "reachable": true, "service_status": "ok", "token_configured": true, "version": "0.1.5"}, "managed_skills": {"count": 6, "names": ["analyze-manuscript-structure", "analyze-requirements", "decompose-requirements", "frontend-design", "improve-codebase-architecture", "technical-writer"], "ok": true, "skills": [{"commit": "5c610170580951ee0b26819d13036568b72f3edb", "name": "analyze-manuscript-structure", "ref": "server/synology", "version": 31}, {"commit": "c521ee2eb4b34abadf7d81a2fec1e1a6acee0c51", "name": "analyze-requirements", "ref": "server/synology", "version": 1}, {"commit": "c521ee2eb4b34abadf7d81a2fec1e1a6acee0c51", "name": "decompose-requirements", "ref": "server/synology", "version": 1}, {"commit": "c521ee2eb4b34abadf7d81a2fec1e1a6acee0c51", "name": "frontend-design", "ref": "server/synology", "version": 1}, {"commit": "c521ee2eb4b34abadf7d81a2fec1e1a6acee0c51", "name": "improve-codebase-architecture", "ref": "server/synology", "version": 3}, {"commit": "c521ee2eb4b34abadf7d81a2fec1e1a6acee0c51", "name": "technical-writer", "ref": "server/synology", "version": 3}]}, "schema": 1, "skill_sync": {"deletedFileCount": 0, "deletedSkillCount": 0, "found": true, "lastSuccessAt": "2026-09-23T07:09:38.224Z", "ok": true, "provider": "github", "ref": "server/synology", "skippedFileCount": 0, "skippedSkillCount": 0, "sourceId": "managed-skills", "status": "succeeded", "syncedFileCount": 0, "syncedSkillCount": 6}},
+  "launchpad": {"schema":1,"status":"unavailable"},
   "runtime": {
     "librechat_container": "running",
     "librechat_exit_code": "0",
@@ -16,12 +16,12 @@
     "volume1_used_percent": "19"
   },
   "last_failure": {
-    "timestamp": "2026-09-23T14:45:19+1000",
-    "commit": "fec7d05fab4d6ca0a99e5315fffec163dc09771a",
-    "stage": "health_check",
-    "librechat_container": "created",
+    "timestamp": "2026-09-24T01:47:35+1000",
+    "commit": "b200f6bcb1202fb42015f8d0074110295961df31",
+    "stage": "preflight",
+    "librechat_container": "running",
     "librechat_exit_code": "0",
-    "cloudflare_tunnel": "connected",
+    "cloudflare_tunnel": "running_unregistered",
     "volume1_used_percent": "19"
   }
 }
