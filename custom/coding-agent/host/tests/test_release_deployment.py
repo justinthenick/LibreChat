@@ -19,7 +19,9 @@ class ReleaseDeploymentContractTests(unittest.TestCase):
         self.assertIn('python3 -m venv --without-pip "$RELEASE/venv"', text)
         self.assertIn("python:3.12-slim-bookworm", text)
         self.assertIn("python -m pip install", text)
-        self.assertIn("--target /target", text)
+        self.assertIn("--target /out", text)
+        self.assertIn('tar -C "$SITE" -xf -', text)
+        self.assertNotIn('--volume "$SITE:/target:rw"', text)
         self.assertIn('test ! -e "$RELEASE"', text)
 
     def test_release_deploy_updates_both_executor_image_pins(self) -> None:
@@ -34,6 +36,9 @@ class ReleaseDeploymentContractTests(unittest.TestCase):
         text = DEPLOY.read_text()
 
         self.assertIn("rollback()", text)
+        self.assertIn("trap 'rollback $?' ERR", text)
+        self.assertIn('exit "$status"', text)
+        self.assertIn("No production switch had been armed; nothing was rolled back.", text)
         self.assertIn('restore_file "$BACKUP/compose.json" "$COMPOSE"', text)
         self.assertIn('restore_file "$BACKUP/policy.json" "$CONFIG"', text)
         self.assertIn("=== FAIL-CLOSED RUNTIME VERIFICATION ===", text)
