@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "librechat-coding-agent-host"
-version = "0.1.3"
+version = "0.1.4"
 description = "Allowlisted WSL host maintenance and source preflight for LibreChat coding-agent"
 requires-python = ">=3.11"
-dependencies = ["librechat-coding-executor==0.1.8"]
+dependencies = ["librechat-coding-executor==0.1.9"]
 
 [project.scripts]
 coding-agent-host-maintenance = "host_maintenance.server:main"
