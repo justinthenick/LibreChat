@@ -120,6 +120,34 @@ Production remains unchanged until these gates pass and rollout is approved.
    executor upgrade, install the immutable lock mount and pin the new image. Do not
    point the broker at an old executor image lacking request coordination.
 
+## Production immutable release deployment
+
+After staging validation and explicit rollout approval, deploy from a clean
+`server/synology` checkout with:
+
+```bash
+custom/coding-agent/host/bin/deploy-maintenance-release.sh
+```
+
+The deployment script creates `~/.local/share/coding-maintenance/releases/<git-sha>`,
+builds a pip-less host venv, and uses a disposable Python 3.12 container to install
+the reviewed executor and host packages into that venv. This avoids assuming that
+Ubuntu/WSL provides `pip` or `ensurepip` inside venvs. The systemd service runs
+only from the `current` immutable-release symlink and explicitly clears
+`PYTHONPATH`; source-tree imports are not an accepted production state.
+
+The switch updates both the Compose executor image and the broker policy's pinned
+`image_id`, installs the reviewed systemd unit, recreates only the executor
+container, starts host maintenance, and verifies executor version, container/image
+identity, host package version and maintenance listener before reporting success.
+Compose, policy, unit/drop-in and prior `current` target are backed up before the
+switch. A post-switch failure attempts rollback and leaves the failed release/image
+available for inspection.
+
+The installer container image is part of the operator-controlled deployment input.
+Record its resolved image ID in rollout evidence, use a reviewed Python 3.12 image,
+and do not substitute an agent-writable installer source.
+
 ## LibreChat configuration after staging validation
 
 Merge this private-address exemption with existing `mcpSettings.allowedAddresses`:

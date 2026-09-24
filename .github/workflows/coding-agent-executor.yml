@@ -76,10 +76,11 @@ jobs:
           PYTHONPATH=custom/coding-agent/executor/src:custom/coding-agent/host/src \
             python -B custom/coding-agent/host/tests/staging_smoke.py coding-maintenance-ci
 
-      - name: Validate trusted-host source sync automation
+      - name: Validate trusted-host automation
         run: |
           bash -n custom/coding-agent/host/bin/sync-librechat-source.sh
           bash -n custom/coding-agent/host/bin/install-source-sync-timer.sh
+          bash -n custom/coding-agent/host/bin/deploy-maintenance-release.sh
           grep -F 'OnUnitInactiveSec=5min' custom/coding-agent/host/systemd/coding-agent-source-sync.timer
           grep -F 'source_preflight.cli' custom/coding-agent/host/bin/sync-librechat-source.sh
           grep -F 'PYTHONDONTWRITEBYTECODE=1' custom/coding-agent/host/bin/sync-librechat-source.sh
