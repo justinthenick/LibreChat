@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { test } = require('node:test');
+const test = typeof jest === 'undefined' ? require('node:test').test : globalThis.test;
 
 const root = path.resolve(__dirname, '../..');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'custom/coding-agent/production/software-engineering-pilot.json')));
