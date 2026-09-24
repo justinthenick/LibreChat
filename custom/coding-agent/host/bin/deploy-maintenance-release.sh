@@ -79,10 +79,14 @@ restore_file() {
 }
 
 rollback() {
+  local status="${1:-1}"
   trap - ERR
   set +e
+
+  echo
+  echo "=== DEPLOYMENT FAILED status=$status armed=$ARMED ==="
+
   if [ "$ARMED" -eq 1 ]; then
-    echo
     echo "=== ROLLBACK ==="
     restore_file "$BACKUP/compose.json" "$COMPOSE"
     restore_file "$BACKUP/policy.json" "$CONFIG"
@@ -103,9 +107,13 @@ rollback() {
     fi
     systemctl --user restart coding-agent-host-maintenance
     echo "Rollback attempted; failed release and image were retained for inspection."
+  else
+    echo "No production switch had been armed; nothing was rolled back."
   fi
+
+  exit "$status"
 }
-trap rollback ERR
+trap 'rollback $?' ERR
 
 echo "=== PREFLIGHT ==="
 test "$BRANCH" = "$EXPECTED_BRANCH"
@@ -172,7 +180,26 @@ docker image inspect "$INSTALLER_IMAGE" >/dev/null 2>&1 || docker pull "$INSTALL
 INSTALLER_IMAGE_ID="$(docker image inspect "$INSTALLER_IMAGE" --format '{{.Id}}')"
 echo "installer_image_id=$INSTALLER_IMAGE_ID"
 
-docker run --rm   --user "$(id -u):$(id -g)"   --env HOME=/tmp   --volume "$RELEASE/custom/coding-agent:/src:ro"   --volume "$SITE:/target:rw"   "$INSTALLER_IMAGE"   python -m pip install     --disable-pip-version-check     --no-cache-dir     --target /target     /src/executor /src/host
+# Avoid Docker Desktop/WSL bind-mount semantics for the release venv itself.
+# Stream the reviewed source into the installer container, build/install into
+# an isolated /out tree, then stream that tree back for extraction by the host
+# user into the venv site-packages. Installer logs go to stderr so stdout
+# remains a clean tar stream.
+tar -C "$RELEASE/custom/coding-agent" -cf - executor host |
+  docker run --rm -i \
+    --env HOME=/tmp \
+    "$INSTALLER_IMAGE" \
+    sh -ceu '
+      mkdir -p /src /out
+      tar -C /src -xf -
+      python -m pip install \
+        --disable-pip-version-check \
+        --no-cache-dir \
+        --target /out \
+        /src/executor /src/host >&2
+      tar -C /out -cf - .
+    ' |
+  tar -C "$SITE" -xf -
 
 echo
 echo "=== VERIFY RELEASE IMPORTS ==="
