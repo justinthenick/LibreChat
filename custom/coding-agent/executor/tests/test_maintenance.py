@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 from coding_executor.bounded import run
 from coding_executor.coordination import coordinated, maintenance_lock
-from coding_executor.maintenance import git, inventory, refresh, remove_task, repository_status, task_snapshot
+from coding_executor.maintenance import fresh_repository_status, git, inventory, refresh, remove_task, repository_status, task_snapshot
 from coding_executor.workspaces import WorkspaceManager
 
 
@@ -79,6 +79,105 @@ class MaintenanceTests(unittest.TestCase):
         self.assertEqual(result["stale_registrations"][0]["task_id"], stale)
         self.assertFalse(result["automatically_pruned"])
         self.assertIn(stale, self.command(self.repo, "worktree", "list", "--porcelain"))
+
+    def fresh_fixture(self):
+        remote = self.root / "upstream.git"
+        self.command(self.root, "clone", "--bare", str(self.repo), str(remote))
+        url = "https://github.com/example/demo.git"
+        self.command(self.repo, "remote", "add", "origin", url)
+        self.command(self.repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+        self.command(self.repo, "branch", "--set-upstream-to=origin/main", "main")
+        self.command(remote, "config", "user.email", "test@example.invalid")
+        self.command(remote, "config", "user.name", "Test")
+        commit = self.command(remote, "commit-tree", "HEAD^{tree}", "-p", "HEAD", "-m", "remote advance").strip()
+        self.command(remote, "update-ref", "refs/heads/main", commit)
+        original_git = git
+        def transport(path, *args):
+            if "fetch" in args:
+                args = tuple(str(remote) if arg == url else arg for arg in args)
+                return original_git(path, "-c", "protocol.file.allow=always", *args)
+            return original_git(path, *args)
+        return url, commit, transport
+
+    def test_fresh_fetch_reports_remote_without_modifying_source_or_cached_upstream(self):
+        url, commit, transport = self.fresh_fixture()
+        head = self.command(self.repo, "rev-parse", "HEAD").strip()
+        index = (self.repo / ".git/index").read_bytes()
+        (self.repo / ".git/FETCH_HEAD").write_text("previous fetch marker\n")
+        with patch("coding_executor.maintenance.git", side_effect=transport):
+            result = fresh_repository_status(self.repos, "demo", "main", url)
+        self.assertTrue(result["ok"], result)
+        self.assertEqual((result["upstream_sha"], result["ahead"], result["behind"]), (commit, 0, 1))
+        self.assertEqual(result["comparison_basis"], "fresh_remote_ref")
+        self.assertEqual(result["fetch_result"], "success")
+        self.assertIsNotNone(result["fetched_at"])
+        self.assertEqual(self.command(self.repo, "rev-parse", "HEAD").strip(), head)
+        self.assertEqual(self.command(self.repo, "rev-parse", "origin/main").strip(), head)
+        self.assertEqual((self.repo / ".git/index").read_bytes(), index)
+        self.assertEqual((self.repo / ".git/FETCH_HEAD").read_text(), "previous fetch marker\n")
+        self.assertEqual((self.repo / "file").read_text(), "initial\n")
+        self.assertEqual(repository_status(self.repos, "demo", "main")["freshness"], "not_fetched")
+
+    def test_fresh_fetch_reports_divergence_and_never_falls_back_after_fetch_error(self):
+        url, commit, transport = self.fresh_fixture()
+        self.command(self.repo, "commit", "--allow-empty", "-m", "local advance")
+        with patch("coding_executor.maintenance.git", side_effect=transport):
+            result = fresh_repository_status(self.repos, "demo", "main", url)
+        self.assertEqual((result["ahead"], result["behind"], result["diverged"]), (1, 1, True))
+        def failed_fetch(path, *args):
+            if "fetch" in args:
+                raise RuntimeError("network failed")
+            return transport(path, *args)
+        with patch("coding_executor.maintenance.git", side_effect=failed_fetch):
+            result = fresh_repository_status(self.repos, "demo", "main", url)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["fetch_result"], "fetch_or_comparison_failed")
+        self.assertNotIn("upstream_sha", result)
+        self.assertIsNone(result["fetched_at"])
+
+    def test_fresh_status_refuses_dirty_detached_wrong_upstream_and_url_rewrite(self):
+        url, _, _ = self.fresh_fixture()
+        (self.repo / "untracked").write_text("retain")
+        self.assertFalse(fresh_repository_status(self.repos, "demo", "main", url)["ok"])
+        (self.repo / "untracked").unlink()
+        self.command(self.repo, "checkout", "--detach")
+        self.assertFalse(fresh_repository_status(self.repos, "demo", "main", url)["ok"])
+        self.command(self.repo, "checkout", "main")
+        self.command(self.repo, "branch", "--unset-upstream")
+        self.assertFalse(fresh_repository_status(self.repos, "demo", "main", url)["ok"])
+        self.command(self.repo, "branch", "--set-upstream-to=origin/main", "main")
+        self.command(self.repo, "config", "url.https://evil.invalid/.insteadOf", "https://github.com/")
+        self.assertEqual(fresh_repository_status(self.repos, "demo", "main", url)["fetch_result"], "refused_remote_identity")
+
+    def test_snapshot_checks_staged_untracked_ignored_and_git_locks(self):
+        task = self.task()
+        path = self.tasks / task
+        self.assertTrue(all(task_snapshot(self.repos, self.tasks, task)["checks"].values()))
+        (path / "file").write_text("staged change")
+        self.command(path, "add", "file")
+        snapshot = task_snapshot(self.repos, self.tasks, task)
+        self.assertFalse(snapshot["checks"]["tracked_clean"])
+        self.assertFalse(snapshot["checks"]["index_clean"])
+        (path / "extra").write_text("untracked")
+        (path / "keep.ignored").write_text("ignored")
+        snapshot = task_snapshot(self.repos, self.tasks, task)
+        self.assertFalse(snapshot["checks"]["no_untracked"])
+        self.assertFalse(snapshot["checks"]["no_ignored"])
+        admin = Path(self.command(path, "rev-parse", "--absolute-git-dir").strip())
+        (admin / "index.lock").touch()
+        with self.assertRaisesRegex(ValueError, "active Git lock"):
+            task_snapshot(self.repos, self.tasks, task)
+
+    def test_clean_worktree_with_unfinished_git_operation_is_refused(self):
+        task = self.task()
+        path = self.tasks / task
+        admin = Path(self.command(path, "rev-parse", "--absolute-git-dir").strip())
+        for marker in ("MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-apply", "rebase-merge", "sequencer", "BISECT_LOG"):
+            with self.subTest(marker=marker):
+                (admin / marker).touch()
+                with self.assertRaisesRegex(ValueError, "unfinished Git operation"):
+                    task_snapshot(self.repos, self.tasks, task)
+                (admin / marker).unlink()
 
     def test_cleanup_retains_branch_and_rejects_replay(self):
         task = self.task()

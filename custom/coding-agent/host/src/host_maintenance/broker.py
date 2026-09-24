@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import json
 import re
 import secrets
@@ -43,6 +44,7 @@ class Broker:
             if not re.fullmatch(r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\.git", policy["url"]):
                 raise ValueError("invalid configured repository URL")
         self._mutex = threading.Lock()
+        self._helper_mutex = threading.Lock()
         self._tickets: dict[str, tuple[float, str, str, str]] = {}
         self._last_restart = float("-inf")
 
@@ -81,6 +83,16 @@ class Broker:
         return data
 
     def _helper(self, operation: str, *args: str) -> dict:
+        # MCP dispatches tools concurrently. Queue once before starting a helper;
+        # never replay a command after failure or wait on an active coding task.
+        if not self._helper_mutex.acquire(timeout=15):
+            raise RuntimeError("maintenance_queue_full: no operation started")
+        try:
+            return self._run_helper(operation, *args)
+        finally:
+            self._helper_mutex.release()
+
+    def _run_helper(self, operation: str, *args: str) -> dict:
         container = self._inspect()
         if not container["State"]["Running"]:
             raise RuntimeError("executor is not running")
@@ -113,17 +125,33 @@ class Broker:
         policy = self._repository(repository)
         return self._helper("refresh", "--repository", repository, "--branch", policy["branch"], "--url", policy["url"])
 
+    def fresh_repository_status(self, repository: str) -> dict:
+        policy = self._repository(repository)
+        return self._helper("fresh-status", "--repository", repository, "--branch", policy["branch"], "--url", policy["url"])
+
     def task_inventory(self) -> dict:
         return self._helper("inventory")
 
-    def _retired(self, task_id: str) -> None:
+    def _retired(self, task_id: str) -> dict:
         if not NAME.fullmatch(task_id):
             raise ValueError("invalid task identifier")
-        retired_at = self.config.get("retired_tasks", {}).get(task_id)
-        if isinstance(retired_at, bool) or not isinstance(retired_at, (int, float)):
-            raise ValueError("task has not been explicitly retired by the operator")
-        if not 0 < retired_at <= time.time() - 86400:
-            raise ValueError("task must be retired for at least 24 hours")
+        record = self.config.get("retired_tasks", {}).get(task_id)
+        if not isinstance(record, dict):
+            raise ValueError("task requires an operator retirement record bound to its identity")
+        retired_at = record.get("retired_at")
+        minimum = self.config.get("minimum_retirement_age_seconds", 86400)
+        if type(minimum) is not int or not 0 <= minimum <= 31536000:
+            raise ValueError("invalid retirement age policy")
+        if isinstance(retired_at, bool) or not isinstance(retired_at, (int, float)) or not math.isfinite(retired_at):
+            raise ValueError("invalid retirement time")
+        if not 0 < retired_at <= time.time() - minimum:
+            raise ValueError("task has not reached the required retirement age")
+        if (record.get("branch") != f"agent/{task_id}"
+                or not re.fullmatch(r"[0-9a-f]{40,64}", str(record.get("head", "")))
+                or not re.fullmatch(r"[0-9a-f]{64}", str(record.get("fingerprint", "")))
+                or record.get("repository") not in self.config["repositories"]):
+            raise ValueError("invalid retirement identity")
+        return record
 
     def _ticket(self, operation: str, subject: str, fingerprint: str) -> dict:
         with self._mutex:
@@ -143,16 +171,28 @@ class Broker:
         return pending[2], pending[3]
 
     def preview_cleanup(self, task_id: str) -> dict:
-        self._retired(task_id)
+        self._enabled("cleanup")
+        retirement = self._retired(task_id)
         snapshot = self._helper("preview", "--task", task_id)
         if snapshot["dirty"]:
             raise ValueError("task contains tracked, untracked or ignored changes")
-        return {"snapshot": snapshot, **self._ticket("cleanup", task_id, snapshot["fingerprint"])}
+        if any(snapshot.get(key) != retirement[key] for key in ("repository", "branch", "head", "fingerprint")):
+            raise ValueError("task identity changed since operator retirement")
+        required = {"tracked_clean", "index_clean", "no_untracked", "no_ignored",
+                    "expected_identity", "registered_nonbroken", "no_git_locks", "no_git_operation"}
+        checks = snapshot.get("checks", {})
+        if snapshot.get("exclusive_gate_verified") is not True or any(checks.get(key) is not True for key in required):
+            raise ValueError("cleanup eligibility was not proven")
+        return {"eligible": True, "retirement": retirement, "snapshot": snapshot,
+                "confirmation_task_id": task_id, **self._ticket("cleanup", task_id, snapshot["fingerprint"])}
 
-    def cleanup_task(self, ticket: str) -> dict:
+    def cleanup_task(self, ticket: str, confirm_task_id: str) -> dict:
         self._enabled("cleanup")
         task_id, fingerprint = self._consume(ticket, "cleanup")
-        self._retired(task_id)
+        if confirm_task_id != task_id:
+            raise ValueError("confirmation must match the exact previewed task")
+        if self._retired(task_id)["fingerprint"] != fingerprint:
+            raise ValueError("retirement changed since preview")
         return self._helper("remove", "--task", task_id, "--fingerprint", fingerprint)
 
     @staticmethod

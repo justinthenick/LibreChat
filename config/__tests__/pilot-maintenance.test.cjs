@@ -22,15 +22,15 @@ function seeder(value = manifest) {
   return module.exports;
 }
 
-test('reconciliation persists exactly four maintenance tools alongside existing coding tools', () => {
+test('reconciliation persists exactly seven maintenance tools alongside existing coding tools', () => {
   const api = seeder();
   api.loadManifest();
   const skills = [{ id: 'skill-id' }];
   const agent = api.desiredAgent(manifest, 'owner-id', skills);
-  assert.equal(agent.tools.length, 13);
+  assert.equal(agent.tools.length, 16);
   assert.deepEqual(Array.from(agent.mcpServerNames), ['coding_executor', 'coding_maintenance']);
   assert.deepEqual(Array.from(agent.tools.filter((tool) => tool.endsWith('_mcp_coding_maintenance'))),
-    ['executor_health', 'repository_status', 'task_inventory', 'executor_logs'].map((tool) => `${tool}_mcp_coding_maintenance`));
+    ['executor_health', 'repository_status', 'task_inventory', 'executor_logs', 'fresh_repository_status', 'preview_cleanup', 'cleanup_task'].map((tool) => `${tool}_mcp_coding_maintenance`));
   api.validatePersistedAgent(agent, manifest, skills);
   agent.tools.push('restart_executor_mcp_coding_maintenance');
   assert.throws(() => api.validatePersistedAgent(agent, manifest, skills), /allowlist/);
@@ -38,7 +38,7 @@ test('reconciliation persists exactly four maintenance tools alongside existing 
 
 test('manifest refuses maintenance wildcard, mutation and missing tool declarations', () => {
   for (const tools of [['*'], ['executor_health', 'restart_executor'], []]) {
-    assert.throws(() => seeder({ ...manifest, maintenance_mcp_tools: tools }).loadManifest(), /four read-only/);
+    assert.throws(() => seeder({ ...manifest, maintenance_mcp_tools: tools }).loadManifest(), /seven constrained/);
   }
 });
 

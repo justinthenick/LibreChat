@@ -17,7 +17,7 @@ const MANIFEST_FILE = 'software-engineering-pilot.json';
 const PILOT_AGENT_ID = 'agent_software_engineering_pilot_v01';
 const MCP_SERVER = 'coding_executor';
 const MAINTENANCE_SERVER = 'coding_maintenance';
-const EXPECTED_MAINTENANCE_TOOLS = ['executor_health', 'repository_status', 'task_inventory', 'executor_logs'];
+const EXPECTED_MAINTENANCE_TOOLS = ['executor_health', 'repository_status', 'task_inventory', 'executor_logs', 'fresh_repository_status', 'preview_cleanup', 'cleanup_task'];
 const GOOGLE_ENDPOINT_NAME = 'google';
 const OPENROUTER_ENDPOINT_NAME = 'OpenRouter';
 const EXPECTED_MCP_TOOLS = [
@@ -194,7 +194,7 @@ function loadManifest() {
   }
   if (manifest.maintenance_mcp_server !== MAINTENANCE_SERVER ||
       !sameStrings(manifest.maintenance_mcp_tools, EXPECTED_MAINTENANCE_TOOLS)) {
-    throw new Error(`${manifest.id} maintenance tools must match the four read-only operations`);
+    throw new Error(`${manifest.id} maintenance tools must match the seven constrained operations`);
   }
   if (manifest.deployment?.production_seeder !== 'enabled') {
     throw new Error(`${manifest.id} persistent seeding has not been explicitly enabled`);

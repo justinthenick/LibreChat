@@ -65,6 +65,11 @@ def build_server(broker: Broker, token: str, url: str) -> MCPServer:
     def repository_status(repository: str) -> dict:
         return broker.repository_status(repository)
 
+    @server.tool(description="Fetch only the approved remote branch into a dedicated status ref and compare it with source HEAD. Never changes source files, index or branch. Check ok/fetch_result: dirty, detached, wrong-upstream and failed fetches return no fresh comparison.")
+    @audited
+    def fresh_repository_status(repository: str) -> dict:
+        return broker.fresh_repository_status(repository)
+
     @server.tool(description="Fetch the configured GitHub source inside the executor and fast-forward only. Requires operator enablement; dirty/ahead/diverged sources are refused.")
     @audited
     def refresh_repository(repository: str) -> dict:
@@ -80,10 +85,10 @@ def build_server(broker: Broker, token: str, url: str) -> MCPServer:
     def preview_cleanup(task_id: str) -> dict:
         return broker.preview_cleanup(task_id)
 
-    @server.tool(description="Recheck and remove the exact previewed retired worktree, retaining its branch. Requires operator enablement.")
+    @server.tool(description="Recheck and remove only the eligible, operator-retired worktree bound to a single-use ticket. confirm_task_id must match the preview exactly. Retains branch. Disabled without operator policy.")
     @audited
-    def cleanup_task(ticket: str) -> dict:
-        return broker.cleanup_task(ticket)
+    def cleanup_task(ticket: str, confirm_task_id: str) -> dict:
+        return broker.cleanup_task(ticket, confirm_task_id)
 
     @server.tool(description="Get bounded, privacy-filtered executor lifecycle/error events; no raw log text.")
     @audited

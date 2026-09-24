@@ -1,20 +1,22 @@
 # Software Engineering Pilot maintenance integration
 
-The Pilot has thirteen explicitly named MCP tools: the existing nine coding tools
-and four read-only `coding_maintenance` tools. The maintenance additions are
-`executor_health`, `repository_status`, `task_inventory` and `executor_logs`.
-Persisted IDs use `<operation>_mcp_coding_maintenance`. No wildcard, refresh,
-cleanup or restart tool is assigned to the Pilot. Existing skill and ownership
+The Pilot has sixteen explicitly named MCP tools: the existing nine coding tools
+and seven explicit `coding_maintenance` tools. The maintenance additions are
+`executor_health`, `repository_status`, `task_inventory`, `executor_logs`,
+`fresh_repository_status`, `preview_cleanup` and `cleanup_task`.
+Persisted IDs use `<operation>_mcp_coding_maintenance`. No wildcard, source working-tree refresh or restart tool is assigned. Cleanup
+is the only assigned mutation and requires operator retirement, eligibility and
+a confirmed single-use ticket. Existing skill and ownership
 permissions remain unchanged.
 
 The previous Pilot instructions required a worktree for every task, including
-status checks. Version 0.1.10 routes maintenance inspections directly to these
-four tools and explicitly stops if maintenance is unavailable. Coding tasks keep
+status checks. Version 0.1.11 routes maintenance inspections directly to these
+maintenance tools and explicitly stops if maintenance is unavailable. Coding tasks keep
 their existing worktree workflow.
 
 ## Deployment gates
 
-1. Install and validate executor 0.1.7 and host package 0.1.2 with a pinned image.
+1. Install and validate executor 0.1.8 and host package 0.1.3 with a pinned image.
    These add missing read-only response fields: installed executor version,
    cached upstream ahead/behind/divergence and stale worktree registrations.
    `freshness: not_fetched` explicitly means no live remote fetch was performed.
@@ -27,9 +29,9 @@ their existing worktree workflow.
    writes the token into runtime YAML. Match the broker's explicit allowed host.
 4. Deploy the updated YAML, renderer, Compose configuration, Pilot manifest and
    seeder together. Recreate the LibreChat API service so its environment and
-   configuration reload. Startup reconciliation assigns and validates all thirteen
+   configuration reload. Startup reconciliation assigns and validates all sixteen
    tool IDs and both MCP server names. Preserve existing agent ownership.
-5. In the running LibreChat instance, confirm MCP discovery returns the four
+5. In the running LibreChat instance, confirm MCP discovery returns the seven
    maintenance names and the persisted Pilot includes their exact IDs. Confirm
    the logged-in Pilot user can invoke them. Registration alone is not acceptance.
 
@@ -52,7 +54,7 @@ fallback coding call, or missing trace is not a pass.
 
 ## Accidental inspection worktree
 
-`maintenance-inspection-3c5e6683` was inspected after the failed run. It is dirty
-(the policy includes ignored and untracked files), cleanup is disabled, and it has
-no retirement record. It must remain intact. Do not discard its contents or bypass
-the 24-hour retirement gate to make an acceptance test pass.
+`maintenance-inspection-3c5e6683` was removed separately with explicit user approval
+after a verified full backup on 24 September 2026. Its Git branch and state record
+were retained. That operator action is not a cleanup acceptance fixture; never
+recreate or target that identity during later acceptance tests.
