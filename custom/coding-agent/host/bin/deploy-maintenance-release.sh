@@ -163,15 +163,21 @@ cp -a "$HOST_DIR" "$RELEASE/custom/coding-agent/"
 python3 -m venv --without-pip "$RELEASE/venv"
 
 PY="$RELEASE/venv/bin/python"
-SITE="$("$PY" - <<'PY'
-import site
+SITE="$("$PY" - "$RELEASE/venv" <<'PY'
+import pathlib
+import sys
+import sysconfig
 
-paths = site.getsitepackages()
-if len(paths) != 1:
-    raise SystemExit(f"expected one site-packages path, got {paths!r}")
-print(paths[0])
+venv = pathlib.Path(sys.argv[1]).resolve()
+purelib = pathlib.Path(sysconfig.get_path("purelib")).resolve()
+try:
+    purelib.relative_to(venv)
+except ValueError as exc:
+    raise SystemExit(f"venv purelib escapes release venv: {purelib}") from exc
+print(purelib)
 PY
 )"
+mkdir -p "$SITE"
 test -d "$SITE"
 
 echo
