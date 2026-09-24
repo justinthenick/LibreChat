@@ -1,31 +1,3 @@
-2026-09-24 19:45:07 Synology Admin Settings integration enabled
-2026-09-24 19:46:09 No deployment change; healthy deployment already recorded at d4c447f1
-2026-09-24 19:50:02 LibreChat deployment check started
-2026-09-24 19:50:02 Cloudflare tunnel integration enabled
-2026-09-24 19:50:02 Synology Admin Settings integration enabled
-2026-09-24 19:51:12 No deployment change; healthy deployment already recorded at d4c447f1
-2026-09-24 19:55:02 LibreChat deployment check started
-2026-09-24 19:55:02 Cloudflare tunnel integration enabled
-2026-09-24 19:55:02 Synology Admin Settings integration enabled
-2026-09-24 19:56:13 No deployment change; healthy deployment already recorded at d4c447f1
-2026-09-24 20:00:03 LibreChat deployment check started
-2026-09-24 20:00:03 Cloudflare tunnel integration enabled
-2026-09-24 20:00:03 Synology Admin Settings integration enabled
-2026-09-24 20:01:16 No deployment change; healthy deployment already recorded at d4c447f1
-2026-09-24 20:05:05 LibreChat deployment check started
-2026-09-24 20:05:06 Cloudflare tunnel integration enabled
-2026-09-24 20:05:06 Synology Admin Settings integration enabled
-2026-09-24 20:06:11 No deployment change; healthy deployment already recorded at d4c447f1
-2026-09-24 20:10:11 LibreChat deployment check started
-2026-09-24 20:10:12 Cloudflare tunnel integration enabled
-2026-09-24 20:10:12 Synology Admin Settings integration enabled
-2026-09-24 20:11:43 No deployment change; healthy deployment already recorded at d4c447f1
-2026-09-24 20:15:12 LibreChat deployment check started
-2026-09-24 20:15:12 Cloudflare tunnel integration enabled
-2026-09-24 20:15:12 Synology Admin Settings integration enabled
-2026-09-24 20:17:39 Change detected: d4c447f1 -> 43fb00e4
-2026-09-24 20:18:41 Official LibreChat Admin Panel dedicated session secret ready
-2026-09-24 20:18:44 Synology Admin Settings privileged worker ready
 2026-09-24 20:18:46 NAS read-only infrastructure worker ready
 2026-09-24 20:18:48 Compose validation passed
 2026-09-24 20:20:30 Image pull completed
@@ -38,3 +10,31 @@
 2026-09-24 20:26:48 Synology Admin Settings panel and worker healthy
 2026-09-24 20:26:48 Official LibreChat Admin Panel healthy on its configured host port (default 3220)
 2026-09-24 20:26:49 NAS read-only infrastructure worker and MCP bridge healthy
+2026-09-24 20:27:04 Sanitised GitHub telemetry published
+2026-09-24 20:27:05 Deployment healthy at 43fb00e4f6ad3de60048da98f72255a9525f8605
+2026-09-24 20:27:39 LibreChat deployment check started
+2026-09-24 20:27:39 Cloudflare tunnel integration enabled
+2026-09-24 20:27:39 Synology Admin Settings integration enabled
+2026-09-24 20:28:56 No deployment change; healthy deployment already recorded at 43fb00e4
+2026-09-24 20:30:03 LibreChat deployment check started
+2026-09-24 20:30:03 Cloudflare tunnel integration enabled
+2026-09-24 20:30:03 Synology Admin Settings integration enabled
+2026-09-24 20:31:12 No deployment change; healthy deployment already recorded at 43fb00e4
+2026-09-24 20:35:02 LibreChat deployment check started
+2026-09-24 20:35:02 Cloudflare tunnel integration enabled
+2026-09-24 20:35:02 Synology Admin Settings integration enabled
+2026-09-24 20:36:07 Change detected: 43fb00e4 -> 4c7ef10e
+2026-09-24 20:37:34 Official LibreChat Admin Panel dedicated session secret ready
+2026-09-24 20:37:37 Synology Admin Settings privileged worker ready
+2026-09-24 20:37:39 NAS read-only infrastructure worker ready
+2026-09-24 20:37:40 Compose validation passed
+2026-09-24 20:39:46 Image pull completed
+2026-09-24 20:39:48 Compose update completed
+2026-09-24 20:44:04 LibreChat API recreated for deployed runtime configuration
+2026-09-24 20:44:05 LibreChat health check passed
+2026-09-24 20:44:55 Production agents and coding-agent pilot seeded and validated
+2026-09-24 20:44:55 MCP workspace mount passed write/read/delete check
+2026-09-24 20:44:55 Cloudflare tunnel connector registered
+2026-09-24 20:44:57 Synology Admin Settings panel and worker healthy
+2026-09-24 20:44:57 Official LibreChat Admin Panel healthy on its configured host port (default 3220)
+2026-09-24 20:44:58 NAS read-only infrastructure worker and MCP bridge healthy
