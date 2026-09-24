@@ -178,7 +178,7 @@ class Broker:
             raise ValueError("task contains tracked, untracked or ignored changes")
         if any(snapshot.get(key) != retirement[key] for key in ("repository", "branch", "head", "fingerprint")):
             raise ValueError("task identity changed since operator retirement")
-        required = {"tracked_clean", "index_clean", "no_untracked", "no_ignored",
+        required = {"tracked_clean", "index_clean", "no_untracked", "no_ignored", "no_hidden_index_flags",
                     "expected_identity", "registered_nonbroken", "no_git_locks", "no_git_operation"}
         checks = snapshot.get("checks", {})
         if snapshot.get("exclusive_gate_verified") is not True or any(checks.get(key) is not True for key in required):
