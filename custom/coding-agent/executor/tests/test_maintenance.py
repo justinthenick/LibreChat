@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import shutil
+import sys
 import tempfile
 import time
 import unittest
@@ -11,7 +13,7 @@ from unittest.mock import patch
 
 from coding_executor.bounded import run
 from coding_executor.coordination import coordinated, maintenance_lock
-from coding_executor.maintenance import git, refresh, remove_task, repository_status, task_snapshot
+from coding_executor.maintenance import git, inventory, refresh, remove_task, repository_status, task_snapshot
 from coding_executor.workspaces import WorkspaceManager
 
 
@@ -41,6 +43,42 @@ class MaintenanceTests(unittest.TestCase):
 
     def task(self, mode="modification"):
         return self.manager.create_task("demo", "test", "main", mode)["task_id"]
+
+    def test_status_reports_cached_ahead_behind_divergence_and_missing_upstream(self):
+        self.assertIsNone(repository_status(self.repos, "demo", "main")["ahead"])
+        self.command(self.repo, "remote", "add", "origin", "https://github.com/example/demo.git")
+        self.command(self.repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+        self.command(self.repo, "branch", "--set-upstream-to=origin/main", "main")
+        self.command(self.repo, "commit", "--allow-empty", "-m", "ahead")
+        status = repository_status(self.repos, "demo", "main")
+        self.assertEqual((status["ahead"], status["behind"], status["diverged"]), (1, 0, False))
+        self.command(self.repo, "checkout", "--detach", "HEAD~1")
+        self.command(self.repo, "commit", "--allow-empty", "-m", "upstream")
+        self.command(self.repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+        self.command(self.repo, "checkout", "main")
+        status = repository_status(self.repos, "demo", "main")
+        self.assertEqual((status["ahead"], status["behind"], status["diverged"]), (1, 1, True))
+        self.assertEqual(status["freshness"], "not_fetched")
+
+    def test_version_inspection_does_not_acquire_worktree_lock(self):
+        from coding_executor import __version__
+        with maintenance_lock(self.tasks, exclusive=True):
+            result = subprocess.run([sys.executable, "-B", "-m", "coding_executor.maintenance", "health"],
+                                    capture_output=True, text=True, check=True,
+                                    env={**os.environ, "CODING_REPOSITORY_ROOT": str(self.repos),
+                                         "CODING_TASK_ROOT": str(self.tasks)})
+        self.assertEqual(json.loads(result.stdout), {"version": __version__})
+
+    def test_inventory_reports_clean_dirty_and_stale_without_pruning(self):
+        clean, dirty, stale = self.task(), self.task(), self.task()
+        (self.tasks / dirty / "untracked").write_text("retain")
+        shutil.rmtree(self.tasks / stale)
+        result = inventory(self.repos, self.tasks)
+        states = {item["task_id"]: item["state"] for item in result["tasks"]}
+        self.assertEqual(states, {clean: "clean", dirty: "dirty"})
+        self.assertEqual(result["stale_registrations"][0]["task_id"], stale)
+        self.assertFalse(result["automatically_pruned"])
+        self.assertIn(stale, self.command(self.repo, "worktree", "list", "--porcelain"))
 
     def test_cleanup_retains_branch_and_rejects_replay(self):
         task = self.task()

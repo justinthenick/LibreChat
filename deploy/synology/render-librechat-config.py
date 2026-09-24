@@ -101,9 +101,22 @@ def render(template_text, values):
     if port < 1 or port > 65535:
         raise ValueError("Invalid CODING_EXECUTOR_PORT")
 
+    maintenance_host = values.get("CODING_MAINTENANCE_HOST", "localhost").strip()
+    maintenance_port_text = values.get("CODING_MAINTENANCE_PORT", "8767").strip()
+    if not maintenance_host or not EXECUTOR_HOST.fullmatch(maintenance_host):
+        raise ValueError("Invalid CODING_MAINTENANCE_HOST")
+    try:
+        maintenance_port = int(maintenance_port_text)
+    except ValueError:
+        raise ValueError("Invalid CODING_MAINTENANCE_PORT")
+    if not 1 <= maintenance_port <= 65535:
+        raise ValueError("Invalid CODING_MAINTENANCE_PORT")
+
     return (
         rendered.replace("${CODING_EXECUTOR_HOST}", host)
         .replace("${CODING_EXECUTOR_PORT}", str(port))
+        .replace("${CODING_MAINTENANCE_HOST}", maintenance_host)
+        .replace("${CODING_MAINTENANCE_PORT}", str(maintenance_port))
     )
 
 

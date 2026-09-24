@@ -54,7 +54,7 @@ jobs:
           }
           assert manifest['id'] == 'agent_software_engineering_pilot_v01'
           assert manifest['status'] == 'validated-for-persistent-pilot'
-          assert manifest['version'] == '0.1.9'
+          assert manifest['version'] == '0.1.10'
           assert manifest['provider'] == 'google'
           assert manifest['preferred_model'] == 'gemini-3.7-flash'
           assert manifest['evidence']['model'] == 'google/gemini-3.7-flash'
@@ -83,9 +83,12 @@ jobs:
           assert 'Do not repeat a tool call after a circuit-breaker-open error.' in instructions
           assert 'never expands coding_executor permissions' in instructions
           assert 'When executor run_check returns exit code 126 with command_not_allowed, never describe that rejected command as having succeeded or use it as evidence.' in instructions
-          assert 'For simple branch/repository-status requests, report source_repository' in instructions
-          assert 'Never describe the isolated task branch as the source repository' in instructions
-          assert 'Do not attempt run_check with git status.' in instructions
+          assert manifest['maintenance_mcp_server'] == 'coding_maintenance'
+          assert set(manifest['maintenance_mcp_tools']) == {'executor_health', 'repository_status', 'task_inventory', 'executor_logs'}
+          assert len(manifest['maintenance_mcp_tools']) == 4
+          assert 'Do not call create_task or any coding_executor tool to perform them.' in instructions
+          assert 'report the integration failure and stop' in instructions
+          assert 'For every task, first list' not in instructions
 
           seeder = Path('config/seed-coding-agent-pilot.js').read_text()
           compose = Path('deploy/synology/docker-compose.yml').read_text()
@@ -93,7 +96,7 @@ jobs:
 
           assert 'sys__all__sys_mcp_' not in json.dumps(manifest)
           assert "${tool}_mcp_${manifest.mcp_server}" in seeder
-          assert 'mcpServerNames: [manifest.mcp_server]' in seeder
+          assert 'mcpServerNames: [manifest.mcp_server, MAINTENANCE_SERVER]' in seeder
           assert "const GOOGLE_ENDPOINT_NAME = 'google';" in seeder
           assert "normalized === 'google'" in seeder
           assert 'agent.provider !== expectedProvider' in seeder

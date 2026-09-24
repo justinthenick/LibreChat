@@ -16,6 +16,8 @@ const MANIFEST_DIR =
 const MANIFEST_FILE = 'software-engineering-pilot.json';
 const PILOT_AGENT_ID = 'agent_software_engineering_pilot_v01';
 const MCP_SERVER = 'coding_executor';
+const MAINTENANCE_SERVER = 'coding_maintenance';
+const EXPECTED_MAINTENANCE_TOOLS = ['executor_health', 'repository_status', 'task_inventory', 'executor_logs'];
 const GOOGLE_ENDPOINT_NAME = 'google';
 const OPENROUTER_ENDPOINT_NAME = 'OpenRouter';
 const EXPECTED_MCP_TOOLS = [
@@ -85,7 +87,10 @@ function sameStrings(left, right) {
 }
 
 function persistedToolIds(manifest) {
-  return manifest.mcp_tools.map((tool) => `${tool}_mcp_${manifest.mcp_server}`);
+  return [
+    ...manifest.mcp_tools.map((tool) => `${tool}_mcp_${manifest.mcp_server}`),
+    ...manifest.maintenance_mcp_tools.map((tool) => `${tool}_mcp_${MAINTENANCE_SERVER}`),
+  ];
 }
 
 function expectedSkillUpstreamId(skill = EXPECTED_SKILL) {
@@ -187,6 +192,10 @@ function loadManifest() {
   if (!sameStrings(manifest.mcp_tools, EXPECTED_MCP_TOOLS)) {
     throw new Error(`${manifest.id} MCP tool allowlist differs from the validated nine-tool set`);
   }
+  if (manifest.maintenance_mcp_server !== MAINTENANCE_SERVER ||
+      !sameStrings(manifest.maintenance_mcp_tools, EXPECTED_MAINTENANCE_TOOLS)) {
+    throw new Error(`${manifest.id} maintenance tools must match the four read-only operations`);
+  }
   if (manifest.deployment?.production_seeder !== 'enabled') {
     throw new Error(`${manifest.id} persistent seeding has not been explicitly enabled`);
   }
@@ -234,7 +243,7 @@ function desiredAgent(manifest, author, resolvedSkills) {
     model: chooseModel(manifest),
     model_parameters: {},
     tools: persistedToolIds(manifest),
-    mcpServerNames: [manifest.mcp_server],
+    mcpServerNames: [manifest.mcp_server, MAINTENANCE_SERVER],
     skills: skillIds,
     skills_enabled: manifest.skills_enabled === true,
     execute_code: false,
@@ -276,9 +285,9 @@ function validatePersistedAgent(agent, manifest, resolvedSkills) {
     throw new Error(`${manifest.id} did not retain its stable id`);
   }
   if (!sameStrings(agent.tools, expectedTools)) {
-    throw new Error(`${manifest.id} persisted tools differ from the validated nine-tool allowlist`);
+    throw new Error(`${manifest.id} persisted tools differ from the validated explicit allowlist`);
   }
-  if (!sameStrings(agent.mcpServerNames, [MCP_SERVER])) {
+  if (!sameStrings(agent.mcpServerNames, [MCP_SERVER, MAINTENANCE_SERVER])) {
     throw new Error(`${manifest.id} MCP server scope differs from ${MCP_SERVER}`);
   }
   if ((agent.tools || []).some((tool) => String(tool).startsWith('sys__all__sys_mcp_'))) {

@@ -92,8 +92,20 @@ ocr:
 mcpSettings:
   allowedAddresses:
     - '${CODING_EXECUTOR_HOST}:${CODING_EXECUTOR_PORT}'
+    - '${CODING_MAINTENANCE_HOST}:${CODING_MAINTENANCE_PORT}'
 
 mcpServers:
+  coding_maintenance:
+    type: streamable-http
+    url: 'http://${CODING_MAINTENANCE_HOST}:${CODING_MAINTENANCE_PORT}/mcp'
+    headers:
+      Authorization: 'Bearer ${CODING_MAINTENANCE_TOKEN}'
+    requiresOAuth: false
+    chatMenu: false
+    serverInstructions: true
+    startup: false
+    timeout: 180000
+
   coding_executor:
     type: streamable-http
     url: 'http://${CODING_EXECUTOR_HOST}:${CODING_EXECUTOR_PORT}/mcp'
