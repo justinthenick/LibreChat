@@ -157,10 +157,14 @@ def task_snapshot(repositories: Path, tasks: Path, task_id: str) -> dict[str, ob
             if "R" in code or "C" in code:
                 index += 1
         index += 1
-    dirty = bool(statuses)
+    index_records = [record for record in git(task, "ls-files", "-v", "-z", "--").split("\0") if record]
+    hidden_index_flags = [record[0] for record in index_records
+                          if record[0] == "S" or record[0].islower()]
+    dirty = bool(statuses or hidden_index_flags)
     checks = {"tracked_clean": all(code in ("??", "!!") for code in statuses),
               "index_clean": all(code[0] in (" ", "?", "!") for code in statuses),
               "no_untracked": "??" not in statuses, "no_ignored": "!!" not in statuses,
+              "no_hidden_index_flags": not hidden_index_flags,
               "expected_identity": True, "registered_nonbroken": True, "no_git_locks": True,
               "no_git_operation": True}
     info = task.stat()

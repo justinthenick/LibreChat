@@ -51,7 +51,7 @@ class BrokerTests(unittest.TestCase):
         self.logs = "INFO: Application startup complete.\nERROR: bearer SECRET\nGET /mcp?token=SECRET\n"
         self.snapshot = {"fingerprint": "f" * 64, "dirty": False, "repository": "demo",
                          "branch": "agent/finished", "head": "c" * 40,
-                         "exclusive_gate_verified": True, "checks": {key: True for key in ("tracked_clean", "index_clean", "no_untracked", "no_ignored", "expected_identity", "registered_nonbroken", "no_git_locks", "no_git_operation")}}
+                         "exclusive_gate_verified": True, "checks": {key: True for key in ("tracked_clean", "index_clean", "no_untracked", "no_ignored", "no_hidden_index_flags", "expected_identity", "registered_nonbroken", "no_git_locks", "no_git_operation")}}
         self.config["retired_tasks"]["finished"] = {**self.snapshot, "retired_at": time.time() - 90000}
         self.broker = Broker(self.config, runner=self.docker)
 
@@ -69,7 +69,7 @@ class BrokerTests(unittest.TestCase):
             return self.container["Id"]
         if argv[1] == "exec":
             if argv[-1] == "health":
-                return json.dumps({"version": "0.1.8"})
+                return json.dumps({"version": "0.1.9"})
             return json.dumps(self.snapshot)
         raise AssertionError(argv)
 
@@ -94,7 +94,7 @@ class BrokerTests(unittest.TestCase):
         self.assertFalse(self.calls)
 
     def test_health_includes_installed_executor_version(self):
-        self.assertEqual(self.broker.health()["version"], "0.1.8")
+        self.assertEqual(self.broker.health()["version"], "0.1.9")
 
     def test_concurrent_helpers_are_serialized_and_each_executes_once(self):
         active = threading.Lock()
@@ -133,6 +133,9 @@ class BrokerTests(unittest.TestCase):
                 self.broker.preview_cleanup("finished")
             self.snapshot[key] = old
         self.snapshot["checks"] = {"no_ignored": False}
+        with self.assertRaises(ValueError):
+            self.broker.preview_cleanup("finished")
+        self.snapshot["checks"] = {**self.config["retired_tasks"]["finished"]["checks"], "no_hidden_index_flags": False}
         with self.assertRaises(ValueError):
             self.broker.preview_cleanup("finished")
         with self.assertRaises(ValueError):

@@ -168,6 +168,24 @@ class MaintenanceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "active Git lock"):
             task_snapshot(self.repos, self.tasks, task)
 
+    def test_hidden_index_flags_are_dirty_and_cleanup_rechecks_them(self):
+        for flag in ("--assume-unchanged", "--skip-worktree"):
+            with self.subTest(flag=flag):
+                task = self.task()
+                path = self.tasks / task
+                fingerprint = task_snapshot(self.repos, self.tasks, task)["fingerprint"]
+                self.command(path, "update-index", flag, "file")
+                (path / "file").write_text("hidden local change\n")
+                self.assertEqual(self.command(path, "status", "--porcelain=v1", "--untracked-files=all"), "")
+                snapshot = task_snapshot(self.repos, self.tasks, task)
+                self.assertTrue(snapshot["dirty"])
+                self.assertEqual(snapshot["state"], "dirty")
+                self.assertFalse(snapshot["checks"]["no_hidden_index_flags"])
+                with self.assertRaises(ValueError):
+                    remove_task(self.repos, self.tasks, task, fingerprint)
+                self.assertTrue((path / "file").exists())
+                self.assertEqual((path / "file").read_text(), "hidden local change\n")
+
     def test_clean_worktree_with_unfinished_git_operation_is_refused(self):
         task = self.task()
         path = self.tasks / task
