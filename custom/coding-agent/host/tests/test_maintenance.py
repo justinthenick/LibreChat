@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import concurrent.futures
 import json
 import socket
 import tempfile
@@ -32,7 +33,7 @@ class BrokerTests(unittest.TestCase):
                        "task_root": str(root / "tasks"), "repository_root": str(root / "repos"),
                        "lock_path": str(root / "gate"),
                        "repositories": {"demo": {"branch": "main", "url": "https://github.com/example/demo.git"}},
-                       "retired_tasks": {"finished": time.time() - 90000},
+                       "retired_tasks": {},
                        "enabled_mutations": {"refresh": True, "cleanup": True, "restart": True}}
         self.container = {"Id": "b" * 64, "Image": self.config["image_id"],
                           "Config": {"User": "1000:1000", "Cmd": ["python3", "-m", "coding_executor.server"], "Env": [
@@ -48,7 +49,10 @@ class BrokerTests(unittest.TestCase):
                               {"Destination": LOCK_DESTINATION, "Source": self.config["lock_path"], "RW": False, "Type": "bind"}]}
         self.calls = []
         self.logs = "INFO: Application startup complete.\nERROR: bearer SECRET\nGET /mcp?token=SECRET\n"
-        self.snapshot = {"fingerprint": "f" * 64, "dirty": False}
+        self.snapshot = {"fingerprint": "f" * 64, "dirty": False, "repository": "demo",
+                         "branch": "agent/finished", "head": "c" * 40,
+                         "exclusive_gate_verified": True, "checks": {key: True for key in ("tracked_clean", "index_clean", "no_untracked", "no_ignored", "expected_identity", "registered_nonbroken", "no_git_locks", "no_git_operation")}}
+        self.config["retired_tasks"]["finished"] = {**self.snapshot, "retired_at": time.time() - 90000}
         self.broker = Broker(self.config, runner=self.docker)
 
     def tearDown(self):
@@ -65,7 +69,7 @@ class BrokerTests(unittest.TestCase):
             return self.container["Id"]
         if argv[1] == "exec":
             if argv[-1] == "health":
-                return json.dumps({"version": "0.1.7"})
+                return json.dumps({"version": "0.1.8"})
             return json.dumps(self.snapshot)
         raise AssertionError(argv)
 
@@ -83,14 +87,71 @@ class BrokerTests(unittest.TestCase):
 
     def test_all_mutations_default_disabled(self):
         self.config.pop("enabled_mutations")
-        for function, argument in ((self.broker.refresh_repository, "demo"), (self.broker.cleanup_task, "ticket"),
+        for function, argument in ((self.broker.refresh_repository, "demo"), (lambda ticket: self.broker.cleanup_task(ticket, "finished"), "ticket"),
                                    (self.broker.restart_executor, "ticket")):
             with self.assertRaisesRegex(ValueError, "disabled"):
                 function(argument)
         self.assertFalse(self.calls)
 
     def test_health_includes_installed_executor_version(self):
-        self.assertEqual(self.broker.health()["version"], "0.1.7")
+        self.assertEqual(self.broker.health()["version"], "0.1.8")
+
+    def test_concurrent_helpers_are_serialized_and_each_executes_once(self):
+        active = threading.Lock()
+        start = threading.Barrier(6)
+        original = self.docker
+        def exclusive_helper(argv, **kwargs):
+            if argv[1] != "exec":
+                return original(argv, **kwargs)
+            if not active.acquire(blocking=False):
+                raise RuntimeError("executor_busy: competing maintenance request")
+            try:
+                time.sleep(0.03)
+                return original(argv, **kwargs)
+            finally:
+                active.release()
+        self.broker.runner = exclusive_helper
+        def call(index):
+            start.wait()
+            return self.broker.task_inventory() if index % 2 else self.broker.repository_status("demo")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+            self.assertEqual(len(list(pool.map(call, range(6)))), 6)
+        self.assertEqual(sum(call[1] == "exec" for call in self.calls), 6)
+
+    def test_fresh_status_is_fixed_allowlisted_operation_without_refresh_permission(self):
+        self.config["enabled_mutations"]["refresh"] = False
+        self.broker.fresh_repository_status("demo")
+        self.assertEqual(self.calls[-1][-7:], ["fresh-status", "--repository", "demo", "--branch", "main", "--url", "https://github.com/example/demo.git"])
+        with self.assertRaises(ValueError):
+            self.broker.fresh_repository_status("../outside")
+
+    def test_retirement_identity_confirmation_and_unproven_checks_fail_closed(self):
+        for key, value in (("head", "d" * 40), ("branch", "agent/other"), ("fingerprint", "e" * 64)):
+            old = self.snapshot[key]
+            self.snapshot[key] = value
+            with self.assertRaises(ValueError):
+                self.broker.preview_cleanup("finished")
+            self.snapshot[key] = old
+        self.snapshot["checks"] = {"no_ignored": False}
+        with self.assertRaises(ValueError):
+            self.broker.preview_cleanup("finished")
+        with self.assertRaises(ValueError):
+            self.snapshot["checks"] = {"no_ignored": True}
+            self.broker.preview_cleanup("finished")
+        self.snapshot["checks"] = self.config["retired_tasks"]["finished"]["checks"]
+        preview = self.broker.preview_cleanup("finished")
+        with self.assertRaisesRegex(ValueError, "confirmation"):
+            self.broker.cleanup_task(preview["ticket"], "other")
+        with self.assertRaisesRegex(ValueError, "already used"):
+            self.broker.cleanup_task(preview["ticket"], "finished")
+
+    def test_explicit_zero_age_policy_still_requires_identity_bound_retirement(self):
+        self.config["minimum_retirement_age_seconds"] = 0
+        self.config["retired_tasks"]["finished"]["retired_at"] = time.time()
+        self.assertTrue(self.broker.preview_cleanup("finished")["eligible"])
+        self.config["retired_tasks"]["finished"] = time.time() - 90000
+        with self.assertRaises(ValueError):
+            self.broker.preview_cleanup("finished")
 
     def test_cleanup_requires_retirement_delay_and_clean_snapshot(self):
         for name in ("active", "../escape", "--help"):
@@ -105,14 +166,14 @@ class BrokerTests(unittest.TestCase):
 
     def test_cleanup_tickets_bind_identity_expire_and_are_single_use(self):
         preview = self.broker.preview_cleanup("finished")
-        self.broker.cleanup_task(preview["ticket"])
+        self.broker.cleanup_task(preview["ticket"], "finished")
         self.assertEqual(self.calls[-1][-4:], ["--task", "finished", "--fingerprint", "f" * 64])
         with self.assertRaises(ValueError):
-            self.broker.cleanup_task(preview["ticket"])
+            self.broker.cleanup_task(preview["ticket"], "finished")
         preview = self.broker.preview_cleanup("finished")
         with patch("host_maintenance.broker.time.monotonic", return_value=time.monotonic() + 61):
             with self.assertRaises(ValueError):
-                self.broker.cleanup_task(preview["ticket"])
+                self.broker.cleanup_task(preview["ticket"], "finished")
 
     def test_restart_refuses_active_operations_changed_identity_and_replay(self):
         preview = self.broker.preview_restart()
@@ -168,7 +229,7 @@ class BrokerTests(unittest.TestCase):
             server = build_server(self.broker, "m" * 48, "http://127.0.0.1:8766/mcp")
             tools = await server.list_tools()
             names = {tool.name for tool in tools}
-            self.assertEqual(names, {"executor_health", "repository_status", "refresh_repository", "task_inventory",
+            self.assertEqual(names, {"executor_health", "repository_status", "fresh_repository_status", "refresh_repository", "task_inventory",
                                      "preview_cleanup", "cleanup_task", "executor_logs", "preview_restart", "restart_executor"})
             result = await server.call_tool("executor_health", {})
             self.assertFalse(result.is_error)
@@ -214,7 +275,7 @@ class BrokerTests(unittest.TestCase):
                                        "clientInfo": {"name": "maintenance-test", "version": "1"}})
                 self.assertIn("serverInfo", initialized["result"])
                 discovered = request("m" * 48)
-                self.assertEqual(len(discovered["result"]["tools"]), 9)
+                self.assertEqual(len(discovered["result"]["tools"]), 10)
                 result = request("m" * 48, "tools/call", {"name": "executor_health", "arguments": {}})
                 self.assertFalse(result["result"].get("isError", False))
             finally:

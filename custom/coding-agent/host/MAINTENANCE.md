@@ -10,7 +10,7 @@ their `coding:execute` scope and cannot call host operations.
 
 The host broker runs trusted installed code outside all executor mounts. Its Docker
 access is powerful at the OS level; the broker process and its operator account are
-trusted. The agent sees only nine fixed operations. Every Docker call uses an argv
+trusted. The agent sees only ten fixed operations. Every Docker call uses an argv
 list, bounded output, a deadline and a minimal environment. It accepts no shell
 string. The broker pins the reviewed image ID, verifies the container's mounts,
 non-root user, read-only root and dropped capabilities, then addresses the immutable
@@ -26,10 +26,11 @@ private repository fetch fails closed; do not mount host credentials to work aro
 | --- | --- |
 | `executor_health` | Pinned container identity, state and Docker health status; no environment dump |
 | `repository_status(repository)` | Approved alias, branch, commit, upstream and dirty flag; explicitly not a live fetch |
+| `fresh_repository_status(repository)` | Fetches only a configured branch into a dedicated comparison ref; never changes source files/index/HEAD; explicit fresh result or fail-closed refusal |
 | `refresh_repository(repository)` | Fixed URL/branch fetch and fast-forward only; rejects dirty, detached, ahead, diverged or unexpected-upstream source |
 | `task_inventory` | Bounded worktree inventory, dirty flag and identity; unsupported worktrees require manual review |
-| `preview_cleanup(task_id)` | Requires explicit operator retirement at least 24 hours ago; returns clean snapshot and 60-second ticket |
-| `cleanup_task(ticket)` | Revalidates exact worktree identity and cleanliness, removes without force, retains branch |
+| `preview_cleanup(task_id)` | Requires identity-bound operator retirement and the configured minimum age (24 hours by default); proves eligibility and returns a 60-second single-use ticket |
+| `cleanup_task(ticket, confirm_task_id)` | Revalidates exact worktree identity and cleanliness, removes without force, retains branch |
 | `executor_logs` | Last ten minutes/100 lines, lifecycle/error categories only; raw paths, exception text and tokens suppressed |
 | `preview_restart` | Captures container ID, image, start time and health in a single-use ticket |
 | `restart_executor(ticket)` | Refuses active calls, verifies unchanged identity, restarts same container, waits for health, five-minute cooldown |
@@ -38,7 +39,7 @@ private repository fetch fails closed; do not mount host credentials to work aro
 in operator-owned policy. Tickets prevent replay and stale previews; they are **not
 human approval**. Operators decide which mutations the maintenance agent may perform
 before enabling them. Cleanup additionally requires an exact task ID in `retired_tasks`
-with its retirement Unix timestamp. There is no tool to retire a task or edit policy.
+with its retirement Unix timestamp, repository, branch, HEAD and snapshot fingerprint. Legacy timestamp-only records are rejected. `minimum_retirement_age_seconds` defaults to 86400; an operator may explicitly set zero for a deliberately disposable acceptance fixture, with only that exact fixture retired. The caller must repeat the task ID from the preview as `confirm_task_id`; an incorrect confirmation consumes the ticket. There is no tool to retire a task or edit policy.
 Policy changes require a service restart, which also invalidates pending tickets.
 
 Cleanup refuses tracked, staged, untracked or ignored content, symlinks, path traversal,
@@ -48,6 +49,8 @@ branches are never pruned or deleted automatically. Persisted task mode/budget r
 are retained as small audit tombstones after cleanup.
 
 ## Coordination and remaining limits
+
+Concurrent maintenance helpers are admitted through a bounded 15-second broker queue before execution. Each accepted helper runs once; failures are never replayed automatically. This fixes status/inventory calls competing for the exclusive gate. The gate still refuses an independently active coding operation.
 
 Every executor MCP call takes a shared nonblocking maintenance lock. Executor-side
 maintenance and host restart take it exclusively. The lock file lives outside writable

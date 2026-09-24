@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime
 import hashlib
 import json
 import os
@@ -16,7 +17,7 @@ from coding_executor.workspaces import WorkspaceManager
 
 
 def git(path: Path, *args: str) -> str:
-    return run(["git", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
+    return run(["git", "--no-optional-locks", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
                 "-c", "credential.helper=", "-c", "protocol.allow=never",
                 "-c", "protocol.https.allow=always", "-c", "submodule.recurse=false",
                 *args], cwd=path)
@@ -42,17 +43,55 @@ def repository_status(repositories: Path, name: str, branch: str) -> dict[str, o
     dirty = bool(git(source, "status", "--porcelain=v1", "--untracked-files=all"))
     upstream = git(source, "for-each-ref", "--format=%(upstream:short)", f"refs/heads/{branch}").strip()
     ahead = behind = None
+    upstream_sha = None
     if upstream:
         try:
             ahead, behind = map(int, git(source, "rev-list", "--left-right", "--count",
                                          f"HEAD...refs/remotes/{upstream}").split())
+            upstream_sha = git(source, "rev-parse", f"refs/remotes/{upstream}^{{commit}}").strip()
         except RuntimeError:
             pass
     return {"repository": name, "branch": actual, "head": head, "dirty": dirty,
             "expected_branch": branch, "upstream": upstream, "freshness": "not_fetched",
             "ahead": ahead, "behind": behind,
+            "upstream_sha": upstream_sha,
             "diverged": bool(ahead and behind) if ahead is not None else None,
             "comparison_basis": "cached_upstream" if ahead is not None else "unavailable"}
+
+
+def fresh_repository_status(repositories: Path, name: str, branch: str, url: str) -> dict[str, object]:
+    started = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    refused = {"ok": False, "repository": name, "freshness": "unavailable",
+               "comparison_basis": "unavailable", "fetch_started_at": started, "fetched_at": None}
+    if (not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_./-]{0,150}", branch) or ".." in branch
+            or not re.fullmatch(r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\.git", url)):
+        return {**refused, "fetch_result": "invalid_policy"}
+    try:
+        source = child(repositories, name)
+        git(source, "check-ref-format", "refs/heads/" + branch)
+        before = repository_status(repositories, name, branch)
+        if before["dirty"] or before["branch"] != branch or before["upstream"] != f"origin/{branch}":
+            return {**refused, "fetch_result": "refused_source_state"}
+        origins = git(source, "config", "--get-all", "remote.origin.url").splitlines()
+        if origins != [url] or git(source, "ls-remote", "--get-url", url).strip() != url:
+            return {**refused, "fetch_result": "refused_remote_identity"}
+    except (ValueError, RuntimeError, OSError):
+        return {**refused, "fetch_result": "refused_ambiguous_source"}
+    ref = f"refs/coding-maintenance/status/{branch}"
+    try:
+        git(source, "-c", "http.followRedirects=false", "-c", "http.sslVerify=true",
+            "fetch", "--no-tags", "--no-prune", "--no-recurse-submodules", "--no-auto-maintenance",
+            "--no-write-fetch-head", "--refmap=", url, f"+refs/heads/{branch}:{ref}")
+        target = git(source, "rev-parse", ref + "^{commit}").strip()
+        if repository_status(repositories, name, branch) != before:
+            return {**refused, "fetch_result": "refused_source_changed"}
+        ahead, behind = map(int, git(source, "rev-list", "--left-right", "--count", f"HEAD...{target}").split())
+    except (ValueError, RuntimeError, OSError):
+        return {**refused, "fetch_result": "fetch_or_comparison_failed"}
+    return {**before, "ok": True, "freshness": "fetched", "comparison_basis": "fresh_remote_ref",
+            "upstream_sha": target, "ahead": ahead, "behind": behind, "diverged": bool(ahead and behind),
+            "fetch_started_at": started, "fetched_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "fetch_result": "success", "comparison_ref": ref, "working_tree_modified": False}
 
 
 def refresh(repositories: Path, name: str, branch: str, url: str) -> dict[str, object]:
@@ -101,14 +140,37 @@ def task_snapshot(repositories: Path, tasks: Path, task_id: str) -> dict[str, ob
     branch = git(task, "branch", "--show-current").strip()
     if branch != f"agent/{task_id}":
         raise ValueError("only matching agent task branches are eligible")
-    dirty = bool(git(task, "status", "--porcelain=v1", "--untracked-files=all", "--ignored"))
+    admin = Path(git(task, "rev-parse", "--absolute-git-dir").strip())
+    if (any(admin.glob("*.lock")) or any(common.glob("*.lock")) or (common / "index.lock").exists()
+            or (common / "HEAD.lock").exists() or (common / "refs/heads" / (branch + ".lock")).exists()):
+        raise ValueError("worktree has an active Git lock")
+    if any((admin / marker).exists() for marker in
+           ("MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-apply", "rebase-merge", "sequencer", "BISECT_LOG")):
+        raise ValueError("worktree has an unfinished Git operation")
+    records = git(task, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--ignored").split("\0")
+    statuses = []
+    index = 0
+    while index < len(records):
+        if records[index]:
+            code = records[index][:2]
+            statuses.append(code)
+            if "R" in code or "C" in code:
+                index += 1
+        index += 1
+    dirty = bool(statuses)
+    checks = {"tracked_clean": all(code in ("??", "!!") for code in statuses),
+              "index_clean": all(code[0] in (" ", "?", "!") for code in statuses),
+              "no_untracked": "??" not in statuses, "no_ignored": "!!" not in statuses,
+              "expected_identity": True, "registered_nonbroken": True, "no_git_locks": True,
+              "no_git_operation": True}
     info = task.stat()
     identity = {"task_id": task_id, "repository": source.name, "branch": branch,
                 "head": git(task, "rev-parse", "HEAD").strip(), "dirty": dirty,
                 "device": info.st_dev, "inode": info.st_ino}
     fingerprint = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
     return {**identity, "fingerprint": fingerprint, "stale": False,
-            "state": "dirty" if dirty else "clean"}
+            "state": "dirty" if dirty else "clean", "checks": checks,
+            "cleanup_eligible": False, "eligibility_basis": "requires_operator_retirement_and_preview"}
 
 
 def remove_task(repositories: Path, tasks: Path, task_id: str, expected: str) -> dict[str, object]:
@@ -156,7 +218,7 @@ def main() -> None:
     signal.signal(signal.SIGALRM, deadline_expired)
     signal.alarm(120)
     parser = argparse.ArgumentParser()
-    parser.add_argument("operation", choices=["health", "status", "refresh", "inventory", "preview", "remove"])
+    parser.add_argument("operation", choices=["health", "status", "fresh-status", "refresh", "inventory", "preview", "remove"])
     parser.add_argument("--repository", default="")
     parser.add_argument("--branch", default="")
     parser.add_argument("--url", default="")
@@ -173,12 +235,15 @@ def main() -> None:
         with WorkspaceManager(repositories, tasks)._source_sync_lock():
             if args.operation == "status":
                 result = repository_status(repositories, args.repository, args.branch)
+            elif args.operation == "fresh-status":
+                result = fresh_repository_status(repositories, args.repository, args.branch, args.url)
             elif args.operation == "refresh":
                 result = refresh(repositories, args.repository, args.branch, args.url)
             elif args.operation == "inventory":
                 result = inventory(repositories, tasks)
             elif args.operation == "preview":
                 result = task_snapshot(repositories, tasks, args.task)
+                result["exclusive_gate_verified"] = True
             else:
                 result = remove_task(repositories, tasks, args.task, args.fingerprint)
     print(json.dumps(result))

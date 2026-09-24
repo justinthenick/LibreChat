@@ -5,6 +5,7 @@ Usage: PYTHONPATH=executor/src:host/src python3 staging_smoke.py VALIDATED_CANDI
 from __future__ import annotations
 
 import json
+import concurrent.futures
 import os
 import secrets
 import subprocess
@@ -68,6 +69,9 @@ def main(image: str) -> None:
             creation = "from pathlib import Path; from coding_executor.workspaces import WorkspaceManager; import os,json; m=WorkspaceManager(Path(os.environ['CODING_REPOSITORY_ROOT']),Path(os.environ['CODING_TASK_ROOT'])); t=m.create_task('demo','smoke','main','read_only'); m.read_file(t['task_id'],'file'); print(json.dumps(t))"
             task = json.loads(command("docker", "exec", name, "python3", "-I", "-B", "-c", creation))["task_id"]
             assert len(broker.task_inventory()["tasks"]) == 1
+            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+                results = list(pool.map(lambda index: broker.task_inventory() if index % 2 else broker.repository_status("demo"), range(6)))
+            assert len(results) == 6
             with maintenance_lock(tasks, lock_path=lock):
                 try:
                     broker.restart_executor(broker.preview_restart()["ticket"])
@@ -79,23 +83,23 @@ def main(image: str) -> None:
             state = json.loads(command("docker", "exec", name, "python3", "-I", "-B", "-c", state_check, task))
             assert state["exploration_budget"]["task_mode"] == "read_only"
             assert state["exploration_budget"]["exploration_calls"] == 1
-            config["retired_tasks"][task] = time.time() - 90000
+            config["retired_tasks"][task] = {**broker._helper("preview", "--task", task), "retired_at": time.time() - 90000}
             preview = broker.preview_cleanup(task)
             (tasks / task / "file").write_text("keep this change\n")
             try:
-                broker.cleanup_task(preview["ticket"])
+                broker.cleanup_task(preview["ticket"], task)
                 raise AssertionError("dirty task removed")
             except RuntimeError:
                 assert (tasks / task / "file").read_text() == "keep this change\n"
             # Restore only the disposable fixture this test created.
             (tasks / task / "file").write_text("fixture\n")
-            result = broker.cleanup_task(broker.preview_cleanup(task)["ticket"])
+            result = broker.cleanup_task(broker.preview_cleanup(task)["ticket"], task)
             assert result["branch_retained"] == f"agent/{task}"
             assert not (tasks / task).exists()
             assert f"agent/{task}" in command("git", "-C", str(repo), "branch", "--list")
             assert broker.logs()["raw_logs_exposed"] is False
             print(json.dumps({"passed": True, "checks": ["pinned image/mounts", "health", "repository status",
-                "task inventory", "busy restart refusal", "real restart with health recovery", "mode/budget persistence",
+                "task inventory", "six concurrent maintenance calls", "busy restart refusal", "real restart with health recovery", "mode/budget persistence",
                 "dirty cleanup refusal", "clean cleanup with branch retention", "filtered logs"], "production_touched": False}))
         finally:
             # Exact unique test-owned name; never a user/production container selector.

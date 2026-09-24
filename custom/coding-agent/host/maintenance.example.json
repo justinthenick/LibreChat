@@ -11,5 +11,6 @@
     }
   },
   "enabled_mutations": {"refresh": false, "cleanup": false, "restart": false},
+  "minimum_retirement_age_seconds": 86400,
   "retired_tasks": {}
 }
