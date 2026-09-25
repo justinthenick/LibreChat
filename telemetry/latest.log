@@ -1,8 +1,3 @@
-2026-09-25 17:50:36 LibreChat API recreated for deployed runtime configuration
-2026-09-25 17:50:37 LibreChat health check passed
-2026-09-25 17:51:04 Production agents and coding-agent pilot seeded and validated
-2026-09-25 17:51:04 MCP workspace mount passed write/read/delete check
-2026-09-25 17:51:05 Cloudflare tunnel connector registered
 2026-09-25 17:51:06 Synology Admin Settings panel and worker healthy
 2026-09-25 17:51:07 Official LibreChat Admin Panel healthy on its configured host port (default 3220)
 2026-09-25 17:51:10 NAS read-only infrastructure worker and MCP bridge healthy
@@ -38,3 +33,8 @@
 2026-09-25 18:25:06 Cloudflare tunnel integration enabled
 2026-09-25 18:25:06 Synology Admin Settings integration enabled
 2026-09-25 18:28:13 ERROR: could not resolve remote branch server/synology
+2026-09-25 18:28:39 Sanitised GitHub telemetry published
+2026-09-25 18:30:06 LibreChat deployment check started
+2026-09-25 18:30:06 Cloudflare tunnel integration enabled
+2026-09-25 18:30:06 Synology Admin Settings integration enabled
+2026-09-25 18:31:57 No deployment change; healthy deployment already recorded at 8dee5eaf
