@@ -1,8 +1,3 @@
-2026-09-25 15:20:03 Cloudflare tunnel integration enabled
-2026-09-25 15:20:03 Synology Admin Settings integration enabled
-2026-09-25 15:21:33 No deployment change; healthy deployment already recorded at dd154463
-2026-09-25 15:25:07 LibreChat deployment check started
-2026-09-25 15:25:07 Cloudflare tunnel integration enabled
 2026-09-25 15:25:07 Synology Admin Settings integration enabled
 2026-09-25 15:26:43 No deployment change; healthy deployment already recorded at dd154463
 2026-09-25 15:30:07 LibreChat deployment check started
@@ -38,3 +33,8 @@
 2026-09-25 16:05:02 Cloudflare tunnel integration enabled
 2026-09-25 16:05:02 Synology Admin Settings integration enabled
 2026-09-25 16:06:59 ERROR: could not resolve remote branch server/synology
+2026-09-25 16:07:19 Sanitised GitHub telemetry published
+2026-09-25 16:10:19 LibreChat deployment check started
+2026-09-25 16:10:19 Cloudflare tunnel integration enabled
+2026-09-25 16:10:19 Synology Admin Settings integration enabled
+2026-09-25 16:12:38 No deployment change; healthy deployment already recorded at dd154463
