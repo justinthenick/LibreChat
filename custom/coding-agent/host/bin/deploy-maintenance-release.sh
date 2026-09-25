@@ -358,6 +358,7 @@ import importlib.metadata as md
 import json
 import pathlib
 import sys
+import time
 
 config_path, expected_executor, expected_host, current = sys.argv[1:]
 import coding_executor
@@ -372,7 +373,21 @@ assert md.version("librechat-coding-executor") == expected_executor
 assert md.version("librechat-coding-agent-host") == expected_host
 
 config = json.loads(pathlib.Path(config_path).read_text())
-health = Broker(config).health()
+broker = Broker(config)
+health = None
+for _ in range(60):
+    health = broker.health()
+    if (
+        health["status"] == "running"
+        and health["health"] == "healthy"
+        and health["version"] == expected_executor
+        and health["image_id"] == config["image_id"]
+    ):
+        break
+    time.sleep(1)
+else:
+    raise AssertionError(f"executor did not reach verified healthy state: {health!r}")
+
 assert health["status"] == "running"
 assert health["health"] == "healthy"
 assert health["version"] == expected_executor
