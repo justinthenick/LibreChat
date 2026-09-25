@@ -26,3 +26,18 @@ SYNC-001 proved discovery, import/update, runtime invocation, file mirroring, de
 Wave 1 migrates the low-coupling `analyze-manuscript-structure` skill under MIG-001. Existing deployment skills can shadow same-named persisted skills during a staged cutover; the migration benchmark must therefore verify sync first, remove the legacy deployment copy second, and confirm the GitHub-synced skill becomes the effective runtime entry only after restart.
 
 The tree can later be moved to a dedicated repository such as `justinthenick/agent-skills` without changing the lifecycle model. Keep the Skill Sync source `id` stable when repointing the repository so LibreChat can preserve upstream identity where paths remain stable.
+
+
+## Reviewed third-party skills
+
+Reusable third-party skills may be vendored into this tree when they provide mature workflow logic that LibreChat should reuse rather than reimplement.
+
+Rules for third-party imports:
+
+- Pin every import to an immutable upstream commit; never mirror a mutable branch directly into production.
+- Preserve the upstream license and provenance beside the skill.
+- Make only explicit compatibility adaptations needed for the LibreChat runtime or the deployment's security contract.
+- Treat the local system/tool security boundary as authoritative when an upstream skill assumes broader shell, Git, package-install, or worktree capabilities.
+- Review upstream updates as normal code changes before refreshing a managed snapshot.
+
+The initial software-engineering foundation imports selected methodology-only skills from the Superpowers plugin: `systematic-debugging`, `test-driven-development`, and `verification-before-completion`. Skills that directly create worktrees, commit, merge, install dependencies, or require subagents are intentionally deferred until compatible orchestration exists.
