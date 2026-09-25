@@ -6,9 +6,10 @@ This script is read-only. It reports only:
 - managed Skill Sync status/counts
 - managed GitHub skill names/versions
 - LibreChat-container -> coding-executor health
+- LibreChat-container -> coding-maintenance connectivity
 
-It never emits credential values, executor hostnames/IPs, raw logs, or arbitrary
-MongoDB documents.
+It never emits credential values, executor/maintenance hostnames/IPs, raw logs,
+or arbitrary MongoDB documents.
 """
 
 import json
@@ -218,6 +219,72 @@ fetch("http://" + host + ":" + port + "/health")
         return safe_error("executor_non_json_response", exc)
 
 
+def maintenance_snapshot():
+    js = r"""
+const net = require("net");
+const host = process.env.CODING_MAINTENANCE_HOST || "";
+const portRaw = process.env.CODING_MAINTENANCE_PORT || "";
+const token = process.env.CODING_MAINTENANCE_TOKEN || "";
+const validPort = /^[0-9]+$/.test(portRaw);
+const port = validPort ? Number(portRaw) : 0;
+
+if (!host || !validPort || port <= 0 || port > 65535) {
+  console.log(JSON.stringify({
+    endpoint_configured:false,
+    token_configured:Boolean(token),
+    reachable:false
+  }));
+  process.exit(0);
+}
+
+const socket = net.createConnection({host, port});
+let settled = false;
+
+function finish(reachable, ok, errorCode) {
+  if (settled) return;
+  settled = true;
+  socket.destroy();
+  const result = {
+    endpoint_configured:true,
+    token_configured:Boolean(token),
+    reachable
+  };
+  if (ok !== undefined) result.ok = ok;
+  if (errorCode) result.error_code = errorCode;
+  console.log(JSON.stringify(result));
+}
+
+socket.setTimeout(5000);
+socket.once("connect", () => finish(true, true));
+socket.once("timeout", () => finish(false, false, "maintenance_unreachable"));
+socket.once("error", () => finish(false, false, "maintenance_unreachable"));
+"""
+    rc, out, _err = run(["docker", "exec", "librechat", "node", "-e", js], timeout=20)
+    if rc != 0:
+        return {"ok": False, "error_code": "maintenance_probe_failed"}
+    if not out:
+        return {"ok": False, "error_code": "maintenance_empty_response"}
+    try:
+        raw = json.loads(out.splitlines()[-1])
+    except Exception:
+        return {"ok": False, "error_code": "maintenance_non_json_response"}
+
+    required = ("endpoint_configured", "token_configured", "reachable")
+    if not isinstance(raw, dict) or any(type(raw.get(key)) is not bool for key in required):
+        return {"ok": False, "error_code": "maintenance_invalid_response"}
+
+    result = {key: raw[key] for key in required}
+    if "ok" in raw:
+        if type(raw["ok"]) is not bool:
+            return {"ok": False, "error_code": "maintenance_invalid_response"}
+        result["ok"] = raw["ok"]
+    if "error_code" in raw:
+        if raw["error_code"] != "maintenance_unreachable":
+            return {"ok": False, "error_code": "maintenance_invalid_response"}
+        result["error_code"] = raw["error_code"]
+    return result
+
+
 def main():
     result = {
         "schema": 1,
@@ -225,6 +292,7 @@ def main():
         "skill_sync": skill_sync_snapshot(),
         "managed_skills": managed_skills_snapshot(),
         "coding_executor": executor_snapshot(),
+        "coding_maintenance": maintenance_snapshot(),
     }
     print(json.dumps(result, sort_keys=True))
     return 0
