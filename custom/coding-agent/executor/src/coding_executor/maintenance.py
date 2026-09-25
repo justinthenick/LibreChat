@@ -16,11 +16,14 @@ from coding_executor.task_maintenance import SAFE_NAME
 from coding_executor.workspaces import WorkspaceManager
 
 
-def git(path: Path, *args: str) -> str:
+INDEX_SCAN_LIMIT = 8 * 1024 * 1024
+
+
+def git(path: Path, *args: str, limit: int = 65536) -> str:
     return run(["git", "--no-optional-locks", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
                 "-c", "credential.helper=", "-c", "protocol.allow=never",
                 "-c", "protocol.https.allow=always", "-c", "submodule.recurse=false",
-                *args], cwd=path)
+                *args], cwd=path, limit=limit)
 
 
 def child(root: Path, name: str) -> Path:
@@ -157,7 +160,12 @@ def task_snapshot(repositories: Path, tasks: Path, task_id: str) -> dict[str, ob
             if "R" in code or "C" in code:
                 index += 1
         index += 1
-    index_records = [record for record in git(task, "ls-files", "-v", "-z", "--").split("\0") if record]
+    # Hidden-index detection must inspect every tracked path. Large approved repositories
+    # can exceed the generic 64 KiB command-output cap, so use a larger but still bounded
+    # cap for this fixed, read-only index scan.
+    index_records = [record for record in git(
+        task, "ls-files", "-v", "-z", "--", limit=INDEX_SCAN_LIMIT
+    ).split("\0") if record]
     hidden_index_flags = [record[0] for record in index_records
                           if record[0] == "S" or record[0].islower()]
     dirty = bool(statuses or hidden_index_flags)
