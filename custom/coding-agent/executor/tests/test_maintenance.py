@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 from coding_executor.bounded import run
 from coding_executor.coordination import coordinated, maintenance_lock
-from coding_executor.maintenance import fresh_repository_status, git, inventory, refresh, remove_task, repository_status, task_snapshot
+from coding_executor.maintenance import INDEX_SCAN_LIMIT, fresh_repository_status, git, inventory, refresh, remove_task, repository_status, task_snapshot
 from coding_executor.workspaces import WorkspaceManager
 
 
@@ -167,6 +167,28 @@ class MaintenanceTests(unittest.TestCase):
         (admin / "index.lock").touch()
         with self.assertRaisesRegex(ValueError, "active Git lock"):
             task_snapshot(self.repos, self.tasks, task)
+
+    def test_large_index_scan_uses_a_larger_bounded_output_limit(self):
+        task = self.task()
+        large_clean_index = "".join(f"H tracked-{index:05d}.txt\0" for index in range(6000))
+        self.assertGreater(len(large_clean_index.encode()), 65536)
+        observed_limits = []
+        original_run = run
+
+        def traced(argv, **kwargs):
+            if "ls-files" in argv:
+                observed_limits.append(kwargs.get("limit"))
+                self.assertGreaterEqual(kwargs.get("limit", 0), len(large_clean_index.encode()))
+                return large_clean_index
+            return original_run(argv, **kwargs)
+
+        with patch("coding_executor.maintenance.run", side_effect=traced):
+            snapshot = task_snapshot(self.repos, self.tasks, task)
+
+        self.assertFalse(snapshot["dirty"])
+        self.assertTrue(snapshot["checks"]["no_hidden_index_flags"])
+        self.assertEqual(observed_limits, [INDEX_SCAN_LIMIT])
+        self.assertGreater(INDEX_SCAN_LIMIT, 65536)
 
     def test_hidden_index_flags_are_dirty_and_cleanup_rechecks_them(self):
         for flag in ("--assume-unchanged", "--skip-worktree"):
