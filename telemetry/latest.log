@@ -1,40 +1,40 @@
-2026-09-25 10:20:03 Synology Admin Settings integration enabled
-2026-09-25 10:22:51 No deployment change; healthy deployment already recorded at c85e2abe
-2026-09-25 10:25:01 LibreChat deployment check started
-2026-09-25 10:25:01 Cloudflare tunnel integration enabled
-2026-09-25 10:25:01 Synology Admin Settings integration enabled
-2026-09-25 10:27:10 No deployment change; healthy deployment already recorded at c85e2abe
-2026-09-25 10:30:04 LibreChat deployment check started
-2026-09-25 10:30:04 Cloudflare tunnel integration enabled
-2026-09-25 10:30:04 Synology Admin Settings integration enabled
-2026-09-25 10:31:51 No deployment change; healthy deployment already recorded at c85e2abe
-2026-09-25 10:35:01 LibreChat deployment check started
-2026-09-25 10:35:01 Cloudflare tunnel integration enabled
-2026-09-25 10:35:01 Synology Admin Settings integration enabled
-2026-09-25 10:36:33 No deployment change; healthy deployment already recorded at c85e2abe
-2026-09-25 10:40:02 LibreChat deployment check started
-2026-09-25 10:40:02 Cloudflare tunnel integration enabled
-2026-09-25 10:40:02 Synology Admin Settings integration enabled
-2026-09-25 10:41:14 No deployment change; healthy deployment already recorded at c85e2abe
-2026-09-25 10:45:04 LibreChat deployment check started
-2026-09-25 10:45:04 Cloudflare tunnel integration enabled
-2026-09-25 10:45:04 Synology Admin Settings integration enabled
-2026-09-25 10:46:15 No deployment change; healthy deployment already recorded at c85e2abe
-2026-09-25 10:50:15 LibreChat deployment check started
-2026-09-25 10:50:15 Cloudflare tunnel integration enabled
-2026-09-25 10:50:15 Synology Admin Settings integration enabled
-2026-09-25 10:51:57 Change detected: c85e2abe -> 0c2045fa
-2026-09-25 10:53:52 Official LibreChat Admin Panel dedicated session secret ready
-2026-09-25 10:53:55 Synology Admin Settings privileged worker ready
-2026-09-25 10:53:57 NAS read-only infrastructure worker ready
-2026-09-25 10:54:00 Compose validation passed
-2026-09-25 10:55:41 Image pull completed
-2026-09-25 10:55:43 Compose update completed
-2026-09-25 10:59:06 LibreChat API recreated for deployed runtime configuration
-2026-09-25 10:59:07 LibreChat health check passed
-2026-09-25 10:59:32 Production agents and coding-agent pilot seeded and validated
-2026-09-25 10:59:33 MCP workspace mount passed write/read/delete check
-2026-09-25 10:59:33 Cloudflare tunnel connector registered
-2026-09-25 10:59:35 Synology Admin Settings panel and worker healthy
-2026-09-25 10:59:35 Official LibreChat Admin Panel healthy on its configured host port (default 3220)
-2026-09-25 10:59:40 NAS read-only infrastructure worker and MCP bridge healthy
+2026-09-25 13:45:03 Cloudflare tunnel integration enabled
+2026-09-25 13:45:03 Synology Admin Settings integration enabled
+2026-09-25 13:46:21 No deployment change; healthy deployment already recorded at 0c2045fa
+2026-09-25 13:50:13 LibreChat deployment check started
+2026-09-25 13:50:13 Cloudflare tunnel integration enabled
+2026-09-25 13:50:13 Synology Admin Settings integration enabled
+2026-09-25 13:51:59 No deployment change; healthy deployment already recorded at 0c2045fa
+2026-09-25 13:55:05 LibreChat deployment check started
+2026-09-25 13:55:05 Cloudflare tunnel integration enabled
+2026-09-25 13:55:05 Synology Admin Settings integration enabled
+2026-09-25 13:56:51 No deployment change; healthy deployment already recorded at 0c2045fa
+2026-09-25 14:00:15 LibreChat deployment check started
+2026-09-25 14:00:15 Cloudflare tunnel integration enabled
+2026-09-25 14:00:15 Synology Admin Settings integration enabled
+2026-09-25 14:02:06 No deployment change; healthy deployment already recorded at 0c2045fa
+2026-09-25 14:05:07 LibreChat deployment check started
+2026-09-25 14:05:07 Cloudflare tunnel integration enabled
+2026-09-25 14:05:07 Synology Admin Settings integration enabled
+2026-09-25 14:07:12 No deployment change; healthy deployment already recorded at 0c2045fa
+2026-09-25 14:10:02 LibreChat deployment check started
+2026-09-25 14:10:02 Cloudflare tunnel integration enabled
+2026-09-25 14:10:02 Synology Admin Settings integration enabled
+2026-09-25 14:11:16 No deployment change; healthy deployment already recorded at 0c2045fa
+2026-09-25 14:15:02 LibreChat deployment check started
+2026-09-25 14:15:02 Cloudflare tunnel integration enabled
+2026-09-25 14:15:02 Synology Admin Settings integration enabled
+2026-09-25 14:16:25 No deployment change; healthy deployment already recorded at 0c2045fa
+2026-09-25 14:20:03 LibreChat deployment check started
+2026-09-25 14:20:03 Cloudflare tunnel integration enabled
+2026-09-25 14:20:03 Synology Admin Settings integration enabled
+2026-09-25 14:21:25 No deployment change; healthy deployment already recorded at 0c2045fa
+2026-09-25 14:25:02 LibreChat deployment check started
+2026-09-25 14:25:02 Cloudflare tunnel integration enabled
+2026-09-25 14:25:02 Synology Admin Settings integration enabled
+2026-09-25 14:26:24 ERROR: could not resolve remote branch server/synology
+2026-09-25 14:26:46 WARN: sanitised GitHub telemetry publish failed (network_error)
+2026-09-25 14:30:02 LibreChat deployment check started
+2026-09-25 14:30:02 Cloudflare tunnel integration enabled
+2026-09-25 14:30:02 Synology Admin Settings integration enabled
+2026-09-25 14:31:23 No deployment change; healthy deployment already recorded at 0c2045fa
