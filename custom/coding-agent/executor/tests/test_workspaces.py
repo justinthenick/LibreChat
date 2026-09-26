@@ -171,6 +171,11 @@ class WorkspaceManagerTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.manager.create_task("demo", "unsafe ref", "--help")
 
+    def test_child_environment_disables_python_bytecode(self) -> None:
+        environment = self.manager._child_environment()
+        self.assertEqual(environment["PYTHONDONTWRITEBYTECODE"], "1")
+        self.assertNotIn("CODING_EXECUTOR_TOKEN", environment)
+
     def test_command_allowlist(self) -> None:
         task = self.manager.create_task("demo", "checks", "main")
         result = self.manager.run_check(task["task_id"], "git diff --check")
