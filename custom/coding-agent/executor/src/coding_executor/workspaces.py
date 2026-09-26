@@ -72,6 +72,7 @@ class WorkspaceManager:
         self.max_output_bytes = max_output_bytes
         self._task_modes: dict[str, str] = {}
         self._exploration_calls: dict[str, int] = {}
+        self._exhaustion_paths: dict[str, tuple[str, ...] | None] = {}
         self._budget_lock = threading.Lock()
 
     def list_repositories(self) -> list[str]:
@@ -117,6 +118,7 @@ class WorkspaceManager:
         with self._budget_lock:
             self._task_modes[task_id] = task_mode
             self._exploration_calls[task_id] = 0
+            self._exhaustion_paths[task_id] = None
             self._save_state(task_id)
         return {
             "task_id": task_id,
@@ -230,16 +232,39 @@ class WorkspaceManager:
 
     def apply_patch(self, task_id: str, patch: str) -> dict[str, object]:
         task = self._task(task_id)
-        if self._task_mode(task_id) == "read_only":
-            raise RuntimeError(
-                "read_only_task: apply_patch is disabled for tasks created with task_mode=read_only"
-            )
         encoded = patch.encode("utf-8")
         if not encoded or len(encoded) > PATCH_LIMIT_BYTES:
             raise ValueError(f"patch must contain between 1 and {PATCH_LIMIT_BYTES} bytes")
-        self._validate_patch_paths(task, patch)
-        self._git_input(task, patch, "apply", "--check", "--recount", "--whitespace=error-all")
-        self._git_input(task, patch, "apply", "--recount", "--whitespace=nowarn")
+
+        with self._budget_lock:
+            self._load_state(task_id)
+            mode = self._task_modes.get(task_id, "read_only")
+            if mode == "read_only":
+                raise RuntimeError(
+                    "read_only_task: apply_patch is disabled for tasks created with task_mode=read_only"
+                )
+
+            touched_paths = self._validate_patch_paths(task, patch)
+            count = self._exploration_calls.get(task_id, 0)
+            _, hard_limit = self._budget_limits(mode)
+            if count >= hard_limit:
+                allowed_paths = self._exhaustion_paths.get(task_id)
+                if allowed_paths is None:
+                    raise RuntimeError(
+                        "exploration_mutation_scope_exceeded: exhausted modification task has "
+                        "no valid captured exhaustion boundary; refusing apply_patch"
+                    )
+                unauthorized = sorted(set(touched_paths) - set(allowed_paths))
+                if unauthorized:
+                    raise RuntimeError(
+                        "exploration_mutation_scope_exceeded: patch touches paths that were not "
+                        "dirty or untracked when exploration was exhausted: "
+                        + json.dumps(unauthorized, ensure_ascii=True)
+                    )
+
+            self._git_input(task, patch, "apply", "--check", "--recount", "--whitespace=error-all")
+            self._git_input(task, patch, "apply", "--recount", "--whitespace=nowarn")
+
         return self.task_status(task_id)
 
     def run_check(self, task_id: str, command: str, timeout_seconds: int | None = None) -> CommandResult:
@@ -330,21 +355,53 @@ class WorkspaceManager:
     def _save_state(self, task_id: str) -> None:
         target = self.task_root / f".state-{task_id}.json"
         temporary = self.task_root / f".state-{uuid.uuid4().hex}.tmp"
-        payload = json.dumps({"mode": self._task_modes[task_id], "calls": self._exploration_calls[task_id]})
-        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
-        with os.fdopen(descriptor, "w") as stream:
-            stream.write(payload)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, target)
+        payload = json.dumps(
+            {
+                "mode": self._task_modes[task_id],
+                "calls": self._exploration_calls[task_id],
+                "exhaustion_paths": (
+                    list(self._exhaustion_paths[task_id])
+                    if self._exhaustion_paths[task_id] is not None
+                    else None
+                ),
+            },
+            ensure_ascii=True,
+            separators=(",", ":"),
+        )
+        if len(payload.encode("utf-8")) > 4096:
+            raise ValueError("persisted task state exceeds 4096 byte limit")
+
+        descriptor = os.open(
+            temporary,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            0o600,
+        )
+        try:
+            with os.fdopen(descriptor, "w") as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, target)
+        finally:
+            try:
+                os.unlink(temporary)
+            except FileNotFoundError:
+                pass
 
     def _load_state(self, task_id: str) -> None:
-        if task_id in self._task_modes:
+        if (
+            task_id in self._task_modes
+            and task_id in self._exploration_calls
+            and task_id in self._exhaustion_paths
+        ):
             return
         if not SAFE_NAME.fullmatch(task_id):
             raise ValueError("invalid task id")
+
         target = self.task_root / f".state-{task_id}.json"
-        mode, calls = "read_only", READ_ONLY_EXPLORATION_HARD_LIMIT
+        mode = "read_only"
+        calls = READ_ONLY_EXPLORATION_HARD_LIMIT
+        exhaustion_paths: tuple[str, ...] | None = None
         try:
             descriptor = os.open(target, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
             with os.fdopen(descriptor) as stream:
@@ -352,12 +409,33 @@ class WorkspaceManager:
                 if not stat.S_ISREG(info.st_mode) or info.st_size > 4096 or info.st_nlink != 1:
                     raise ValueError("invalid persisted task state file")
                 state = json.loads(stream.read(4096))
-            if state["mode"] not in {"read_only", "modification"} or type(state["calls"]) is not int or state["calls"] < 0:
+
+            if (
+                state["mode"] not in {"read_only", "modification"}
+                or type(state["calls"]) is not int
+                or state["calls"] < 0
+            ):
                 raise ValueError("invalid persisted task state")
-            mode, calls = state["mode"], state["calls"]
-        except (OSError, ValueError, KeyError, TypeError):
+
+            loaded_mode = state["mode"]
+            loaded_calls = state["calls"]
+            loaded_paths = self._validate_exhaustion_paths(state.get("exhaustion_paths"))
+            _, hard_limit = self._budget_limits(loaded_mode)
+
+            if loaded_mode == "read_only" and loaded_paths is not None:
+                raise ValueError("read_only task state may not define exhaustion_paths")
+            if loaded_mode == "modification" and loaded_calls < hard_limit and loaded_paths is not None:
+                raise ValueError("pre-exhaustion modification state may not define exhaustion_paths")
+
+            mode = loaded_mode
+            calls = loaded_calls
+            exhaustion_paths = loaded_paths
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
             pass
-        self._task_modes[task_id], self._exploration_calls[task_id] = mode, calls
+
+        self._task_modes[task_id] = mode
+        self._exploration_calls[task_id] = calls
+        self._exhaustion_paths[task_id] = exhaustion_paths
 
     def _task_mode(self, task_id: str) -> str:
         with self._budget_lock:
@@ -382,7 +460,7 @@ class WorkspaceManager:
     def _consume_exploration(self, task_id: str) -> str:
         with self._budget_lock:
             self._load_state(task_id)
-            mode = self._task_modes.get(task_id, "modification")
+            mode = self._task_modes.get(task_id, "read_only")
             count = self._exploration_calls.get(task_id, 0)
             soft_limit, hard_limit = self._budget_limits(mode)
 
@@ -397,8 +475,10 @@ class WorkspaceManager:
                 else:
                     next_steps = (
                         "Further list_files/read_file/search_text calls are blocked. "
-                        "Do not create another task. Proceed with apply_patch, run_check, "
-                        "task_status, git_diff, or provide the best evidence-backed final response."
+                        "apply_patch is restricted to paths that were already dirty or untracked "
+                        "when the exploration limit was reached. Proceed with restricted "
+                        "apply_patch, run_check, task_status, git_diff, or provide the best "
+                        "evidence-backed final response."
                     )
                 raise RuntimeError(
                     f"exploration_budget_exhausted: task {task_id} used "
@@ -407,7 +487,41 @@ class WorkspaceManager:
 
             count += 1
             self._exploration_calls[task_id] = count
-            self._save_state(task_id)
+
+            if mode == "modification" and count == hard_limit:
+                self._exhaustion_paths[task_id] = None
+                try:
+                    self._save_state(task_id)
+                except Exception as error:
+                    target = self.task_root / f".state-{task_id}.json"
+                    try:
+                        target.unlink()
+                    except OSError:
+                        pass
+                    raise RuntimeError(
+                        "exploration_boundary_state_failed: could not persist a fail-closed "
+                        "exhaustion boundary state"
+                    ) from error
+
+                try:
+                    captured_paths = self._capture_exhaustion_paths(self._task(task_id))
+                except Exception as error:
+                    raise RuntimeError(
+                        "exploration_boundary_capture_failed: could not capture the modification "
+                        "scope at the exploration boundary; post-exhaustion mutation is disabled"
+                    ) from error
+
+                self._exhaustion_paths[task_id] = captured_paths
+                try:
+                    self._save_state(task_id)
+                except Exception as error:
+                    self._exhaustion_paths[task_id] = None
+                    raise RuntimeError(
+                        "exploration_boundary_state_failed: could not persist the captured "
+                        "modification scope; post-exhaustion mutation is disabled"
+                    ) from error
+            else:
+                self._save_state(task_id)
 
             if count < soft_limit:
                 return ""
@@ -417,6 +531,12 @@ class WorkspaceManager:
                 action = (
                     "Stop broad exploration and prepare the final evidence-backed response; "
                     "apply_patch is disabled for this task."
+                )
+            elif count >= hard_limit:
+                action = (
+                    "Exploration is now exhausted. apply_patch is restricted to paths that were "
+                    "already dirty or untracked when this limit was reached. Preserve completion "
+                    "budget for run_check, task_status, git_diff, and the final response."
                 )
             else:
                 action = (
@@ -510,25 +630,85 @@ class WorkspaceManager:
             raise ValueError("path escaped the task workspace")
         return target
 
+    @staticmethod
+    def _canonical_repository_path(raw: str) -> str:
+        if not isinstance(raw, str) or not raw or "\0" in raw:
+            raise ValueError("repository path must be a non-empty string without NUL characters")
+        path = PurePosixPath(raw)
+        if path.is_absolute() or ".." in path.parts or not path.parts:
+            raise ValueError(f"unsafe repository path: {raw!r}")
+        if path.parts[0] == ".git":
+            raise ValueError("repository paths may not target Git control files")
+        canonical = path.as_posix()
+        if canonical != raw or canonical == "." or any(part in {"", ".", ".."} for part in path.parts):
+            raise ValueError(f"repository path is not canonical POSIX form: {raw!r}")
+        return canonical
+
     @classmethod
-    def _validate_patch_paths(cls, task: Path, patch: str) -> None:
+    def _validate_exhaustion_paths(cls, raw_paths: object) -> tuple[str, ...] | None:
+        if raw_paths is None:
+            return None
+        if not isinstance(raw_paths, list):
+            raise ValueError("exhaustion_paths must be null or a list")
+        if any(not isinstance(raw, str) for raw in raw_paths):
+            raise ValueError("exhaustion_paths members must be strings")
+
+        validated = tuple(cls._canonical_repository_path(raw) for raw in raw_paths)
+        if len(set(validated)) != len(validated):
+            raise ValueError("exhaustion_paths must not contain duplicates")
+        if list(validated) != sorted(validated):
+            raise ValueError("exhaustion_paths must be sorted deterministically")
+        return validated
+
+    def _capture_exhaustion_paths(self, task: Path) -> tuple[str, ...]:
+        tracked = self._git(
+            task,
+            "diff",
+            "--name-only",
+            "--no-renames",
+            "-z",
+            "HEAD",
+            "--",
+        ).stdout
+        untracked = self._git(
+            task,
+            "ls-files",
+            "--others",
+            "--exclude-standard",
+            "-z",
+            "--",
+        ).stdout
+
+        paths: set[str] = set()
+        for output in (tracked, untracked):
+            for raw in output.split("\0"):
+                if raw:
+                    paths.add(self._canonical_repository_path(raw))
+        return tuple(sorted(paths))
+
+    @classmethod
+    def _validate_patch_paths(cls, task: Path, patch: str) -> tuple[str, ...]:
         if "new file mode 120000" in patch or "old mode 120000" in patch:
             raise ValueError("symbolic-link patches are not allowed")
         headers = [line[4:] for line in patch.splitlines() if line.startswith(("--- ", "+++ "))]
         if not headers:
             raise ValueError("patch contains no file headers")
+
+        touched: set[str] = set()
         for header in headers:
             raw = header.split("\t", 1)[0]
             if raw == "/dev/null":
                 continue
-            path = PurePosixPath(raw[2:] if raw.startswith(("a/", "b/")) else raw)
-            if path.is_absolute() or ".." in path.parts or not path.parts:
-                raise ValueError(f"unsafe patch path: {raw}")
-            if path.parts[0] == ".git":
-                raise ValueError("patches may not modify Git control files")
-            target = cls._path(task, str(path), must_exist=False)
+            relative = raw[2:] if raw.startswith(("a/", "b/")) else raw
+            canonical = cls._canonical_repository_path(relative)
+            target = cls._path(task, canonical, must_exist=False)
             if target.exists() and target.is_symlink():
                 raise ValueError(f"patches may not modify symbolic links: {raw}")
+            touched.add(canonical)
+
+        if not touched:
+            raise ValueError("patch contains no repository paths")
+        return tuple(sorted(touched))
 
     def _git(self, cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
         result = subprocess.run(
