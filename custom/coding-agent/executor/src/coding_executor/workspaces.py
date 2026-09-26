@@ -752,4 +752,5 @@ class WorkspaceManager:
             "CI": "true",
             "NO_COLOR": "1",
             "LANG": "C.UTF-8",
+            "PYTHONDONTWRITEBYTECODE": "1",
         }
