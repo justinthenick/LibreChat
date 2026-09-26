@@ -1,19 +1,45 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 import os
 import selectors
 import signal
 import subprocess
 import time
 
+_ALLOWED_OVERRIDE_KEYS = frozenset({
+    "GIT_INDEX_FILE",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+})
 
-def run(argv: list[str], *, cwd=None, timeout: int = 60, limit: int = 65536) -> str:
+
+def run(
+    argv: list[str],
+    *,
+    cwd=None,
+    timeout: int = 60,
+    limit: int = 65536,
+    env_override: Mapping[str, object] | None = None,
+) -> str:
     """Capture bounded output; terminate the process group on overflow or timeout."""
     environment = {
         "PATH": "/usr/local/bin:/usr/bin:/bin", "HOME": "/tmp/coding-agent-home",
         "LANG": "C.UTF-8", "GIT_TERMINAL_PROMPT": "0", "GIT_CONFIG_NOSYSTEM": "1",
         "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_OPTIONAL_LOCKS": "0",
+        "PYTHONDONTWRITEBYTECODE": "1",
     }
+    if env_override is not None:
+        if not isinstance(env_override, Mapping):
+            raise TypeError(f"Environment override must be a mapping, got {type(env_override).__name__}")
+        for key in env_override:
+            if not isinstance(key, str):
+                raise TypeError(f"Environment override key must be str, got {type(key).__name__}")
+            if key not in _ALLOWED_OVERRIDE_KEYS:
+                raise ValueError(f"Environment override key not permitted: {key!r}")
+        for key, value in env_override.items():
+            environment[key] = str(value)
+
     with subprocess.Popen(argv, cwd=cwd, env=environment, stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT, start_new_session=True) as process:
         chunks = bytearray()
