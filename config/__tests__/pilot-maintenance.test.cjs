@@ -47,3 +47,13 @@ test('instructions prohibit maintenance worktrees and executor fallback', () => 
   assert.match(manifest.instructions, /report the integration failure and stop/);
   assert.doesNotMatch(manifest.instructions, /For every task, first list/);
 });
+
+
+test('instructions prohibit mutation-as-inspection and test-failure source disclosure', () => {
+  assert.match(manifest.instructions, /MUTATION-AS-INSPECTION POLICY:/);
+  assert.match(manifest.instructions, /Never create or modify production code, tests, fixtures, scripts, assertions, error messages, snapshots, or generated files for the purpose of reading, printing, encoding, surfacing, or otherwise retrieving repository contents/);
+  assert.match(manifest.instructions, /Do not use run_check, deliberate test failures, stack traces, diff output, exception text, subprocess output, or any other completion tool as a substitute repository inspection channel/);
+  assert.match(manifest.instructions, /A mutation whose purpose is to expose unread source is a policy violation even if the mutation is later reverted/);
+  assert.match(manifest.instructions, /Evidence obtained through mutation-as-inspection is invalid and must not guide further analysis or changes/);
+  assert.match(manifest.instructions, /If permitted exploration is insufficient, stop and report the limitation; never manufacture another inspection path/);
+});
