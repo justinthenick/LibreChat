@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'config/seed-coding-agent-pilot.js'
+      - 'config/__tests__/pilot-maintenance.test.cjs'
       - 'custom/coding-agent/production/software-engineering-pilot.json'
       - 'custom/coding-agent/benchmarks/SKILL-PILOT-001/**'
       - 'deploy/synology/docker-compose.yml'
@@ -14,6 +15,7 @@ on:
       - server/synology
     paths:
       - 'config/seed-coding-agent-pilot.js'
+      - 'config/__tests__/pilot-maintenance.test.cjs'
       - 'custom/coding-agent/production/software-engineering-pilot.json'
       - 'custom/coding-agent/benchmarks/SKILL-PILOT-001/**'
       - 'deploy/synology/docker-compose.yml'
@@ -54,7 +56,7 @@ jobs:
           }
           assert manifest['id'] == 'agent_software_engineering_pilot_v01'
           assert manifest['status'] == 'validated-for-persistent-pilot'
-          assert manifest['version'] == '0.1.11'
+          assert manifest['version'] == '0.1.12'
           assert manifest['provider'] == 'google'
           assert manifest['preferred_model'] == 'gemini-3.7-flash'
           assert manifest['evidence']['model'] == 'google/gemini-3.7-flash'
@@ -83,6 +85,10 @@ jobs:
           assert 'Do not repeat a tool call after a circuit-breaker-open error.' in instructions
           assert 'never expands coding_executor permissions' in instructions
           assert 'When executor run_check returns exit code 126 with command_not_allowed, never describe that rejected command as having succeeded or use it as evidence.' in instructions
+          assert 'MUTATION-AS-INSPECTION POLICY:' in instructions
+          assert 'A mutation whose purpose is to expose unread source is a policy violation even if the mutation is later reverted.' in instructions
+          assert 'Evidence obtained through mutation-as-inspection is invalid and must not guide further analysis or changes.' in instructions
+          assert 'If permitted exploration is insufficient, stop and report the limitation; never manufacture another inspection path.' in instructions
           assert manifest['maintenance_mcp_server'] == 'coding_maintenance'
           assert set(manifest['maintenance_mcp_tools']) == {'executor_health', 'repository_status', 'task_inventory', 'executor_logs', 'fresh_repository_status', 'preview_cleanup', 'cleanup_task'}
           assert len(manifest['maintenance_mcp_tools']) == 7
@@ -114,6 +120,9 @@ jobs:
           assert 'production_agent_seed >/dev/null 2>&1' in deploy
           print('persistent coding-agent pilot contract OK')
           PY
+
+      - name: Validate pilot instruction regressions
+        run: node --test config/__tests__/pilot-maintenance.test.cjs
 
       - name: Validate shell syntax
         run: sh -n deploy/synology/autodeploy.sh
