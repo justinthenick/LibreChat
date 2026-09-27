@@ -11,7 +11,7 @@ import signal
 import tempfile
 from pathlib import Path
 
-from coding_executor.bounded import run
+from coding_executor.bounded import run, run_bytes
 from coding_executor.coordination import maintenance_lock
 from coding_executor.task_maintenance import SAFE_NAME
 from coding_executor.workspaces import WorkspaceManager
@@ -279,23 +279,32 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
                 "GIT_ALTERNATE_OBJECT_DIRECTORIES": str(objects),
             }
 
+            command_prefix = [
+                "git",
+                "--no-optional-locks",
+                "-c",
+                "core.hooksPath=/dev/null",
+                "-c",
+                "core.fsmonitor=false",
+                "-c",
+                "credential.helper=",
+                "-c",
+                "protocol.allow=never",
+                "-c",
+                "submodule.recurse=false",
+            ]
+
             def candidate_git(*args: str, limit: int = 65536) -> str:
                 return run(
-                    [
-                        "git",
-                        "--no-optional-locks",
-                        "-c",
-                        "core.hooksPath=/dev/null",
-                        "-c",
-                        "core.fsmonitor=false",
-                        "-c",
-                        "credential.helper=",
-                        "-c",
-                        "protocol.allow=never",
-                        "-c",
-                        "submodule.recurse=false",
-                        *args,
-                    ],
+                    [*command_prefix, *args],
+                    cwd=task,
+                    limit=limit,
+                    env_override=environment,
+                )
+
+            def candidate_git_bytes(*args: str, limit: int = 65536) -> bytes:
+                return run_bytes(
+                    [*command_prefix, *args],
                     cwd=task,
                     limit=limit,
                     env_override=environment,
@@ -306,7 +315,7 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
             # Git output as raw bytes before decoding, so CRLF payload bytes are not subject
             # to Python's universal-newline translation.
             candidate_git("add", "--all", "--", ".")
-            candidate_patch = candidate_git(
+            candidate_patch = candidate_git_bytes(
                 "diff",
                 "--cached",
                 "--no-ext-diff",
@@ -320,7 +329,7 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
             if not candidate_patch:
                 raise ValueError("promotion candidate patch is empty")
             candidate_tree = candidate_git("write-tree").strip()
-            patch_sha256 = hashlib.sha256(candidate_patch.encode("utf-8")).hexdigest()
+            patch_sha256 = hashlib.sha256(candidate_patch).hexdigest()
             return candidate_tree, patch_sha256
 
     candidate_tree, patch_sha256 = build_candidate()
