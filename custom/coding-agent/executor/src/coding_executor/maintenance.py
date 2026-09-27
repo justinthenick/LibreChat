@@ -23,7 +23,7 @@ PROMOTION_PATCH_LIMIT = 8 * 1024 * 1024
 
 def git(path: Path, *args: str, limit: int = 65536) -> str:
     return run(["git", "--no-optional-locks", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
-                "-c", "credential.helper=", "-c", "core.excludesFile=/dev/null", "-c", "protocol.allow=never",
+                "-c", "credential.helper=", "-c", "core.excludesFile=/dev/null", "-c", "core.attributesFile=/dev/null", "-c", "protocol.allow=never",
                 "-c", "protocol.https.allow=always", "-c", "submodule.recurse=false",
                 *args], cwd=path, limit=limit)
 
@@ -32,7 +32,7 @@ def git_path_records(path: Path, *args: str, limit: int = 65536) -> list[str]:
     """Return NUL-delimited Git paths using reversible filesystem decoding."""
     output = run_stdout_bytes(
         ["git", "--no-optional-locks", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
-         "-c", "credential.helper=", "-c", "core.excludesFile=/dev/null", "-c", "protocol.allow=never",
+         "-c", "credential.helper=", "-c", "core.excludesFile=/dev/null", "-c", "core.attributesFile=/dev/null", "-c", "protocol.allow=never",
          "-c", "protocol.https.allow=always", "-c", "submodule.recurse=false",
          *args],
         cwd=path,
@@ -52,6 +52,10 @@ def promotion_patch_bytes(task: Path, untracked: list[str]) -> bytes:
         "core.fsmonitor=false",
         "-c",
         "credential.helper=",
+        "-c",
+        "core.excludesFile=/dev/null",
+        "-c",
+        "core.attributesFile=/dev/null",
         "-c",
         "protocol.allow=never",
         "-c",
@@ -369,6 +373,8 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
                 "credential.helper=",
                 "-c",
                 "core.excludesFile=/dev/null",
+                "-c",
+                "core.attributesFile=/dev/null",
                 "-c",
                 "protocol.allow=never",
                 "-c",
