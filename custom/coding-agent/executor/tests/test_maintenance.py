@@ -330,45 +330,58 @@ class MaintenanceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "hidden-index"):
             promotion_candidate(self.repos, self.tasks, task)
 
-    def test_promotion_candidate_hashes_raw_non_utf8_patch_bytes(self):
+    def test_promotion_candidate_hashes_exact_documented_promotion_patch(self):
         task = self.task()
         path = self.tasks / task
         (path / "file").write_bytes(b"prefix\xffsuffix\n")
+        (path / "new-file").write_bytes(b"new\xfecontent\n")
 
         candidate = promotion_candidate(self.repos, self.tasks, task)
 
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            object_dir = root / "objects"
-            object_dir.mkdir()
-            environment = {
-                **os.environ,
-                "GIT_INDEX_FILE": str(root / "index"),
-                "GIT_OBJECT_DIRECTORY": str(object_dir),
-                "GIT_ALTERNATE_OBJECT_DIRECTORIES": str(self.repo / ".git/objects"),
-            }
-            subprocess.run(["git", "read-tree", "HEAD"], cwd=path, env=environment, check=True)
-            subprocess.run(["git", "add", "--all", "--", "."], cwd=path, env=environment, check=True)
-            raw_patch = subprocess.run(
+        tracked = subprocess.run(
+            [
+                "git",
+                "diff",
+                "--binary",
+                "--no-ext-diff",
+                "--no-textconv",
+                "--",
+            ],
+            cwd=path,
+            check=True,
+            capture_output=True,
+        ).stdout
+        sections = [tracked]
+        untracked = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard", "-z", "--"],
+            cwd=path,
+            check=True,
+            capture_output=True,
+        ).stdout.split(b"\0")
+        for relative_bytes in filter(None, untracked):
+            relative = os.fsdecode(relative_bytes)
+            result = subprocess.run(
                 [
                     "git",
                     "diff",
-                    "--cached",
+                    "--no-index",
+                    "--binary",
                     "--no-ext-diff",
                     "--no-textconv",
-                    "--binary",
-                    "--full-index",
-                    "HEAD",
                     "--",
+                    "/dev/null",
+                    relative,
                 ],
                 cwd=path,
-                env=environment,
-                check=True,
+                check=False,
                 capture_output=True,
-            ).stdout
+            )
+            self.assertEqual(result.returncode, 1)
+            sections.append(result.stdout)
 
-        self.assertTrue(raw_patch)
-        self.assertEqual(candidate["patch_sha256"], hashlib.sha256(raw_patch).hexdigest())
+        exported_patch = b"".join(sections)
+        self.assertTrue(exported_patch)
+        self.assertEqual(candidate["patch_sha256"], hashlib.sha256(exported_patch).hexdigest())
 
     @unittest.skipUnless(os.name == "posix", "requires POSIX byte-preserving filenames")
     def test_promotion_candidate_preserves_non_utf8_path_bytes(self):
