@@ -28,6 +28,19 @@ def git(path: Path, *args: str, limit: int = 65536) -> str:
                 *args], cwd=path, limit=limit)
 
 
+def git_path_records(path: Path, *args: str, limit: int = 65536) -> list[str]:
+    """Return NUL-delimited Git paths using reversible filesystem decoding."""
+    output = run_bytes(
+        ["git", "--no-optional-locks", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
+         "-c", "credential.helper=", "-c", "protocol.allow=never",
+         "-c", "protocol.https.allow=always", "-c", "submodule.recurse=false",
+         *args],
+        cwd=path,
+        limit=limit,
+    )
+    return [os.fsdecode(record) for record in output.split(b"\0") if record]
+
+
 def child(root: Path, name: str) -> Path:
     if not SAFE_NAME.fullmatch(name):
         raise ValueError("invalid identifier")
@@ -222,18 +235,15 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
     if _hidden_index_flags(source):
         raise ValueError("source repository must not use hidden-index flags before promotion preview")
 
-    untracked = [
-        raw for raw in git(
-            task,
-            "ls-files",
-            "--others",
-            "--exclude-standard",
-            "-z",
-            "--",
-            limit=PROMOTION_PATCH_LIMIT,
-        ).split("\0")
-        if raw
-    ]
+    untracked = git_path_records(
+        task,
+        "ls-files",
+        "--others",
+        "--exclude-standard",
+        "-z",
+        "--",
+        limit=PROMOTION_PATCH_LIMIT,
+    )
     for raw in untracked:
         canonical = WorkspaceManager._canonical_repository_path(raw)
         target = WorkspaceManager._path(task, canonical, must_exist=True)
@@ -242,7 +252,7 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
         if target.stat().st_size == 0:
             raise ValueError(f"empty untracked file cannot be promoted safely: {canonical}")
 
-    tracked = git(
+    tracked = git_path_records(
         task,
         "diff",
         "--name-only",
@@ -254,8 +264,7 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
     )
     changed_paths = {
         WorkspaceManager._canonical_repository_path(raw)
-        for raw in tracked.split("\0")
-        if raw
+        for raw in tracked
     }
     changed_paths.update(WorkspaceManager._canonical_repository_path(raw) for raw in untracked)
     ordered_paths = sorted(changed_paths)
