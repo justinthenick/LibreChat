@@ -80,6 +80,61 @@ def run_bytes(
             process.wait()
 
 
+def run_stdout_bytes(
+    argv: list[str],
+    *,
+    cwd=None,
+    timeout: int = 60,
+    limit: int = 65536,
+    env_override: Mapping[str, object] | None = None,
+    accepted_returncodes: tuple[int, ...] = (0,),
+) -> bytes:
+    """Capture bounded stdout bytes while draining stderr separately."""
+    environment = _environment(env_override)
+    if not accepted_returncodes or any(type(code) is not int for code in accepted_returncodes):
+        raise ValueError("accepted_returncodes must contain one or more integer exit codes")
+
+    with subprocess.Popen(
+        argv,
+        cwd=cwd,
+        env=environment,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        start_new_session=True,
+    ) as process:
+        stdout_chunks = bytearray()
+        total_output = 0
+        deadline = time.monotonic() + timeout
+        try:
+            with selectors.DefaultSelector() as selector:
+                selector.register(process.stdout, selectors.EVENT_READ, data="stdout")
+                selector.register(process.stderr, selectors.EVENT_READ, data="stderr")
+                while selector.get_map():
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise RuntimeError("maintenance command timed out")
+                    for key, _ in selector.select(min(remaining, 0.2)):
+                        chunk = os.read(key.fd, 8192)
+                        if not chunk:
+                            selector.unregister(key.fileobj)
+                            continue
+                        total_output += len(chunk)
+                        if total_output > limit:
+                            raise RuntimeError("maintenance output limit exceeded")
+                        if key.data == "stdout":
+                            stdout_chunks.extend(chunk)
+                process.wait(timeout=max(0.01, deadline - time.monotonic()))
+            if process.returncode not in accepted_returncodes:
+                raise RuntimeError("maintenance command failed; inspect operator diagnostics")
+            return bytes(stdout_chunks)
+        finally:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait()
+
+
 def run(
     argv: list[str],
     *,
