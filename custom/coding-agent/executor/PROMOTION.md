@@ -44,24 +44,43 @@ Run the repository's required tests in the same controlled environment used by t
 Create a temporary complete patch from the reviewed task. Tracked changes are exported first, followed by every untracked regular file:
 
 ```bash
+export GIT_CONFIG_NOSYSTEM=1
+export GIT_CONFIG_GLOBAL=/dev/null
+export GIT_OPTIONAL_LOCKS=0
+export GIT_TERMINAL_PROMPT=0
+export LANG=C.UTF-8
+
+PROMOTION_GIT=(
+  git --no-optional-locks
+  -c core.hooksPath=/dev/null
+  -c core.fsmonitor=false
+  -c credential.helper=
+  -c protocol.allow=never
+  -c protocol.https.allow=always
+  -c submodule.recurse=false
+)
+
 PATCH_FILE="$(mktemp /tmp/coding-agent-promotion.XXXXXX.patch)"
-git -C "$TASK_PATH" diff --binary --no-ext-diff --no-textconv -- > "$PATCH_FILE"
+"${PROMOTION_GIT[@]}" -C "$TASK_PATH" diff --binary --no-ext-diff --no-textconv -- > "$PATCH_FILE"
 
 while IFS= read -r -d '' RELATIVE_PATH; do
   test -f "$TASK_PATH/$RELATIVE_PATH"
   test ! -L "$TASK_PATH/$RELATIVE_PATH"
   set +e
-  git -C "$TASK_PATH" diff --no-index --binary --no-ext-diff --no-textconv -- /dev/null "$RELATIVE_PATH" >> "$PATCH_FILE"
+  "${PROMOTION_GIT[@]}" -C "$TASK_PATH" diff --no-index --binary --no-ext-diff --no-textconv -- /dev/null "$RELATIVE_PATH" >> "$PATCH_FILE"
   DIFF_EXIT=$?
   set -e
   test "$DIFF_EXIT" -eq 1
-done < <(git -C "$TASK_PATH" ls-files --others --exclude-standard -z --)
+done < <("${PROMOTION_GIT[@]}" -C "$TASK_PATH" ls-files --others --exclude-standard -z --)
 
 test -s "$PATCH_FILE"
-git -C "$REPO_PATH" apply --check "$PATCH_FILE"
-git -C "$REPO_PATH" apply --stat "$PATCH_FILE"
-git -C "$REPO_PATH" apply "$PATCH_FILE"
+sha256sum "$PATCH_FILE"
+"${PROMOTION_GIT[@]}" -C "$REPO_PATH" apply --check "$PATCH_FILE"
+"${PROMOTION_GIT[@]}" -C "$REPO_PATH" apply --stat "$PATCH_FILE"
+"${PROMOTION_GIT[@]}" -C "$REPO_PATH" apply "$PATCH_FILE"
 ```
+
+The sanitized Git environment above intentionally matches the executor's promotion-candidate renderer so global or system Git configuration cannot change the patch bytes. Compare the printed SHA-256 with the candidate's reported `patch_sha256` before applying.
 
 The fail-closed exit-code check deliberately rejects empty untracked files because Git cannot represent them as an unstaged content diff. Add content or handle an intentionally empty file manually after review.
 
