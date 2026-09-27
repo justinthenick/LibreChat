@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from coding_executor.bounded import run
+from coding_executor.bounded import run, run_stdout_bytes
 from coding_executor.coordination import coordinated, maintenance_lock
 from coding_executor.maintenance import INDEX_SCAN_LIMIT, fresh_repository_status, git, inventory, promotion_candidate, promotion_paths, refresh, remove_task, repository_status, task_snapshot
 from coding_executor.workspaces import WorkspaceManager
@@ -633,6 +633,17 @@ class MaintenanceTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "command failed") as error:
             run(["python3", "-c", "import sys; print('SECRET'); sys.exit(1)"])
         self.assertNotIn("SECRET", str(error.exception))
+
+    def test_stdout_bytes_excludes_successful_stderr_diagnostics(self):
+        output = run_stdout_bytes(
+            [
+                "python3",
+                "-c",
+                "import sys; sys.stdout.buffer.write(b'PATH\\0'); "
+                "sys.stderr.write('warning: diagnostic only\\n')",
+            ]
+        )
+        self.assertEqual(output, b"PATH\0")
 
     def test_refresh_fast_forward_dirty_diverged_and_detached(self):
         remote = self.root / "upstream.git"
