@@ -41,9 +41,12 @@ def run_bytes(
     timeout: int = 60,
     limit: int = 65536,
     env_override: Mapping[str, object] | None = None,
+    accepted_returncodes: tuple[int, ...] = (0,),
 ) -> bytes:
     """Capture bounded raw output; terminate the process group on overflow or timeout."""
     environment = _environment(env_override)
+    if not accepted_returncodes or any(type(code) is not int for code in accepted_returncodes):
+        raise ValueError("accepted_returncodes must contain one or more integer exit codes")
 
     with subprocess.Popen(argv, cwd=cwd, env=environment, stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT, start_new_session=True) as process:
@@ -65,7 +68,7 @@ def run_bytes(
                         if len(chunks) > limit:
                             raise RuntimeError("maintenance output limit exceeded")
                 process.wait(timeout=max(0.01, deadline - time.monotonic()))
-            if process.returncode:
+            if process.returncode not in accepted_returncodes:
                 raise RuntimeError("maintenance command failed; inspect operator diagnostics")
             return bytes(chunks)
         finally:
