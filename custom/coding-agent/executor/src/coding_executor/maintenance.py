@@ -8,6 +8,7 @@ import json
 import os
 import re
 import signal
+import tempfile
 from pathlib import Path
 
 from coding_executor.bounded import run
@@ -17,6 +18,7 @@ from coding_executor.workspaces import WorkspaceManager
 
 
 INDEX_SCAN_LIMIT = 8 * 1024 * 1024
+PROMOTION_PATCH_LIMIT = 8 * 1024 * 1024
 
 
 def git(path: Path, *args: str, limit: int = 65536) -> str:
@@ -185,6 +187,189 @@ def task_snapshot(repositories: Path, tasks: Path, task_id: str) -> dict[str, ob
             "cleanup_eligible": False, "eligibility_basis": "requires_operator_retirement_and_preview"}
 
 
+
+def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[str, object]:
+    """Build a deterministic promotion candidate without touching source refs/index/objects."""
+    snapshot = task_snapshot(repositories, tasks, task_id)
+    checks = snapshot["checks"]
+    required_checks = (
+        "index_clean",
+        "no_ignored",
+        "no_hidden_index_flags",
+        "expected_identity",
+        "registered_nonbroken",
+        "no_git_locks",
+        "no_git_operation",
+    )
+    if not all(checks[name] for name in required_checks):
+        raise ValueError("promotion candidate requires an unstaged task with no ignored/hidden-index state")
+    if not snapshot["dirty"]:
+        raise ValueError("promotion candidate requires task changes")
+
+    task = child(tasks, task_id)
+    source = child(repositories, str(snapshot["repository"]))
+    source_branch = git(source, "branch", "--show-current").strip()
+    source_head = git(source, "rev-parse", "HEAD").strip()
+    if not source_branch or source_head != snapshot["head"]:
+        raise ValueError("source and task must share the same reviewed HEAD")
+    if git(source, "status", "--porcelain=v1", "--untracked-files=all"):
+        raise ValueError("source repository must be clean before promotion preview")
+
+    untracked = [
+        raw for raw in git(
+            task,
+            "ls-files",
+            "--others",
+            "--exclude-standard",
+            "-z",
+            "--",
+            limit=PROMOTION_PATCH_LIMIT,
+        ).split("\0")
+        if raw
+    ]
+    for raw in untracked:
+        canonical = WorkspaceManager._canonical_repository_path(raw)
+        target = WorkspaceManager._path(task, canonical, must_exist=True)
+        if not target.is_file() or target.is_symlink():
+            raise ValueError(f"untracked promotion path is not a regular file: {canonical}")
+        if target.stat().st_size == 0:
+            raise ValueError(f"empty untracked file cannot be promoted safely: {canonical}")
+
+    manager = WorkspaceManager(
+        repositories,
+        tasks,
+        max_output_bytes=PROMOTION_PATCH_LIMIT,
+    )
+    patch = manager.diff(task_id)
+    if not patch:
+        raise ValueError("promotion candidate patch is empty")
+    patch_sha256 = hashlib.sha256(patch.encode("utf-8")).hexdigest()
+
+    tracked = git(
+        task,
+        "diff",
+        "--name-only",
+        "--no-renames",
+        "-z",
+        "HEAD",
+        "--",
+        limit=PROMOTION_PATCH_LIMIT,
+    )
+    changed_paths = {
+        WorkspaceManager._canonical_repository_path(raw)
+        for raw in tracked.split("\0")
+        if raw
+    }
+    changed_paths.update(WorkspaceManager._canonical_repository_path(raw) for raw in untracked)
+    ordered_paths = sorted(changed_paths)
+    if not ordered_paths:
+        raise ValueError("promotion candidate contains no changed paths")
+
+    common = source / ".git"
+    objects = common / "objects"
+    if common.is_symlink() or objects.is_symlink() or not objects.is_dir():
+        raise ValueError("source object store is not a local canonical directory")
+
+    with tempfile.TemporaryDirectory(prefix="coding-promotion-") as temporary:
+        root = Path(temporary)
+        object_dir = root / "objects"
+        object_dir.mkdir()
+        index_file = root / "index"
+        patch_file = root / "candidate.patch"
+        descriptor = os.open(
+            patch_file,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            0o600,
+        )
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            stream.write(patch)
+            stream.flush()
+            os.fsync(stream.fileno())
+
+        environment = {
+            "GIT_INDEX_FILE": str(index_file),
+            "GIT_OBJECT_DIRECTORY": str(object_dir),
+            "GIT_ALTERNATE_OBJECT_DIRECTORIES": str(objects),
+        }
+
+        def candidate_git(*args: str, limit: int = 65536) -> str:
+            return run(
+                [
+                    "git",
+                    "--no-optional-locks",
+                    "-c",
+                    "core.hooksPath=/dev/null",
+                    "-c",
+                    "core.fsmonitor=false",
+                    "-c",
+                    "credential.helper=",
+                    "-c",
+                    "protocol.allow=never",
+                    "-c",
+                    "submodule.recurse=false",
+                    *args,
+                ],
+                cwd=task,
+                limit=limit,
+                env_override=environment,
+            )
+
+        candidate_git("read-tree", "HEAD")
+        candidate_git(
+            "apply",
+            "--cached",
+            "--check",
+            "--recount",
+            "--whitespace=error-all",
+            str(patch_file),
+            limit=PROMOTION_PATCH_LIMIT,
+        )
+        candidate_git(
+            "apply",
+            "--cached",
+            "--recount",
+            "--whitespace=nowarn",
+            str(patch_file),
+            limit=PROMOTION_PATCH_LIMIT,
+        )
+        candidate_tree = candidate_git("write-tree").strip()
+
+    if not re.fullmatch(r"[0-9a-f]{40,64}", candidate_tree):
+        raise RuntimeError("candidate tree was not a valid Git object ID")
+
+    if git(source, "rev-parse", "HEAD").strip() != source_head:
+        raise RuntimeError("source HEAD changed during promotion preview")
+    if git(source, "branch", "--show-current").strip() != source_branch:
+        raise RuntimeError("source branch changed during promotion preview")
+    if git(source, "status", "--porcelain=v1", "--untracked-files=all"):
+        raise RuntimeError("source repository changed during promotion preview")
+
+    verification_patch = manager.diff(task_id)
+    verification_sha256 = hashlib.sha256(verification_patch.encode("utf-8")).hexdigest()
+    if verification_sha256 != patch_sha256:
+        raise RuntimeError("task changed during promotion preview")
+
+    evidence = {
+        "task_id": task_id,
+        "repository": snapshot["repository"],
+        "task_branch": snapshot["branch"],
+        "source_branch": source_branch,
+        "source_head": source_head,
+        "candidate_tree": candidate_tree,
+        "patch_sha256": patch_sha256,
+        "changed_paths": ordered_paths,
+    }
+    candidate_hash = hashlib.sha256(
+        json.dumps(evidence, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return {
+        **evidence,
+        "candidate_hash": candidate_hash,
+        "change_count": len(ordered_paths),
+        "source_mutated": False,
+        "candidate_storage": "temporary_index_and_object_store",
+    }
+
 def remove_task(repositories: Path, tasks: Path, task_id: str, expected: str) -> dict[str, object]:
     snapshot = task_snapshot(repositories, tasks, task_id)
     if snapshot["dirty"] or snapshot["fingerprint"] != expected:
@@ -230,7 +415,7 @@ def main() -> None:
     signal.signal(signal.SIGALRM, deadline_expired)
     signal.alarm(120)
     parser = argparse.ArgumentParser()
-    parser.add_argument("operation", choices=["health", "status", "fresh-status", "refresh", "inventory", "preview", "remove"])
+    parser.add_argument("operation", choices=["health", "status", "fresh-status", "refresh", "inventory", "preview", "promotion-candidate", "remove"])
     parser.add_argument("--repository", default="")
     parser.add_argument("--branch", default="")
     parser.add_argument("--url", default="")
@@ -255,6 +440,9 @@ def main() -> None:
                 result = inventory(repositories, tasks)
             elif args.operation == "preview":
                 result = task_snapshot(repositories, tasks, args.task)
+                result["exclusive_gate_verified"] = True
+            elif args.operation == "promotion-candidate":
+                result = promotion_candidate(repositories, tasks, args.task)
                 result["exclusive_gate_verified"] = True
             else:
                 result = remove_task(repositories, tasks, args.task, args.fingerprint)
