@@ -14,15 +14,7 @@ _ALLOWED_OVERRIDE_KEYS = frozenset({
 })
 
 
-def run(
-    argv: list[str],
-    *,
-    cwd=None,
-    timeout: int = 60,
-    limit: int = 65536,
-    env_override: Mapping[str, object] | None = None,
-) -> str:
-    """Capture bounded output; terminate the process group on overflow or timeout."""
+def _environment(env_override: Mapping[str, object] | None) -> dict[str, str]:
     environment = {
         "PATH": "/usr/local/bin:/usr/bin:/bin", "HOME": "/tmp/coding-agent-home",
         "LANG": "C.UTF-8", "GIT_TERMINAL_PROMPT": "0", "GIT_CONFIG_NOSYSTEM": "1",
@@ -39,6 +31,19 @@ def run(
                 raise ValueError(f"Environment override key not permitted: {key!r}")
         for key, value in env_override.items():
             environment[key] = str(value)
+    return environment
+
+
+def run_bytes(
+    argv: list[str],
+    *,
+    cwd=None,
+    timeout: int = 60,
+    limit: int = 65536,
+    env_override: Mapping[str, object] | None = None,
+) -> bytes:
+    """Capture bounded raw output; terminate the process group on overflow or timeout."""
+    environment = _environment(env_override)
 
     with subprocess.Popen(argv, cwd=cwd, env=environment, stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT, start_new_session=True) as process:
@@ -62,7 +67,7 @@ def run(
                 process.wait(timeout=max(0.01, deadline - time.monotonic()))
             if process.returncode:
                 raise RuntimeError("maintenance command failed; inspect operator diagnostics")
-            return chunks.decode("utf-8", errors="replace")
+            return bytes(chunks)
         finally:
             # Also reap background descendants after their parent exits.
             try:
@@ -70,3 +75,21 @@ def run(
             except ProcessLookupError:
                 pass
             process.wait()
+
+
+def run(
+    argv: list[str],
+    *,
+    cwd=None,
+    timeout: int = 60,
+    limit: int = 65536,
+    env_override: Mapping[str, object] | None = None,
+) -> str:
+    """Capture bounded UTF-8 text output; terminate the process group on overflow or timeout."""
+    return run_bytes(
+        argv,
+        cwd=cwd,
+        timeout=timeout,
+        limit=limit,
+        env_override=env_override,
+    ).decode("utf-8", errors="replace")
