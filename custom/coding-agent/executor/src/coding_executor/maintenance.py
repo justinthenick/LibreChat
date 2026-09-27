@@ -146,6 +146,52 @@ def promotion_paths(task: Path) -> tuple[list[str], list[str]]:
     return untracked, ordered_paths
 
 
+def _reject_dirty_submodules(task: Path) -> None:
+    """Reject initialized submodules with uncommitted nested worktree changes."""
+    output = run_stdout_bytes(
+        [
+            "git",
+            "--no-optional-locks",
+            "-c",
+            "core.hooksPath=/dev/null",
+            "-c",
+            "core.fsmonitor=false",
+            "-c",
+            "credential.helper=",
+            "-c",
+            "core.excludesFile=/dev/null",
+            "-c",
+            "core.attributesFile=/dev/null",
+            "-c",
+            "protocol.allow=never",
+            "-c",
+            "protocol.https.allow=always",
+            "-c",
+            "submodule.recurse=false",
+            "ls-files",
+            "--stage",
+            "-z",
+            "--",
+        ],
+        cwd=task,
+        limit=INDEX_SCAN_LIMIT,
+    )
+    for record in filter(None, output.split(b"\0")):
+        metadata, separator, raw_path = record.partition(b"\t")
+        if not separator or not metadata.startswith(b"160000 "):
+            continue
+        relative = WorkspaceManager._canonical_repository_path(os.fsdecode(raw_path))
+        target = WorkspaceManager._path(task, relative, must_exist=False)
+        if not target.exists():
+            continue
+        if target.is_symlink() or not target.is_dir():
+            raise ValueError(f"submodule path is not a canonical directory: {relative}")
+        if not (target / ".git").exists():
+            continue
+        if git(target, "status", "--porcelain=v1", "--untracked-files=all"):
+            raise ValueError(f"dirty submodule worktree cannot be promoted safely: {relative}")
+
+
 def child(root: Path, name: str) -> Path:
     if not SAFE_NAME.fullmatch(name):
         raise ValueError("invalid identifier")
@@ -340,6 +386,7 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
     if _hidden_index_flags(source):
         raise ValueError("source repository must not use hidden-index flags before promotion preview")
 
+    _reject_dirty_submodules(task)
     untracked, ordered_paths = promotion_paths(task)
 
     common = source / ".git"
@@ -418,6 +465,7 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
     ):
         raise RuntimeError("task eligibility changed during promotion preview")
 
+    _reject_dirty_submodules(task)
     verification_untracked, verification_paths = promotion_paths(task)
     if verification_untracked != untracked or verification_paths != ordered_paths:
         raise RuntimeError("task paths changed during promotion preview")
