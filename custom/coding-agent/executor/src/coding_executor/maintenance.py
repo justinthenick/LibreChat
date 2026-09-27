@@ -101,6 +101,12 @@ def promotion_patch_bytes(task: Path, untracked: list[str]) -> bytes:
     return patch
 
 
+
+def promotion_paths(task: Path) -> tuple[list[str], list[str]]:
+    """Enumerate and validate all paths represented by a promotion candidate."""
+    untracked, ordered_paths = promotion_paths(task)
+    return untracked, ordered_paths
+
 def child(root: Path, name: str) -> Path:
     if not SAFE_NAME.fullmatch(name):
         raise ValueError("invalid identifier")
@@ -391,7 +397,10 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
     if _hidden_index_flags(source):
         raise RuntimeError("source hidden-index state changed during promotion preview")
 
-    verification_patch = promotion_patch_bytes(task, untracked)
+    verification_untracked, verification_paths = promotion_paths(task)
+    if verification_untracked != untracked or verification_paths != ordered_paths:
+        raise RuntimeError("task paths changed during promotion preview")
+    verification_patch = promotion_patch_bytes(task, verification_untracked)
     verification_sha256 = hashlib.sha256(verification_patch).hexdigest()
     verification_tree = build_candidate_tree()
     if verification_tree != candidate_tree or verification_sha256 != patch_sha256:
