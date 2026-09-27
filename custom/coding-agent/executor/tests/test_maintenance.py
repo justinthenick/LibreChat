@@ -517,6 +517,47 @@ class MaintenanceTests(unittest.TestCase):
         )
         self.assertEqual(candidate["change_count"], 2)
 
+    def test_promotion_candidate_rejects_dirty_initialized_submodule(self):
+        submodule_repo = self.root / "submodule-source"
+        submodule_repo.mkdir()
+        self.command(submodule_repo, "init", "-b", "main")
+        self.command(submodule_repo, "config", "user.email", "test@example.invalid")
+        self.command(submodule_repo, "config", "user.name", "Test")
+        (submodule_repo / "nested.txt").write_text("initial\n")
+        self.command(submodule_repo, "add", ".")
+        self.command(submodule_repo, "commit", "-m", "initial submodule")
+
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "protocol.file.allow=always",
+                "submodule",
+                "add",
+                str(submodule_repo),
+                "vendor/submodule",
+            ],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.command(self.repo, "commit", "-am", "add submodule")
+
+        task = self.task()
+        path = self.tasks / task
+        subprocess.run(
+            ["git", "-c", "protocol.file.allow=always", "submodule", "update", "--init", "--recursive"],
+            cwd=path,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        (path / "vendor/submodule/nested.txt").write_text("dirty nested worktree\n")
+
+        with self.assertRaisesRegex(ValueError, "dirty submodule worktree"):
+            promotion_candidate(self.repos, self.tasks, task)
+
     def test_promotion_candidate_rejects_staged_ignored_and_empty_untracked_state(self):
         task = self.task()
         path = self.tasks / task
