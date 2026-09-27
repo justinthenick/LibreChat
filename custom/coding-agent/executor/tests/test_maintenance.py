@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -11,9 +12,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from coding_executor.bounded import run
+from coding_executor.bounded import run, run_stdout_bytes
 from coding_executor.coordination import coordinated, maintenance_lock
-from coding_executor.maintenance import INDEX_SCAN_LIMIT, fresh_repository_status, git, inventory, refresh, remove_task, repository_status, task_snapshot
+from coding_executor.maintenance import INDEX_SCAN_LIMIT, fresh_repository_status, git, inventory, promotion_candidate, promotion_paths, refresh, remove_task, repository_status, task_snapshot
 from coding_executor.workspaces import WorkspaceManager
 
 
@@ -219,6 +220,466 @@ class MaintenanceTests(unittest.TestCase):
                     task_snapshot(self.repos, self.tasks, task)
                 (admin / marker).unlink()
 
+    def test_promotion_candidate_is_deterministic_and_does_not_mutate_source_git_state(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+        (path / "new-file").write_text("new content\n")
+
+        source_head = self.command(self.repo, "rev-parse", "HEAD").strip()
+        source_index = (self.repo / ".git/index").read_bytes()
+        source_objects = sorted(
+            str(item.relative_to(self.repo / ".git/objects"))
+            for item in (self.repo / ".git/objects").rglob("*")
+            if item.is_file()
+        )
+
+        first = promotion_candidate(self.repos, self.tasks, task)
+        second = promotion_candidate(self.repos, self.tasks, task)
+
+        self.assertEqual(first["candidate_hash"], second["candidate_hash"])
+        self.assertEqual(first["candidate_tree"], second["candidate_tree"])
+        self.assertEqual(first["changed_paths"], ["file", "new-file"])
+        self.assertEqual(first["change_count"], 2)
+        self.assertFalse(first["source_mutated"])
+        self.assertEqual(first["candidate_storage"], "temporary_index_and_object_store")
+        self.assertRegex(first["candidate_tree"], r"^[0-9a-f]{40,64}$")
+        self.assertRegex(first["patch_sha256"], r"^[0-9a-f]{64}$")
+        self.assertRegex(first["candidate_hash"], r"^[0-9a-f]{64}$")
+
+        self.assertEqual(self.command(self.repo, "rev-parse", "HEAD").strip(), source_head)
+        self.assertEqual((self.repo / ".git/index").read_bytes(), source_index)
+        self.assertEqual(
+            sorted(
+                str(item.relative_to(self.repo / ".git/objects"))
+                for item in (self.repo / ".git/objects").rglob("*")
+                if item.is_file()
+            ),
+            source_objects,
+        )
+        self.assertEqual(self.command(self.repo, "status", "--porcelain=v1"), "")
+
+    def test_promotion_candidate_hash_changes_with_task_content(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("first\n")
+        first = promotion_candidate(self.repos, self.tasks, task)
+        (path / "file").write_text("second\n")
+        second = promotion_candidate(self.repos, self.tasks, task)
+        self.assertNotEqual(first["patch_sha256"], second["patch_sha256"])
+        self.assertNotEqual(first["candidate_tree"], second["candidate_tree"])
+        self.assertNotEqual(first["candidate_hash"], second["candidate_hash"])
+
+    def test_promotion_candidate_preserves_crlf_blob_bytes(self):
+        task = self.task()
+        path = self.tasks / task
+        crlf_bytes = b"first\r\nsecond\r\n"
+        (path / "file").write_bytes(crlf_bytes)
+
+        candidate = promotion_candidate(self.repos, self.tasks, task)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            object_dir = root / "objects"
+            object_dir.mkdir()
+            environment = {
+                **os.environ,
+                "GIT_INDEX_FILE": str(root / "index"),
+                "GIT_OBJECT_DIRECTORY": str(object_dir),
+                "GIT_ALTERNATE_OBJECT_DIRECTORIES": str(self.repo / ".git/objects"),
+            }
+            subprocess.run(["git", "read-tree", "HEAD"], cwd=path, env=environment, check=True)
+            subprocess.run(["git", "add", "--all", "--", "."], cwd=path, env=environment, check=True)
+            expected_tree = subprocess.run(
+                ["git", "write-tree"],
+                cwd=path,
+                env=environment,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            expected_blob = subprocess.run(
+                ["git", "hash-object", "-w", "--stdin"],
+                cwd=path,
+                env=environment,
+                input=crlf_bytes,
+                check=True,
+                capture_output=True,
+            ).stdout.decode().strip()
+            tree_listing = subprocess.run(
+                ["git", "ls-tree", expected_tree, "file"],
+                cwd=path,
+                env=environment,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+
+        self.assertEqual(candidate["candidate_tree"], expected_tree)
+        self.assertIn(expected_blob, tree_listing)
+
+    def test_promotion_candidate_rejects_hidden_index_state_in_source(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+
+        self.command(self.repo, "update-index", "--assume-unchanged", "file")
+        (self.repo / "file").write_text("hidden source change\n")
+        self.assertEqual(self.command(self.repo, "status", "--porcelain=v1", "--untracked-files=all"), "")
+
+        with self.assertRaisesRegex(ValueError, "hidden-index"):
+            promotion_candidate(self.repos, self.tasks, task)
+
+    def test_promotion_candidate_hashes_exact_documented_promotion_patch(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_bytes(b"prefix\xffsuffix\n")
+        (path / "new-file").write_bytes(b"new\xfecontent\n")
+
+        candidate = promotion_candidate(self.repos, self.tasks, task)
+
+        tracked = subprocess.run(
+            [
+                "git",
+                "diff",
+                "--binary",
+                "--no-ext-diff",
+                "--no-textconv",
+                "--",
+            ],
+            cwd=path,
+            check=True,
+            capture_output=True,
+        ).stdout
+        sections = [tracked]
+        untracked = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard", "-z", "--"],
+            cwd=path,
+            check=True,
+            capture_output=True,
+        ).stdout.split(b"\0")
+        for relative_bytes in filter(None, untracked):
+            relative = os.fsdecode(relative_bytes)
+            result = subprocess.run(
+                [
+                    "git",
+                    "diff",
+                    "--no-index",
+                    "--binary",
+                    "--no-ext-diff",
+                    "--no-textconv",
+                    "--",
+                    "/dev/null",
+                    relative,
+                ],
+                cwd=path,
+                check=False,
+                capture_output=True,
+            )
+            self.assertEqual(result.returncode, 1)
+            sections.append(result.stdout)
+
+        exported_patch = b"".join(sections)
+        self.assertTrue(exported_patch)
+        self.assertEqual(candidate["patch_sha256"], hashlib.sha256(exported_patch).hexdigest())
+
+    def test_promotion_candidate_ignores_hostile_global_diff_formatting(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+        hostile_config = self.root / "hostile.gitconfig"
+        hostile_config.write_text("[diff]\n\tnoprefix = true\n")
+
+        hostile_environment = {
+            **os.environ,
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": str(hostile_config),
+        }
+        with patch.dict(os.environ, hostile_environment, clear=True):
+            candidate = promotion_candidate(self.repos, self.tasks, task)
+
+        hostile_patch = subprocess.run(
+            ["git", "diff", "--binary", "--no-ext-diff", "--no-textconv", "--"],
+            cwd=path,
+            env=hostile_environment,
+            check=True,
+            capture_output=True,
+        ).stdout
+
+        sanitized_environment = {
+            **hostile_environment,
+            "GIT_CONFIG_GLOBAL": "/dev/null",
+            "GIT_OPTIONAL_LOCKS": "0",
+            "GIT_TERMINAL_PROMPT": "0",
+            "LANG": "C.UTF-8",
+        }
+        promotion_git = [
+            "git",
+            "--no-optional-locks",
+            "-c",
+            "core.hooksPath=/dev/null",
+            "-c",
+            "core.fsmonitor=false",
+            "-c",
+            "credential.helper=",
+            "-c",
+            "core.excludesFile=/dev/null",
+            "-c",
+            "core.attributesFile=/dev/null",
+            "-c",
+            "protocol.allow=never",
+            "-c",
+            "protocol.https.allow=always",
+            "-c",
+            "submodule.recurse=false",
+        ]
+        sanitized_patch = subprocess.run(
+            [*promotion_git, "diff", "--binary", "--no-ext-diff", "--no-textconv", "--"],
+            cwd=path,
+            env=sanitized_environment,
+            check=True,
+            capture_output=True,
+        ).stdout
+
+        self.assertNotEqual(hostile_patch, sanitized_patch)
+        self.assertEqual(candidate["patch_sha256"], hashlib.sha256(sanitized_patch).hexdigest())
+
+    def test_promotion_candidate_rejects_path_drift_during_verification(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+        calls = 0
+
+        def enumerate_with_drift(current: Path):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                (path / "late-file").write_text("late\n")
+            return promotion_paths(current)
+
+        with patch("coding_executor.maintenance.promotion_paths", side_effect=enumerate_with_drift):
+            with self.assertRaisesRegex(RuntimeError, "task paths changed"):
+                promotion_candidate(self.repos, self.tasks, task)
+
+    def test_promotion_candidate_rejects_eligibility_drift_during_verification(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+        (path / "other").write_text("untracked\n")
+        calls = 0
+
+        def stage_after_initial_snapshot(current: Path):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                self.command(path, "add", "file")
+            return promotion_paths(current)
+
+        with patch("coding_executor.maintenance.promotion_paths", side_effect=stage_after_initial_snapshot):
+            with self.assertRaisesRegex(RuntimeError, "task eligibility changed"):
+                promotion_candidate(self.repos, self.tasks, task)
+
+    def test_promotion_candidate_ignores_configured_user_excludes(self):
+        ignore_file = self.root / "user-ignore"
+        ignore_file.write_text("*.personal\n")
+        self.command(self.repo, "config", "core.excludesFile", str(ignore_file))
+
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+        (path / "keep.personal").write_text("included\n")
+
+        candidate = promotion_candidate(self.repos, self.tasks, task)
+
+        self.assertEqual(candidate["changed_paths"], ["file", "keep.personal"])
+
+    @unittest.skipUnless(os.name == "posix", "requires POSIX byte-preserving filenames")
+    def test_promotion_candidate_preserves_non_utf8_path_bytes(self):
+        tracked_bytes = b"tracked-\xff"
+        untracked_bytes = b"untracked-\xfe"
+        tracked_name = os.fsdecode(tracked_bytes)
+        untracked_name = os.fsdecode(untracked_bytes)
+
+        (self.repo / tracked_name).write_bytes(b"tracked initial\n")
+        self.command(self.repo, "add", "--", tracked_name)
+        self.command(self.repo, "commit", "-m", "add non-utf8 path")
+
+        task = self.task()
+        path = self.tasks / task
+        (path / tracked_name).write_bytes(b"tracked changed\n")
+        (path / untracked_name).write_bytes(b"untracked content\n")
+
+        candidate = promotion_candidate(self.repos, self.tasks, task)
+
+        self.assertEqual(
+            {os.fsencode(name) for name in candidate["changed_paths"]},
+            {tracked_bytes, untracked_bytes},
+        )
+        self.assertEqual(candidate["change_count"], 2)
+
+    def test_promotion_candidate_rejects_dirty_initialized_submodule(self):
+        submodule_repo = self.root / "submodule-source"
+        submodule_repo.mkdir()
+        self.command(submodule_repo, "init", "-b", "main")
+        self.command(submodule_repo, "config", "user.email", "test@example.invalid")
+        self.command(submodule_repo, "config", "user.name", "Test")
+        (submodule_repo / "nested.txt").write_text("initial\n")
+        self.command(submodule_repo, "add", ".")
+        self.command(submodule_repo, "commit", "-m", "initial submodule")
+
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "protocol.file.allow=always",
+                "submodule",
+                "add",
+                str(submodule_repo),
+                "vendor/submodule",
+            ],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.command(self.repo, "commit", "-am", "add submodule")
+
+        task = self.task()
+        path = self.tasks / task
+        subprocess.run(
+            ["git", "-c", "protocol.file.allow=always", "submodule", "update", "--init", "--recursive"],
+            cwd=path,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        (path / "vendor/submodule/nested.txt").write_text("dirty nested worktree\n")
+
+        with self.assertRaisesRegex(ValueError, "submodule changes cannot be promoted safely"):
+            promotion_candidate(self.repos, self.tasks, task)
+
+    def test_promotion_candidate_rejects_clean_submodule_head_move(self):
+        submodule_repo = self.root / "submodule-move-source"
+        submodule_repo.mkdir()
+        self.command(submodule_repo, "init", "-b", "main")
+        self.command(submodule_repo, "config", "user.email", "test@example.invalid")
+        self.command(submodule_repo, "config", "user.name", "Test")
+        (submodule_repo / "nested.txt").write_text("first\n")
+        self.command(submodule_repo, "add", ".")
+        self.command(submodule_repo, "commit", "-m", "first submodule commit")
+
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "protocol.file.allow=always",
+                "submodule",
+                "add",
+                str(submodule_repo),
+                "vendor/submodule",
+            ],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.command(self.repo, "commit", "-am", "add submodule at first commit")
+
+        (submodule_repo / "nested.txt").write_text("second\n")
+        self.command(submodule_repo, "commit", "-am", "second submodule commit")
+        second_commit = self.command(submodule_repo, "rev-parse", "HEAD").strip()
+
+        task = self.task()
+        path = self.tasks / task
+        subprocess.run(
+            ["git", "-c", "protocol.file.allow=always", "submodule", "update", "--init", "--recursive"],
+            cwd=path,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            ["git", "-c", "protocol.file.allow=always", "fetch", "origin"],
+            cwd=path / "vendor/submodule",
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            ["git", "checkout", "--detach", second_commit],
+            cwd=path / "vendor/submodule",
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(
+            subprocess.run(
+                ["git", "status", "--porcelain=v1"],
+                cwd=path / "vendor/submodule",
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout,
+            "",
+        )
+        self.command(path, "config", "-f", ".gitmodules", "submodule.vendor/submodule.ignore", "all")
+        (path / "file").write_text("ordinary change\n")
+        plain_paths = subprocess.run(
+            ["git", "diff", "--name-only", "HEAD", "--"],
+            cwd=path,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        self.assertIn("file", plain_paths)
+        self.assertNotIn("vendor/submodule", plain_paths)
+
+        with self.assertRaisesRegex(ValueError, "submodule changes cannot be promoted safely"):
+            promotion_candidate(self.repos, self.tasks, task)
+
+    @unittest.skipUnless(os.name == "posix", "requires POSIX symlink semantics")
+    def test_promotion_candidate_rejects_untracked_symlink_before_resolution(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "link-to-file").symlink_to("file")
+
+        with self.assertRaisesRegex(ValueError, "untracked promotion path is not a regular file"):
+            promotion_candidate(self.repos, self.tasks, task)
+
+    def test_promotion_candidate_rejects_staged_ignored_and_empty_untracked_state(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("staged\n")
+        self.command(path, "add", "file")
+        with self.assertRaisesRegex(ValueError, "unstaged task"):
+            promotion_candidate(self.repos, self.tasks, task)
+
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+        (path / "keep.ignored").write_text("ignored\n")
+        with self.assertRaisesRegex(ValueError, "no ignored"):
+            promotion_candidate(self.repos, self.tasks, task)
+
+        task = self.task()
+        path = self.tasks / task
+        (path / "empty").touch()
+        with self.assertRaisesRegex(ValueError, "empty untracked"):
+            promotion_candidate(self.repos, self.tasks, task)
+
+    def test_promotion_candidate_rejects_dirty_or_moved_source(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+        (self.repo / "source-dirty").write_text("dirty\n")
+        with self.assertRaisesRegex(ValueError, "source repository must be clean"):
+            promotion_candidate(self.repos, self.tasks, task)
+        (self.repo / "source-dirty").unlink()
+
+        self.command(self.repo, "commit", "--allow-empty", "-m", "source moved")
+        with self.assertRaisesRegex(ValueError, "same reviewed HEAD"):
+            promotion_candidate(self.repos, self.tasks, task)
+
     def test_cleanup_retains_branch_and_rejects_replay(self):
         task = self.task()
         snapshot = task_snapshot(self.repos, self.tasks, task)
@@ -337,6 +798,17 @@ class MaintenanceTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "command failed") as error:
             run(["python3", "-c", "import sys; print('SECRET'); sys.exit(1)"])
         self.assertNotIn("SECRET", str(error.exception))
+
+    def test_stdout_bytes_excludes_successful_stderr_diagnostics(self):
+        output = run_stdout_bytes(
+            [
+                "python3",
+                "-c",
+                "import sys; sys.stdout.buffer.write(b'PATH\\0'); "
+                "sys.stderr.write('warning: diagnostic only\\n')",
+            ]
+        )
+        self.assertEqual(output, b"PATH\0")
 
     def test_refresh_fast_forward_dirty_diverged_and_detached(self):
         remote = self.root / "upstream.git"
