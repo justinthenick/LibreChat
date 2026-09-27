@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 from coding_executor.bounded import run
 from coding_executor.coordination import coordinated, maintenance_lock
-from coding_executor.maintenance import INDEX_SCAN_LIMIT, fresh_repository_status, git, inventory, refresh, remove_task, repository_status, task_snapshot
+from coding_executor.maintenance import INDEX_SCAN_LIMIT, fresh_repository_status, git, inventory, promotion_candidate, refresh, remove_task, repository_status, task_snapshot
 from coding_executor.workspaces import WorkspaceManager
 
 
@@ -218,6 +218,90 @@ class MaintenanceTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "unfinished Git operation"):
                     task_snapshot(self.repos, self.tasks, task)
                 (admin / marker).unlink()
+
+    def test_promotion_candidate_is_deterministic_and_does_not_mutate_source_git_state(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+        (path / "new-file").write_text("new content\n")
+
+        source_head = self.command(self.repo, "rev-parse", "HEAD").strip()
+        source_index = (self.repo / ".git/index").read_bytes()
+        source_objects = sorted(
+            str(item.relative_to(self.repo / ".git/objects"))
+            for item in (self.repo / ".git/objects").rglob("*")
+            if item.is_file()
+        )
+
+        first = promotion_candidate(self.repos, self.tasks, task)
+        second = promotion_candidate(self.repos, self.tasks, task)
+
+        self.assertEqual(first["candidate_hash"], second["candidate_hash"])
+        self.assertEqual(first["candidate_tree"], second["candidate_tree"])
+        self.assertEqual(first["changed_paths"], ["file", "new-file"])
+        self.assertEqual(first["change_count"], 2)
+        self.assertFalse(first["source_mutated"])
+        self.assertEqual(first["candidate_storage"], "temporary_index_and_object_store")
+        self.assertRegex(first["candidate_tree"], r"^[0-9a-f]{40,64}$")
+        self.assertRegex(first["patch_sha256"], r"^[0-9a-f]{64}$")
+        self.assertRegex(first["candidate_hash"], r"^[0-9a-f]{64}$")
+
+        self.assertEqual(self.command(self.repo, "rev-parse", "HEAD").strip(), source_head)
+        self.assertEqual((self.repo / ".git/index").read_bytes(), source_index)
+        self.assertEqual(
+            sorted(
+                str(item.relative_to(self.repo / ".git/objects"))
+                for item in (self.repo / ".git/objects").rglob("*")
+                if item.is_file()
+            ),
+            source_objects,
+        )
+        self.assertEqual(self.command(self.repo, "status", "--porcelain=v1"), "")
+
+    def test_promotion_candidate_hash_changes_with_task_content(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("first\n")
+        first = promotion_candidate(self.repos, self.tasks, task)
+        (path / "file").write_text("second\n")
+        second = promotion_candidate(self.repos, self.tasks, task)
+        self.assertNotEqual(first["patch_sha256"], second["patch_sha256"])
+        self.assertNotEqual(first["candidate_tree"], second["candidate_tree"])
+        self.assertNotEqual(first["candidate_hash"], second["candidate_hash"])
+
+    def test_promotion_candidate_rejects_staged_ignored_and_empty_untracked_state(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("staged\n")
+        self.command(path, "add", "file")
+        with self.assertRaisesRegex(ValueError, "unstaged task"):
+            promotion_candidate(self.repos, self.tasks, task)
+
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+        (path / "keep.ignored").write_text("ignored\n")
+        with self.assertRaisesRegex(ValueError, "no ignored"):
+            promotion_candidate(self.repos, self.tasks, task)
+
+        task = self.task()
+        path = self.tasks / task
+        (path / "empty").touch()
+        with self.assertRaisesRegex(ValueError, "empty untracked"):
+            promotion_candidate(self.repos, self.tasks, task)
+
+    def test_promotion_candidate_rejects_dirty_or_moved_source(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+        (self.repo / "source-dirty").write_text("dirty\n")
+        with self.assertRaisesRegex(ValueError, "source repository must be clean"):
+            promotion_candidate(self.repos, self.tasks, task)
+        (self.repo / "source-dirty").unlink()
+
+        self.command(self.repo, "commit", "--allow-empty", "-m", "source moved")
+        with self.assertRaisesRegex(ValueError, "same reviewed HEAD"):
+            promotion_candidate(self.repos, self.tasks, task)
 
     def test_cleanup_retains_branch_and_rejects_replay(self):
         task = self.task()
