@@ -23,7 +23,7 @@ PROMOTION_PATCH_LIMIT = 8 * 1024 * 1024
 
 def git(path: Path, *args: str, limit: int = 65536) -> str:
     return run(["git", "--no-optional-locks", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
-                "-c", "credential.helper=", "-c", "protocol.allow=never",
+                "-c", "credential.helper=", "-c", "core.excludesFile=/dev/null", "-c", "protocol.allow=never",
                 "-c", "protocol.https.allow=always", "-c", "submodule.recurse=false",
                 *args], cwd=path, limit=limit)
 
@@ -32,7 +32,7 @@ def git_path_records(path: Path, *args: str, limit: int = 65536) -> list[str]:
     """Return NUL-delimited Git paths using reversible filesystem decoding."""
     output = run_stdout_bytes(
         ["git", "--no-optional-locks", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
-         "-c", "credential.helper=", "-c", "protocol.allow=never",
+         "-c", "credential.helper=", "-c", "core.excludesFile=/dev/null", "-c", "protocol.allow=never",
          "-c", "protocol.https.allow=always", "-c", "submodule.recurse=false",
          *args],
         cwd=path,
@@ -368,6 +368,8 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
                 "-c",
                 "credential.helper=",
                 "-c",
+                "core.excludesFile=/dev/null",
+                "-c",
                 "protocol.allow=never",
                 "-c",
                 "submodule.recurse=false",
@@ -397,6 +399,18 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
         raise RuntimeError("source repository changed during promotion preview")
     if _hidden_index_flags(source):
         raise RuntimeError("source hidden-index state changed during promotion preview")
+
+    verification_snapshot = task_snapshot(repositories, tasks, task_id)
+    if (
+        verification_snapshot["repository"] != snapshot["repository"]
+        or verification_snapshot["branch"] != snapshot["branch"]
+        or verification_snapshot["head"] != snapshot["head"]
+        or verification_snapshot["device"] != snapshot["device"]
+        or verification_snapshot["inode"] != snapshot["inode"]
+        or not verification_snapshot["dirty"]
+        or not all(verification_snapshot["checks"][name] for name in required_checks)
+    ):
+        raise RuntimeError("task eligibility changed during promotion preview")
 
     verification_untracked, verification_paths = promotion_paths(task)
     if verification_untracked != untracked or verification_paths != ordered_paths:
