@@ -20,16 +20,17 @@ Then verify the boundaries in Bash under the same sanitized Git environment used
 
 ```bash
 set -euo pipefail
-export HOME=/tmp/coding-agent-home
-export XDG_CONFIG_HOME="$HOME/.config"
-export GIT_CONFIG_NOSYSTEM=1
-export GIT_CONFIG_GLOBAL=/dev/null
-export GIT_OPTIONAL_LOCKS=0
-export GIT_TERMINAL_PROMPT=0
-export LANG=C.UTF-8
-unset GIT_DIFF_OPTS GIT_EXTERNAL_DIFF
 
 PROMOTION_GIT=(
+  env -i
+  PATH=/usr/local/bin:/usr/bin:/bin
+  HOME=/tmp/coding-agent-home
+  XDG_CONFIG_HOME=/tmp/coding-agent-home/.config
+  LANG=C.UTF-8
+  GIT_CONFIG_NOSYSTEM=1
+  GIT_CONFIG_GLOBAL=/dev/null
+  GIT_OPTIONAL_LOCKS=0
+  GIT_TERMINAL_PROMPT=0
   git --no-optional-locks
   -c core.hooksPath=/dev/null
   -c core.fsmonitor=false
@@ -85,7 +86,7 @@ sha256sum "$PATCH_FILE"
 "${PROMOTION_GIT[@]}" -C "$REPO_PATH" apply "$PATCH_FILE"
 ```
 
-The sanitized Git environment above intentionally matches the executor's promotion-candidate renderer so global or system Git configuration cannot change the patch bytes. Compare the printed SHA-256 with the candidate's reported `patch_sha256` before applying.
+The `env -i` wrapper above runs every review/export/apply Git command under an allowlisted environment matching the executor's promotion renderer, so inherited Git environment variables and user/system configuration cannot change the reviewed paths or patch bytes. Compare the printed SHA-256 with the candidate's reported `patch_sha256` before applying.
 
 The fail-closed exit-code check deliberately rejects empty untracked files because Git cannot represent them as an unstaged content diff. Add content or handle an intentionally empty file manually after review.
 
