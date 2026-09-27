@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 from coding_executor.bounded import run
 from coding_executor.coordination import coordinated, maintenance_lock
-from coding_executor.maintenance import INDEX_SCAN_LIMIT, fresh_repository_status, git, inventory, promotion_candidate, refresh, remove_task, repository_status, task_snapshot
+from coding_executor.maintenance import INDEX_SCAN_LIMIT, fresh_repository_status, git, inventory, promotion_candidate, promotion_paths, refresh, remove_task, repository_status, task_snapshot
 from coding_executor.workspaces import WorkspaceManager
 
 
@@ -382,6 +382,80 @@ class MaintenanceTests(unittest.TestCase):
         exported_patch = b"".join(sections)
         self.assertTrue(exported_patch)
         self.assertEqual(candidate["patch_sha256"], hashlib.sha256(exported_patch).hexdigest())
+
+    def test_promotion_candidate_ignores_hostile_global_diff_formatting(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+        hostile_config = self.root / "hostile.gitconfig"
+        hostile_config.write_text("[diff]\n\tnoprefix = true\n")
+
+        hostile_environment = {
+            **os.environ,
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": str(hostile_config),
+        }
+        with patch.dict(os.environ, hostile_environment, clear=True):
+            candidate = promotion_candidate(self.repos, self.tasks, task)
+
+        hostile_patch = subprocess.run(
+            ["git", "diff", "--binary", "--no-ext-diff", "--no-textconv", "--"],
+            cwd=path,
+            env=hostile_environment,
+            check=True,
+            capture_output=True,
+        ).stdout
+
+        sanitized_environment = {
+            **hostile_environment,
+            "GIT_CONFIG_GLOBAL": "/dev/null",
+            "GIT_OPTIONAL_LOCKS": "0",
+            "GIT_TERMINAL_PROMPT": "0",
+            "LANG": "C.UTF-8",
+        }
+        promotion_git = [
+            "git",
+            "--no-optional-locks",
+            "-c",
+            "core.hooksPath=/dev/null",
+            "-c",
+            "core.fsmonitor=false",
+            "-c",
+            "credential.helper=",
+            "-c",
+            "protocol.allow=never",
+            "-c",
+            "protocol.https.allow=always",
+            "-c",
+            "submodule.recurse=false",
+        ]
+        sanitized_patch = subprocess.run(
+            [*promotion_git, "diff", "--binary", "--no-ext-diff", "--no-textconv", "--"],
+            cwd=path,
+            env=sanitized_environment,
+            check=True,
+            capture_output=True,
+        ).stdout
+
+        self.assertNotEqual(hostile_patch, sanitized_patch)
+        self.assertEqual(candidate["patch_sha256"], hashlib.sha256(sanitized_patch).hexdigest())
+
+    def test_promotion_candidate_rejects_path_drift_during_verification(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+        calls = 0
+
+        def enumerate_with_drift(current: Path):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                (path / "late-file").write_text("late\n")
+            return promotion_paths(current)
+
+        with patch("coding_executor.maintenance.promotion_paths", side_effect=enumerate_with_drift):
+            with self.assertRaisesRegex(RuntimeError, "task paths changed"):
+                promotion_candidate(self.repos, self.tasks, task)
 
     @unittest.skipUnless(os.name == "posix", "requires POSIX byte-preserving filenames")
     def test_promotion_candidate_preserves_non_utf8_path_bytes(self):
