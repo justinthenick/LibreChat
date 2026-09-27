@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -328,6 +329,46 @@ class MaintenanceTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "hidden-index"):
             promotion_candidate(self.repos, self.tasks, task)
+
+    def test_promotion_candidate_hashes_raw_non_utf8_patch_bytes(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_bytes(b"prefix\xffsuffix\n")
+
+        candidate = promotion_candidate(self.repos, self.tasks, task)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            object_dir = root / "objects"
+            object_dir.mkdir()
+            environment = {
+                **os.environ,
+                "GIT_INDEX_FILE": str(root / "index"),
+                "GIT_OBJECT_DIRECTORY": str(object_dir),
+                "GIT_ALTERNATE_OBJECT_DIRECTORIES": str(self.repo / ".git/objects"),
+            }
+            subprocess.run(["git", "read-tree", "HEAD"], cwd=path, env=environment, check=True)
+            subprocess.run(["git", "add", "--all", "--", "."], cwd=path, env=environment, check=True)
+            raw_patch = subprocess.run(
+                [
+                    "git",
+                    "diff",
+                    "--cached",
+                    "--no-ext-diff",
+                    "--no-textconv",
+                    "--binary",
+                    "--full-index",
+                    "HEAD",
+                    "--",
+                ],
+                cwd=path,
+                env=environment,
+                check=True,
+                capture_output=True,
+            ).stdout
+
+        self.assertIn(b"\xff", raw_patch)
+        self.assertEqual(candidate["patch_sha256"], hashlib.sha256(raw_patch).hexdigest())
 
     def test_promotion_candidate_rejects_staged_ignored_and_empty_untracked_state(self):
         task = self.task()
