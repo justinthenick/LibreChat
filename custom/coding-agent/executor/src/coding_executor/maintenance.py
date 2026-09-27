@@ -41,6 +41,66 @@ def git_path_records(path: Path, *args: str, limit: int = 65536) -> list[str]:
     return [os.fsdecode(record) for record in output.split(b"\0") if record]
 
 
+def promotion_patch_bytes(task: Path, untracked: list[str]) -> bytes:
+    """Render the exact byte sequence documented for human promotion."""
+    prefix = [
+        "git",
+        "--no-optional-locks",
+        "-c",
+        "core.hooksPath=/dev/null",
+        "-c",
+        "core.fsmonitor=false",
+        "-c",
+        "credential.helper=",
+        "-c",
+        "protocol.allow=never",
+        "-c",
+        "protocol.https.allow=always",
+        "-c",
+        "submodule.recurse=false",
+    ]
+    sections = [
+        run_bytes(
+            [*prefix, "diff", "--binary", "--no-ext-diff", "--no-textconv", "--"],
+            cwd=task,
+            limit=PROMOTION_PATCH_LIMIT,
+        )
+    ]
+    size = len(sections[0])
+
+    for relative in untracked:
+        remaining = PROMOTION_PATCH_LIMIT - size
+        if remaining <= 0:
+            raise ValueError(
+                f"complete promotion patch exceeds {PROMOTION_PATCH_LIMIT} byte output limit; split the task"
+            )
+        section = run_bytes(
+            [
+                *prefix,
+                "diff",
+                "--no-index",
+                "--binary",
+                "--no-ext-diff",
+                "--no-textconv",
+                "--",
+                "/dev/null",
+                relative,
+            ],
+            cwd=task,
+            limit=remaining,
+            accepted_returncodes=(1,),
+        )
+        if not section:
+            raise ValueError(f"untracked file cannot be represented as a patch: {relative}")
+        sections.append(section)
+        size += len(section)
+
+    patch = b"".join(sections)
+    if not patch:
+        raise ValueError("promotion candidate patch is empty")
+    return patch
+
+
 def child(root: Path, name: str) -> Path:
     if not SAFE_NAME.fullmatch(name):
         raise ValueError("invalid identifier")
@@ -276,7 +336,10 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
     if common.is_symlink() or objects.is_symlink() or not objects.is_dir():
         raise ValueError("source object store is not a local canonical directory")
 
-    def build_candidate() -> tuple[str, str]:
+    promotion_patch = promotion_patch_bytes(task, untracked)
+    patch_sha256 = hashlib.sha256(promotion_patch).hexdigest()
+
+    def build_candidate_tree() -> str:
         with tempfile.TemporaryDirectory(prefix="coding-promotion-") as temporary:
             root = Path(temporary)
             object_dir = root / "objects"
@@ -311,37 +374,11 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
                     env_override=environment,
                 )
 
-            def candidate_git_bytes(*args: str, limit: int = 65536) -> bytes:
-                return run_bytes(
-                    [*command_prefix, *args],
-                    cwd=task,
-                    limit=limit,
-                    env_override=environment,
-                )
-
             candidate_git("read-tree", "HEAD")
-            # Stage the working tree into an isolated index/object store. bounded.run reads
-            # Git output as raw bytes before decoding, so CRLF payload bytes are not subject
-            # to Python's universal-newline translation.
             candidate_git("add", "--all", "--", ".")
-            candidate_patch = candidate_git_bytes(
-                "diff",
-                "--cached",
-                "--no-ext-diff",
-                "--no-textconv",
-                "--binary",
-                "--full-index",
-                "HEAD",
-                "--",
-                limit=PROMOTION_PATCH_LIMIT,
-            )
-            if not candidate_patch:
-                raise ValueError("promotion candidate patch is empty")
-            candidate_tree = candidate_git("write-tree").strip()
-            patch_sha256 = hashlib.sha256(candidate_patch).hexdigest()
-            return candidate_tree, patch_sha256
+            return candidate_git("write-tree").strip()
 
-    candidate_tree, patch_sha256 = build_candidate()
+    candidate_tree = build_candidate_tree()
     if not re.fullmatch(r"[0-9a-f]{40,64}", candidate_tree):
         raise RuntimeError("candidate tree was not a valid Git object ID")
 
@@ -354,7 +391,9 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
     if _hidden_index_flags(source):
         raise RuntimeError("source hidden-index state changed during promotion preview")
 
-    verification_tree, verification_sha256 = build_candidate()
+    verification_patch = promotion_patch_bytes(task, untracked)
+    verification_sha256 = hashlib.sha256(verification_patch).hexdigest()
+    verification_tree = build_candidate_tree()
     if verification_tree != candidate_tree or verification_sha256 != patch_sha256:
         raise RuntimeError("task changed during promotion preview")
 
