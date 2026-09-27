@@ -37,6 +37,15 @@ def child(root: Path, name: str) -> Path:
     return candidate
 
 
+def _hidden_index_flags(path: Path) -> list[str]:
+    records = [
+        record
+        for record in git(path, "ls-files", "-v", "-z", "--", limit=INDEX_SCAN_LIMIT).split("\0")
+        if record
+    ]
+    return [record[0] for record in records if record[0] == "S" or record[0].islower()]
+
+
 def repository_status(repositories: Path, name: str, branch: str) -> dict[str, object]:
     source = child(repositories, name)
     if (source / ".git").is_symlink() or not (source / ".git").is_dir():
@@ -165,11 +174,7 @@ def task_snapshot(repositories: Path, tasks: Path, task_id: str) -> dict[str, ob
     # Hidden-index detection must inspect every tracked path. Large approved repositories
     # can exceed the generic 64 KiB command-output cap, so use a larger but still bounded
     # cap for this fixed, read-only index scan.
-    index_records = [record for record in git(
-        task, "ls-files", "-v", "-z", "--", limit=INDEX_SCAN_LIMIT
-    ).split("\0") if record]
-    hidden_index_flags = [record[0] for record in index_records
-                          if record[0] == "S" or record[0].islower()]
+    hidden_index_flags = _hidden_index_flags(task)
     dirty = bool(statuses or hidden_index_flags)
     checks = {"tracked_clean": all(code in ("??", "!!") for code in statuses),
               "index_clean": all(code[0] in (" ", "?", "!") for code in statuses),
@@ -214,6 +219,8 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
         raise ValueError("source and task must share the same reviewed HEAD")
     if git(source, "status", "--porcelain=v1", "--untracked-files=all"):
         raise ValueError("source repository must be clean before promotion preview")
+    if _hidden_index_flags(source):
+        raise ValueError("source repository must not use hidden-index flags before promotion preview")
 
     untracked = [
         raw for raw in git(
@@ -234,16 +241,6 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
             raise ValueError(f"untracked promotion path is not a regular file: {canonical}")
         if target.stat().st_size == 0:
             raise ValueError(f"empty untracked file cannot be promoted safely: {canonical}")
-
-    manager = WorkspaceManager(
-        repositories,
-        tasks,
-        max_output_bytes=PROMOTION_PATCH_LIMIT,
-    )
-    patch = manager.diff(task_id)
-    if not patch:
-        raise ValueError("promotion candidate patch is empty")
-    patch_sha256 = hashlib.sha256(patch.encode("utf-8")).hexdigest()
 
     tracked = git(
         task,
@@ -270,70 +267,63 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
     if common.is_symlink() or objects.is_symlink() or not objects.is_dir():
         raise ValueError("source object store is not a local canonical directory")
 
-    with tempfile.TemporaryDirectory(prefix="coding-promotion-") as temporary:
-        root = Path(temporary)
-        object_dir = root / "objects"
-        object_dir.mkdir()
-        index_file = root / "index"
-        patch_file = root / "candidate.patch"
-        descriptor = os.open(
-            patch_file,
-            os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
-            0o600,
-        )
-        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-            stream.write(patch)
-            stream.flush()
-            os.fsync(stream.fileno())
+    def build_candidate() -> tuple[str, str]:
+        with tempfile.TemporaryDirectory(prefix="coding-promotion-") as temporary:
+            root = Path(temporary)
+            object_dir = root / "objects"
+            object_dir.mkdir()
+            index_file = root / "index"
+            environment = {
+                "GIT_INDEX_FILE": str(index_file),
+                "GIT_OBJECT_DIRECTORY": str(object_dir),
+                "GIT_ALTERNATE_OBJECT_DIRECTORIES": str(objects),
+            }
 
-        environment = {
-            "GIT_INDEX_FILE": str(index_file),
-            "GIT_OBJECT_DIRECTORY": str(object_dir),
-            "GIT_ALTERNATE_OBJECT_DIRECTORIES": str(objects),
-        }
+            def candidate_git(*args: str, limit: int = 65536) -> str:
+                return run(
+                    [
+                        "git",
+                        "--no-optional-locks",
+                        "-c",
+                        "core.hooksPath=/dev/null",
+                        "-c",
+                        "core.fsmonitor=false",
+                        "-c",
+                        "credential.helper=",
+                        "-c",
+                        "protocol.allow=never",
+                        "-c",
+                        "submodule.recurse=false",
+                        *args,
+                    ],
+                    cwd=task,
+                    limit=limit,
+                    env_override=environment,
+                )
 
-        def candidate_git(*args: str, limit: int = 65536) -> str:
-            return run(
-                [
-                    "git",
-                    "--no-optional-locks",
-                    "-c",
-                    "core.hooksPath=/dev/null",
-                    "-c",
-                    "core.fsmonitor=false",
-                    "-c",
-                    "credential.helper=",
-                    "-c",
-                    "protocol.allow=never",
-                    "-c",
-                    "submodule.recurse=false",
-                    *args,
-                ],
-                cwd=task,
-                limit=limit,
-                env_override=environment,
+            candidate_git("read-tree", "HEAD")
+            # Stage the working tree into an isolated index/object store. bounded.run reads
+            # Git output as raw bytes before decoding, so CRLF payload bytes are not subject
+            # to Python's universal-newline translation.
+            candidate_git("add", "--all", "--", ".")
+            candidate_patch = candidate_git(
+                "diff",
+                "--cached",
+                "--no-ext-diff",
+                "--no-textconv",
+                "--binary",
+                "--full-index",
+                "HEAD",
+                "--",
+                limit=PROMOTION_PATCH_LIMIT,
             )
+            if not candidate_patch:
+                raise ValueError("promotion candidate patch is empty")
+            candidate_tree = candidate_git("write-tree").strip()
+            patch_sha256 = hashlib.sha256(candidate_patch.encode("utf-8")).hexdigest()
+            return candidate_tree, patch_sha256
 
-        candidate_git("read-tree", "HEAD")
-        candidate_git(
-            "apply",
-            "--cached",
-            "--check",
-            "--recount",
-            "--whitespace=error-all",
-            str(patch_file),
-            limit=PROMOTION_PATCH_LIMIT,
-        )
-        candidate_git(
-            "apply",
-            "--cached",
-            "--recount",
-            "--whitespace=nowarn",
-            str(patch_file),
-            limit=PROMOTION_PATCH_LIMIT,
-        )
-        candidate_tree = candidate_git("write-tree").strip()
-
+    candidate_tree, patch_sha256 = build_candidate()
     if not re.fullmatch(r"[0-9a-f]{40,64}", candidate_tree):
         raise RuntimeError("candidate tree was not a valid Git object ID")
 
@@ -343,10 +333,11 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
         raise RuntimeError("source branch changed during promotion preview")
     if git(source, "status", "--porcelain=v1", "--untracked-files=all"):
         raise RuntimeError("source repository changed during promotion preview")
+    if _hidden_index_flags(source):
+        raise RuntimeError("source hidden-index state changed during promotion preview")
 
-    verification_patch = manager.diff(task_id)
-    verification_sha256 = hashlib.sha256(verification_patch.encode("utf-8")).hexdigest()
-    if verification_sha256 != patch_sha256:
+    verification_tree, verification_sha256 = build_candidate()
+    if verification_tree != candidate_tree or verification_sha256 != patch_sha256:
         raise RuntimeError("task changed during promotion preview")
 
     evidence = {
@@ -369,6 +360,7 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
         "source_mutated": False,
         "candidate_storage": "temporary_index_and_object_store",
     }
+
 
 def remove_task(repositories: Path, tasks: Path, task_id: str, expected: str) -> dict[str, object]:
     snapshot = task_snapshot(repositories, tasks, task_id)
