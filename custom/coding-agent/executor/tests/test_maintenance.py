@@ -269,6 +269,37 @@ class MaintenanceTests(unittest.TestCase):
         self.assertNotEqual(first["candidate_tree"], second["candidate_tree"])
         self.assertNotEqual(first["candidate_hash"], second["candidate_hash"])
 
+    def test_promotion_candidate_preserves_crlf_blob_bytes(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_bytes(b"first\r\nsecond\r\n")
+
+        candidate = promotion_candidate(self.repos, self.tasks, task)
+
+        expected_blob = self.command(path, "hash-object", "--stdin", input_bytes=b"first\r\nsecond\r\n").strip()
+        tree_listing = self.command(
+            path,
+            "ls-tree",
+            candidate["candidate_tree"],
+            "file",
+            env_overrides={
+                "GIT_OBJECT_DIRECTORY": str(self.repo / ".git/objects"),
+            },
+        )
+        self.assertIn(expected_blob, tree_listing)
+
+    def test_promotion_candidate_rejects_hidden_index_state_in_source(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+
+        self.command(self.repo, "update-index", "--assume-unchanged", "file")
+        (self.repo / "file").write_text("hidden source change\n")
+        self.assertEqual(self.command(self.repo, "status", "--porcelain=v1", "--untracked-files=all"), "")
+
+        with self.assertRaisesRegex(ValueError, "hidden-index"):
+            promotion_candidate(self.repos, self.tasks, task)
+
     def test_promotion_candidate_rejects_staged_ignored_and_empty_untracked_state(self):
         task = self.task()
         path = self.tasks / task
