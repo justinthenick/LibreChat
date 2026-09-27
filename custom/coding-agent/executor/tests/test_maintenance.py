@@ -555,7 +555,75 @@ class MaintenanceTests(unittest.TestCase):
         )
         (path / "vendor/submodule/nested.txt").write_text("dirty nested worktree\n")
 
-        with self.assertRaisesRegex(ValueError, "dirty submodule worktree"):
+        with self.assertRaisesRegex(ValueError, "submodule changes cannot be promoted safely"):
+            promotion_candidate(self.repos, self.tasks, task)
+
+    def test_promotion_candidate_rejects_clean_submodule_head_move(self):
+        submodule_repo = self.root / "submodule-move-source"
+        submodule_repo.mkdir()
+        self.command(submodule_repo, "init", "-b", "main")
+        self.command(submodule_repo, "config", "user.email", "test@example.invalid")
+        self.command(submodule_repo, "config", "user.name", "Test")
+        (submodule_repo / "nested.txt").write_text("first\n")
+        self.command(submodule_repo, "add", ".")
+        self.command(submodule_repo, "commit", "-m", "first submodule commit")
+
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "protocol.file.allow=always",
+                "submodule",
+                "add",
+                str(submodule_repo),
+                "vendor/submodule",
+            ],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.command(self.repo, "commit", "-am", "add submodule at first commit")
+
+        (submodule_repo / "nested.txt").write_text("second\n")
+        self.command(submodule_repo, "commit", "-am", "second submodule commit")
+        second_commit = self.command(submodule_repo, "rev-parse", "HEAD").strip()
+
+        task = self.task()
+        path = self.tasks / task
+        subprocess.run(
+            ["git", "-c", "protocol.file.allow=always", "submodule", "update", "--init", "--recursive"],
+            cwd=path,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            ["git", "-c", "protocol.file.allow=always", "fetch", "origin"],
+            cwd=path / "vendor/submodule",
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            ["git", "checkout", "--detach", second_commit],
+            cwd=path / "vendor/submodule",
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(
+            subprocess.run(
+                ["git", "status", "--porcelain=v1"],
+                cwd=path / "vendor/submodule",
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout,
+            "",
+        )
+
+        with self.assertRaisesRegex(ValueError, "submodule changes cannot be promoted safely"):
             promotion_candidate(self.repos, self.tasks, task)
 
     def test_promotion_candidate_rejects_staged_ignored_and_empty_untracked_state(self):
