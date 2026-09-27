@@ -370,6 +370,30 @@ class MaintenanceTests(unittest.TestCase):
         self.assertTrue(raw_patch)
         self.assertEqual(candidate["patch_sha256"], hashlib.sha256(raw_patch).hexdigest())
 
+    @unittest.skipUnless(os.name == "posix", "requires POSIX byte-preserving filenames")
+    def test_promotion_candidate_preserves_non_utf8_path_bytes(self):
+        tracked_bytes = b"tracked-\xff"
+        untracked_bytes = b"untracked-\xfe"
+        tracked_name = os.fsdecode(tracked_bytes)
+        untracked_name = os.fsdecode(untracked_bytes)
+
+        (self.repo / tracked_name).write_bytes(b"tracked initial\n")
+        self.command(self.repo, "add", "--", tracked_name)
+        self.command(self.repo, "commit", "-m", "add non-utf8 path")
+
+        task = self.task()
+        path = self.tasks / task
+        (path / tracked_name).write_bytes(b"tracked changed\n")
+        (path / untracked_name).write_bytes(b"untracked content\n")
+
+        candidate = promotion_candidate(self.repos, self.tasks, task)
+
+        self.assertEqual(
+            {os.fsencode(name) for name in candidate["changed_paths"]},
+            {tracked_bytes, untracked_bytes},
+        )
+        self.assertEqual(candidate["change_count"], 2)
+
     def test_promotion_candidate_rejects_staged_ignored_and_empty_untracked_state(self):
         task = self.task()
         path = self.tasks / task
