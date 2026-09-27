@@ -423,6 +423,10 @@ class MaintenanceTests(unittest.TestCase):
             "-c",
             "credential.helper=",
             "-c",
+            "core.excludesFile=/dev/null",
+            "-c",
+            "core.attributesFile=/dev/null",
+            "-c",
             "protocol.allow=never",
             "-c",
             "protocol.https.allow=always",
@@ -456,6 +460,38 @@ class MaintenanceTests(unittest.TestCase):
         with patch("coding_executor.maintenance.promotion_paths", side_effect=enumerate_with_drift):
             with self.assertRaisesRegex(RuntimeError, "task paths changed"):
                 promotion_candidate(self.repos, self.tasks, task)
+
+    def test_promotion_candidate_rejects_eligibility_drift_during_verification(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+        (path / "other").write_text("untracked\n")
+        calls = 0
+
+        def stage_after_initial_snapshot(current: Path):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                self.command(path, "add", "file")
+            return promotion_paths(current)
+
+        with patch("coding_executor.maintenance.promotion_paths", side_effect=stage_after_initial_snapshot):
+            with self.assertRaisesRegex(RuntimeError, "task eligibility changed"):
+                promotion_candidate(self.repos, self.tasks, task)
+
+    def test_promotion_candidate_ignores_configured_user_excludes(self):
+        ignore_file = self.root / "user-ignore"
+        ignore_file.write_text("*.personal\n")
+        self.command(self.repo, "config", "core.excludesFile", str(ignore_file))
+
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+        (path / "keep.personal").write_text("included\n")
+
+        candidate = promotion_candidate(self.repos, self.tasks, task)
+
+        self.assertEqual(candidate["changed_paths"], ["file", "keep.personal"])
 
     @unittest.skipUnless(os.name == "posix", "requires POSIX byte-preserving filenames")
     def test_promotion_candidate_preserves_non_utf8_path_bytes(self):
