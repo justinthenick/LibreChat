@@ -104,8 +104,43 @@ def promotion_patch_bytes(task: Path, untracked: list[str]) -> bytes:
 
 def promotion_paths(task: Path) -> tuple[list[str], list[str]]:
     """Enumerate and validate all paths represented by a promotion candidate."""
-    untracked, ordered_paths = promotion_paths(task)
+    untracked = git_path_records(
+        task,
+        "ls-files",
+        "--others",
+        "--exclude-standard",
+        "-z",
+        "--",
+        limit=PROMOTION_PATCH_LIMIT,
+    )
+    for raw in untracked:
+        canonical = WorkspaceManager._canonical_repository_path(raw)
+        target = WorkspaceManager._path(task, canonical, must_exist=True)
+        if not target.is_file() or target.is_symlink():
+            raise ValueError(f"untracked promotion path is not a regular file: {canonical}")
+        if target.stat().st_size == 0:
+            raise ValueError(f"empty untracked file cannot be promoted safely: {canonical}")
+
+    tracked = git_path_records(
+        task,
+        "diff",
+        "--name-only",
+        "--no-renames",
+        "-z",
+        "HEAD",
+        "--",
+        limit=PROMOTION_PATCH_LIMIT,
+    )
+    changed_paths = {
+        WorkspaceManager._canonical_repository_path(raw)
+        for raw in tracked
+    }
+    changed_paths.update(WorkspaceManager._canonical_repository_path(raw) for raw in untracked)
+    ordered_paths = sorted(changed_paths)
+    if not ordered_paths:
+        raise ValueError("promotion candidate contains no changed paths")
     return untracked, ordered_paths
+
 
 def child(root: Path, name: str) -> Path:
     if not SAFE_NAME.fullmatch(name):
