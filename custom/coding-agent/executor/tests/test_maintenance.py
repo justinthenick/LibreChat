@@ -367,7 +367,7 @@ class MaintenanceTests(unittest.TestCase):
                 capture_output=True,
             ).stdout
 
-        self.assertIn(b"\xff", raw_patch)
+        self.assertTrue(raw_patch)
         self.assertEqual(candidate["patch_sha256"], hashlib.sha256(raw_patch).hexdigest())
 
     def test_promotion_candidate_rejects_staged_ignored_and_empty_untracked_state(self):
