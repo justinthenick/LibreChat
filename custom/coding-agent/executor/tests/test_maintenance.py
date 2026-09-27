@@ -272,20 +272,49 @@ class MaintenanceTests(unittest.TestCase):
     def test_promotion_candidate_preserves_crlf_blob_bytes(self):
         task = self.task()
         path = self.tasks / task
-        (path / "file").write_bytes(b"first\r\nsecond\r\n")
+        crlf_bytes = b"first\r\nsecond\r\n"
+        (path / "file").write_bytes(crlf_bytes)
 
         candidate = promotion_candidate(self.repos, self.tasks, task)
 
-        expected_blob = self.command(path, "hash-object", "--stdin", input_bytes=b"first\r\nsecond\r\n").strip()
-        tree_listing = self.command(
-            path,
-            "ls-tree",
-            candidate["candidate_tree"],
-            "file",
-            env_overrides={
-                "GIT_OBJECT_DIRECTORY": str(self.repo / ".git/objects"),
-            },
-        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            object_dir = root / "objects"
+            object_dir.mkdir()
+            environment = {
+                **os.environ,
+                "GIT_INDEX_FILE": str(root / "index"),
+                "GIT_OBJECT_DIRECTORY": str(object_dir),
+                "GIT_ALTERNATE_OBJECT_DIRECTORIES": str(self.repo / ".git/objects"),
+            }
+            subprocess.run(["git", "read-tree", "HEAD"], cwd=path, env=environment, check=True)
+            subprocess.run(["git", "add", "--all", "--", "."], cwd=path, env=environment, check=True)
+            expected_tree = subprocess.run(
+                ["git", "write-tree"],
+                cwd=path,
+                env=environment,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            expected_blob = subprocess.run(
+                ["git", "hash-object", "-w", "--stdin"],
+                cwd=path,
+                env=environment,
+                input=crlf_bytes,
+                check=True,
+                capture_output=True,
+            ).stdout.decode().strip()
+            tree_listing = subprocess.run(
+                ["git", "ls-tree", expected_tree, "file"],
+                cwd=path,
+                env=environment,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+
+        self.assertEqual(candidate["candidate_tree"], expected_tree)
         self.assertIn(expected_blob, tree_listing)
 
     def test_promotion_candidate_rejects_hidden_index_state_in_source(self):
