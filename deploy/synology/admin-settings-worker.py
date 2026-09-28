@@ -296,6 +296,8 @@ def read_health_response(response, deadline):
     chunks = []
     total = 0
     while True:
+        if response.fp is None or response.length == 0:
+            return b"".join(chunks)
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise TimeoutError("Coding executor health response exceeded deadline")
