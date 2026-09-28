@@ -795,7 +795,7 @@ class MaintenanceTests(unittest.TestCase):
         original_git = git
 
         def failing_git(p, *args, **kwargs):
-            if len(args) >= 2 and args[0] == "apply" and args[1] == "--check":
+            if "apply" in args and "--check" in args and args.index("apply") + 1 == args.index("--check"):
                 raise RuntimeError("git apply --check failed: patch does not apply")
             return original_git(p, *args, **kwargs)
 
@@ -836,7 +836,7 @@ class MaintenanceTests(unittest.TestCase):
 
         def inspect_apply_git(p, *args, **kwargs):
             nonlocal applied_bytes
-            if len(args) >= 3 and args[0] == "apply" and args[1] == "--check":
+            if "apply" in args and "--check" in args and args.index("apply") + 1 == args.index("--check"):
                 patch_path = Path(args[-1])
                 applied_bytes = patch_path.read_bytes()
             return original_git(p, *args, **kwargs)
