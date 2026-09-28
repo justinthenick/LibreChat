@@ -110,7 +110,7 @@ class WorkerTests(unittest.TestCase):
     def test_probe_coding_executor_healthy(self, mock_urlopen):
         mock_resp = MagicMock()
         mock_resp.status = 200
-        mock_resp.read.return_value = b'{"status": "healthy", "version": "0.1.12", "token": "leak"}'
+        mock_resp.read1.return_value = b'{"status": "healthy", "version": "0.1.12", "token": "leak"}'
         mock_resp.__enter__.return_value = mock_resp
         mock_urlopen.return_value = mock_resp
 
@@ -153,7 +153,7 @@ class WorkerTests(unittest.TestCase):
     def test_probe_coding_executor_malformed(self, mock_urlopen):
         mock_resp = MagicMock()
         mock_resp.status = 200
-        mock_resp.read.return_value = b'invalid-non-json'
+        mock_resp.read1.return_value = b'invalid-non-json'
         mock_resp.__enter__.return_value = mock_resp
         mock_urlopen.return_value = mock_resp
 
@@ -174,7 +174,7 @@ class WorkerTests(unittest.TestCase):
     def test_probe_coding_executor_rejects_oversized_health_response(self, mock_urlopen):
         mock_resp = MagicMock()
         mock_resp.status = 200
-        mock_resp.read.return_value = b"x" * (worker.MAX_HEALTH_RESPONSE + 1)
+        mock_resp.read1.return_value = b"x" * (worker.MAX_HEALTH_RESPONSE + 1)
         mock_resp.__enter__.return_value = mock_resp
         mock_urlopen.return_value = mock_resp
 
@@ -190,7 +190,35 @@ class WorkerTests(unittest.TestCase):
             "status": "malformed",
             "version": None,
         })
-        mock_resp.read.assert_called_once_with(worker.MAX_HEALTH_RESPONSE + 1)
+        mock_resp.read1.assert_called_once_with(4096)
+
+    @patch("urllib.request.urlopen")
+    def test_probe_coding_executor_enforces_wall_clock_read_deadline(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.read1.side_effect = [b"x", b"x"]
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        env_vals = {
+            "CODING_EXECUTOR_HOST": "127.0.0.1",
+            "CODING_EXECUTOR_PORT": "4050",
+            "CODING_EXECUTOR_TOKEN": "secret-token-12345",
+        }
+        with patch.object(worker.time, "monotonic", side_effect=[0.0, 0.10, 0.20, 0.31]):
+            res = worker.probe_coding_executor(env_vals, timeout=0.30)
+
+        self.assertEqual(res, {
+            "configured": True,
+            "reachable": False,
+            "status": "unreachable",
+            "version": None,
+        })
+        self.assertEqual(mock_resp.read1.call_count, 2)
+        socket_timeout = mock_resp.fp.raw._sock.settimeout
+        self.assertEqual(socket_timeout.call_count, 2)
+        self.assertAlmostEqual(socket_timeout.call_args_list[0].args[0], 0.20)
+        self.assertAlmostEqual(socket_timeout.call_args_list[1].args[0], 0.10)
 
     @patch("urllib.request.urlopen")
     def test_probe_coding_executor_rejects_invalid_health_contract(self, mock_urlopen):
@@ -209,7 +237,7 @@ class WorkerTests(unittest.TestCase):
             with self.subTest(payload=payload):
                 mock_resp = MagicMock()
                 mock_resp.status = 200
-                mock_resp.read.return_value = payload
+                mock_resp.read1.return_value = payload
                 mock_resp.__enter__.return_value = mock_resp
                 mock_urlopen.return_value = mock_resp
                 res = worker.probe_coding_executor(env_vals)
