@@ -76,5 +76,15 @@ class RuntimeConfigRendererTests(unittest.TestCase):
             renderer.render(self.TEMPLATE, {"ALLOWED_MODELS": "model id with spaces"})
 
 
+class PanelCodingExecutorUITests(unittest.TestCase):
+    def test_coding_executor_section_present_and_readonly(self):
+        html = panel.HTML
+        self.assertIn("Coding Agent Runtime", html)
+        self.assertIn("codingExecutorCard", html)
+        self.assertIn("Runtime status", html)
+        self.assertIn("Reported executor version", html)
+        self.assertIn("Executor service is not configured.", html)
+
+
 if __name__ == "__main__":
     unittest.main()

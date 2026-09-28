@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 
 HERE = Path(__file__).resolve().parent
 SPEC = importlib.util.spec_from_file_location("admin_worker", HERE / "admin-settings-worker.py")
@@ -78,6 +79,190 @@ class WorkerTests(unittest.TestCase):
         self.assertIn("SEARCH=true", text)
         self.assertIn("ALLOW_REGISTRATION=false", text)
 
+    def test_probe_coding_executor_unconfigured(self):
+        res = worker.probe_coding_executor({})
+        self.assertEqual(res, {
+            "configured": False,
+            "reachable": False,
+            "status": "unconfigured",
+            "version": None,
+        })
+        self.assertEqual(set(res.keys()), {"configured", "reachable", "status", "version"})
+
+    @patch("urllib.request.urlopen")
+    def test_probe_coding_executor_missing_token_is_unconfigured(self, mock_urlopen):
+        env_vals = {
+            "CODING_EXECUTOR_HOST": "127.0.0.1",
+            "CODING_EXECUTOR_PORT": "4050",
+            "CODING_EXECUTOR_TOKEN": "",
+        }
+        with patch.dict(worker.os.environ, {"CODING_EXECUTOR_TOKEN": ""}):
+            res = worker.probe_coding_executor(env_vals)
+        self.assertEqual(res, {
+            "configured": False,
+            "reachable": False,
+            "status": "unconfigured",
+            "version": None,
+        })
+        mock_urlopen.assert_not_called()
+
+    @patch("urllib.request.urlopen")
+    def test_probe_coding_executor_healthy(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        payload = b'{"status": "healthy", "version": "0.1.12", "token": "leak"}'
+        mock_resp.length = len(payload)
+
+        def read_once(_size):
+            mock_resp.length = 0
+            mock_resp.fp = None
+            return payload
+
+        mock_resp.read1.side_effect = read_once
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        env_vals = {
+            "CODING_EXECUTOR_HOST": "127.0.0.1",
+            "CODING_EXECUTOR_PORT": "4050",
+            "CODING_EXECUTOR_TOKEN": "secret-token-12345",
+        }
+        res = worker.probe_coding_executor(env_vals)
+        self.assertEqual(res, {
+            "configured": True,
+            "reachable": True,
+            "status": "healthy",
+            "version": "0.1.12",
+        })
+        self.assertNotIn("secret-token-12345", str(res))
+        self.assertNotIn("leak", str(res))
+        self.assertNotIn("token", res)
+        self.assertEqual(set(res.keys()), {"configured", "reachable", "status", "version"})
+        self.assertEqual(mock_resp.read1.call_count, 1)
+
+    @patch("urllib.request.urlopen")
+    def test_probe_coding_executor_unreachable(self, mock_urlopen):
+        mock_urlopen.side_effect = Exception("Connection refused")
+        env_vals = {
+            "CODING_EXECUTOR_HOST": "127.0.0.1",
+            "CODING_EXECUTOR_PORT": "4050",
+            "CODING_EXECUTOR_TOKEN": "secret-token-12345",
+        }
+        res = worker.probe_coding_executor(env_vals)
+        self.assertEqual(res, {
+            "configured": True,
+            "reachable": False,
+            "status": "unreachable",
+            "version": None,
+        })
+        self.assertNotIn("secret-token-12345", str(res))
+        self.assertEqual(set(res.keys()), {"configured", "reachable", "status", "version"})
+
+    @patch("urllib.request.urlopen")
+    def test_probe_coding_executor_malformed(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.read1.side_effect = [b'invalid-non-json', b'']
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        env_vals = {
+            "CODING_EXECUTOR_HOST": "127.0.0.1",
+            "CODING_EXECUTOR_PORT": "4050",
+            "CODING_EXECUTOR_TOKEN": "secret-token-12345",
+        }
+        res = worker.probe_coding_executor(env_vals)
+        self.assertEqual(res, {
+            "configured": True,
+            "reachable": False,
+            "status": "malformed",
+            "version": None,
+        })
+
+    @patch("urllib.request.urlopen")
+    def test_probe_coding_executor_rejects_oversized_health_response(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.read1.return_value = b"x" * (worker.MAX_HEALTH_RESPONSE + 1)
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        env_vals = {
+            "CODING_EXECUTOR_HOST": "127.0.0.1",
+            "CODING_EXECUTOR_PORT": "4050",
+            "CODING_EXECUTOR_TOKEN": "secret-token-12345",
+        }
+        res = worker.probe_coding_executor(env_vals)
+        self.assertEqual(res, {
+            "configured": True,
+            "reachable": False,
+            "status": "malformed",
+            "version": None,
+        })
+        mock_resp.read1.assert_called_once_with(4096)
+
+    @patch("urllib.request.urlopen")
+    def test_probe_coding_executor_enforces_wall_clock_read_deadline(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.read1.side_effect = [b"x", b"x"]
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        env_vals = {
+            "CODING_EXECUTOR_HOST": "127.0.0.1",
+            "CODING_EXECUTOR_PORT": "4050",
+            "CODING_EXECUTOR_TOKEN": "secret-token-12345",
+        }
+        with patch.object(worker.time, "monotonic", side_effect=[0.0, 0.10, 0.20, 0.31]):
+            res = worker.probe_coding_executor(env_vals, timeout=0.30)
+
+        self.assertEqual(res, {
+            "configured": True,
+            "reachable": False,
+            "status": "unreachable",
+            "version": None,
+        })
+        self.assertEqual(mock_resp.read1.call_count, 2)
+        socket_timeout = mock_resp.fp.raw._sock.settimeout
+        self.assertEqual(socket_timeout.call_count, 2)
+        self.assertAlmostEqual(socket_timeout.call_args_list[0].args[0], 0.20)
+        self.assertAlmostEqual(socket_timeout.call_args_list[1].args[0], 0.10)
+
+    @patch("urllib.request.urlopen")
+    def test_probe_coding_executor_rejects_invalid_health_contract(self, mock_urlopen):
+        env_vals = {
+            "CODING_EXECUTOR_HOST": "127.0.0.1",
+            "CODING_EXECUTOR_PORT": "4050",
+            "CODING_EXECUTOR_TOKEN": "secret-token-12345",
+        }
+        payloads = (
+            b'{}',
+            b'{"status": 123, "version": "0.1.12"}',
+            b'{"status": "ok"}',
+            b'{"status": "ok", "version": 12}',
+        )
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                mock_resp = MagicMock()
+                mock_resp.status = 200
+                mock_resp.read1.side_effect = [payload, b""]
+                mock_resp.__enter__.return_value = mock_resp
+                mock_urlopen.return_value = mock_resp
+                res = worker.probe_coding_executor(env_vals)
+                self.assertEqual(res, {
+                    "configured": True,
+                    "reachable": False,
+                    "status": "malformed",
+                    "version": None,
+                })
+
+    def test_worker_core_state_handles_unconfigured_executor_gracefully(self):
+        core = worker.WorkerCore(self.env, HERE / "admin-settings.schema.json", Path(self.temp.name))
+        state = core.state()
+        self.assertIn("coding_executor", state)
+        self.assertEqual(set(state["coding_executor"].keys()), {"configured", "reachable", "status", "version"})
+        self.assertFalse(state["coding_executor"]["configured"])
 
 if __name__ == "__main__":
     unittest.main()

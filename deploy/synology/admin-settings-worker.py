@@ -29,6 +29,7 @@ DEFAULT_SCHEMA = ROOT / "admin-settings.schema.json"
 DEFAULT_STATE = Path("/volume1/docker/librechat/admin-settings-state")
 DEPLOY_LOCK = Path("/tmp/librechat-autodeploy.lock")
 MAX_REQUEST = 128 * 1024
+MAX_HEALTH_RESPONSE = 16 * 1024
 
 SPEC = importlib.util.spec_from_file_location("manage_env", ROOT / "manage-env.py")
 manage_env = importlib.util.module_from_spec(SPEC)
@@ -291,6 +292,106 @@ def service_healthy(service, values):
     return True
 
 
+def read_health_response(response, deadline):
+    chunks = []
+    total = 0
+    while True:
+        if response.fp is None or response.length == 0:
+            return b"".join(chunks)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("Coding executor health response exceeded deadline")
+        try:
+            response.fp.raw._sock.settimeout(remaining)
+        except (AttributeError, OSError) as exc:
+            raise TimeoutError("Could not enforce coding executor health response deadline") from exc
+        read_size = min(4096, MAX_HEALTH_RESPONSE + 1 - total)
+        chunk = response.read1(read_size)
+        if not chunk:
+            return b"".join(chunks)
+        chunks.append(chunk)
+        total += len(chunk)
+        if total > MAX_HEALTH_RESPONSE:
+            raise ValueError("Coding executor health response too large")
+
+
+def probe_coding_executor(values, timeout=2):
+    deadline = time.monotonic() + timeout
+    host = str(values.get("CODING_EXECUTOR_HOST") or os.environ.get("CODING_EXECUTOR_HOST") or "").strip()
+    port = str(values.get("CODING_EXECUTOR_PORT") or os.environ.get("CODING_EXECUTOR_PORT") or "").strip()
+    token = str(values.get("CODING_EXECUTOR_TOKEN") or os.environ.get("CODING_EXECUTOR_TOKEN") or "").strip()
+    if not all(manage_env.configured(value) for value in (host, port, token)):
+        return {
+            "configured": False,
+            "reachable": False,
+            "status": "unconfigured",
+            "version": None,
+        }
+    url = "http://{}:{}/health".format(host, port)
+    try:
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            if resp.status != 200:
+                return {
+                    "configured": True,
+                    "reachable": False,
+                    "status": "unreachable",
+                    "version": None,
+                }
+            try:
+                raw = read_health_response(resp, deadline)
+            except ValueError:
+                return {
+                    "configured": True,
+                    "reachable": False,
+                    "status": "malformed",
+                    "version": None,
+                }
+            try:
+                data = json.loads(raw.decode("utf-8"))
+            except Exception:
+                return {
+                    "configured": True,
+                    "reachable": False,
+                    "status": "malformed",
+                    "version": None,
+                }
+            if not isinstance(data, dict):
+                return {
+                    "configured": True,
+                    "reachable": False,
+                    "status": "malformed",
+                    "version": None,
+                }
+            status = data.get("status")
+            version = data.get("version")
+            if (
+                not isinstance(status, str)
+                or not status.strip()
+                or not isinstance(version, str)
+                or not version.strip()
+            ):
+                return {
+                    "configured": True,
+                    "reachable": False,
+                    "status": "malformed",
+                    "version": None,
+                }
+            return {
+                "configured": True,
+                "reachable": True,
+                "status": status.strip(),
+                "version": version.strip(),
+            }
+    except Exception:
+        return {
+            "configured": True,
+            "reachable": False,
+            "status": "unreachable",
+            "version": None,
+        }
+
+
 def wait_health(services, values, timeout=75):
     deadline = time.time() + timeout
     pending = set(services)
@@ -360,6 +461,15 @@ class WorkerCore:
         result = sanitize_state(schema, settings, values)
         result["warnings"] = validation_warnings(values)
         result["worker_time"] = utc_now()
+        try:
+            result["coding_executor"] = probe_coding_executor(values)
+        except Exception:
+            result["coding_executor"] = {
+                "configured": False,
+                "reachable": False,
+                "status": "unavailable",
+                "version": None,
+            }
         return result
 
     def preview(self, payload):
