@@ -776,6 +776,17 @@ class MaintenanceTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             validate_promotion_candidate(self.repos, self.tasks, task)
 
+    def test_validate_promotion_candidate_accepts_crlf_changes(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_bytes(b"first\r\nsecond changed\r\n")
+
+        result = validate_promotion_candidate(self.repos, self.tasks, task)
+
+        self.assertTrue(result["validated"])
+        self.assertTrue(result["diff_check"])
+        self.assertTrue(result["apply_check"])
+
     def test_validate_promotion_candidate_rejects_apply_check_failure(self):
         task = self.task()
         path = self.tasks / task
