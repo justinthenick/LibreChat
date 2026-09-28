@@ -29,6 +29,7 @@ DEFAULT_SCHEMA = ROOT / "admin-settings.schema.json"
 DEFAULT_STATE = Path("/volume1/docker/librechat/admin-settings-state")
 DEPLOY_LOCK = Path("/tmp/librechat-autodeploy.lock")
 MAX_REQUEST = 128 * 1024
+MAX_HEALTH_RESPONSE = 16 * 1024
 
 SPEC = importlib.util.spec_from_file_location("manage_env", ROOT / "manage-env.py")
 manage_env = importlib.util.module_from_spec(SPEC)
@@ -313,7 +314,14 @@ def probe_coding_executor(values, timeout=2):
                     "status": "unreachable",
                     "version": None,
                 }
-            raw = resp.read()
+            raw = resp.read(MAX_HEALTH_RESPONSE + 1)
+            if len(raw) > MAX_HEALTH_RESPONSE:
+                return {
+                    "configured": True,
+                    "reachable": False,
+                    "status": "malformed",
+                    "version": None,
+                }
             try:
                 data = json.loads(raw.decode("utf-8"))
             except Exception:

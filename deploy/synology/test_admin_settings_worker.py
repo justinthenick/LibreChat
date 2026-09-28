@@ -171,6 +171,28 @@ class WorkerTests(unittest.TestCase):
         })
 
     @patch("urllib.request.urlopen")
+    def test_probe_coding_executor_rejects_oversized_health_response(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.read.return_value = b"x" * (worker.MAX_HEALTH_RESPONSE + 1)
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        env_vals = {
+            "CODING_EXECUTOR_HOST": "127.0.0.1",
+            "CODING_EXECUTOR_PORT": "4050",
+            "CODING_EXECUTOR_TOKEN": "secret-token-12345",
+        }
+        res = worker.probe_coding_executor(env_vals)
+        self.assertEqual(res, {
+            "configured": True,
+            "reachable": False,
+            "status": "malformed",
+            "version": None,
+        })
+        mock_resp.read.assert_called_once_with(worker.MAX_HEALTH_RESPONSE + 1)
+
+    @patch("urllib.request.urlopen")
     def test_probe_coding_executor_rejects_invalid_health_contract(self, mock_urlopen):
         env_vals = {
             "CODING_EXECUTOR_HOST": "127.0.0.1",
