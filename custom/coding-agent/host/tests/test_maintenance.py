@@ -18,7 +18,8 @@ import uvicorn
 from mcp.server.transport_security import TransportSecuritySettings
 
 from coding_executor.coordination import maintenance_lock
-from host_maintenance.broker import Broker, LOCK_DESTINATION
+from host_maintenance.broker import (Broker, LOCK_DESTINATION, VALIDATION_DOCKER_OUTPUT_LIMIT,
+                                     VALIDATION_PATH_PREVIEW_LIMIT)
 from host_maintenance.server import MaintenanceTokenVerifier, build_server
 
 
@@ -48,6 +49,7 @@ class BrokerTests(unittest.TestCase):
                               {"Destination": self.config["repository_root"], "Source": self.config["repository_root"], "RW": True, "Type": "bind"},
                               {"Destination": LOCK_DESTINATION, "Source": self.config["lock_path"], "RW": False, "Type": "bind"}]}
         self.calls = []
+        self.runner_kwargs = []
         self.logs = "INFO: Application startup complete.\nERROR: bearer SECRET\nGET /mcp?token=SECRET\n"
         self.snapshot = {"fingerprint": "f" * 64, "dirty": False, "repository": "demo",
                          "branch": "agent/finished", "head": "c" * 40,
@@ -60,6 +62,7 @@ class BrokerTests(unittest.TestCase):
 
     def docker(self, argv, **kwargs):
         self.calls.append(argv)
+        self.runner_kwargs.append(kwargs)
         if argv[1] == "inspect":
             return json.dumps([self.container])
         if argv[1] == "logs":
@@ -124,6 +127,24 @@ class BrokerTests(unittest.TestCase):
         self.assertEqual(self.calls[-1][-7:], ["fresh-status", "--repository", "demo", "--branch", "main", "--url", "https://github.com/example/demo.git"])
         with self.assertRaises(ValueError):
             self.broker.fresh_repository_status("../outside")
+
+    def test_promotion_validation_is_read_only_fixed_task_operation(self):
+        paths = [f"path-{index}" for index in range(VALIDATION_PATH_PREVIEW_LIMIT + 7)]
+        self.snapshot = {**self.snapshot, "changed_paths": paths, "change_count": len(paths)}
+        result = self.broker.validate_promotion_candidate("candidate-1")
+        self.assertEqual(result["changed_paths"], paths[:VALIDATION_PATH_PREVIEW_LIMIT])
+        self.assertTrue(result["changed_paths_truncated"])
+        self.assertEqual(result["changed_paths_omitted"], 7)
+        self.assertEqual(result["change_count"], len(paths))
+        self.assertEqual(self.calls[-1][-3:], ["validate-promotion-candidate", "--task", "candidate-1"])
+        self.assertEqual(self.runner_kwargs[-1]["limit"], VALIDATION_DOCKER_OUTPUT_LIMIT)
+        with self.assertRaises(ValueError):
+            self.broker.validate_promotion_candidate("../outside")
+
+    def test_promotion_validation_rejects_inconsistent_path_count(self):
+        self.snapshot = {**self.snapshot, "changed_paths": ["one"], "change_count": 2}
+        with self.assertRaisesRegex(RuntimeError, "inconsistent changed-path evidence"):
+            self.broker.validate_promotion_candidate("candidate-1")
 
     def test_retirement_identity_confirmation_and_unproven_checks_fail_closed(self):
         for key, value in (("head", "d" * 40), ("branch", "agent/other"), ("fingerprint", "e" * 64)):
@@ -233,7 +254,7 @@ class BrokerTests(unittest.TestCase):
             tools = await server.list_tools()
             names = {tool.name for tool in tools}
             self.assertEqual(names, {"executor_health", "repository_status", "fresh_repository_status", "refresh_repository", "task_inventory",
-                                     "preview_cleanup", "cleanup_task", "executor_logs", "preview_restart", "restart_executor"})
+                                     "validate_promotion_candidate", "preview_cleanup", "cleanup_task", "executor_logs", "preview_restart", "restart_executor"})
             result = await server.call_tool("executor_health", {})
             self.assertFalse(result.is_error)
             with self.assertRaises(Exception) as refused:
@@ -278,7 +299,7 @@ class BrokerTests(unittest.TestCase):
                                        "clientInfo": {"name": "maintenance-test", "version": "1"}})
                 self.assertIn("serverInfo", initialized["result"])
                 discovered = request("m" * 48)
-                self.assertEqual(len(discovered["result"]["tools"]), 10)
+                self.assertEqual(len(discovered["result"]["tools"]), 11)
                 result = request("m" * 48, "tools/call", {"name": "executor_health", "arguments": {}})
                 self.assertFalse(result["result"].get("isError", False))
             finally:

@@ -10,7 +10,7 @@ their `coding:execute` scope and cannot call host operations.
 
 The host broker runs trusted installed code outside all executor mounts. Its Docker
 access is powerful at the OS level; the broker process and its operator account are
-trusted. The agent sees only ten fixed operations. Every Docker call uses an argv
+trusted. The agent sees only eleven fixed operations. Every Docker call uses an argv
 list, bounded output, a deadline and a minimal environment. It accepts no shell
 string. The broker pins the reviewed image ID, verifies the container's mounts,
 non-root user, read-only root and dropped capabilities, then addresses the immutable
@@ -29,6 +29,7 @@ private repository fetch fails closed; do not mount host credentials to work aro
 | `fresh_repository_status(repository)` | Fetches only a configured branch into a dedicated comparison ref; never changes source files/index/HEAD; explicit fresh result or fail-closed refusal |
 | `refresh_repository(repository)` | Fixed URL/branch fetch and fast-forward only; rejects dirty, detached, ahead, diverged or unexpected-upstream source |
 | `task_inventory` | Bounded worktree inventory, dirty flag and identity; unsupported worktrees require manual review |
+| `validate_promotion_candidate(task_id)` | Read-only deterministic candidate validation; rechecks diff/conflict safety, exact patch digest and applyability without source/task mutation; human promotion approval remains separate |
 | `preview_cleanup(task_id)` | Requires identity-bound operator retirement and the configured minimum age (24 hours by default); proves eligibility and returns a 60-second single-use ticket |
 | `cleanup_task(ticket, confirm_task_id)` | Revalidates exact worktree identity and cleanliness, removes without force, retains branch |
 | `executor_logs` | Last ten minutes/100 lines, lifecycle/error categories only; raw paths, exception text and tokens suppressed |
@@ -50,7 +51,7 @@ are retained as small audit tombstones after cleanup.
 
 ## Coordination and remaining limits
 
-Concurrent maintenance helpers are admitted through a bounded 15-second broker queue before execution. Each accepted helper runs once; failures are never replayed automatically. This fixes status/inventory calls competing for the exclusive gate. The gate still refuses an independently active coding operation.
+Concurrent maintenance helpers are admitted through a bounded 15-second broker queue before execution. Each accepted helper runs once; failures are never replayed automatically. This fixes status/inventory calls competing for the exclusive gate. The gate still refuses an independently active coding operation. Promotion validation has a separate fixed 64 MiB internal Docker capture ceiling because executor evidence may contain the complete changed-path set; before returning through MCP the broker verifies `change_count` consistency and caps `changed_paths` to a 100-path preview with explicit truncation/omission metadata.
 
 Every executor MCP call takes a shared nonblocking maintenance lock. Executor-side
 maintenance and host restart take it exclusively. The lock file lives outside writable
@@ -112,7 +113,8 @@ Production remains unchanged until these gates pass and rollout is approved.
 
 7. Verify HTTP rejects missing/wrong tokens and exposes exactly the documented tools.
    Exercise dirty/diverged refresh refusal, active-operation restart refusal,
-   stale/replayed tickets, and a clean *disposable* retired task cleanup. Verify its
+   promotion validation on a disposable dirty candidate, stale/replayed tickets,
+   and a clean *disposable* retired task cleanup. Verify its
    branch remains. Restart the staging container and verify health and persisted task
    budgets. Never use the pending subtract fix as a cleanup fixture.
 8. Review the diff and evidence. Production activation is a separate decision: export

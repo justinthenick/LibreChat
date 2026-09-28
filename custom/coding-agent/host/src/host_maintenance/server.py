@@ -80,6 +80,11 @@ def build_server(broker: Broker, token: str, url: str) -> MCPServer:
     def task_inventory() -> dict:
         return broker.task_inventory()
 
+    @server.tool(description="Validate one existing promotion candidate read-only. Rechecks deterministic candidate evidence, whitespace/conflict markers, exact patch digest and applyability without modifying source or task.")
+    @audited
+    def validate_promotion_candidate(task_id: str) -> dict:
+        return broker.validate_promotion_candidate(task_id)
+
     @server.tool(description="Preview one operator-retired, completely clean agent worktree; get a single-use ticket.")
     @audited
     def preview_cleanup(task_id: str) -> dict:

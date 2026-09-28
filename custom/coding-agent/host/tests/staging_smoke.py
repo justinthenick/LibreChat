@@ -83,6 +83,16 @@ def main(image: str) -> None:
             state = json.loads(command("docker", "exec", name, "python3", "-I", "-B", "-c", state_check, task))
             assert state["exploration_budget"]["task_mode"] == "read_only"
             assert state["exploration_budget"]["exploration_calls"] == 1
+            # Operator-only disposable candidate: exercise the read-only promotion validator,
+            # then restore the clean fixture before retirement/cleanup checks.
+            (tasks / task / "file").write_text("candidate change\n")
+            validation = broker.validate_promotion_candidate(task)
+            assert validation["validated"] is True
+            assert validation["source_mutated"] is False
+            assert validation["change_count"] == 1
+            assert validation["changed_paths"] == ["file"]
+            assert validation["changed_paths_truncated"] is False
+            (tasks / task / "file").write_text("fixture\n")
             config["retired_tasks"][task] = {**broker._helper("preview", "--task", task), "retired_at": time.time() - 90000}
             preview = broker.preview_cleanup(task)
             (tasks / task / "file").write_text("keep this change\n")
@@ -100,7 +110,7 @@ def main(image: str) -> None:
             assert broker.logs()["raw_logs_exposed"] is False
             print(json.dumps({"passed": True, "checks": ["pinned image/mounts", "health", "repository status",
                 "task inventory", "six concurrent maintenance calls", "busy restart refusal", "real restart with health recovery", "mode/budget persistence",
-                "dirty cleanup refusal", "clean cleanup with branch retention", "filtered logs"], "production_touched": False}))
+                "promotion candidate validation", "dirty cleanup refusal", "clean cleanup with branch retention", "filtered logs"], "production_touched": False}))
         finally:
             # Exact unique test-owned name; never a user/production container selector.
             subprocess.run(["docker", "rm", "-f", name], check=False, capture_output=True, timeout=30)
