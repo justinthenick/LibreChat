@@ -532,6 +532,18 @@ def validate_promotion_candidate(repositories: Path, tasks: Path, task_id: str) 
             raise RuntimeError(f"promotion candidate {key} is not deterministic")
 
     untracked, _ = promotion_paths(task)
+    for relative_path in untracked:
+        git(
+            task,
+            "-c",
+            "core.whitespace=cr-at-eol",
+            "diff",
+            "--no-index",
+            "--check",
+            "--",
+            "/dev/null",
+            relative_path,
+        )
     patch_bytes = promotion_patch_bytes(task, untracked)
     patch_sha256 = hashlib.sha256(patch_bytes).hexdigest()
     if patch_sha256 != first["patch_sha256"]:
