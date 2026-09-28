@@ -517,7 +517,7 @@ def validate_promotion_candidate(repositories: Path, tasks: Path, task_id: str) 
     task = child(tasks, task_id)
     source = child(repositories, str(first["repository"]))
 
-    git(task, "diff", "--check", "--ignore-submodules=none")
+    git(task, "-c", "core.whitespace=cr-at-eol", "diff", "--check", "--ignore-submodules=none")
 
     second = promotion_candidate(repositories, tasks, task_id)
     deterministic_keys = (
