@@ -125,6 +125,13 @@ class BrokerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.broker.fresh_repository_status("../outside")
 
+    def test_promotion_validation_is_read_only_fixed_task_operation(self):
+        result = self.broker.validate_promotion_candidate("candidate-1")
+        self.assertEqual(result, self.snapshot)
+        self.assertEqual(self.calls[-1][-3:], ["validate-promotion-candidate", "--task", "candidate-1"])
+        with self.assertRaises(ValueError):
+            self.broker.validate_promotion_candidate("../outside")
+
     def test_retirement_identity_confirmation_and_unproven_checks_fail_closed(self):
         for key, value in (("head", "d" * 40), ("branch", "agent/other"), ("fingerprint", "e" * 64)):
             old = self.snapshot[key]
@@ -233,7 +240,7 @@ class BrokerTests(unittest.TestCase):
             tools = await server.list_tools()
             names = {tool.name for tool in tools}
             self.assertEqual(names, {"executor_health", "repository_status", "fresh_repository_status", "refresh_repository", "task_inventory",
-                                     "preview_cleanup", "cleanup_task", "executor_logs", "preview_restart", "restart_executor"})
+                                     "validate_promotion_candidate", "preview_cleanup", "cleanup_task", "executor_logs", "preview_restart", "restart_executor"})
             result = await server.call_tool("executor_health", {})
             self.assertFalse(result.is_error)
             with self.assertRaises(Exception) as refused:
@@ -278,7 +285,7 @@ class BrokerTests(unittest.TestCase):
                                        "clientInfo": {"name": "maintenance-test", "version": "1"}})
                 self.assertIn("serverInfo", initialized["result"])
                 discovered = request("m" * 48)
-                self.assertEqual(len(discovered["result"]["tools"]), 10)
+                self.assertEqual(len(discovered["result"]["tools"]), 11)
                 result = request("m" * 48, "tools/call", {"name": "executor_health", "arguments": {}})
                 self.assertFalse(result["result"].get("isError", False))
             finally:
