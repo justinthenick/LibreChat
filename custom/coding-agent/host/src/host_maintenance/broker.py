@@ -132,6 +132,11 @@ class Broker:
     def task_inventory(self) -> dict:
         return self._helper("inventory")
 
+    def validate_promotion_candidate(self, task_id: str) -> dict:
+        if not NAME.fullmatch(task_id):
+            raise ValueError("invalid task identifier")
+        return self._helper("validate-promotion-candidate", "--task", task_id)
+
     def _retired(self, task_id: str) -> dict:
         if not NAME.fullmatch(task_id):
             raise ValueError("invalid task identifier")
