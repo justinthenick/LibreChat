@@ -11,7 +11,7 @@ import signal
 import tempfile
 from pathlib import Path
 
-from coding_executor.bounded import run, run_stdout_bytes
+from coding_executor.bounded import run, run_bytes, run_stdout_bytes
 from coding_executor.coordination import maintenance_lock
 from coding_executor.task_maintenance import SAFE_NAME
 from coding_executor.workspaces import WorkspaceManager
@@ -533,16 +533,37 @@ def validate_promotion_candidate(repositories: Path, tasks: Path, task_id: str) 
 
     untracked, _ = promotion_paths(task)
     for relative_path in untracked:
-        git(
-            task,
-            "-c",
-            "core.whitespace=cr-at-eol",
-            "diff",
-            "--no-index",
-            "--check",
-            "--",
-            "/dev/null",
-            relative_path,
+        run_bytes(
+            [
+                "git",
+                "--no-optional-locks",
+                "-c",
+                "core.hooksPath=/dev/null",
+                "-c",
+                "core.fsmonitor=false",
+                "-c",
+                "credential.helper=",
+                "-c",
+                "core.excludesFile=/dev/null",
+                "-c",
+                "core.attributesFile=/dev/null",
+                "-c",
+                "protocol.allow=never",
+                "-c",
+                "protocol.https.allow=always",
+                "-c",
+                "submodule.recurse=false",
+                "-c",
+                "core.whitespace=cr-at-eol",
+                "diff",
+                "--no-index",
+                "--check",
+                "--",
+                "/dev/null",
+                relative_path,
+            ],
+            cwd=task,
+            accepted_returncodes=(0, 1),
         )
     patch_bytes = promotion_patch_bytes(task, untracked)
     patch_sha256 = hashlib.sha256(patch_bytes).hexdigest()
