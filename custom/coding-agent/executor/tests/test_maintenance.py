@@ -768,6 +768,14 @@ class MaintenanceTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             validate_promotion_candidate(self.repos, self.tasks, task)
 
+    def test_validate_promotion_candidate_rejects_untracked_whitespace_diff_check_failure(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "new-file").write_text("trailing whitespace \n")
+
+        with self.assertRaises(RuntimeError):
+            validate_promotion_candidate(self.repos, self.tasks, task)
+
     def test_validate_promotion_candidate_rejects_apply_check_failure(self):
         task = self.task()
         path = self.tasks / task
@@ -818,7 +826,7 @@ class MaintenanceTests(unittest.TestCase):
         def inspect_apply_git(p, *args, **kwargs):
             nonlocal applied_bytes
             if len(args) >= 3 and args[0] == "apply" and args[1] == "--check":
-                patch_path = Path(args[2])
+                patch_path = Path(args[-1])
                 applied_bytes = patch_path.read_bytes()
             return original_git(p, *args, **kwargs)
 
