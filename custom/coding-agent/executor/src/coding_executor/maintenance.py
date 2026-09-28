@@ -511,6 +511,57 @@ def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[s
     }
 
 
+def validate_promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[str, object]:
+    """Validate a promotion candidate deterministically without modifying source or task."""
+    first = promotion_candidate(repositories, tasks, task_id)
+    task = child(tasks, task_id)
+    source = child(repositories, str(first["repository"]))
+
+    git(task, "diff", "--check", "--ignore-submodules=none")
+
+    second = promotion_candidate(repositories, tasks, task_id)
+    deterministic_keys = (
+        "candidate_tree",
+        "patch_sha256",
+        "candidate_hash",
+        "changed_paths",
+        "source_head",
+    )
+    for key in deterministic_keys:
+        if first[key] != second[key]:
+            raise RuntimeError(f"promotion candidate {key} is not deterministic")
+
+    untracked, _ = promotion_paths(task)
+    patch_bytes = promotion_patch_bytes(task, untracked)
+    patch_sha256 = hashlib.sha256(patch_bytes).hexdigest()
+    if patch_sha256 != first["patch_sha256"]:
+        raise RuntimeError("promotion candidate patch digest changed during validation")
+
+    with tempfile.TemporaryDirectory(prefix="coding-validation-") as temporary:
+        patch_file = Path(temporary) / "candidate.patch"
+        patch_file.write_bytes(patch_bytes)
+        git(source, "apply", "--check", str(patch_file))
+
+    if git(source, "rev-parse", "HEAD").strip() != first["source_head"]:
+        raise RuntimeError("source HEAD changed during promotion validation")
+    if git(source, "branch", "--show-current").strip() != first["source_branch"]:
+        raise RuntimeError("source branch changed during promotion validation")
+    if git(source, "status", "--porcelain=v1", "--untracked-files=all", "--ignore-submodules=none"):
+        raise RuntimeError("source repository changed during promotion validation")
+    if _hidden_index_flags(source):
+        raise RuntimeError("source hidden-index state changed during promotion validation")
+
+    return {
+        **first,
+        "validated": True,
+        "diff_check": True,
+        "apply_check": True,
+        "deterministic": True,
+        "source_mutated": False,
+        "candidate_storage": "temporary_index_and_object_store",
+    }
+
+
 def remove_task(repositories: Path, tasks: Path, task_id: str, expected: str) -> dict[str, object]:
     snapshot = task_snapshot(repositories, tasks, task_id)
     if snapshot["dirty"] or snapshot["fingerprint"] != expected:
@@ -556,7 +607,7 @@ def main() -> None:
     signal.signal(signal.SIGALRM, deadline_expired)
     signal.alarm(120)
     parser = argparse.ArgumentParser()
-    parser.add_argument("operation", choices=["health", "status", "fresh-status", "refresh", "inventory", "preview", "promotion-candidate", "remove"])
+    parser.add_argument("operation", choices=["health", "status", "fresh-status", "refresh", "inventory", "preview", "promotion-candidate", "validate-promotion-candidate", "remove"])
     parser.add_argument("--repository", default="")
     parser.add_argument("--branch", default="")
     parser.add_argument("--url", default="")
@@ -584,6 +635,9 @@ def main() -> None:
                 result["exclusive_gate_verified"] = True
             elif args.operation == "promotion-candidate":
                 result = promotion_candidate(repositories, tasks, args.task)
+                result["exclusive_gate_verified"] = True
+            elif args.operation == "validate-promotion-candidate":
+                result = validate_promotion_candidate(repositories, tasks, args.task)
                 result["exclusive_gate_verified"] = True
             else:
                 result = remove_task(repositories, tasks, args.task, args.fingerprint)

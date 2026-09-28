@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 from coding_executor.bounded import run, run_stdout_bytes
 from coding_executor.coordination import coordinated, maintenance_lock
-from coding_executor.maintenance import INDEX_SCAN_LIMIT, fresh_repository_status, git, inventory, promotion_candidate, promotion_paths, refresh, remove_task, repository_status, task_snapshot
+from coding_executor.maintenance import INDEX_SCAN_LIMIT, fresh_repository_status, git, inventory, promotion_candidate, promotion_paths, promotion_patch_bytes, refresh, remove_task, repository_status, task_snapshot, validate_promotion_candidate
 from coding_executor.workspaces import WorkspaceManager
 
 
@@ -679,6 +679,154 @@ class MaintenanceTests(unittest.TestCase):
         self.command(self.repo, "commit", "--allow-empty", "-m", "source moved")
         with self.assertRaisesRegex(ValueError, "same reviewed HEAD"):
             promotion_candidate(self.repos, self.tasks, task)
+
+    def test_validate_promotion_candidate_success_and_invariants(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+        (path / "new-file").write_text("new content\n")
+
+        source_head = self.command(self.repo, "rev-parse", "HEAD").strip()
+        source_index = (self.repo / ".git/index").read_bytes()
+        source_objects = sorted(
+            str(item.relative_to(self.repo / ".git/objects"))
+            for item in (self.repo / ".git/objects").rglob("*")
+            if item.is_file()
+        )
+
+        candidate = promotion_candidate(self.repos, self.tasks, task)
+        validated = validate_promotion_candidate(self.repos, self.tasks, task)
+
+        for key in (
+            "task_id",
+            "repository",
+            "task_branch",
+            "source_branch",
+            "source_head",
+            "candidate_tree",
+            "patch_sha256",
+            "candidate_hash",
+            "changed_paths",
+            "change_count",
+        ):
+            self.assertEqual(validated[key], candidate[key])
+
+        self.assertTrue(validated["validated"])
+        self.assertTrue(validated["diff_check"])
+        self.assertTrue(validated["apply_check"])
+        self.assertTrue(validated["deterministic"])
+        self.assertFalse(validated["source_mutated"])
+        self.assertEqual(validated["candidate_storage"], "temporary_index_and_object_store")
+
+        self.assertEqual(self.command(self.repo, "rev-parse", "HEAD").strip(), source_head)
+        self.assertEqual((self.repo / ".git/index").read_bytes(), source_index)
+        self.assertEqual(
+            sorted(
+                str(item.relative_to(self.repo / ".git/objects"))
+                for item in (self.repo / ".git/objects").rglob("*")
+                if item.is_file()
+            ),
+            source_objects,
+        )
+        self.assertEqual(self.command(self.repo, "status", "--porcelain=v1"), "")
+
+    def test_validate_promotion_candidate_cli_operation(self):
+        task = self.task()
+        (self.tasks / task / "file").write_text("changed\n")
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-B",
+                "-m",
+                "coding_executor.maintenance",
+                "validate-promotion-candidate",
+                "--task",
+                task,
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+            env={
+                **os.environ,
+                "CODING_REPOSITORY_ROOT": str(self.repos),
+                "CODING_TASK_ROOT": str(self.tasks),
+            },
+        )
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload["validated"])
+        self.assertTrue(payload["diff_check"])
+        self.assertTrue(payload["apply_check"])
+        self.assertTrue(payload["deterministic"])
+        self.assertTrue(payload["exclusive_gate_verified"])
+
+    def test_validate_promotion_candidate_rejects_whitespace_diff_check_failure(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("trailing whitespace \n")
+
+        with self.assertRaises(RuntimeError):
+            validate_promotion_candidate(self.repos, self.tasks, task)
+
+    def test_validate_promotion_candidate_rejects_apply_check_failure(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("changed\n")
+
+        original_git = git
+
+        def failing_git(p, *args, **kwargs):
+            if len(args) >= 2 and args[0] == "apply" and args[1] == "--check":
+                raise RuntimeError("git apply --check failed: patch does not apply")
+            return original_git(p, *args, **kwargs)
+
+        with patch("coding_executor.maintenance.git", side_effect=failing_git):
+            with self.assertRaisesRegex(RuntimeError, "git apply --check failed"):
+                validate_promotion_candidate(self.repos, self.tasks, task)
+
+    def test_validate_promotion_candidate_rejects_non_deterministic_candidate(self):
+        task = self.task()
+        (self.tasks / task / "file").write_text("changed\n")
+
+        call_count = 0
+        real_candidate = promotion_candidate
+
+        def drifting_candidate(r, t, tid):
+            nonlocal call_count
+            call_count += 1
+            res = real_candidate(r, t, tid)
+            if call_count == 2:
+                res["candidate_tree"] = "0" * 40
+            return res
+
+        with patch("coding_executor.maintenance.promotion_candidate", side_effect=drifting_candidate):
+            with self.assertRaisesRegex(RuntimeError, "promotion candidate candidate_tree is not deterministic"):
+                validate_promotion_candidate(self.repos, self.tasks, task)
+
+    def test_validate_promotion_candidate_verifies_exact_patch_bytes_in_apply_check(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "file").write_text("modified\n")
+        (path / "added").write_text("content\n")
+
+        untracked, _ = promotion_paths(path)
+        expected_bytes = promotion_patch_bytes(path, untracked)
+
+        original_git = git
+        applied_bytes = None
+
+        def inspect_apply_git(p, *args, **kwargs):
+            nonlocal applied_bytes
+            if len(args) >= 3 and args[0] == "apply" and args[1] == "--check":
+                patch_path = Path(args[2])
+                applied_bytes = patch_path.read_bytes()
+            return original_git(p, *args, **kwargs)
+
+        with patch("coding_executor.maintenance.git", side_effect=inspect_apply_git):
+            result = validate_promotion_candidate(self.repos, self.tasks, task)
+            self.assertTrue(result["validated"])
+            self.assertIsNotNone(applied_bytes)
+            self.assertEqual(applied_bytes, expected_bytes)
 
     def test_cleanup_retains_branch_and_rejects_replay(self):
         task = self.task()
