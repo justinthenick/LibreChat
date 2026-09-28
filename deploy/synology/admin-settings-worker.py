@@ -291,6 +291,62 @@ def service_healthy(service, values):
     return True
 
 
+def probe_coding_executor(values, timeout=2):
+    host = str(values.get("CODING_EXECUTOR_HOST") or os.environ.get("CODING_EXECUTOR_HOST") or "").strip()
+    port = str(values.get("CODING_EXECUTOR_PORT") or os.environ.get("CODING_EXECUTOR_PORT") or "").strip()
+    if not manage_env.configured(host) or not manage_env.configured(port):
+        return {
+            "configured": False,
+            "reachable": False,
+            "status": "unconfigured",
+            "version": None,
+        }
+    url = "http://{}:{}/health".format(host, port)
+    try:
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            if resp.status != 200:
+                return {
+                    "configured": True,
+                    "reachable": False,
+                    "status": "unreachable",
+                    "version": None,
+                }
+            raw = resp.read()
+            try:
+                data = json.loads(raw.decode("utf-8"))
+            except Exception:
+                return {
+                    "configured": True,
+                    "reachable": False,
+                    "status": "malformed",
+                    "version": None,
+                }
+            if not isinstance(data, dict):
+                return {
+                    "configured": True,
+                    "reachable": False,
+                    "status": "malformed",
+                    "version": None,
+                }
+            status = data.get("status")
+            status_str = "ok" if status is None and data.get("ok") is True else (str(status) if status is not None else "healthy")
+            version = str(data["version"]) if data.get("version") is not None else None
+            return {
+                "configured": True,
+                "reachable": True,
+                "status": status_str,
+                "version": version,
+            }
+    except Exception:
+        return {
+            "configured": True,
+            "reachable": False,
+            "status": "unreachable",
+            "version": None,
+        }
+
+
 def wait_health(services, values, timeout=75):
     deadline = time.time() + timeout
     pending = set(services)
@@ -360,6 +416,15 @@ class WorkerCore:
         result = sanitize_state(schema, settings, values)
         result["warnings"] = validation_warnings(values)
         result["worker_time"] = utc_now()
+        try:
+            result["coding_executor"] = probe_coding_executor(values)
+        except Exception:
+            result["coding_executor"] = {
+                "configured": False,
+                "reachable": False,
+                "status": "unavailable",
+                "version": None,
+            }
         return result
 
     def preview(self, payload):

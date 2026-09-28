@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 
 HERE = Path(__file__).resolve().parent
 SPEC = importlib.util.spec_from_file_location("admin_worker", HERE / "admin-settings-worker.py")
@@ -78,6 +79,85 @@ class WorkerTests(unittest.TestCase):
         self.assertIn("SEARCH=true", text)
         self.assertIn("ALLOW_REGISTRATION=false", text)
 
+    def test_probe_coding_executor_unconfigured(self):
+        res = worker.probe_coding_executor({})
+        self.assertEqual(res, {
+            "configured": False,
+            "reachable": False,
+            "status": "unconfigured",
+            "version": None,
+        })
+        self.assertEqual(set(res.keys()), {"configured", "reachable", "status", "version"})
+
+    @patch("urllib.request.urlopen")
+    def test_probe_coding_executor_healthy(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.read.return_value = b'{"status": "healthy", "version": "0.1.12", "token": "leak"}'
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        env_vals = {
+            "CODING_EXECUTOR_HOST": "127.0.0.1",
+            "CODING_EXECUTOR_PORT": "4050",
+            "CODING_EXECUTOR_TOKEN": "secret-token-12345",
+        }
+        res = worker.probe_coding_executor(env_vals)
+        self.assertEqual(res, {
+            "configured": True,
+            "reachable": True,
+            "status": "healthy",
+            "version": "0.1.12",
+        })
+        self.assertNotIn("secret-token-12345", str(res))
+        self.assertNotIn("leak", str(res))
+        self.assertNotIn("token", res)
+        self.assertEqual(set(res.keys()), {"configured", "reachable", "status", "version"})
+
+    @patch("urllib.request.urlopen")
+    def test_probe_coding_executor_unreachable(self, mock_urlopen):
+        mock_urlopen.side_effect = Exception("Connection refused")
+        env_vals = {
+            "CODING_EXECUTOR_HOST": "127.0.0.1",
+            "CODING_EXECUTOR_PORT": "4050",
+            "CODING_EXECUTOR_TOKEN": "secret-token-12345",
+        }
+        res = worker.probe_coding_executor(env_vals)
+        self.assertEqual(res, {
+            "configured": True,
+            "reachable": False,
+            "status": "unreachable",
+            "version": None,
+        })
+        self.assertNotIn("secret-token-12345", str(res))
+        self.assertEqual(set(res.keys()), {"configured", "reachable", "status", "version"})
+
+    @patch("urllib.request.urlopen")
+    def test_probe_coding_executor_malformed(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.read.return_value = b'invalid-non-json'
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        env_vals = {
+            "CODING_EXECUTOR_HOST": "127.0.0.1",
+            "CODING_EXECUTOR_PORT": "4050",
+        }
+        res = worker.probe_coding_executor(env_vals)
+        self.assertEqual(res, {
+            "configured": True,
+            "reachable": False,
+            "status": "malformed",
+            "version": None,
+        })
+
+    def test_worker_core_state_handles_unconfigured_executor_gracefully(self):
+        core = worker.WorkerCore(self.env, HERE / "admin-settings.schema.json", Path(self.temp.name))
+        state = core.state()
+        self.assertIn("coding_executor", state)
+        self.assertEqual(set(state["coding_executor"].keys()), {"configured", "reachable", "status", "version"})
+        self.assertFalse(state["coding_executor"]["configured"])
 
 if __name__ == "__main__":
     unittest.main()
