@@ -15,6 +15,9 @@ from coding_executor.coordination import maintenance_lock
 
 LOCK_DESTINATION = "/run/coding-agent/maintenance.lock"
 NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,79}")
+DEFAULT_DOCKER_OUTPUT_LIMIT = 65536
+VALIDATION_DOCKER_OUTPUT_LIMIT = 64 * 1024 * 1024
+VALIDATION_PATH_PREVIEW_LIMIT = 100
 
 
 class Broker:
@@ -48,8 +51,8 @@ class Broker:
         self._tickets: dict[str, tuple[float, str, str, str]] = {}
         self._last_restart = float("-inf")
 
-    def _docker(self, *args: str, timeout: int = 60) -> str:
-        return self.runner(["/usr/bin/docker", *args], timeout=timeout, limit=65536)
+    def _docker(self, *args: str, timeout: int = 60, limit: int = DEFAULT_DOCKER_OUTPUT_LIMIT) -> str:
+        return self.runner(["/usr/bin/docker", *args], timeout=timeout, limit=limit)
 
     def _inspect(self) -> dict:
         data = json.loads(self._docker("inspect", "--type", "container", self.container, timeout=5))[0]
@@ -82,22 +85,23 @@ class Broker:
             raise RuntimeError("executor maintenance paths differ from host configuration")
         return data
 
-    def _helper(self, operation: str, *args: str) -> dict:
+    def _helper(self, operation: str, *args: str, output_limit: int = DEFAULT_DOCKER_OUTPUT_LIMIT) -> dict:
         # MCP dispatches tools concurrently. Queue once before starting a helper;
         # never replay a command after failure or wait on an active coding task.
         if not self._helper_mutex.acquire(timeout=15):
             raise RuntimeError("maintenance_queue_full: no operation started")
         try:
-            return self._run_helper(operation, *args)
+            return self._run_helper(operation, *args, output_limit=output_limit)
         finally:
             self._helper_mutex.release()
 
-    def _run_helper(self, operation: str, *args: str) -> dict:
+    def _run_helper(self, operation: str, *args: str, output_limit: int = DEFAULT_DOCKER_OUTPUT_LIMIT) -> dict:
         container = self._inspect()
         if not container["State"]["Running"]:
             raise RuntimeError("executor is not running")
         output = self._docker("exec", container["Id"], "python3", "-I", "-B", "-m",
-                              "coding_executor.maintenance", operation, *args, timeout=180)
+                              "coding_executor.maintenance", operation, *args, timeout=180,
+                              limit=output_limit)
         return json.loads(output)
 
     def _repository(self, repository: str) -> dict:
@@ -135,7 +139,20 @@ class Broker:
     def validate_promotion_candidate(self, task_id: str) -> dict:
         if not NAME.fullmatch(task_id):
             raise ValueError("invalid task identifier")
-        return self._helper("validate-promotion-candidate", "--task", task_id)
+        result = self._helper(
+            "validate-promotion-candidate", "--task", task_id,
+            output_limit=VALIDATION_DOCKER_OUTPUT_LIMIT,
+        )
+        paths = result.get("changed_paths")
+        if not isinstance(paths, list) or result.get("change_count") != len(paths):
+            raise RuntimeError("promotion validator returned inconsistent changed-path evidence")
+        omitted = max(0, len(paths) - VALIDATION_PATH_PREVIEW_LIMIT)
+        return {
+            **result,
+            "changed_paths": paths[:VALIDATION_PATH_PREVIEW_LIMIT],
+            "changed_paths_truncated": omitted > 0,
+            "changed_paths_omitted": omitted,
+        }
 
     def _retired(self, task_id: str) -> dict:
         if not NAME.fullmatch(task_id):
