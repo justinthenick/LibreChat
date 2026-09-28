@@ -56,7 +56,7 @@ jobs:
           }
           assert manifest['id'] == 'agent_software_engineering_pilot_v01'
           assert manifest['status'] == 'validated-for-persistent-pilot'
-          assert manifest['version'] == '0.1.12'
+          assert manifest['version'] == '0.1.13'
           assert manifest['provider'] == 'google'
           assert manifest['preferred_model'] == 'gemini-3.7-flash'
           assert manifest['evidence']['model'] == 'google/gemini-3.7-flash'
@@ -90,10 +90,12 @@ jobs:
           assert 'Evidence obtained through mutation-as-inspection is invalid and must not guide further analysis or changes.' in instructions
           assert 'If permitted exploration is insufficient, stop and report the limitation; never manufacture another inspection path.' in instructions
           assert manifest['maintenance_mcp_server'] == 'coding_maintenance'
-          assert set(manifest['maintenance_mcp_tools']) == {'executor_health', 'repository_status', 'task_inventory', 'executor_logs', 'fresh_repository_status', 'preview_cleanup', 'cleanup_task'}
-          assert len(manifest['maintenance_mcp_tools']) == 7
+          assert set(manifest['maintenance_mcp_tools']) == {'executor_health', 'repository_status', 'task_inventory', 'executor_logs', 'fresh_repository_status', 'validate_promotion_candidate', 'preview_cleanup', 'cleanup_task'}
+          assert len(manifest['maintenance_mcp_tools']) == 8
           assert 'Do not call create_task or any coding_executor tool to perform them.' in instructions
           assert 'report the integration failure and stop' in instructions
+          assert 'validate_promotion_candidate' in instructions
+          assert 'Validation does not replace human promotion approval.' in instructions
           assert 'For every task, first list' not in instructions
 
           seeder = Path('config/seed-coding-agent-pilot.js').read_text()
