@@ -292,7 +292,29 @@ def service_healthy(service, values):
     return True
 
 
+def read_health_response(response, deadline):
+    chunks = []
+    total = 0
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("Coding executor health response exceeded deadline")
+        try:
+            response.fp.raw._sock.settimeout(remaining)
+        except (AttributeError, OSError) as exc:
+            raise TimeoutError("Could not enforce coding executor health response deadline") from exc
+        read_size = min(4096, MAX_HEALTH_RESPONSE + 1 - total)
+        chunk = response.read1(read_size)
+        if not chunk:
+            return b"".join(chunks)
+        chunks.append(chunk)
+        total += len(chunk)
+        if total > MAX_HEALTH_RESPONSE:
+            raise ValueError("Coding executor health response too large")
+
+
 def probe_coding_executor(values, timeout=2):
+    deadline = time.monotonic() + timeout
     host = str(values.get("CODING_EXECUTOR_HOST") or os.environ.get("CODING_EXECUTOR_HOST") or "").strip()
     port = str(values.get("CODING_EXECUTOR_PORT") or os.environ.get("CODING_EXECUTOR_PORT") or "").strip()
     token = str(values.get("CODING_EXECUTOR_TOKEN") or os.environ.get("CODING_EXECUTOR_TOKEN") or "").strip()
@@ -314,8 +336,9 @@ def probe_coding_executor(values, timeout=2):
                     "status": "unreachable",
                     "version": None,
                 }
-            raw = resp.read(MAX_HEALTH_RESPONSE + 1)
-            if len(raw) > MAX_HEALTH_RESPONSE:
+            try:
+                raw = read_health_response(resp, deadline)
+            except ValueError:
                 return {
                     "configured": True,
                     "reachable": False,
