@@ -787,6 +787,16 @@ class MaintenanceTests(unittest.TestCase):
         self.assertTrue(result["diff_check"])
         self.assertTrue(result["apply_check"])
 
+    def test_validate_promotion_candidate_rejects_untracked_conflict_markers(self):
+        task = self.task()
+        path = self.tasks / task
+        (path / "new-file").write_text(
+            "<<<<<<< ours\nleft\n=======\nright\n>>>>>>> theirs\n"
+        )
+
+        with self.assertRaises(RuntimeError):
+            validate_promotion_candidate(self.repos, self.tasks, task)
+
     def test_validate_promotion_candidate_rejects_apply_check_failure(self):
         task = self.task()
         path = self.tasks / task
