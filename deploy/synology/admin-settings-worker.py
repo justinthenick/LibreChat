@@ -294,7 +294,8 @@ def service_healthy(service, values):
 def probe_coding_executor(values, timeout=2):
     host = str(values.get("CODING_EXECUTOR_HOST") or os.environ.get("CODING_EXECUTOR_HOST") or "").strip()
     port = str(values.get("CODING_EXECUTOR_PORT") or os.environ.get("CODING_EXECUTOR_PORT") or "").strip()
-    if not manage_env.configured(host) or not manage_env.configured(port):
+    token = str(values.get("CODING_EXECUTOR_TOKEN") or os.environ.get("CODING_EXECUTOR_TOKEN") or "").strip()
+    if not all(manage_env.configured(value) for value in (host, port, token)):
         return {
             "configured": False,
             "reachable": False,
@@ -330,13 +331,24 @@ def probe_coding_executor(values, timeout=2):
                     "version": None,
                 }
             status = data.get("status")
-            status_str = "ok" if status is None and data.get("ok") is True else (str(status) if status is not None else "healthy")
-            version = str(data["version"]) if data.get("version") is not None else None
+            version = data.get("version")
+            if (
+                not isinstance(status, str)
+                or not status.strip()
+                or not isinstance(version, str)
+                or not version.strip()
+            ):
+                return {
+                    "configured": True,
+                    "reachable": False,
+                    "status": "malformed",
+                    "version": None,
+                }
             return {
                 "configured": True,
                 "reachable": True,
-                "status": status_str,
-                "version": version,
+                "status": status.strip(),
+                "version": version.strip(),
             }
     except Exception:
         return {

@@ -90,6 +90,23 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(set(res.keys()), {"configured", "reachable", "status", "version"})
 
     @patch("urllib.request.urlopen")
+    def test_probe_coding_executor_missing_token_is_unconfigured(self, mock_urlopen):
+        env_vals = {
+            "CODING_EXECUTOR_HOST": "127.0.0.1",
+            "CODING_EXECUTOR_PORT": "4050",
+            "CODING_EXECUTOR_TOKEN": "",
+        }
+        with patch.dict(worker.os.environ, {"CODING_EXECUTOR_TOKEN": ""}):
+            res = worker.probe_coding_executor(env_vals)
+        self.assertEqual(res, {
+            "configured": False,
+            "reachable": False,
+            "status": "unconfigured",
+            "version": None,
+        })
+        mock_urlopen.assert_not_called()
+
+    @patch("urllib.request.urlopen")
     def test_probe_coding_executor_healthy(self, mock_urlopen):
         mock_resp = MagicMock()
         mock_resp.status = 200
@@ -143,6 +160,7 @@ class WorkerTests(unittest.TestCase):
         env_vals = {
             "CODING_EXECUTOR_HOST": "127.0.0.1",
             "CODING_EXECUTOR_PORT": "4050",
+            "CODING_EXECUTOR_TOKEN": "secret-token-12345",
         }
         res = worker.probe_coding_executor(env_vals)
         self.assertEqual(res, {
@@ -151,6 +169,34 @@ class WorkerTests(unittest.TestCase):
             "status": "malformed",
             "version": None,
         })
+
+    @patch("urllib.request.urlopen")
+    def test_probe_coding_executor_rejects_invalid_health_contract(self, mock_urlopen):
+        env_vals = {
+            "CODING_EXECUTOR_HOST": "127.0.0.1",
+            "CODING_EXECUTOR_PORT": "4050",
+            "CODING_EXECUTOR_TOKEN": "secret-token-12345",
+        }
+        payloads = (
+            b'{}',
+            b'{"status": 123, "version": "0.1.12"}',
+            b'{"status": "ok"}',
+            b'{"status": "ok", "version": 12}',
+        )
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                mock_resp = MagicMock()
+                mock_resp.status = 200
+                mock_resp.read.return_value = payload
+                mock_resp.__enter__.return_value = mock_resp
+                mock_urlopen.return_value = mock_resp
+                res = worker.probe_coding_executor(env_vals)
+                self.assertEqual(res, {
+                    "configured": True,
+                    "reachable": False,
+                    "status": "malformed",
+                    "version": None,
+                })
 
     def test_worker_core_state_handles_unconfigured_executor_gracefully(self):
         core = worker.WorkerCore(self.env, HERE / "admin-settings.schema.json", Path(self.temp.name))
