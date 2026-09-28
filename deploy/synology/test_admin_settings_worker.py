@@ -110,7 +110,15 @@ class WorkerTests(unittest.TestCase):
     def test_probe_coding_executor_healthy(self, mock_urlopen):
         mock_resp = MagicMock()
         mock_resp.status = 200
-        mock_resp.read1.return_value = b'{"status": "healthy", "version": "0.1.12", "token": "leak"}'
+        payload = b'{"status": "healthy", "version": "0.1.12", "token": "leak"}'
+        mock_resp.length = len(payload)
+
+        def read_once(_size):
+            mock_resp.length = 0
+            mock_resp.fp = None
+            return payload
+
+        mock_resp.read1.side_effect = read_once
         mock_resp.__enter__.return_value = mock_resp
         mock_urlopen.return_value = mock_resp
 
@@ -130,6 +138,7 @@ class WorkerTests(unittest.TestCase):
         self.assertNotIn("leak", str(res))
         self.assertNotIn("token", res)
         self.assertEqual(set(res.keys()), {"configured", "reachable", "status", "version"})
+        self.assertEqual(mock_resp.read1.call_count, 1)
 
     @patch("urllib.request.urlopen")
     def test_probe_coding_executor_unreachable(self, mock_urlopen):
@@ -153,7 +162,7 @@ class WorkerTests(unittest.TestCase):
     def test_probe_coding_executor_malformed(self, mock_urlopen):
         mock_resp = MagicMock()
         mock_resp.status = 200
-        mock_resp.read1.return_value = b'invalid-non-json'
+        mock_resp.read1.side_effect = [b'invalid-non-json', b'']
         mock_resp.__enter__.return_value = mock_resp
         mock_urlopen.return_value = mock_resp
 
@@ -237,7 +246,7 @@ class WorkerTests(unittest.TestCase):
             with self.subTest(payload=payload):
                 mock_resp = MagicMock()
                 mock_resp.status = 200
-                mock_resp.read1.return_value = payload
+                mock_resp.read1.side_effect = [payload, b""]
                 mock_resp.__enter__.return_value = mock_resp
                 mock_urlopen.return_value = mock_resp
                 res = worker.probe_coding_executor(env_vals)
