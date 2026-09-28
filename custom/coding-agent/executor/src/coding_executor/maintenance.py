@@ -540,7 +540,7 @@ def validate_promotion_candidate(repositories: Path, tasks: Path, task_id: str) 
     with tempfile.TemporaryDirectory(prefix="coding-validation-") as temporary:
         patch_file = Path(temporary) / "candidate.patch"
         patch_file.write_bytes(patch_bytes)
-        git(source, "apply", "--check", str(patch_file))
+        git(source, "apply", "--check", "--whitespace=error-all", str(patch_file))
 
     if git(source, "rev-parse", "HEAD").strip() != first["source_head"]:
         raise RuntimeError("source HEAD changed during promotion validation")
