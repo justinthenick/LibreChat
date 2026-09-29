@@ -9,5 +9,6 @@ export * from './shutdown';
 export * from './server';
 export * from './origin';
 export * from './agents';
+export { getCodingAgentConfig, probeExecutor, probeMaintenance } from './codingAgent';
 export { resolveBuildInfo } from './build';
 export type { BuildInfo } from './build';
