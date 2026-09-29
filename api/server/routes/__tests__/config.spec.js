@@ -9,6 +9,11 @@ jest.mock('~/server/services/Config/ldap', () => ({
   getLdapConfig: jest.fn(() => null),
 }));
 
+const mockGetCodingAgentConfig = jest.fn();
+jest.mock('~/server/services/Config/codingAgent', () => ({
+  getCodingAgentConfig: (...args) => mockGetCodingAgentConfig(...args),
+}));
+
 const mockHasCapability = jest.fn();
 const mockHasConfigCapability = jest.fn();
 jest.mock('~/server/middleware/roles/capabilities', () => ({
@@ -72,6 +77,7 @@ const mockUser = {
 
 afterEach(() => {
   jest.resetAllMocks();
+  mockGetCodingAgentConfig.mockResolvedValue(undefined);
   mockResolveBuildInfo.mockReturnValue({
     commit: null,
     commitShort: null,
@@ -165,6 +171,8 @@ describe('GET /api/config', () => {
       const response = await request(app).get('/api/config');
 
       expect(response.statusCode).toBe(200);
+      expect(response.body).not.toHaveProperty('codingAgent');
+      expect(mockGetCodingAgentConfig).not.toHaveBeenCalled();
       expect(response.body).not.toHaveProperty('modelSpecs');
       expect(response.body).not.toHaveProperty('balance');
       expect(response.body).not.toHaveProperty('webSearch');
@@ -794,6 +802,37 @@ describe('GET /api/config', () => {
       const response = await request(app).get('/api/config');
 
       expect(response.body.interface).toEqual({ buildInfo: false });
+    });
+  });
+
+  describe('coding-agent diagnostics', () => {
+    it('includes codingAgent for authenticated startup config', async () => {
+      const codingAgent = {
+        executor: { configured: true, status: 'ok', version: '0.1.13' },
+        maintenance: { configured: true, status: 'running' },
+      };
+      mockGetAppConfig.mockResolvedValue(baseAppConfig);
+      mockGetCodingAgentConfig.mockResolvedValue(codingAgent);
+
+      const response = await request(createApp(mockUser)).get('/api/config');
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.codingAgent).toEqual(codingAgent);
+      expect(mockGetCodingAgentConfig).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not expose codingAgent to unauthenticated callers', async () => {
+      mockGetAppConfig.mockResolvedValue(baseAppConfig);
+      mockGetCodingAgentConfig.mockResolvedValue({
+        executor: { configured: true, status: 'ok', version: '0.1.13' },
+        maintenance: { configured: true, status: 'running' },
+      });
+
+      const response = await request(createApp(null)).get('/api/config');
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).not.toHaveProperty('codingAgent');
+      expect(mockGetCodingAgentConfig).not.toHaveBeenCalled();
     });
   });
 });
