@@ -1,8 +1,4 @@
-const {
-  getCodingAgentConfig,
-  probeExecutor,
-  probeMaintenance,
-} = require('../codingAgent');
+const { getCodingAgentConfig, probeExecutor, probeMaintenance } = require('../codingAgent');
 
 describe('codingAgent config service', () => {
   const originalEnv = process.env;
