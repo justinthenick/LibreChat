@@ -39,9 +39,7 @@ function buildDiagnosticsBlob(
     if (codingAgent.executor?.version) {
       lines.push(`Coding executor version: ${codingAgent.executor.version}`);
     }
-    lines.push(
-      `Host maintenance: ${codingAgent.maintenance?.status ?? UNKNOWN_PLACEHOLDER}`,
-    );
+    lines.push(`Host maintenance: ${codingAgent.maintenance?.status ?? UNKNOWN_PLACEHOLDER}`);
   }
   return lines.join('\n');
 }
