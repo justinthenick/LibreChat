@@ -5,6 +5,11 @@ jest.mock('~/server/services/Config/app', () => ({
   getAppConfig: (...args) => mockGetAppConfig(...args),
 }));
 
+const mockGetCodingAgentConfig = jest.fn();
+jest.mock('~/server/services/Config/codingAgent', () => ({
+  getCodingAgentConfig: (...args) => mockGetCodingAgentConfig(...args),
+}));
+
 jest.mock('~/server/services/Config/ldap', () => ({
   getLdapConfig: jest.fn(() => null),
 }));
@@ -72,6 +77,7 @@ const mockUser = {
 
 afterEach(() => {
   jest.resetAllMocks();
+  mockGetCodingAgentConfig.mockResolvedValue(undefined);
   mockResolveBuildInfo.mockReturnValue({
     commit: null,
     commitShort: null,
@@ -176,6 +182,8 @@ describe('GET /api/config', () => {
       expect(response.body).not.toHaveProperty('sharePointPickerSharePointScope');
       expect(response.body).not.toHaveProperty('conversationImportMaxFileSize');
       expect(response.body).not.toHaveProperty('insightsEnabled');
+      expect(response.body).not.toHaveProperty('codingAgent');
+      expect(mockGetCodingAgentConfig).not.toHaveBeenCalled();
     });
 
     it('should strip authenticated-only informational fields from unauthenticated response (#12688)', async () => {
@@ -295,6 +303,35 @@ describe('GET /api/config', () => {
   });
 
   describe('authenticated (req.user exists)', () => {
+    it('should expose coding-agent status only on the authenticated config path', async () => {
+      mockGetAppConfig.mockResolvedValue(baseAppConfig);
+      mockGetCodingAgentConfig.mockResolvedValue({
+        executor: { configured: true, status: 'ok', version: '0.1.13' },
+        maintenance: { configured: true, status: 'running' },
+      });
+      const app = createApp(mockUser);
+
+      const response = await request(app).get('/api/config');
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.codingAgent).toEqual({
+        executor: { configured: true, status: 'ok', version: '0.1.13' },
+        maintenance: { configured: true, status: 'running' },
+      });
+      expect(mockGetCodingAgentConfig).toHaveBeenCalledTimes(1);
+    });
+
+    it('omits coding-agent status when the resolver returns no payload', async () => {
+      mockGetAppConfig.mockResolvedValue(baseAppConfig);
+      mockGetCodingAgentConfig.mockResolvedValue(undefined);
+      const app = createApp(mockUser);
+
+      const response = await request(app).get('/api/config');
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).not.toHaveProperty('codingAgent');
+    });
+
     it('should call getAppConfig with role, userId, and tenantId', async () => {
       mockGetAppConfig.mockResolvedValue(baseAppConfig);
       mockGetTenantId.mockReturnValue('fallback-tenant');
