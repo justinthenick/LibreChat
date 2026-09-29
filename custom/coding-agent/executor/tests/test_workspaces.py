@@ -22,6 +22,7 @@ sys.modules[WORKSPACES_SPEC.name] = workspaces_module
 WORKSPACES_SPEC.loader.exec_module(workspaces_module)
 
 WorkspaceManager = workspaces_module.WorkspaceManager
+MODIFICATION_EXPLORATION_SOFT_LIMIT = workspaces_module.MODIFICATION_EXPLORATION_SOFT_LIMIT
 MODIFICATION_EXPLORATION_HARD_LIMIT = workspaces_module.MODIFICATION_EXPLORATION_HARD_LIMIT
 
 
@@ -60,9 +61,25 @@ class WorkspaceManagerTest(unittest.TestCase):
         self._git("push", "-u", "origin", "main")
         return upstream_dir
 
-    def _exhaust_modification(self, manager: WorkspaceManager, task_id: str) -> str:
+    def _pass_modification_checkpoint(self, manager: WorkspaceManager, task_id: str) -> str:
         warning = ""
-        for _ in range(MODIFICATION_EXPLORATION_HARD_LIMIT):
+        for _ in range(MODIFICATION_EXPLORATION_SOFT_LIMIT):
+            warning = manager.read_file(task_id, "example.txt")
+        self.assertIn("Mutation checkpoint reached", warning)
+
+        manager.apply_patch(
+            task_id,
+            "--- a/clean.txt\n+++ b/clean.txt\n@@ -1 +1 @@\n-clean\n+checkpoint\n",
+        )
+        (self.tasks / task_id / "clean.txt").write_text("clean\n", encoding="utf-8")
+        return warning
+
+    def _exhaust_modification(self, manager: WorkspaceManager, task_id: str) -> str:
+        self._pass_modification_checkpoint(manager, task_id)
+        warning = ""
+        for _ in range(
+            MODIFICATION_EXPLORATION_HARD_LIMIT - MODIFICATION_EXPLORATION_SOFT_LIMIT
+        ):
             warning = manager.read_file(task_id, "example.txt")
         return warning
 
@@ -194,6 +211,57 @@ class WorkspaceManagerTest(unittest.TestCase):
         self.assertEqual(rejected.exit_code, 126)
         self.assertIn("command_not_allowed", rejected.stderr)
         self.assertFalse(marker.exists())
+
+    def test_modification_checkpoint_blocks_exploration_until_first_patch(self) -> None:
+        task = self.manager.create_task("demo", "checkpoint gate", "main")
+        task_id = task["task_id"]
+
+        warning = ""
+        for _ in range(MODIFICATION_EXPLORATION_SOFT_LIMIT):
+            warning = self.manager.read_file(task_id, "example.txt")
+
+        self.assertIn("Mutation checkpoint reached", warning)
+        budget = self.manager.task_status(task_id)["exploration_budget"]
+        self.assertTrue(budget["mutation_checkpoint_reached"])
+        self.assertFalse(budget["first_patch_applied"])
+        self.assertEqual(budget["pre_patch_exploration_remaining"], 0)
+        self.assertEqual(budget["post_patch_exploration_remaining"], 0)
+
+        with self.assertRaisesRegex(RuntimeError, "mutation_checkpoint_required"):
+            self.manager.read_file(task_id, "example.txt")
+
+        self.manager.apply_patch(
+            task_id,
+            self._example_patch("beta", "gamma"),
+        )
+        budget = self.manager.task_status(task_id)["exploration_budget"]
+        self.assertFalse(budget["mutation_checkpoint_reached"])
+        self.assertTrue(budget["first_patch_applied"])
+        self.assertEqual(
+            budget["post_patch_exploration_remaining"],
+            MODIFICATION_EXPLORATION_HARD_LIMIT - MODIFICATION_EXPLORATION_SOFT_LIMIT,
+        )
+
+        output = self.manager.read_file(task_id, "example.txt")
+        self.assertIn("gamma", output)
+        self.assertEqual(
+            self.manager.task_status(task_id)["exploration_budget"]["exploration_calls"],
+            MODIFICATION_EXPLORATION_SOFT_LIMIT + 1,
+        )
+
+    def test_first_patch_checkpoint_state_persists_across_reload(self) -> None:
+        task = self.manager.create_task("demo", "checkpoint persistence", "main")
+        task_id = task["task_id"]
+
+        for _ in range(MODIFICATION_EXPLORATION_SOFT_LIMIT):
+            self.manager.read_file(task_id, "example.txt")
+        self.manager.apply_patch(task_id, self._example_patch("beta", "gamma"))
+
+        reloaded = WorkspaceManager(self.repositories, self.tasks)
+        budget = reloaded.task_status(task_id)["exploration_budget"]
+        self.assertTrue(budget["first_patch_applied"])
+        self.assertFalse(budget["mutation_checkpoint_reached"])
+        self.assertIn("gamma", reloaded.read_file(task_id, "example.txt"))
 
     def test_modification_exhaustion_message_reports_restricted_mutation_scope(self) -> None:
         task = self.manager.create_task("demo", "budgeted modification", "main")
@@ -411,7 +479,12 @@ class WorkspaceManagerTest(unittest.TestCase):
         task_path = Path(task["path"])
         (task_path / "example.txt").write_text("alpha\ndirty\n", encoding="utf-8")
 
-        for _ in range(MODIFICATION_EXPLORATION_HARD_LIMIT - 1):
+        self._pass_modification_checkpoint(self.manager, task_id)
+        for _ in range(
+            MODIFICATION_EXPLORATION_HARD_LIMIT
+            - MODIFICATION_EXPLORATION_SOFT_LIMIT
+            - 1
+        ):
             self.manager.read_file(task_id, "example.txt")
 
         def fail_capture(_task: Path) -> tuple[str, ...]:
@@ -431,7 +504,12 @@ class WorkspaceManagerTest(unittest.TestCase):
         task_path = Path(task["path"])
         (task_path / "example.txt").write_text("alpha\ndirty\n", encoding="utf-8")
 
-        for _ in range(MODIFICATION_EXPLORATION_HARD_LIMIT - 1):
+        self._pass_modification_checkpoint(self.manager, task_id)
+        for _ in range(
+            MODIFICATION_EXPLORATION_HARD_LIMIT
+            - MODIFICATION_EXPLORATION_SOFT_LIMIT
+            - 1
+        ):
             self.manager.read_file(task_id, "example.txt")
 
         original_save = self.manager._save_state
