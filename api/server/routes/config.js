@@ -18,6 +18,7 @@ const { hasCapability, hasConfigCapability } = require('~/server/middleware/role
 const { getLdapConfig } = require('~/server/services/Config/ldap');
 const { getRumConfig } = require('~/server/services/Config/rum');
 const { getAppConfig } = require('~/server/services/Config/app');
+const { getCodingAgentConfig } = require('~/server/services/Config/codingAgent');
 
 const router = express.Router();
 const emailLoginEnabled =
@@ -318,6 +319,11 @@ router.get('/', async function (req, res) {
     const buildInfo = buildBuildInfoPayload(appConfig?.interfaceConfig);
     if (buildInfo) {
       payload.buildInfo = buildInfo;
+    }
+
+    const codingAgent = await getCodingAgentConfig();
+    if (codingAgent) {
+      payload.codingAgent = codingAgent;
     }
 
     const adminPanelURL = process.env.ADMIN_PANEL_URL;
