@@ -6,9 +6,6 @@ jest.mock('~/server/services/Config/app', () => ({
 }));
 
 const mockGetCodingAgentConfig = jest.fn();
-jest.mock('~/server/services/Config/codingAgent', () => ({
-  getCodingAgentConfig: (...args) => mockGetCodingAgentConfig(...args),
-}));
 
 jest.mock('~/server/services/Config/ldap', () => ({
   getLdapConfig: jest.fn(() => null),
@@ -37,6 +34,7 @@ const mockResolveBuildInfo = jest.fn(() => ({
 jest.mock('@librechat/api', () => ({
   ...jest.requireActual('@librechat/api'),
   getCloudFrontConfig: (...args) => mockGetCloudFrontConfig(...args),
+  getCodingAgentConfig: (...args) => mockGetCodingAgentConfig(...args),
   resolveBuildInfo: (...args) => mockResolveBuildInfo(...args),
 }));
 
