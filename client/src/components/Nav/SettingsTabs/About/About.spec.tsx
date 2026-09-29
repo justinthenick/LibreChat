@@ -27,10 +27,24 @@ const populatedBuildInfo: NonNullable<TStartupConfig['buildInfo']> = {
   buildDate: '2026-04-20T12:00:00Z',
 };
 
+const populatedCodingAgent: NonNullable<TStartupConfig['codingAgent']> = {
+  executor: {
+    configured: true,
+    status: 'ok',
+    version: '0.1.13',
+  },
+  maintenance: {
+    configured: true,
+    status: 'running',
+  },
+};
+
 beforeEach(() => {
   mockCopy.mockReset();
   mockCopy.mockReturnValue(true);
-  mockUseGetStartupConfig.mockReturnValue({ data: { buildInfo: populatedBuildInfo } });
+  mockUseGetStartupConfig.mockReturnValue({
+    data: { buildInfo: populatedBuildInfo, codingAgent: populatedCodingAgent },
+  });
 });
 
 describe('About', () => {
@@ -42,6 +56,17 @@ describe('About', () => {
       expect(screen.getByText('abcdef1')).toBeInTheDocument();
       expect(screen.getByText('dev')).toBeInTheDocument();
       expect(screen.getByText('2026-04-20 12:00:00 UTC')).toBeInTheDocument();
+    });
+
+    it('renders coding-agent runtime status from startup config', () => {
+      render(<About />);
+
+      expect(screen.getByText('com_nav_about_coding_executor')).toBeInTheDocument();
+      expect(screen.getByText('ok')).toBeInTheDocument();
+      expect(screen.getByText('com_nav_about_coding_executor_version')).toBeInTheDocument();
+      expect(screen.getByText('0.1.13')).toBeInTheDocument();
+      expect(screen.getByText('com_nav_about_host_maintenance')).toBeInTheDocument();
+      expect(screen.getByText('running')).toBeInTheDocument();
     });
 
     it('renders em-dash placeholders when buildInfo is missing', () => {
@@ -85,6 +110,9 @@ describe('About', () => {
       expect(blob).toContain(`Branch: ${populatedBuildInfo.branch}`);
       expect(blob).toContain('Build date: 2026-04-20 12:00:00 UTC');
       expect(blob).toContain('User agent: ');
+      expect(blob).toContain('Coding executor: ok');
+      expect(blob).toContain('Coding executor version: 0.1.13');
+      expect(blob).toContain('Host maintenance: running');
     });
 
     it('writes em-dash placeholders into the blob when buildInfo is missing', async () => {
