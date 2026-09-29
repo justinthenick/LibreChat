@@ -56,7 +56,7 @@ jobs:
           }
           assert manifest['id'] == 'agent_software_engineering_pilot_v01'
           assert manifest['status'] == 'validated-for-persistent-pilot'
-          assert manifest['version'] == '0.1.13'
+          assert manifest['version'] == '0.1.14'
           assert manifest['provider'] == 'google'
           assert manifest['preferred_model'] == 'gemini-3.7-flash'
           assert manifest['evidence']['model'] == 'google/gemini-3.7-flash'
@@ -78,6 +78,9 @@ jobs:
           assert 'task_mode=read_only' in instructions
           assert 'task_mode=modification' in instructions
           assert 'Never create a replacement task to bypass an exploration budget.' in instructions
+          assert 'enforced pre-patch mutation checkpoint at 12 exploratory calls' in instructions
+          assert 'Do not spend calls 13-16 gathering more confidence before the first patch' in instructions
+          assert 'up to four post-patch exploratory calls may be available' in instructions
           assert 'SKILL POLICY: codebase-design is the only enabled skill.' in instructions
           assert 'invoke the codebase-design skill tool before substantive repository analysis' in instructions
           assert 'Do not substitute generic design knowledge for a requested skill invocation.' in instructions

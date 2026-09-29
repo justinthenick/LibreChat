@@ -15,7 +15,11 @@ from unittest.mock import patch
 from coding_executor.bounded import run, run_stdout_bytes
 from coding_executor.coordination import coordinated, maintenance_lock
 from coding_executor.maintenance import INDEX_SCAN_LIMIT, fresh_repository_status, git, inventory, promotion_candidate, promotion_paths, promotion_patch_bytes, refresh, remove_task, repository_status, task_snapshot, validate_promotion_candidate
-from coding_executor.workspaces import WorkspaceManager
+from coding_executor.workspaces import (
+    MODIFICATION_EXPLORATION_HARD_LIMIT,
+    MODIFICATION_EXPLORATION_SOFT_LIMIT,
+    WorkspaceManager,
+)
 
 
 class MaintenanceTests(unittest.TestCase):
@@ -939,9 +943,21 @@ class MaintenanceTests(unittest.TestCase):
 
     def test_persisted_modification_budget_cannot_reset_on_restart(self):
         task = self.task()
-        for _ in range(16):
+        for _ in range(MODIFICATION_EXPLORATION_SOFT_LIMIT):
             self.manager.read_file(task, "file")
+        self.manager.apply_patch(
+            task,
+            "--- a/file\n+++ b/file\n@@ -1 +1 @@\n-initial\n+patched\n",
+        )
+        for _ in range(
+            MODIFICATION_EXPLORATION_HARD_LIMIT - MODIFICATION_EXPLORATION_SOFT_LIMIT
+        ):
+            self.manager.read_file(task, "file")
+
         restarted = WorkspaceManager(self.repos, self.tasks)
+        budget = restarted.task_status(task)["exploration_budget"]
+        self.assertTrue(budget["first_patch_applied"])
+        self.assertTrue(budget["exploration_exhausted"])
         with self.assertRaisesRegex(RuntimeError, "exploration_budget_exhausted"):
             restarted.read_file(task, "file")
 

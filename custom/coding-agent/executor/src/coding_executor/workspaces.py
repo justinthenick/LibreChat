@@ -21,6 +21,7 @@ PATCH_LIMIT_BYTES = 262_144
 READ_LIMIT_BYTES = 262_144
 MODIFICATION_EXPLORATION_SOFT_LIMIT = 12
 MODIFICATION_EXPLORATION_HARD_LIMIT = 16
+MODIFICATION_POST_PATCH_EXPLORATION_LIMIT = 4
 READ_ONLY_EXPLORATION_SOFT_LIMIT = 24
 READ_ONLY_EXPLORATION_HARD_LIMIT = 32
 
@@ -73,6 +74,8 @@ class WorkspaceManager:
         self._task_modes: dict[str, str] = {}
         self._exploration_calls: dict[str, int] = {}
         self._exhaustion_paths: dict[str, tuple[str, ...] | None] = {}
+        self._initial_patch_applied: dict[str, bool] = {}
+        self._post_patch_exploration_calls: dict[str, int] = {}
         self._budget_lock = threading.Lock()
 
     def list_repositories(self) -> list[str]:
@@ -119,6 +122,8 @@ class WorkspaceManager:
             self._task_modes[task_id] = task_mode
             self._exploration_calls[task_id] = 0
             self._exhaustion_paths[task_id] = None
+            self._initial_patch_applied[task_id] = False
+            self._post_patch_exploration_calls[task_id] = 0
             self._save_state(task_id)
         return {
             "task_id": task_id,
@@ -264,6 +269,8 @@ class WorkspaceManager:
 
             self._git_input(task, patch, "apply", "--check", "--recount", "--whitespace=error-all")
             self._git_input(task, patch, "apply", "--recount", "--whitespace=nowarn")
+            self._initial_patch_applied[task_id] = True
+            self._save_state(task_id)
 
         return self.task_status(task_id)
 
@@ -359,6 +366,8 @@ class WorkspaceManager:
             {
                 "mode": self._task_modes[task_id],
                 "calls": self._exploration_calls[task_id],
+                "initial_patch_applied": self._initial_patch_applied[task_id],
+                "post_patch_exploration_calls": self._post_patch_exploration_calls[task_id],
                 "exhaustion_paths": (
                     list(self._exhaustion_paths[task_id])
                     if self._exhaustion_paths[task_id] is not None
@@ -393,6 +402,8 @@ class WorkspaceManager:
             task_id in self._task_modes
             and task_id in self._exploration_calls
             and task_id in self._exhaustion_paths
+            and task_id in self._initial_patch_applied
+            and task_id in self._post_patch_exploration_calls
         ):
             return
         if not SAFE_NAME.fullmatch(task_id):
@@ -402,6 +413,8 @@ class WorkspaceManager:
         mode = "read_only"
         calls = READ_ONLY_EXPLORATION_HARD_LIMIT
         exhaustion_paths: tuple[str, ...] | None = None
+        initial_patch_applied = False
+        post_patch_exploration_calls = 0
         try:
             descriptor = os.open(target, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
             with os.fdopen(descriptor) as stream:
@@ -420,22 +433,42 @@ class WorkspaceManager:
             loaded_mode = state["mode"]
             loaded_calls = state["calls"]
             loaded_paths = self._validate_exhaustion_paths(state.get("exhaustion_paths"))
+            loaded_initial_patch_applied = state.get("initial_patch_applied", False)
+            if type(loaded_initial_patch_applied) is not bool:
+                raise ValueError("initial_patch_applied must be a boolean")
+            loaded_post_patch_calls = state.get("post_patch_exploration_calls", 0)
+            if (
+                type(loaded_post_patch_calls) is not int
+                or loaded_post_patch_calls < 0
+                or loaded_post_patch_calls > MODIFICATION_POST_PATCH_EXPLORATION_LIMIT
+            ):
+                raise ValueError("invalid post_patch_exploration_calls")
             _, hard_limit = self._budget_limits(loaded_mode)
 
             if loaded_mode == "read_only" and loaded_paths is not None:
                 raise ValueError("read_only task state may not define exhaustion_paths")
+            if loaded_mode == "read_only" and loaded_initial_patch_applied:
+                raise ValueError("read_only task state may not define an applied patch")
+            if loaded_mode == "read_only" and loaded_post_patch_calls:
+                raise ValueError("read_only task state may not define post-patch exploration")
+            if not loaded_initial_patch_applied and loaded_post_patch_calls:
+                raise ValueError("post-patch exploration requires an applied patch")
             if loaded_mode == "modification" and loaded_calls < hard_limit and loaded_paths is not None:
                 raise ValueError("pre-exhaustion modification state may not define exhaustion_paths")
 
             mode = loaded_mode
             calls = loaded_calls
             exhaustion_paths = loaded_paths
+            initial_patch_applied = loaded_initial_patch_applied
+            post_patch_exploration_calls = loaded_post_patch_calls
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
             pass
 
         self._task_modes[task_id] = mode
         self._exploration_calls[task_id] = calls
         self._exhaustion_paths[task_id] = exhaustion_paths
+        self._initial_patch_applied[task_id] = initial_patch_applied
+        self._post_patch_exploration_calls[task_id] = post_patch_exploration_calls
 
     def _task_mode(self, task_id: str) -> str:
         with self._budget_lock:
@@ -447,14 +480,47 @@ class WorkspaceManager:
             self._load_state(task_id)
             mode = self._task_modes.get(task_id, "modification")
             count = self._exploration_calls.get(task_id, 0)
+            initial_patch_applied = self._initial_patch_applied.get(task_id, False)
+            post_patch_calls = self._post_patch_exploration_calls.get(task_id, 0)
             soft_limit, hard_limit = self._budget_limits(mode)
+            if mode == "read_only":
+                exploration_remaining = max(hard_limit - count, 0)
+                exploration_exhausted = count >= hard_limit
+            elif initial_patch_applied:
+                exploration_remaining = max(
+                    MODIFICATION_POST_PATCH_EXPLORATION_LIMIT - post_patch_calls,
+                    0,
+                )
+                exploration_exhausted = (
+                    post_patch_calls >= MODIFICATION_POST_PATCH_EXPLORATION_LIMIT
+                )
+            else:
+                exploration_remaining = max(soft_limit - count, 0)
+                exploration_exhausted = False
             return {
                 "task_mode": mode,
                 "exploration_calls": count,
                 "exploration_soft_limit": soft_limit,
                 "exploration_hard_limit": hard_limit,
-                "exploration_remaining": max(hard_limit - count, 0),
-                "exploration_exhausted": count >= hard_limit,
+                "exploration_remaining": exploration_remaining,
+                "exploration_exhausted": exploration_exhausted,
+                "mutation_checkpoint_reached": (
+                    mode == "modification"
+                    and count >= soft_limit
+                    and not initial_patch_applied
+                ),
+                "first_patch_applied": initial_patch_applied,
+                "pre_patch_exploration_remaining": (
+                    max(soft_limit - count, 0)
+                    if mode == "modification" and not initial_patch_applied
+                    else 0
+                ),
+                "post_patch_exploration_calls": post_patch_calls,
+                "post_patch_exploration_remaining": (
+                    max(MODIFICATION_POST_PATCH_EXPLORATION_LIMIT - post_patch_calls, 0)
+                    if mode == "modification" and initial_patch_applied
+                    else 0
+                ),
             }
 
     def _consume_exploration(self, task_id: str) -> str:
@@ -462,7 +528,33 @@ class WorkspaceManager:
             self._load_state(task_id)
             mode = self._task_modes.get(task_id, "read_only")
             count = self._exploration_calls.get(task_id, 0)
+            initial_patch_applied = self._initial_patch_applied.get(task_id, False)
+            post_patch_calls = self._post_patch_exploration_calls.get(task_id, 0)
             soft_limit, hard_limit = self._budget_limits(mode)
+
+            if mode == "modification" and count >= soft_limit and not initial_patch_applied:
+                raise RuntimeError(
+                    f"mutation_checkpoint_required: task {task_id} used "
+                    f"{count}/{soft_limit} pre-patch exploratory calls. Further "
+                    "list_files/read_file/search_text calls are blocked until the first "
+                    "successful apply_patch. Apply the candidate modification now, or stop "
+                    "and report that the available evidence is insufficient to modify safely. "
+                    "run_check, task_status, git_diff, and the final response remain available."
+                )
+
+            if (
+                mode == "modification"
+                and initial_patch_applied
+                and count < hard_limit
+                and post_patch_calls >= MODIFICATION_POST_PATCH_EXPLORATION_LIMIT
+            ):
+                raise RuntimeError(
+                    f"exploration_budget_exhausted: task {task_id} used "
+                    f"{post_patch_calls}/{MODIFICATION_POST_PATCH_EXPLORATION_LIMIT} "
+                    "post-patch exploratory calls. Further list_files/read_file/search_text "
+                    "calls are blocked. Proceed with apply_patch, run_check, task_status, "
+                    "git_diff, or the final response."
+                )
 
             if count >= hard_limit:
                 if mode == "read_only":
@@ -487,6 +579,9 @@ class WorkspaceManager:
 
             count += 1
             self._exploration_calls[task_id] = count
+            if mode == "modification" and initial_patch_applied:
+                post_patch_calls += 1
+                self._post_patch_exploration_calls[task_id] = post_patch_calls
 
             if mode == "modification" and count == hard_limit:
                 self._exhaustion_paths[task_id] = None
@@ -523,10 +618,18 @@ class WorkspaceManager:
             else:
                 self._save_state(task_id)
 
-            if count < soft_limit:
-                return ""
-
-            remaining = hard_limit - count
+            if mode == "modification" and initial_patch_applied:
+                if post_patch_calls < MODIFICATION_POST_PATCH_EXPLORATION_LIMIT:
+                    return ""
+                remaining = 0
+            else:
+                if count < soft_limit:
+                    return ""
+                remaining = (
+                    hard_limit - count
+                    if mode == "read_only"
+                    else max(soft_limit - count, 0)
+                )
             if mode == "read_only":
                 action = (
                     "Stop broad exploration and prepare the final evidence-backed response; "
@@ -537,6 +640,19 @@ class WorkspaceManager:
                     "Exploration is now exhausted. apply_patch is restricted to paths that were "
                     "already dirty or untracked when this limit was reached. Preserve completion "
                     "budget for run_check, task_status, git_diff, and the final response."
+                )
+            elif not initial_patch_applied and count >= soft_limit:
+                action = (
+                    "Mutation checkpoint reached. Further list_files/read_file/search_text calls "
+                    "are blocked until the first successful apply_patch. Apply the candidate "
+                    "modification now, or stop and report that the available evidence is "
+                    "insufficient to modify safely."
+                )
+            elif initial_patch_applied:
+                action = (
+                    "The four-call post-patch exploration allowance is now exhausted. Further "
+                    "list_files/read_file/search_text calls are blocked. Proceed with apply_patch, "
+                    "run_check, task_status, git_diff, or the final response."
                 )
             else:
                 action = (
