@@ -24,6 +24,9 @@ WORKSPACES_SPEC.loader.exec_module(workspaces_module)
 WorkspaceManager = workspaces_module.WorkspaceManager
 MODIFICATION_EXPLORATION_SOFT_LIMIT = workspaces_module.MODIFICATION_EXPLORATION_SOFT_LIMIT
 MODIFICATION_EXPLORATION_HARD_LIMIT = workspaces_module.MODIFICATION_EXPLORATION_HARD_LIMIT
+MODIFICATION_POST_PATCH_EXPLORATION_LIMIT = (
+    workspaces_module.MODIFICATION_POST_PATCH_EXPLORATION_LIMIT
+)
 
 
 class WorkspaceManagerTest(unittest.TestCase):
@@ -239,7 +242,7 @@ class WorkspaceManagerTest(unittest.TestCase):
         self.assertTrue(budget["first_patch_applied"])
         self.assertEqual(
             budget["post_patch_exploration_remaining"],
-            MODIFICATION_EXPLORATION_HARD_LIMIT - MODIFICATION_EXPLORATION_SOFT_LIMIT,
+            MODIFICATION_POST_PATCH_EXPLORATION_LIMIT,
         )
 
         output = self.manager.read_file(task_id, "example.txt")
@@ -248,6 +251,35 @@ class WorkspaceManagerTest(unittest.TestCase):
             self.manager.task_status(task_id)["exploration_budget"]["exploration_calls"],
             MODIFICATION_EXPLORATION_SOFT_LIMIT + 1,
         )
+
+    def test_early_patch_still_allows_only_four_followup_exploration_calls(self) -> None:
+        task = self.manager.create_task("demo", "early patch allowance", "main")
+        task_id = task["task_id"]
+
+        for _ in range(3):
+            self.manager.read_file(task_id, "example.txt")
+        self.manager.apply_patch(task_id, self._example_patch("beta", "gamma"))
+
+        for index in range(MODIFICATION_POST_PATCH_EXPLORATION_LIMIT):
+            output = self.manager.read_file(task_id, "example.txt")
+            self.assertIn("gamma", output)
+            if index == MODIFICATION_POST_PATCH_EXPLORATION_LIMIT - 1:
+                self.assertIn("post-patch exploration allowance is now exhausted", output)
+
+        budget = self.manager.task_status(task_id)["exploration_budget"]
+        self.assertEqual(
+            budget["post_patch_exploration_calls"],
+            MODIFICATION_POST_PATCH_EXPLORATION_LIMIT,
+        )
+        self.assertEqual(budget["post_patch_exploration_remaining"], 0)
+        self.assertTrue(budget["exploration_exhausted"])
+        self.assertEqual(
+            budget["exploration_calls"],
+            3 + MODIFICATION_POST_PATCH_EXPLORATION_LIMIT,
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "exploration_budget_exhausted"):
+            self.manager.read_file(task_id, "example.txt")
 
     def test_first_patch_checkpoint_state_persists_across_reload(self) -> None:
         task = self.manager.create_task("demo", "checkpoint persistence", "main")
