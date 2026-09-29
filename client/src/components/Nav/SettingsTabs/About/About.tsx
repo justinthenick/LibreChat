@@ -55,7 +55,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function About() {
   const localize = useLocalize();
-  const { data: startupConfig } = useGetStartupConfig();
+  const { data: startupConfig } = useGetStartupConfig({ refetchOnMount: 'always' });
   const [isCopied, setIsCopied] = useState(false);
   const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
