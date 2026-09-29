@@ -11,13 +11,15 @@ provides candidate validation evidence only; it does not replace human promotion
 permissions remain unchanged.
 
 The previous Pilot instructions required a worktree for every task, including
-status checks. Version 0.1.13 routes maintenance inspections and read-only promotion validation directly to these
+status checks. Version 0.1.15 routes maintenance inspections and read-only promotion validation directly to these
 maintenance tools and explicitly stops if maintenance is unavailable. Coding tasks keep
-their existing worktree workflow.
+their existing worktree workflow, with the 12-call mutation checkpoint plus a four-call
+post-patch inspection allowance. Exhausting that post-patch allowance blocks further
+exploration but no longer narrows apply_patch to paths that were already dirty.
 
 ## Deployment gates
 
-1. Install and validate executor 0.1.12 and host package 0.1.8 with a pinned image.
+1. Install and validate executor 0.1.13 and host package 0.1.9 with a pinned image.
    These add missing read-only response fields: installed executor version,
    cached upstream ahead/behind/divergence and stale worktree registrations.
    `freshness: not_fetched` explicitly means no live remote fetch was performed.

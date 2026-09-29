@@ -131,6 +131,21 @@ class WorkspaceManagerTest(unittest.TestCase):
             "1: alpha\n2: gamma",
         )
 
+    def test_apply_patch_reports_git_check_failure_context(self) -> None:
+        task = self.manager.create_task("demo", "bad patch context", "main")
+        task_id = task["task_id"]
+
+        with self.assertRaisesRegex(RuntimeError, "patch_check_failed:"):
+            self.manager.apply_patch(
+                task_id,
+                "--- a/example.txt\n+++ b/example.txt\n@@ -1,2 +1,2 @@\n alpha\n-not-beta\n+gamma\n",
+            )
+
+        self.assertEqual(
+            (Path(task["path"]) / "example.txt").read_text(encoding="utf-8"),
+            "alpha\nbeta\n",
+        )
+
     def test_diff_includes_untracked_regular_files(self) -> None:
         task = self.manager.create_task("demo", "add notes", "main")
         task_id = task["task_id"]
@@ -281,6 +296,16 @@ class WorkspaceManagerTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "exploration_budget_exhausted"):
             self.manager.read_file(task_id, "example.txt")
 
+        status = self.manager.apply_patch(
+            task_id,
+            "--- a/clean.txt\n+++ b/clean.txt\n@@ -1 +1 @@\n-clean\n+completed\n",
+        )
+        self.assertIn("clean.txt", status["status"])
+        self.assertEqual(
+            (Path(task["path"]) / "clean.txt").read_text(encoding="utf-8"),
+            "completed\n",
+        )
+
     def test_first_patch_checkpoint_state_persists_across_reload(self) -> None:
         task = self.manager.create_task("demo", "checkpoint persistence", "main")
         task_id = task["task_id"]
@@ -295,151 +320,45 @@ class WorkspaceManagerTest(unittest.TestCase):
         self.assertFalse(budget["mutation_checkpoint_reached"])
         self.assertIn("gamma", reloaded.read_file(task_id, "example.txt"))
 
-    def test_modification_exhaustion_message_reports_restricted_mutation_scope(self) -> None:
-        task = self.manager.create_task("demo", "budgeted modification", "main")
+    def test_post_patch_exhaustion_keeps_mutation_available_after_checkpoint(self) -> None:
+        task = self.manager.create_task("demo", "post patch completion", "main")
         task_id = task["task_id"]
+        task_path = Path(task["path"])
 
-        warning = self._exhaust_modification(self.manager, task_id)
-        self.assertIn("executor_budget_warning", warning)
-        self.assertIn("remaining=0", warning)
-        self.assertIn("apply_patch is restricted to paths", warning)
-        self.assertIn("already dirty or untracked", warning)
+        warning = ""
+        for _ in range(MODIFICATION_EXPLORATION_SOFT_LIMIT):
+            warning = self.manager.read_file(task_id, "example.txt")
+        self.assertIn("Mutation checkpoint reached", warning)
+
+        self.manager.apply_patch(task_id, self._example_patch("beta", "gamma"))
+
+        for _ in range(MODIFICATION_POST_PATCH_EXPLORATION_LIMIT):
+            warning = self.manager.read_file(task_id, "example.txt")
+
+        self.assertIn("post-patch exploration allowance is now exhausted", warning)
+        self.assertIn("Proceed with apply_patch", warning)
+        self.assertNotIn("apply_patch is restricted to paths", warning)
 
         exhausted = self.manager.task_status(task_id)["exploration_budget"]
         self.assertEqual(exhausted["exploration_calls"], MODIFICATION_EXPLORATION_HARD_LIMIT)
         self.assertEqual(exhausted["exploration_remaining"], 0)
         self.assertTrue(exhausted["exploration_exhausted"])
 
-        with self.assertRaisesRegex(
-            RuntimeError,
-            r"exploration_budget_exhausted.*apply_patch is restricted to paths",
-        ):
+        state = json.loads(self._state_path(task_id).read_text(encoding="utf-8"))
+        self.assertIsNone(state["exhaustion_paths"])
+
+        with self.assertRaisesRegex(RuntimeError, "exploration_budget_exhausted"):
             self.manager.list_files(task_id)
 
-    def test_exhaustion_captures_dirty_tracked_path(self) -> None:
-        task = self.manager.create_task("demo", "capture tracked", "main")
-        task_id = task["task_id"]
-        task_path = Path(task["path"])
-        (task_path / "example.txt").write_text("alpha\ndirty\n", encoding="utf-8")
-
-        self._exhaust_modification(self.manager, task_id)
-
-        state = json.loads(self._state_path(task_id).read_text(encoding="utf-8"))
-        self.assertEqual(state["exhaustion_paths"], ["example.txt"])
-
-    def test_exhaustion_captures_untracked_nonignored_path(self) -> None:
-        task = self.manager.create_task("demo", "capture untracked", "main")
-        task_id = task["task_id"]
-        task_path = Path(task["path"])
-        (task_path / "notes.txt").write_text("first\nsecond\n", encoding="utf-8")
-
-        self._exhaust_modification(self.manager, task_id)
-
-        state = json.loads(self._state_path(task_id).read_text(encoding="utf-8"))
-        self.assertEqual(state["exhaustion_paths"], ["notes.txt"])
-
-    def test_exhaustion_paths_persist_across_manager_reload(self) -> None:
-        task = self.manager.create_task("demo", "persist boundary", "main")
-        task_id = task["task_id"]
-        task_path = Path(task["path"])
-        (task_path / "example.txt").write_text("alpha\ndirty\n", encoding="utf-8")
-
-        self._exhaust_modification(self.manager, task_id)
-
-        reloaded = WorkspaceManager(self.repositories, self.tasks)
-        reloaded.task_status(task_id)
-        self.assertEqual(reloaded._exhaustion_paths[task_id], ("example.txt",))
-
-    def test_post_exhaustion_patch_allows_captured_dirty_tracked_path(self) -> None:
-        task = self.manager.create_task("demo", "repair tracked", "main")
-        task_id = task["task_id"]
-        task_path = Path(task["path"])
-        (task_path / "example.txt").write_text("alpha\ndirty\n", encoding="utf-8")
-        self._exhaust_modification(self.manager, task_id)
-
-        status = self.manager.apply_patch(task_id, self._example_patch("dirty", "fixed"))
-
-        self.assertIn("example.txt", status["status"])
-        self.assertEqual(
-            (task_path / "example.txt").read_text(encoding="utf-8"),
-            "alpha\nfixed\n",
+        status = self.manager.apply_patch(
+            task_id,
+            "--- a/clean.txt\n+++ b/clean.txt\n@@ -1 +1 @@\n-clean\n+completed\n",
         )
+        self.assertIn("clean.txt", status["status"])
+        self.assertEqual((task_path / "clean.txt").read_text(encoding="utf-8"), "completed\n")
 
-    def test_post_exhaustion_patch_allows_captured_untracked_path(self) -> None:
-        task = self.manager.create_task("demo", "repair untracked", "main")
-        task_id = task["task_id"]
-        task_path = Path(task["path"])
-        (task_path / "notes.txt").write_text("first\nsecond\n", encoding="utf-8")
-        self._exhaust_modification(self.manager, task_id)
-
-        patch = (
-            "--- a/notes.txt\n"
-            "+++ b/notes.txt\n"
-            "@@ -1,2 +1,2 @@\n"
-            " first\n"
-            "-second\n"
-            "+changed\n"
-        )
-        status = self.manager.apply_patch(task_id, patch)
-
-        self.assertIn("notes.txt", status["status"])
-        self.assertEqual(
-            (task_path / "notes.txt").read_text(encoding="utf-8"),
-            "first\nchanged\n",
-        )
-
-    def test_post_exhaustion_patch_refuses_clean_tracked_path(self) -> None:
-        task = self.manager.create_task("demo", "refuse clean tracked", "main")
-        task_id = task["task_id"]
-        task_path = Path(task["path"])
-        (task_path / "example.txt").write_text("alpha\ndirty\n", encoding="utf-8")
-        self._exhaust_modification(self.manager, task_id)
-
-        patch = "--- a/clean.txt\n+++ b/clean.txt\n@@ -1 +1 @@\n-clean\n+changed\n"
-        with self.assertRaisesRegex(RuntimeError, "exploration_mutation_scope_exceeded"):
-            self.manager.apply_patch(task_id, patch)
-
-        self.assertEqual((task_path / "clean.txt").read_text(encoding="utf-8"), "clean\n")
-
-    def test_post_exhaustion_patch_refuses_new_path(self) -> None:
-        task = self.manager.create_task("demo", "refuse new path", "main")
-        task_id = task["task_id"]
-        self._exhaust_modification(self.manager, task_id)
-
-        patch = "--- /dev/null\n+++ b/new.txt\n@@ -0,0 +1 @@\n+new\n"
-        with self.assertRaisesRegex(RuntimeError, "exploration_mutation_scope_exceeded"):
-            self.manager.apply_patch(task_id, patch)
-
-        self.assertFalse((Path(task["path"]) / "new.txt").exists())
-
-    def test_post_exhaustion_mixed_patch_is_rejected_atomically(self) -> None:
-        task = self.manager.create_task("demo", "mixed patch", "main")
-        task_id = task["task_id"]
-        task_path = Path(task["path"])
-        (task_path / "example.txt").write_text("alpha\ndirty\n", encoding="utf-8")
-        self._exhaust_modification(self.manager, task_id)
-
-        patch = (
-            "--- a/example.txt\n"
-            "+++ b/example.txt\n"
-            "@@ -1,2 +1,2 @@\n"
-            " alpha\n"
-            "-dirty\n"
-            "+fixed\n"
-            "--- a/clean.txt\n"
-            "+++ b/clean.txt\n"
-            "@@ -1 +1 @@\n"
-            "-clean\n"
-            "+changed\n"
-        )
-        with self.assertRaisesRegex(RuntimeError, "exploration_mutation_scope_exceeded"):
-            self.manager.apply_patch(task_id, patch)
-
-        self.assertEqual(
-            (task_path / "example.txt").read_text(encoding="utf-8"),
-            "alpha\ndirty\n",
-        )
-        self.assertEqual((task_path / "clean.txt").read_text(encoding="utf-8"), "clean\n")
+        with self.assertRaisesRegex(RuntimeError, "exploration_budget_exhausted"):
+            self.manager.read_file(task_id, "clean.txt")
 
     def test_validate_patch_paths_returns_both_old_and_new_paths(self) -> None:
         task = self.manager.create_task("demo", "patch paths", "main")
@@ -505,62 +424,36 @@ class WorkspaceManagerTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "exploration_mutation_scope_exceeded"):
             reloaded.apply_patch(task_id, self._example_patch("beta", "gamma"))
 
-    def test_boundary_capture_failure_leaves_task_fail_closed(self) -> None:
-        task = self.manager.create_task("demo", "capture failure", "main")
+    def test_legacy_exhausted_boundary_still_restricts_uncaptured_paths(self) -> None:
+        task = self.manager.create_task("demo", "legacy captured boundary", "main")
         task_id = task["task_id"]
         task_path = Path(task["path"])
-        (task_path / "example.txt").write_text("alpha\ndirty\n", encoding="utf-8")
-
-        self._pass_modification_checkpoint(self.manager, task_id)
-        for _ in range(
-            MODIFICATION_EXPLORATION_HARD_LIMIT
-            - MODIFICATION_EXPLORATION_SOFT_LIMIT
-            - 1
-        ):
-            self.manager.read_file(task_id, "example.txt")
-
-        def fail_capture(_task: Path) -> tuple[str, ...]:
-            raise RuntimeError("simulated capture failure")
-
-        self.manager._capture_exhaustion_paths = fail_capture
-        with self.assertRaisesRegex(RuntimeError, "exploration_boundary_capture_failed"):
-            self.manager.read_file(task_id, "example.txt")
+        self._state_path(task_id).write_text(
+            json.dumps(
+                {
+                    "mode": "modification",
+                    "calls": MODIFICATION_EXPLORATION_HARD_LIMIT,
+                    "initial_patch_applied": False,
+                    "post_patch_exploration_calls": 0,
+                    "exhaustion_paths": ["example.txt"],
+                }
+            ),
+            encoding="utf-8",
+        )
 
         reloaded = WorkspaceManager(self.repositories, self.tasks)
         with self.assertRaisesRegex(RuntimeError, "exploration_mutation_scope_exceeded"):
-            reloaded.apply_patch(task_id, self._example_patch("dirty", "fixed"))
+            reloaded.apply_patch(
+                task_id,
+                "--- a/clean.txt\n+++ b/clean.txt\n@@ -1 +1 @@\n-clean\n+changed\n",
+            )
 
-    def test_boundary_persistence_failure_leaves_task_fail_closed(self) -> None:
-        task = self.manager.create_task("demo", "state failure", "main")
-        task_id = task["task_id"]
-        task_path = Path(task["path"])
-        (task_path / "example.txt").write_text("alpha\ndirty\n", encoding="utf-8")
-
-        self._pass_modification_checkpoint(self.manager, task_id)
-        for _ in range(
-            MODIFICATION_EXPLORATION_HARD_LIMIT
-            - MODIFICATION_EXPLORATION_SOFT_LIMIT
-            - 1
-        ):
-            self.manager.read_file(task_id, "example.txt")
-
-        original_save = self.manager._save_state
-        calls = 0
-
-        def fail_final_save(current_task_id: str) -> None:
-            nonlocal calls
-            calls += 1
-            if calls == 2:
-                raise OSError("simulated persistence failure")
-            original_save(current_task_id)
-
-        self.manager._save_state = fail_final_save
-        with self.assertRaisesRegex(RuntimeError, "exploration_boundary_state_failed"):
-            self.manager.read_file(task_id, "example.txt")
-
-        reloaded = WorkspaceManager(self.repositories, self.tasks)
-        with self.assertRaisesRegex(RuntimeError, "exploration_mutation_scope_exceeded"):
-            reloaded.apply_patch(task_id, self._example_patch("dirty", "fixed"))
+        status = reloaded.apply_patch(task_id, self._example_patch("beta", "gamma"))
+        self.assertIn("example.txt", status["status"])
+        self.assertEqual(
+            (task_path / "example.txt").read_text(encoding="utf-8"),
+            "alpha\ngamma\n",
+        )
 
     def test_read_only_task_has_larger_budget_and_cannot_patch(self) -> None:
         task = self.manager.create_task(
