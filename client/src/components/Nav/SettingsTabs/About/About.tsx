@@ -25,6 +25,7 @@ function formatBuildDate(raw: string | null | undefined): string {
 function buildDiagnosticsBlob(
   version: string,
   buildInfo: TStartupConfig['buildInfo'] | undefined,
+  codingAgent?: TStartupConfig['codingAgent'],
 ): string {
   const lines: string[] = [
     `LibreChat version: ${version}`,
@@ -33,6 +34,13 @@ function buildDiagnosticsBlob(
     `Build date: ${formatBuildDate(buildInfo?.buildDate)}`,
     `User agent: ${typeof navigator !== 'undefined' ? navigator.userAgent : UNKNOWN_PLACEHOLDER}`,
   ];
+  if (codingAgent) {
+    lines.push(`Coding executor: ${codingAgent.executor?.status ?? UNKNOWN_PLACEHOLDER}`);
+    if (codingAgent.executor?.version) {
+      lines.push(`Coding executor version: ${codingAgent.executor.version}`);
+    }
+    lines.push(`Host maintenance: ${codingAgent.maintenance?.status ?? UNKNOWN_PLACEHOLDER}`);
+  }
   return lines.join('\n');
 }
 
@@ -52,11 +60,12 @@ function About() {
   const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const buildInfo = startupConfig?.buildInfo;
+  const codingAgent = startupConfig?.codingAgent;
   const version: string = Constants.VERSION;
 
   const diagnosticsBlob = useMemo(
-    () => buildDiagnosticsBlob(version, buildInfo),
-    [version, buildInfo],
+    () => buildDiagnosticsBlob(version, buildInfo, codingAgent),
+    [version, buildInfo, codingAgent],
   );
 
   useEffect(
@@ -96,6 +105,24 @@ function About() {
           label={localize('com_nav_about_build_date')}
           value={formatBuildDate(buildInfo?.buildDate)}
         />
+        {codingAgent && (
+          <>
+            <Row
+              label={localize('com_nav_about_coding_executor')}
+              value={codingAgent.executor?.status ?? UNKNOWN_PLACEHOLDER}
+            />
+            {codingAgent.executor?.version && (
+              <Row
+                label={localize('com_nav_about_coding_executor_version')}
+                value={codingAgent.executor.version}
+              />
+            )}
+            <Row
+              label={localize('com_nav_about_host_maintenance')}
+              value={codingAgent.maintenance?.status ?? UNKNOWN_PLACEHOLDER}
+            />
+          </>
+        )}
       </dl>
 
       <div className="mt-4 flex flex-col items-start gap-3 border-t border-border-light pt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
