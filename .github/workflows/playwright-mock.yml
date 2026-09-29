@@ -5,6 +5,7 @@ on:
     paths:
       - '**'
       - '!**.md'
+      - '!custom/coding-agent/**'
       - '!.github/workflows/**'
       - '.github/workflows/playwright-mock.yml'
   schedule:
