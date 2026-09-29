@@ -13,7 +13,7 @@ jest.mock('copy-to-clipboard', () => ({
 
 const mockUseGetStartupConfig = jest.fn();
 jest.mock('~/data-provider', () => ({
-  useGetStartupConfig: () => mockUseGetStartupConfig(),
+  useGetStartupConfig: (...args: unknown[]) => mockUseGetStartupConfig(...args),
 }));
 
 jest.mock('~/hooks', () => ({
@@ -47,6 +47,12 @@ beforeEach(() => {
 
 describe('About', () => {
   describe('rendering', () => {
+    it('requests a fresh startup config whenever About mounts', () => {
+      render(<About />);
+
+      expect(mockUseGetStartupConfig).toHaveBeenCalledWith({ refetchOnMount: 'always' });
+    });
+
     it('renders version, commit (short), branch, and build date when buildInfo is populated', () => {
       render(<About />);
 
