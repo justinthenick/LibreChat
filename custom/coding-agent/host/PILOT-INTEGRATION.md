@@ -17,7 +17,7 @@ their existing worktree workflow.
 
 ## Deployment gates
 
-1. Install and validate executor 0.1.11 and host package 0.1.7 with a pinned image.
+1. Install and validate executor 0.1.12 and host package 0.1.8 with a pinned image.
    These add missing read-only response fields: installed executor version,
    cached upstream ahead/behind/divergence and stale worktree registrations.
    `freshness: not_fetched` explicitly means no live remote fetch was performed.
