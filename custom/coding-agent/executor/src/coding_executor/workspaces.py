@@ -545,6 +545,7 @@ class WorkspaceManager:
             if (
                 mode == "modification"
                 and initial_patch_applied
+                and count < hard_limit
                 and post_patch_calls >= MODIFICATION_POST_PATCH_EXPLORATION_LIMIT
             ):
                 raise RuntimeError(
