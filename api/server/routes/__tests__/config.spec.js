@@ -9,6 +9,11 @@ jest.mock('~/server/services/Config/ldap', () => ({
   getLdapConfig: jest.fn(() => null),
 }));
 
+const mockGetCodingAgentConfig = jest.fn().mockResolvedValue(undefined);
+jest.mock('~/server/services/Config/codingAgent', () => ({
+  getCodingAgentConfig: (...args) => mockGetCodingAgentConfig(...args),
+}));
+
 const mockHasCapability = jest.fn();
 const mockHasConfigCapability = jest.fn();
 jest.mock('~/server/middleware/roles/capabilities', () => ({
@@ -72,6 +77,7 @@ const mockUser = {
 
 afterEach(() => {
   jest.resetAllMocks();
+  mockGetCodingAgentConfig.mockResolvedValue(undefined);
   mockResolveBuildInfo.mockReturnValue({
     commit: null,
     commitShort: null,
@@ -176,6 +182,21 @@ describe('GET /api/config', () => {
       expect(response.body).not.toHaveProperty('sharePointPickerSharePointScope');
       expect(response.body).not.toHaveProperty('conversationImportMaxFileSize');
       expect(response.body).not.toHaveProperty('insightsEnabled');
+    });
+
+    it('should not expose or probe coding-agent diagnostics for unauthenticated callers', async () => {
+      mockGetAppConfig.mockResolvedValue(baseAppConfig);
+      mockGetCodingAgentConfig.mockResolvedValue({
+        executor: { configured: true, status: 'ok', version: '0.1.13' },
+        maintenance: { configured: true, status: 'running' },
+      });
+      const app = createApp(null);
+
+      const response = await request(app).get('/api/config');
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).not.toHaveProperty('codingAgent');
+      expect(mockGetCodingAgentConfig).not.toHaveBeenCalled();
     });
 
     it('should strip authenticated-only informational fields from unauthenticated response (#12688)', async () => {
@@ -336,6 +357,22 @@ describe('GET /api/config', () => {
       expect(response.body.modelSpecs).toEqual({ list: [{ name: 'test-spec' }] });
       expect(response.body.balance).toEqual({ enabled: true, startBalance: 10000 });
       expect(response.body.webSearch).toEqual({ searchProvider: 'tavily' });
+    });
+
+    it('should include coding-agent diagnostics for authenticated callers', async () => {
+      const codingAgent = {
+        executor: { configured: true, status: 'ok', version: '0.1.13' },
+        maintenance: { configured: true, status: 'running' },
+      };
+      mockGetAppConfig.mockResolvedValue(baseAppConfig);
+      mockGetCodingAgentConfig.mockResolvedValue(codingAgent);
+      const app = createApp(mockUser);
+
+      const response = await request(app).get('/api/config');
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.codingAgent).toEqual(codingAgent);
+      expect(mockGetCodingAgentConfig).toHaveBeenCalledTimes(1);
     });
 
     it('should strip private prompt fields from model spec presets', async () => {
