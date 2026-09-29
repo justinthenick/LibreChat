@@ -961,6 +961,12 @@ class MaintenanceTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "exploration_budget_exhausted"):
             restarted.read_file(task, "file")
 
+        status = restarted.apply_patch(
+            task,
+            "--- /dev/null\n+++ b/post-restart\n@@ -0,0 +1 @@\n+completion remains writable\n",
+        )
+        self.assertIn("post-restart", status["status"])
+
     def test_corrupt_or_fifo_state_fails_closed_without_blocking(self):
         task = self.task()
         state = self.tasks / f".state-{task}.json"
