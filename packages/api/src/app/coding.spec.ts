@@ -1,5 +1,5 @@
-import http from 'http';
 import net from 'net';
+import http from 'http';
 import {
   getCodingAgentConfig,
   probeExecutor,
@@ -7,7 +7,9 @@ import {
   __resetCodingAgentCacheForTests,
 } from './coding';
 
-function listen(server: http.Server | net.Server): Promise<number> {
+type TestServer = ReturnType<typeof http.createServer> | ReturnType<typeof net.createServer>;
+
+function listen(server: TestServer): Promise<number> {
   return new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(0, '127.0.0.1', () => {
@@ -21,7 +23,7 @@ function listen(server: http.Server | net.Server): Promise<number> {
   });
 }
 
-function close(server: http.Server | net.Server): Promise<void> {
+function close(server: TestServer): Promise<void> {
   return new Promise((resolve, reject) => {
     server.close((error) => {
       if (error) {
