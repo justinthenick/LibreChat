@@ -251,8 +251,9 @@ class WorkspaceManager:
 
             touched_paths = self._validate_patch_paths(task, patch)
             count = self._exploration_calls.get(task_id, 0)
+            initial_patch_applied = self._initial_patch_applied.get(task_id, False)
             _, hard_limit = self._budget_limits(mode)
-            if count >= hard_limit:
+            if count >= hard_limit and not initial_patch_applied:
                 allowed_paths = self._exhaustion_paths.get(task_id)
                 if allowed_paths is None:
                     raise RuntimeError(
@@ -267,8 +268,21 @@ class WorkspaceManager:
                         + json.dumps(unauthorized, ensure_ascii=True)
                     )
 
-            self._git_input(task, patch, "apply", "--check", "--recount", "--whitespace=error-all")
-            self._git_input(task, patch, "apply", "--recount", "--whitespace=nowarn")
+            try:
+                self._git_input(
+                    task,
+                    patch,
+                    "apply",
+                    "--check",
+                    "--recount",
+                    "--whitespace=error-all",
+                )
+            except RuntimeError as error:
+                raise RuntimeError(f"patch_check_failed: {error}") from error
+            try:
+                self._git_input(task, patch, "apply", "--recount", "--whitespace=nowarn")
+            except RuntimeError as error:
+                raise RuntimeError(f"patch_apply_failed: {error}") from error
             self._initial_patch_applied[task_id] = True
             self._save_state(task_id)
 
@@ -545,7 +559,6 @@ class WorkspaceManager:
             if (
                 mode == "modification"
                 and initial_patch_applied
-                and count < hard_limit
                 and post_patch_calls >= MODIFICATION_POST_PATCH_EXPLORATION_LIMIT
             ):
                 raise RuntimeError(
@@ -563,6 +576,14 @@ class WorkspaceManager:
                         "Do not create another task. Proceed with run_check, task_status, "
                         "git_diff, or provide the best evidence-backed final response. "
                         "apply_patch remains disabled for this read-only task."
+                    )
+                elif initial_patch_applied:
+                    next_steps = (
+                        "Further list_files/read_file/search_text calls are blocked. "
+                        "The first patch already crossed the mutation checkpoint, so apply_patch "
+                        "remains available for any otherwise-valid task path needed to complete "
+                        "the justified implementation. Proceed with apply_patch, run_check, "
+                        "task_status, git_diff, or provide the best evidence-backed final response."
                     )
                 else:
                     next_steps = (
@@ -583,7 +604,11 @@ class WorkspaceManager:
                 post_patch_calls += 1
                 self._post_patch_exploration_calls[task_id] = post_patch_calls
 
-            if mode == "modification" and count == hard_limit:
+            if (
+                mode == "modification"
+                and count == hard_limit
+                and not initial_patch_applied
+            ):
                 self._exhaustion_paths[task_id] = None
                 try:
                     self._save_state(task_id)
@@ -635,7 +660,7 @@ class WorkspaceManager:
                     "Stop broad exploration and prepare the final evidence-backed response; "
                     "apply_patch is disabled for this task."
                 )
-            elif count >= hard_limit:
+            elif count >= hard_limit and not initial_patch_applied:
                 action = (
                     "Exploration is now exhausted. apply_patch is restricted to paths that were "
                     "already dirty or untracked when this limit was reached. Preserve completion "
