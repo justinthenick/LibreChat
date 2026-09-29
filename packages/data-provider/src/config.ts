@@ -1729,6 +1729,18 @@ export type TRumConfig = {
 
 export type StartupConfigContext = 'share';
 
+export type TCodingAgentStatus = {
+  executor?: {
+    configured: boolean;
+    status?: string | null;
+    version?: string | null;
+  };
+  maintenance?: {
+    configured: boolean;
+    status?: string | null;
+  };
+};
+
 export type TStartupConfig = {
   appTitle: string;
   socialLogins?: string[];
@@ -1768,6 +1780,7 @@ export type TStartupConfig = {
   helpAndFaqURL: string;
   /** Admin panel link, only present for users with admin access */
   adminPanelURL?: string;
+  codingAgent?: TCodingAgentStatus;
   customFooter?: string;
   modelSpecs?: TSpecsConfig;
   modelDescriptions?: Record<string, Record<string, string>>;
