@@ -13,7 +13,7 @@ let lastCheckTime = 0;
 export async function probeExecutor(
   host: string,
   port: string,
-  timeoutMs = PROBE_TIMEOUT_MS,
+  timeoutMs: number = PROBE_TIMEOUT_MS,
 ): Promise<ExecutorStatus> {
   if (!host || !port) {
     return { configured: false, status: 'unconfigured', version: null };
@@ -75,7 +75,9 @@ export function probeMaintenance(
   });
 }
 
-export async function getCodingAgentConfig(forceRefresh = false): Promise<TCodingAgentStatus> {
+export async function getCodingAgentConfig(
+  forceRefresh: boolean = false,
+): Promise<TCodingAgentStatus> {
   const now = Date.now();
   if (!forceRefresh && cachedStatus && now - lastCheckTime < CACHE_TTL_MS) {
     return cachedStatus;
