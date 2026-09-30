@@ -810,6 +810,13 @@ describe('GET /api/config', () => {
       const codingAgent = {
         executor: { configured: true, status: 'ok', version: '0.1.13' },
         maintenance: { configured: true, status: 'running' },
+        pilot: {
+          configured: true,
+          status: 'ok',
+          version: '0.1.16',
+          provider: 'google',
+          model: 'gemini-3.8-flash',
+        },
       };
       mockGetAppConfig.mockResolvedValue(baseAppConfig);
       mockGetCodingAgentConfig.mockResolvedValue(codingAgent);
