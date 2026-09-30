@@ -1,7 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { getCodingAgentConfig, probeExecutor, probeMaintenance, getPilotIdentity } = require('../codingAgent');
+const {
+  getCodingAgentConfig,
+  probeExecutor,
+  probeMaintenance,
+  getPilotIdentity,
+} = require('../codingAgent');
 
 describe('codingAgent config service', () => {
   const originalEnv = process.env;
@@ -133,10 +138,7 @@ describe('codingAgent config service', () => {
     });
 
     it('handles malformed json gracefully', () => {
-      fs.writeFileSync(
-        path.join(tmpDir, 'software-engineering-pilot.json'),
-        'INVALID JSON',
-      );
+      fs.writeFileSync(path.join(tmpDir, 'software-engineering-pilot.json'), 'INVALID JSON');
       const identity = getPilotIdentity(tmpDir);
       expect(identity.configured).toBe(false);
       expect(identity.status).toBe('unconfigured');
