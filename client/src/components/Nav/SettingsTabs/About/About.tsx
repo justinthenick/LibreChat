@@ -143,10 +143,7 @@ function About() {
               />
             )}
             {codingAgent.pilot?.model && (
-              <Row
-                label={localize('com_nav_about_pilot_model')}
-                value={codingAgent.pilot.model}
-              />
+              <Row label={localize('com_nav_about_pilot_model')} value={codingAgent.pilot.model} />
             )}
           </>
         )}
