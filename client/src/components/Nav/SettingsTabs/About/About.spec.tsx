@@ -37,6 +37,13 @@ const populatedCodingAgent: NonNullable<TStartupConfig['codingAgent']> = {
     configured: true,
     status: 'running',
   },
+  pilot: {
+    configured: true,
+    status: 'ok',
+    version: '0.1.16',
+    provider: 'google',
+    model: 'gemini-3.8-flash',
+  },
 };
 
 beforeEach(() => {
@@ -67,6 +74,12 @@ describe('About', () => {
       expect(screen.getByText('0.1.13')).toBeInTheDocument();
       expect(screen.getByText('com_nav_about_host_maintenance')).toBeInTheDocument();
       expect(screen.getByText('running')).toBeInTheDocument();
+      expect(screen.getByText('com_nav_about_pilot_version')).toBeInTheDocument();
+      expect(screen.getByText('0.1.16')).toBeInTheDocument();
+      expect(screen.getByText('com_nav_about_pilot_provider')).toBeInTheDocument();
+      expect(screen.getByText('google')).toBeInTheDocument();
+      expect(screen.getByText('com_nav_about_pilot_model')).toBeInTheDocument();
+      expect(screen.getByText('gemini-3.8-flash')).toBeInTheDocument();
     });
 
     it('renders em-dash placeholders when buildInfo is missing', () => {
@@ -113,6 +126,9 @@ describe('About', () => {
       expect(blob).toContain('Coding executor: ok');
       expect(blob).toContain('Coding executor version: 0.1.13');
       expect(blob).toContain('Host maintenance: running');
+      expect(blob).toContain('Software Engineering Pilot version: 0.1.16');
+      expect(blob).toContain('Software Engineering Pilot provider: google');
+      expect(blob).toContain('Software Engineering Pilot model: gemini-3.8-flash');
     });
 
     it('writes em-dash placeholders into the blob when buildInfo is missing', async () => {

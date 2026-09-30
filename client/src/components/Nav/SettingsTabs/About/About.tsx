@@ -40,6 +40,15 @@ function buildDiagnosticsBlob(
       lines.push(`Coding executor version: ${codingAgent.executor.version}`);
     }
     lines.push(`Host maintenance: ${codingAgent.maintenance?.status ?? UNKNOWN_PLACEHOLDER}`);
+    if (codingAgent.pilot?.version) {
+      lines.push(`Software Engineering Pilot version: ${codingAgent.pilot.version}`);
+    }
+    if (codingAgent.pilot?.provider) {
+      lines.push(`Software Engineering Pilot provider: ${codingAgent.pilot.provider}`);
+    }
+    if (codingAgent.pilot?.model) {
+      lines.push(`Software Engineering Pilot model: ${codingAgent.pilot.model}`);
+    }
   }
   return lines.join('\n');
 }
@@ -121,6 +130,24 @@ function About() {
               label={localize('com_nav_about_host_maintenance')}
               value={codingAgent.maintenance?.status ?? UNKNOWN_PLACEHOLDER}
             />
+            {codingAgent.pilot?.version && (
+              <Row
+                label={localize('com_nav_about_pilot_version')}
+                value={codingAgent.pilot.version}
+              />
+            )}
+            {codingAgent.pilot?.provider && (
+              <Row
+                label={localize('com_nav_about_pilot_provider')}
+                value={codingAgent.pilot.provider}
+              />
+            )}
+            {codingAgent.pilot?.model && (
+              <Row
+                label={localize('com_nav_about_pilot_model')}
+                value={codingAgent.pilot.model}
+              />
+            )}
           </>
         )}
       </dl>

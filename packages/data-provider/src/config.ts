@@ -1729,6 +1729,14 @@ export type TRumConfig = {
 
 export type StartupConfigContext = 'share';
 
+export type TCodingAgentPilotStatus = {
+  configured: boolean;
+  status?: string | null;
+  version?: string | null;
+  provider?: string | null;
+  model?: string | null;
+};
+
 export type TCodingAgentStatus = {
   executor?: {
     configured: boolean;
@@ -1739,6 +1747,7 @@ export type TCodingAgentStatus = {
     configured: boolean;
     status?: string | null;
   };
+  pilot?: TCodingAgentPilotStatus;
 };
 
 export type TStartupConfig = {
