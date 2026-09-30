@@ -56,10 +56,18 @@ jobs:
           }
           assert manifest['id'] == 'agent_software_engineering_pilot_v01'
           assert manifest['status'] == 'validated-for-persistent-pilot'
-          assert manifest['version'] == '0.1.15'
+          assert manifest['version'] == '0.1.16'
           assert manifest['provider'] == 'google'
-          assert manifest['preferred_model'] == 'gemini-3.7-flash'
+          assert manifest['preferred_model'] == 'gemini-3.8-flash'
           assert manifest['evidence']['model'] == 'google/gemini-3.7-flash'
+          promotion = manifest['evidence']['default_model_promotion']
+          assert promotion['date'] == '2026-09-30'
+          assert promotion['from'] == 'google/gemini-3.7-flash'
+          assert promotion['to'] == 'google/gemini-3.8-flash'
+          assert promotion['source_commit'] == '96888c95e9cd2c938279e26bc51c5235dd10cfb6'
+          assert promotion['candidate_task'] == 'surface-coding-agent-status-75889d15'
+          assert promotion['baseline_task'] == 'surface-coding-agent-status-dad2925f'
+          assert promotion['result'] == 'PROMOTED'
           assert manifest['mcp_server'] == 'coding_executor'
           assert set(manifest['mcp_tools']) == expected
           assert len(manifest['mcp_tools']) == len(expected)
