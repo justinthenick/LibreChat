@@ -104,12 +104,12 @@ function getPilotIdentity(manifestDir) {
 
     const version = typeof parsed.version === 'string' ? parsed.version : null;
     const provider = typeof parsed.provider === 'string' ? parsed.provider : null;
-    const model =
-      typeof parsed.preferred_model === 'string'
-        ? parsed.preferred_model
-        : typeof parsed.model === 'string'
-          ? parsed.model
-          : null;
+    let model = null;
+    if (typeof parsed.preferred_model === 'string') {
+      model = parsed.preferred_model;
+    } else if (typeof parsed.model === 'string') {
+      model = parsed.model;
+    }
 
     const configured = Boolean(version && provider && model);
     return {
