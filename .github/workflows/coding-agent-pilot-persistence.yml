@@ -5,6 +5,8 @@ on:
     paths:
       - 'config/seed-coding-agent-pilot.js'
       - 'config/__tests__/pilot-maintenance.test.cjs'
+      - 'config/__tests__/seed-coding-agent-pilot.spec.js'
+      - 'config/__tests__/seed-coding-agent-pilot.spec.js'
       - 'custom/coding-agent/production/software-engineering-pilot.json'
       - 'custom/coding-agent/benchmarks/SKILL-PILOT-001/**'
       - 'deploy/synology/docker-compose.yml'
@@ -56,7 +58,7 @@ jobs:
           }
           assert manifest['id'] == 'agent_software_engineering_pilot_v01'
           assert manifest['status'] == 'validated-for-persistent-pilot'
-          assert manifest['version'] == '0.1.16'
+          assert manifest['version'] == '0.1.17'
           assert manifest['provider'] == 'google'
           assert manifest['preferred_model'] == 'gemini-3.8-flash'
           assert manifest['evidence']['model'] == 'google/gemini-3.7-flash'
@@ -73,15 +75,44 @@ jobs:
           assert len(manifest['mcp_tools']) == len(expected)
           assert manifest['deployment']['production_seeder'] == 'enabled'
           assert manifest['skills_enabled'] is True
-          assert manifest['skills'] == [{
-              'name': 'codebase-design',
-              'source': 'github',
-              'source_id': 'coding-agent-skills',
-              'owner': 'justinthenick',
-              'repo': 'LibreChat',
-              'ref': 'server/synology',
-              'path': '.agents/skills/codebase-design',
-          }]
+          assert manifest['skills'] == [
+              {
+                  'name': 'codebase-design',
+                  'source': 'github',
+                  'source_id': 'coding-agent-skills',
+                  'owner': 'justinthenick',
+                  'repo': 'LibreChat',
+                  'ref': 'server/synology',
+                  'path': '.agents/skills/codebase-design',
+              },
+              {
+                  'name': 'systematic-debugging',
+                  'source': 'github',
+                  'source_id': 'managed-skills',
+                  'owner': 'justinthenick',
+                  'repo': 'LibreChat',
+                  'ref': 'server/synology',
+                  'path': 'managed-skills/skills/systematic-debugging',
+              },
+              {
+                  'name': 'test-driven-development',
+                  'source': 'github',
+                  'source_id': 'managed-skills',
+                  'owner': 'justinthenick',
+                  'repo': 'LibreChat',
+                  'ref': 'server/synology',
+                  'path': 'managed-skills/skills/test-driven-development',
+              },
+              {
+                  'name': 'verification-before-completion',
+                  'source': 'github',
+                  'source_id': 'managed-skills',
+                  'owner': 'justinthenick',
+                  'repo': 'LibreChat',
+                  'ref': 'server/synology',
+                  'path': 'managed-skills/skills/verification-before-completion',
+              },
+          ]
           instructions = manifest['instructions']
           assert 'task_mode=read_only' in instructions
           assert 'task_mode=modification' in instructions
@@ -90,9 +121,12 @@ jobs:
           assert 'Do not spend calls 13-16 gathering more confidence before the first patch' in instructions
           assert 'up to four post-patch exploratory calls may be available' in instructions
           assert 'apply_patch remains available for any otherwise-valid task path needed to complete the already-justified implementation' in instructions
-          assert 'SKILL POLICY: codebase-design is the only enabled skill.' in instructions
-          assert 'invoke the codebase-design skill tool before substantive repository analysis' in instructions
-          assert 'Do not substitute generic design knowledge for a requested skill invocation.' in instructions
+          assert 'SKILL POLICY: exactly four validated methodology skills are enabled' in instructions
+          assert 'Invoke codebase-design before substantive repository analysis' in instructions
+          assert 'Invoke systematic-debugging when a coding task involves a bug' in instructions
+          assert 'Invoke test-driven-development for behavior-changing features' in instructions
+          assert 'Invoke verification-before-completion before claiming that coding work is complete' in instructions
+          assert 'Do not substitute generic methodology for a required skill invocation.' in instructions
           assert 'EXECUTOR AVAILABILITY POLICY:' in instructions
           assert 'Do not repeat a tool call after a circuit-breaker-open error.' in instructions
           assert 'never expands coding_executor permissions' in instructions
@@ -123,10 +157,14 @@ jobs:
           assert 'provider: agent.provider' in seeder
           assert 'findSkillBySourceIdentity' in seeder
           assert "sourceId: 'coding-agent-skills'" in seeder
+          assert "sourceId: 'managed-skills'" in seeder
           assert "path: '.agents/skills/codebase-design'" in seeder
+          assert "path: 'managed-skills/skills/systematic-debugging'" in seeder
+          assert "path: 'managed-skills/skills/test-driven-development'" in seeder
+          assert "path: 'managed-skills/skills/verification-before-completion'" in seeder
           assert 'skills: skillIds' in seeder
           assert 'skills_enabled: manifest.skills_enabled === true' in seeder
-          assert 'expectedSkillIds.length !== 1' in seeder
+          assert 'expectedSkillIds.length !== EXPECTED_SKILLS.length' in seeder
           assert 'refusing to widen the allowlist' in seeder
           assert 'seed-coding-agent-pilot.js /app/coding-agent-pilot' in compose
           assert '/custom/coding-agent/production:/app/coding-agent-pilot:ro' in compose
