@@ -315,7 +315,25 @@ describe('SkillsCommand', () => {
     mockIsActive.mockReturnValue(false);
     mockIsActiveWithSharedDefault.mockReturnValue(true);
 
-    const textAreaRef = makeTextarea('
+    const textAreaRef = makeTextarea('$');
+    render(
+      <SkillsCommand
+        index={0}
+        textAreaRef={textAreaRef}
+        conversationId={CONVO_ID}
+        agentId="agent_1"
+      />,
+    );
+
+    expect(await screen.findByRole('button', { name: /Brand Guidelines/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Style Guide/i })).toBeNull();
+    expect(mockIsActiveWithSharedDefault).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: '1' }),
+      true,
+    );
+  });
+
+  it('shows nothing when the agent has skills_enabled:false, regardless of allowlist', () => {
     mockUseSkillsInfiniteQuery.mockReturnValue({
       data: twoSkillsResponse,
       isLoading: false,
