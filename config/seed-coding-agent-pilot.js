@@ -32,15 +32,44 @@ const EXPECTED_MCP_TOOLS = [
   'git_diff',
 ];
 
-const EXPECTED_SKILL = Object.freeze({
-  name: 'codebase-design',
-  source: 'github',
-  sourceId: 'coding-agent-skills',
-  owner: 'justinthenick',
-  repo: 'LibreChat',
-  ref: 'server/synology',
-  path: '.agents/skills/codebase-design',
-});
+const EXPECTED_SKILLS = Object.freeze([
+  Object.freeze({
+    name: 'codebase-design',
+    source: 'github',
+    sourceId: 'coding-agent-skills',
+    owner: 'justinthenick',
+    repo: 'LibreChat',
+    ref: 'server/synology',
+    path: '.agents/skills/codebase-design',
+  }),
+  Object.freeze({
+    name: 'systematic-debugging',
+    source: 'github',
+    sourceId: 'managed-skills',
+    owner: 'justinthenick',
+    repo: 'LibreChat',
+    ref: 'server/synology',
+    path: 'managed-skills/skills/systematic-debugging',
+  }),
+  Object.freeze({
+    name: 'test-driven-development',
+    source: 'github',
+    sourceId: 'managed-skills',
+    owner: 'justinthenick',
+    repo: 'LibreChat',
+    ref: 'server/synology',
+    path: 'managed-skills/skills/test-driven-development',
+  }),
+  Object.freeze({
+    name: 'verification-before-completion',
+    source: 'github',
+    sourceId: 'managed-skills',
+    owner: 'justinthenick',
+    repo: 'LibreChat',
+    ref: 'server/synology',
+    path: 'managed-skills/skills/verification-before-completion',
+  }),
+]);
 
 function parseAllowedModels(raw) {
   return String(raw || '')
@@ -93,7 +122,7 @@ function persistedToolIds(manifest) {
   ];
 }
 
-function expectedSkillUpstreamId(skill = EXPECTED_SKILL) {
+function expectedSkillUpstreamId(skill) {
   return `${skill.sourceId}:${skill.path}`;
 }
 
@@ -101,76 +130,84 @@ function validateManifestSkillPolicy(manifest) {
   if (manifest.skills_enabled !== true) {
     throw new Error(`${manifest.id} must explicitly enable its validated skill allowlist`);
   }
-  if (!Array.isArray(manifest.skills) || manifest.skills.length !== 1) {
-    throw new Error(`${manifest.id} must declare exactly one validated skill`);
+  if (!Array.isArray(manifest.skills) || manifest.skills.length !== EXPECTED_SKILLS.length) {
+    throw new Error(
+      `${manifest.id} must declare exactly ${EXPECTED_SKILLS.length} validated skills`,
+    );
   }
 
-  const skill = manifest.skills[0];
-  const expected = {
-    name: EXPECTED_SKILL.name,
-    source: EXPECTED_SKILL.source,
-    source_id: EXPECTED_SKILL.sourceId,
-    owner: EXPECTED_SKILL.owner,
-    repo: EXPECTED_SKILL.repo,
-    ref: EXPECTED_SKILL.ref,
-    path: EXPECTED_SKILL.path,
-  };
-  for (const [key, value] of Object.entries(expected)) {
-    if (skill?.[key] !== value) {
-      throw new Error(
-        `${manifest.id} skill allowlist differs from validated ${EXPECTED_SKILL.name} identity at ${key}`,
-      );
+  for (let index = 0; index < EXPECTED_SKILLS.length; index += 1) {
+    const skill = manifest.skills[index];
+    const validated = EXPECTED_SKILLS[index];
+    const expected = {
+      name: validated.name,
+      source: validated.source,
+      source_id: validated.sourceId,
+      owner: validated.owner,
+      repo: validated.repo,
+      ref: validated.ref,
+      path: validated.path,
+    };
+    for (const [key, value] of Object.entries(expected)) {
+      if (skill?.[key] !== value) {
+        throw new Error(
+          `${manifest.id} skill allowlist differs from validated ${validated.name} identity at ${key}`,
+        );
+      }
     }
   }
 }
 
 async function resolveSkillAllowlist(db, manifest) {
   validateManifestSkillPolicy(manifest);
-  const declared = manifest.skills[0];
-  const upstreamId = expectedSkillUpstreamId({
-    sourceId: declared.source_id,
-    path: declared.path,
-  });
-  const skill = await db.findSkillBySourceIdentity({
-    source: declared.source,
-    upstreamId,
-  });
+  const resolved = [];
 
-  if (!skill) {
-    throw new Error(
-      `${manifest.id} requires mirrored skill ${upstreamId}, but it is not available; refusing to widen the allowlist`,
-    );
-  }
+  for (const declared of manifest.skills) {
+    const upstreamId = expectedSkillUpstreamId({
+      sourceId: declared.source_id,
+      path: declared.path,
+    });
+    const skill = await db.findSkillBySourceIdentity({
+      source: declared.source,
+      upstreamId,
+    });
 
-  const metadata = skill.sourceMetadata || {};
-  const expectedMetadata = {
-    sourceId: declared.source_id,
-    owner: declared.owner,
-    repo: declared.repo,
-    ref: declared.ref,
-    skillPath: declared.path,
-    syncStatus: 'synced',
-  };
-  for (const [key, value] of Object.entries(expectedMetadata)) {
-    if (metadata[key] !== value) {
+    if (!skill) {
       throw new Error(
-        `${manifest.id} resolved skill ${declared.name} has unexpected source metadata ${key}`,
+        `${manifest.id} requires mirrored skill ${upstreamId}, but it is not available; refusing to widen the allowlist`,
       );
     }
-  }
-  if (skill.name !== declared.name || skill.disableModelInvocation === true) {
-    throw new Error(
-      `${manifest.id} resolved skill does not match the validated model-invocable ${declared.name} contract`,
-    );
-  }
 
-  return [
-    {
+    const metadata = skill.sourceMetadata || {};
+    const expectedMetadata = {
+      sourceId: declared.source_id,
+      owner: declared.owner,
+      repo: declared.repo,
+      ref: declared.ref,
+      skillPath: declared.path,
+      syncStatus: 'synced',
+    };
+    for (const [key, value] of Object.entries(expectedMetadata)) {
+      if (metadata[key] !== value) {
+        throw new Error(
+          `${manifest.id} resolved skill ${declared.name} has unexpected source metadata ${key}`,
+        );
+      }
+    }
+    if (skill.name !== declared.name || skill.disableModelInvocation === true) {
+      throw new Error(
+        `${manifest.id} resolved skill does not match the validated model-invocable ${declared.name} contract`,
+      );
+    }
+
+    resolved.push({
       id: skill._id.toString(),
       name: skill.name,
       upstreamId,
-    },
-  ];
+    });
+  }
+
+  return resolved;
 }
 
 function loadManifest() {
@@ -295,7 +332,7 @@ function validatePersistedAgent(agent, manifest, resolvedSkills) {
   }
   if (
     agent.skills_enabled !== true ||
-    expectedSkillIds.length !== 1 ||
+    expectedSkillIds.length !== EXPECTED_SKILLS.length ||
     !sameStrings(agent.skills, expectedSkillIds)
   ) {
     throw new Error(

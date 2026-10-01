@@ -83,54 +83,88 @@ docker exec "$API_NAME" node -e '
   const connect = require("/app/config/connect");
   const { createModels } = require("@librechat/data-schemas");
 
-  const sourceId = "coding-agent-skills";
-  const upstreamId = "coding-agent-skills:.agents/skills/codebase-design";
+  const fixtures = [
+    {
+      name: "codebase-design",
+      sourceId: "coding-agent-skills",
+      skillPath: ".agents/skills/codebase-design",
+    },
+    {
+      name: "systematic-debugging",
+      sourceId: "managed-skills",
+      skillPath: "managed-skills/skills/systematic-debugging",
+    },
+    {
+      name: "test-driven-development",
+      sourceId: "managed-skills",
+      skillPath: "managed-skills/skills/test-driven-development",
+    },
+    {
+      name: "verification-before-completion",
+      sourceId: "managed-skills",
+      skillPath: "managed-skills/skills/verification-before-completion",
+    },
+  ];
 
   (async () => {
     await connect();
     createModels(mongoose);
     const db = require("~/models");
-    let skill = await db.findSkillBySourceIdentity({ source: "github", upstreamId });
 
-    if (!skill) {
-      const author = new mongoose.Types.ObjectId(
-        crypto.createHash("sha256").update(`github:${sourceId}`).digest("hex").slice(0, 24),
-      );
-      const created = await db.createSkill({
-        name: "codebase-design",
-        description:
-          "Disposable image-smoke fixture for the validated codebase-design GitHub mirror.",
-        body:
-          "---\\nname: codebase-design\\ndescription: Disposable image-smoke fixture for the validated codebase-design GitHub mirror.\\n---\\n\\nSmoke fixture only.",
-        author,
-        authorName: "GitHub Sync",
-        source: "github",
-        sourceMetadata: {
-          provider: "github",
-          sourceId,
-          upstreamId,
-          owner: "justinthenick",
-          repo: "LibreChat",
-          ref: "server/synology",
-          skillPath: ".agents/skills/codebase-design",
-          commitSha: process.env.BUILD_COMMIT || "smoke-fixture",
-          skillBlobSha: "smoke-fixture",
-          syncedAt: new Date().toISOString(),
-          syncStatus: "synced",
-        },
-      });
-      skill = created.skill;
+    for (const fixture of fixtures) {
+      const upstreamId = `${fixture.sourceId}:${fixture.skillPath}`;
+      let skill = await db.findSkillBySourceIdentity({ source: "github", upstreamId });
+
+      if (!skill) {
+        const author = new mongoose.Types.ObjectId(
+          crypto.createHash("sha256").update(`github:${fixture.sourceId}`).digest("hex").slice(0, 24),
+        );
+        const description =
+          `Disposable image-smoke fixture for the validated ${fixture.name} GitHub mirror.`;
+        const created = await db.createSkill({
+          name: fixture.name,
+          description,
+          body:
+            `---\\nname: ${fixture.name}\\ndescription: ${description}\\n---\\n\\nSmoke fixture only.`,
+          author,
+          authorName: "GitHub Sync",
+          source: "github",
+          sourceMetadata: {
+            provider: "github",
+            sourceId: fixture.sourceId,
+            upstreamId,
+            owner: "justinthenick",
+            repo: "LibreChat",
+            ref: "server/synology",
+            skillPath: fixture.skillPath,
+            commitSha: process.env.BUILD_COMMIT || "smoke-fixture",
+            skillBlobSha: "smoke-fixture",
+            syncedAt: new Date().toISOString(),
+            syncStatus: "synced",
+          },
+        });
+        skill = created.skill;
+      }
+
+      if (
+        skill.name !== fixture.name ||
+        skill.source !== "github" ||
+        skill.disableModelInvocation === true ||
+        skill.sourceMetadata?.sourceId !== fixture.sourceId ||
+        skill.sourceMetadata?.upstreamId !== upstreamId ||
+        skill.sourceMetadata?.owner !== "justinthenick" ||
+        skill.sourceMetadata?.repo !== "LibreChat" ||
+        skill.sourceMetadata?.ref !== "server/synology" ||
+        skill.sourceMetadata?.skillPath !== fixture.skillPath ||
+        skill.sourceMetadata?.syncStatus !== "synced"
+      ) {
+        throw new Error(
+          `Coding-agent smoke skill fixture does not match validated mirror identity for ${fixture.name}`,
+        );
+      }
     }
 
-    if (
-      skill.name !== "codebase-design" ||
-      skill.source !== "github" ||
-      skill.sourceMetadata?.upstreamId !== upstreamId ||
-      skill.sourceMetadata?.syncStatus !== "synced"
-    ) {
-      throw new Error("Coding-agent smoke skill fixture does not match the validated mirror identity");
-    }
-    console.log("Coding-agent mirrored skill prerequisite verified");
+    console.log("Coding-agent mirrored skill prerequisites verified");
   })()
     .then(async () => {
       await mongoose.disconnect();
