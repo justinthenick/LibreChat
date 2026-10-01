@@ -25,7 +25,7 @@ function seeder(value = manifest) {
 test('reconciliation persists exactly eight maintenance tools alongside existing coding tools', () => {
   const api = seeder();
   api.loadManifest();
-  const skills = [{ id: 'skill-id' }];
+  const skills = manifest.skills.map((_, index) => ({ id: `skill-id-${index + 1}` }));
   const agent = api.desiredAgent(manifest, 'owner-id', skills);
   assert.equal(agent.tools.length, 17);
   assert.deepEqual(Array.from(agent.mcpServerNames), ['coding_executor', 'coding_maintenance']);
@@ -61,4 +61,13 @@ test('instructions prohibit mutation-as-inspection and test-failure source discl
   assert.match(manifest.instructions, /A mutation whose purpose is to expose unread source is a policy violation even if the mutation is later reverted/);
   assert.match(manifest.instructions, /Evidence obtained through mutation-as-inspection is invalid and must not guide further analysis or changes/);
   assert.match(manifest.instructions, /If permitted exploration is insufficient, stop and report the limitation; never manufacture another inspection path/);
+});
+
+test('instructions route coding work through the four validated methodology skills', () => {
+  assert.match(manifest.instructions, /exactly four validated methodology skills/);
+  assert.match(manifest.instructions, /Invoke codebase-design/);
+  assert.match(manifest.instructions, /Invoke systematic-debugging/);
+  assert.match(manifest.instructions, /Invoke test-driven-development/);
+  assert.match(manifest.instructions, /Invoke verification-before-completion/);
+  assert.match(manifest.instructions, /never expand coding_executor permissions/);
 });
