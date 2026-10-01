@@ -1078,8 +1078,8 @@ describe('initializeClient — subagent loading', () => {
       description: 'Prime a lazy specialist.',
       body: '# Lazy specialist v1\n',
       alwaysApply: true,
-      author: testUser._id,
-      authorName: testUser.name,
+      author: new mongoose.Types.ObjectId(),
+      authorName: 'Shared Skill Author',
     });
     await AclEntry.create({
       principalType: PrincipalType.USER,
@@ -1166,6 +1166,87 @@ describe('initializeClient — subagent loading', () => {
     } finally {
       listAlwaysApplySkillsSpy.mockRestore();
     }
+  });
+
+  it('keeps lazy always-apply cache entries separate across shared-skill activation defaults', async () => {
+    const fullCatalogSubagentId = 'agent_subagent_skill_full_catalog';
+    const { skill } = await createSkill({
+      name: 'shared-lazy-specialist',
+      description: 'Prime only explicit persisted-agent selections by default.',
+      body: '# Shared lazy specialist\n',
+      alwaysApply: true,
+      author: new mongoose.Types.ObjectId(),
+      authorName: 'Shared Skill Author',
+    });
+    await AclEntry.create({
+      principalType: PrincipalType.USER,
+      principalId: testUser._id,
+      principalModel: PrincipalModel.USER,
+      resourceType: ResourceType.SKILL,
+      resourceId: skill._id,
+      permBits: PermissionBits.VIEW,
+      grantedBy: testUser._id,
+    });
+
+    const selectedSubAgent = await createAgent({
+      id: SUBAGENT_ID,
+      name: 'Selected Skill Subagent',
+      provider: 'openai',
+      model: 'gpt-4',
+      author: testUser._id,
+      tools: [],
+      skills_enabled: true,
+      skills: [skill._id.toString()],
+    });
+    await grantView(selectedSubAgent);
+
+    const fullCatalogSubAgent = await createAgent({
+      id: fullCatalogSubagentId,
+      name: 'Full Catalog Subagent',
+      provider: 'openai',
+      model: 'gpt-4',
+      author: testUser._id,
+      tools: [],
+      skills_enabled: true,
+    });
+    await grantView(fullCatalogSubAgent);
+
+    mockInitializeAgent.mockResolvedValue(
+      makePrimaryConfig({
+        subagents: {
+          enabled: true,
+          allowSelf: true,
+          agent_ids: [SUBAGENT_ID, fullCatalogSubagentId],
+        },
+      }),
+    );
+
+    const eventReq = makeSubagentReq();
+    eventReq.config.endpoints.agents.capabilities.push('skills');
+    eventReq._isAgentTrigger = true;
+    eventReq._agentEventBindingParentConversationId = 'parent-conversation';
+
+    await initializeClient({
+      req: eventReq,
+      res: {},
+      signal: new AbortController().signal,
+      endpointOption: makeEndpointOption(),
+    });
+
+    const selectedDescriptor = agentClientArgs.agent.lazySubagentConfigs.find(
+      (descriptor) => descriptor.id === SUBAGENT_ID,
+    );
+    const fullCatalogDescriptor = agentClientArgs.agent.lazySubagentConfigs.find(
+      (descriptor) => descriptor.id === fullCatalogSubagentId,
+    );
+
+    expect(selectedDescriptor.alwaysApplySkillPrimes).toEqual([
+      expect.objectContaining({
+        _id: skill._id,
+        name: 'shared-lazy-specialist',
+      }),
+    ]);
+    expect(fullCatalogDescriptor.alwaysApplySkillPrimes).toEqual([]);
   });
 
   it('rejects a disallowed lazy subagent scope before exposing it for prewarm', async () => {
