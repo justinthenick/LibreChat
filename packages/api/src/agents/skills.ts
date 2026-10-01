@@ -381,6 +381,35 @@ export function resolveAgentScopedSkillIds(
   return scopeSkillIds(accessibleSkillIds, agent.skills);
 }
 
+/**
+ * Resolves the default active state for shared skills after per-agent scoping.
+ *
+ * A persisted agent with a non-empty skill allowlist represents an explicit
+ * author selection, so those selected shared skills default active for that
+ * agent even when the deployment-wide shared-skill default is off. Explicit
+ * per-user skillStates overrides are evaluated later by resolveSkillActive and
+ * still win, including an explicit false opt-out.
+ *
+ * Empty/full-catalog persisted agents and ephemeral agents retain the existing
+ * deployment-wide default so this helper cannot silently widen their catalog.
+ */
+export function resolveAgentSkillDefaultActiveOnShare(
+  agent: Pick<Agent, 'id' | 'skills' | 'skills_enabled'>,
+  configuredDefault = false,
+): boolean {
+  if (configuredDefault === true) {
+    return true;
+  }
+  if (isEphemeralAgentId(agent.id)) {
+    return false;
+  }
+  return (
+    agent.skills_enabled === true &&
+    Array.isArray(agent.skills) &&
+    agent.skills.length > 0
+  );
+}
+
 export interface ResolveSkillActiveParams {
   /** Skill being evaluated. Only `_id` and `author` matter for resolution. */
   skill: { _id: Types.ObjectId | string; author: Types.ObjectId | string; deployment?: boolean };
