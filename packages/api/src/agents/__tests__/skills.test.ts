@@ -39,6 +39,7 @@ import {
   scopeSkillIds,
   resolveSkillActive,
   resolveAgentScopedSkillIds,
+  resolveAgentSkillDefaultActiveOnShare,
   resolveModelSpecSkillIds,
   injectSkillCatalog,
   buildSkillPrimeMessage,
@@ -509,6 +510,79 @@ describe('resolveAgentScopedSkillIds', () => {
         }),
       ).toEqual([]);
     });
+  });
+});
+
+describe('resolveAgentSkillDefaultActiveOnShare', () => {
+  it('defaults explicitly selected persisted-agent skills active', () => {
+    expect(
+      resolveAgentSkillDefaultActiveOnShare({
+        id: 'agent_persisted_1',
+        skills_enabled: true,
+        skills: [new Types.ObjectId().toString()],
+      }),
+    ).toBe(true);
+  });
+
+  it('does not widen persisted agents with an empty or missing allowlist', () => {
+    expect(
+      resolveAgentSkillDefaultActiveOnShare({
+        id: 'agent_persisted_1',
+        skills_enabled: true,
+        skills: [],
+      }),
+    ).toBe(false);
+    expect(
+      resolveAgentSkillDefaultActiveOnShare({
+        id: 'agent_persisted_1',
+        skills_enabled: true,
+      }),
+    ).toBe(false);
+  });
+
+  it('does not auto-activate an ephemeral model-spec allowlist', () => {
+    expect(
+      resolveAgentSkillDefaultActiveOnShare({
+        id: 'ephemeral_convo_xyz',
+        skills_enabled: true,
+        skills: [new Types.ObjectId().toString()],
+      }),
+    ).toBe(false);
+  });
+
+  it('preserves the configured shared-skill default when already enabled', () => {
+    expect(
+      resolveAgentSkillDefaultActiveOnShare(
+        {
+          id: 'agent_persisted_1',
+          skills_enabled: false,
+          skills: [],
+        },
+        true,
+      ),
+    ).toBe(true);
+  });
+
+  it('still lets an explicit user false override suppress the selected shared skill', () => {
+    const userId = new Types.ObjectId().toString();
+    const sharedSkill = {
+      _id: new Types.ObjectId(),
+      author: new Types.ObjectId(),
+    };
+    const selectedDefault = resolveAgentSkillDefaultActiveOnShare({
+      id: 'agent_persisted_1',
+      skills_enabled: true,
+      skills: [sharedSkill._id.toString()],
+    });
+
+    expect(
+      resolveSkillActive({
+        skill: sharedSkill,
+        skillStates: { [sharedSkill._id.toString()]: false },
+        userId,
+        defaultActiveOnShare: selectedDefault,
+      }),
+    ).toBe(false);
   });
 });
 

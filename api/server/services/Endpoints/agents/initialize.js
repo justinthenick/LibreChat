@@ -14,6 +14,7 @@ const {
   discoverConnectedAgents,
   resolveAgentTokenConfig,
   resolveAgentScopedSkillIds,
+  resolveAgentSkillDefaultActiveOnShare,
   resolveAlwaysApplySkills,
   resolveModelSpecSkillIds,
   getAgentStartupTelemetry,
@@ -946,10 +947,14 @@ const initializeClient = async ({
     if (scopedSkillIds.length === 0 || typeof skillDbMethods.listAlwaysApplySkills !== 'function') {
       return Promise.resolve([]);
     }
-    const scopeKey = scopedSkillIds
+    const effectiveDefaultActiveOnShare = resolveAgentSkillDefaultActiveOnShare(
+      agent,
+      defaultActiveOnShare,
+    );
+    const scopeKey = `${effectiveDefaultActiveOnShare ? 'active' : 'default'}:${scopedSkillIds
       .map((skillId) => skillId.toString())
       .sort()
-      .join(':');
+      .join(':')}`;
     let resolution = lazyAlwaysApplySkillsByScope.get(scopeKey);
     if (resolution == null) {
       resolution = resolveAlwaysApplySkills({
@@ -957,7 +962,7 @@ const initializeClient = async ({
         accessibleSkillIds: scopedSkillIds,
         userId,
         skillStates,
-        defaultActiveOnShare,
+        defaultActiveOnShare: effectiveDefaultActiveOnShare,
       });
       lazyAlwaysApplySkillsByScope.set(scopeKey, resolution);
     }

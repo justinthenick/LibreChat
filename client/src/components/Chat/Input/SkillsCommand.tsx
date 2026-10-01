@@ -106,7 +106,7 @@ function SkillsCommandContent({
   );
 
   const agentsMap = useAgentsMapContext();
-  const { isActive } = useSkillActiveState();
+  const { isActive, isActiveWithSharedDefault } = useSkillActiveState();
 
   /* Resolve the per-agent skill scope. Mirrors backend
      `resolveAgentScopedSkillIds`: ephemeral agents always see the full
@@ -137,6 +137,13 @@ function SkillsCommandContent({
     return Array.isArray(agent.skills) && agent.skills.length > 0 ? agent.skills : undefined;
   }, [agentId, agentsMap]);
 
+  const hasExplicitAgentSkillSelection = agentSkillIds != null && agentSkillIds.length > 0;
+  const isActiveForPopover = useCallback(
+    (skill: Pick<TSkillSummary, '_id' | 'author' | 'source'>) =>
+      hasExplicitAgentSkillSelection ? isActiveWithSharedDefault(skill, true) : isActive(skill),
+    [hasExplicitAgentSkillSelection, isActive, isActiveWithSharedDefault],
+  );
+
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useSkillsInfiniteQuery({ limit: 50 });
 
@@ -161,7 +168,10 @@ function SkillsCommandContent({
         allSkills.push(skill);
       }
     }
-    const filtered = filterSkillsForPopover(allSkills, { agentSkillIds, isActive });
+    const filtered = filterSkillsForPopover(allSkills, {
+      agentSkillIds,
+      isActive: isActiveForPopover,
+    });
     const options: MentionOption[] = [];
     for (const skill of filtered) {
       const lifecycle = getSkillLifecycle(skill);
@@ -190,7 +200,7 @@ function SkillsCommandContent({
       });
     }
     return options;
-  }, [data?.pages, agentSkillIds, isActive, localize]);
+  }, [data?.pages, agentSkillIds, isActiveForPopover, localize]);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);

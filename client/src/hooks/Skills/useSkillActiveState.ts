@@ -82,6 +82,23 @@ export function resolveSkillDefaultActive(
 }
 
 /**
+ * Resolves active state with explicit per-user overrides taking precedence
+ * over the supplied shared-skill default.
+ */
+export function resolveSkillActiveState(
+  skill: SkillActiveTarget,
+  skillStates: TSkillStatesResponse,
+  userId: string,
+  defaultActiveOnShare: boolean,
+): boolean {
+  const override = skillStates[skill._id];
+  if (override !== undefined) {
+    return override;
+  }
+  return resolveSkillDefaultActive(skill, userId, defaultActiveOnShare);
+}
+
+/**
  * Hook for managing per-user skill active/inactive state.
  *
  * The `skillStates` map stores explicit overrides (`{ [skillId]: boolean }`).
@@ -174,15 +191,15 @@ export default function useSkillActiveState() {
     queue.inFlight = false;
   }, [userId, updateMutation, showToast, localize]);
 
+  const isActiveWithSharedDefault = useCallback(
+    (skill: SkillActiveTarget, sharedDefaultActive: boolean): boolean =>
+      resolveSkillActiveState(skill, skillStates, userId, sharedDefaultActive),
+    [skillStates, userId],
+  );
+
   const isActive = useCallback(
-    (skill: SkillActiveTarget): boolean => {
-      const override = skillStates[skill._id];
-      if (override !== undefined) {
-        return override;
-      }
-      return resolveSkillDefaultActive(skill, userId, defaultActiveOnShare);
-    },
-    [skillStates, userId, defaultActiveOnShare],
+    (skill: SkillActiveTarget): boolean => isActiveWithSharedDefault(skill, defaultActiveOnShare),
+    [isActiveWithSharedDefault, defaultActiveOnShare],
   );
 
   const toggle = useCallback(
@@ -216,6 +233,7 @@ export default function useSkillActiveState() {
     skillStates,
     defaultActiveOnShare,
     isActive,
+    isActiveWithSharedDefault,
     toggle,
     isLoading: getQuery.isLoading,
     isError: getQuery.isError,

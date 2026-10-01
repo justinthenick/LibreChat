@@ -54,6 +54,7 @@ import {
   resolveSkillCatalog,
   resolveManualSkills,
   resolveAlwaysApplySkills,
+  resolveAgentSkillDefaultActiveOnShare,
   selectSkillPrimesForTurn,
   unionPrimeAllowedTools,
   MAX_PRIMED_SKILLS_PER_TURN,
@@ -864,6 +865,10 @@ export async function initializeAgent(
    * tool loading, then reuse the results below when expanding allowed tools.
    */
   const hasSkillAccess = (params.accessibleSkillIds?.length ?? 0) > 0;
+  const effectiveDefaultActiveOnShare = resolveAgentSkillDefaultActiveOnShare(
+    agent,
+    params.defaultActiveOnShare,
+  );
   const skillAuthoringAvailable = params.skillAuthoringAvailable === true;
   let manualSkillPrimes: ResolvedManualSkill[] | undefined;
   let alwaysApplySkillPrimes: ResolvedAlwaysApplySkill[] | undefined;
@@ -880,7 +885,7 @@ export async function initializeAgent(
             accessibleSkillIds: params.accessibleSkillIds!,
             userId: req.user?.id,
             skillStates: params.skillStates,
-            defaultActiveOnShare: params.defaultActiveOnShare,
+            defaultActiveOnShare: effectiveDefaultActiveOnShare,
           })
         : Promise.resolve<ResolvedManualSkill[] | undefined>(undefined),
       db.listAlwaysApplySkills
@@ -889,7 +894,7 @@ export async function initializeAgent(
             accessibleSkillIds: params.accessibleSkillIds!,
             userId: req.user?.id,
             skillStates: params.skillStates,
-            defaultActiveOnShare: params.defaultActiveOnShare,
+            defaultActiveOnShare: effectiveDefaultActiveOnShare,
           })
         : Promise.resolve<ResolvedAlwaysApplySkill[] | undefined>(undefined),
       hasActivePiiFields(req.config?.filters?.skills?.pii, ['name', 'description'])
@@ -898,7 +903,7 @@ export async function initializeAgent(
             listSkillsByAccess: db.listSkillsByAccess,
             userId: req.user?.id,
             skillStates: params.skillStates,
-            defaultActiveOnShare: params.defaultActiveOnShare,
+            defaultActiveOnShare: effectiveDefaultActiveOnShare,
             maxCatalogSkills: getMaxCatalogSkills(req),
           })
         : Promise.resolve<ResolvedSkillCatalog | undefined>(undefined),
@@ -1668,7 +1673,7 @@ export async function initializeAgent(
       statefulSessions: effectiveStatefulSessions,
       userId: req.user?.id,
       skillStates: params.skillStates,
-      defaultActiveOnShare: params.defaultActiveOnShare,
+      defaultActiveOnShare: effectiveDefaultActiveOnShare,
       maxCatalogSkills: getMaxCatalogSkills(req),
       resolvedCatalog: resolvedSkillCatalog,
     });
