@@ -69,5 +69,5 @@ test('instructions route coding work through the four validated methodology skil
   assert.match(manifest.instructions, /Invoke systematic-debugging/);
   assert.match(manifest.instructions, /Invoke test-driven-development/);
   assert.match(manifest.instructions, /Invoke verification-before-completion/);
-  assert.match(manifest.instructions, /never expand coding_executor permissions/);
+  assert.match(manifest.instructions, /never expands coding_executor permissions/);
 });
