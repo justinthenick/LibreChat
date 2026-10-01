@@ -403,11 +403,7 @@ export function resolveAgentSkillDefaultActiveOnShare(
   if (isEphemeralAgentId(agent.id)) {
     return false;
   }
-  return (
-    agent.skills_enabled === true &&
-    Array.isArray(agent.skills) &&
-    agent.skills.length > 0
-  );
+  return agent.skills_enabled === true && Array.isArray(agent.skills) && agent.skills.length > 0;
 }
 
 export interface ResolveSkillActiveParams {
