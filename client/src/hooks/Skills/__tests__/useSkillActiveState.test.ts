@@ -24,7 +24,6 @@ describe('resolveSkillDefaultActive', () => {
   });
 });
 
-
 describe('resolveSkillActiveState', () => {
   const sharedSkill = {
     _id: 'shared-1',
