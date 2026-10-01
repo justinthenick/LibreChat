@@ -75,9 +75,13 @@ jest.mock('~/Providers', () => ({
 }));
 
 const mockIsActive = jest.fn();
+const mockIsActiveWithSharedDefault = jest.fn();
 jest.mock('~/hooks', () => ({
   useLocalize: () => (key: string) => key,
-  useSkillActiveState: () => ({ isActive: mockIsActive }),
+  useSkillActiveState: () => ({
+    isActive: mockIsActive,
+    isActiveWithSharedDefault: mockIsActiveWithSharedDefault,
+  }),
 }));
 
 jest.mock('@librechat/client', () => {
@@ -178,6 +182,7 @@ beforeEach(() => {
      filter composition. */
   mockUseAgentsMapContext.mockReturnValue({});
   mockIsActive.mockReturnValue(true);
+  mockIsActiveWithSharedDefault.mockReturnValue(true);
 });
 
 describe('SkillsCommand', () => {
@@ -293,6 +298,39 @@ describe('SkillsCommand', () => {
     /* Only the skill whose _id is in agent.skills should appear. */
     expect(screen.queryByRole('button', { name: /Brand Guidelines/i })).toBeNull();
     expect(await screen.findByRole('button', { name: /Style Guide/i })).toBeInTheDocument();
+  });
+
+  it('uses the agent-selected shared default for an explicit persisted allowlist', async () => {
+    mockUseSkillsInfiniteQuery.mockReturnValue({
+      data: twoSkillsResponse,
+      isLoading: false,
+      isError: false,
+      fetchNextPage: jest.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    });
+    mockUseAgentsMapContext.mockReturnValue({
+      agent_1: { id: 'agent_1', skills: ['1'], skills_enabled: true },
+    });
+    mockIsActive.mockReturnValue(false);
+    mockIsActiveWithSharedDefault.mockReturnValue(true);
+
+    const textAreaRef = makeTextarea('$');
+    render(
+      <SkillsCommand
+        index={0}
+        textAreaRef={textAreaRef}
+        conversationId={CONVO_ID}
+        agentId="agent_1"
+      />,
+    );
+
+    expect(await screen.findByRole('button', { name: /Brand Guidelines/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Style Guide/i })).toBeNull();
+    expect(mockIsActiveWithSharedDefault).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: '1' }),
+      true,
+    );
   });
 
   it('shows nothing when the agent has skills_enabled:false, regardless of allowlist', () => {
