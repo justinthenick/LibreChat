@@ -50,6 +50,7 @@ def audited(function):
 
 
 def build_server(broker: Broker, token: str, url: str) -> MCPServer:
+    host_integrations = broker.host_integrations()
     server = MCPServer("librechat-host-maintenance", token_verifier=MaintenanceTokenVerifier(token, url),
                        auth=AuthSettings(issuer_url=AnyHttpUrl("https://librechat.local"),
                                          resource_server_url=AnyHttpUrl(url),
@@ -60,7 +61,7 @@ def build_server(broker: Broker, token: str, url: str) -> MCPServer:
     async def health(_request: object) -> JSONResponse:
         return JSONResponse({
             "status": "ok",
-            "host": broker.host_integrations(),
+            "host": host_integrations,
         })
 
     @server.tool(description="Inspect only the configured executor container, image and health.")

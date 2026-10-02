@@ -300,6 +300,8 @@ class BrokerTests(unittest.TestCase):
             port = listener.getsockname()[1]
             url = f"http://127.0.0.1:{port}/mcp"
             mcp = build_server(self.broker, "m" * 48, url)
+            integration_probe_count = sum(call[1] == "info" for call in self.calls)
+            self.assertEqual(integration_probe_count, 1)
             app = mcp.streamable_http_app(stateless_http=True, json_response=True,
                 transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=True,
                     allowed_hosts=[f"127.0.0.1:{port}"], allowed_origins=[]))
@@ -311,6 +313,19 @@ class BrokerTests(unittest.TestCase):
                 while not server.started and time.monotonic() < deadline:
                     time.sleep(0.01)
                 self.assertTrue(server.started)
+
+                health_url = f"http://127.0.0.1:{port}/health"
+                for _ in range(2):
+                    with urllib.request.urlopen(health_url, timeout=5) as response:
+                        health = json.load(response)
+                    self.assertEqual(health["status"], "ok")
+                    self.assertEqual(health["host"]["docker"], "available")
+
+                self.assertEqual(
+                    sum(call[1] == "info" for call in self.calls),
+                    integration_probe_count,
+                )
+
                 def request(token=None, method="tools/list", params=None):
                     headers = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream",
                                "MCP-Protocol-Version": "2025-06-18"}
