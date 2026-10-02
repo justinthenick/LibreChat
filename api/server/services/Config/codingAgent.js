@@ -24,11 +24,21 @@ async function probeExecutor(host, port) {
     }
 
     const data = await res.json().catch(() => ({}));
-    return {
+    const result = {
       configured: true,
       status: typeof data.status === 'string' ? data.status : 'ok',
       version: typeof data.version === 'string' ? data.version : null,
     };
+    if (data.docker !== undefined) {
+      result.docker = typeof data.docker === 'string' ? data.docker : (data.docker?.status ?? null);
+    }
+    if (data.wsl !== undefined) {
+      result.wsl = typeof data.wsl === 'string' ? data.wsl : (data.wsl?.status ?? null);
+    }
+    if (data.host !== undefined) {
+      result.host = data.host;
+    }
+    return result;
   } catch {
     clearTimeout(timeoutId);
     return { configured: true, status: 'unreachable', version: null };
@@ -62,6 +72,91 @@ function probeMaintenance(host, portRaw) {
     socket.once('timeout', () => finish('unreachable'));
     socket.once('error', () => finish('unreachable'));
   });
+}
+
+function probeHostIntegration({ executor, wslSocketPath, isWsl } = {}) {
+  const socketPath =
+    wslSocketPath ||
+    process.env.CODING_AGENT_WSL_SOCKET_PATH ||
+    '/mnt/wsl/docker-desktop/shared-sockets/host-services/backend.sock';
+
+  let wslStatus = null;
+  let dockerStatus = null;
+
+  if (executor) {
+    if (typeof executor.docker === 'string') {
+      dockerStatus = executor.docker;
+    } else if (executor.host && typeof executor.host.docker === 'string') {
+      dockerStatus = executor.host.docker;
+    }
+
+    if (typeof executor.wsl === 'string') {
+      wslStatus = executor.wsl;
+    } else if (executor.host && typeof executor.host.wsl === 'string') {
+      wslStatus = executor.host.wsl;
+    }
+  }
+
+  let isWslEnvironment = typeof isWsl === 'boolean' ? isWsl : false;
+  if (typeof isWsl !== 'boolean') {
+    try {
+      if (process.env.WSL_DISTRO_NAME || process.env.WSL_INTEROP) {
+        isWslEnvironment = true;
+      } else if (
+        fs.existsSync('/mnt/wsl') ||
+        fs.existsSync('/proc/sys/fs/binfmt_misc/WSLInterop')
+      ) {
+        isWslEnvironment = true;
+      }
+    } catch {
+      isWslEnvironment = false;
+    }
+  }
+
+  if (isWslEnvironment && !wslStatus) {
+    try {
+      if (fs.existsSync(socketPath)) {
+        wslStatus = 'available';
+      } else {
+        wslStatus = 'unavailable';
+      }
+    } catch {
+      wslStatus = 'unavailable';
+    }
+  }
+
+  if (!dockerStatus) {
+    if (executor?.status === 'unreachable') {
+      dockerStatus = 'unknown';
+    } else if (executor?.status === 'ok') {
+      if (wslStatus === 'unavailable') {
+        dockerStatus = 'unavailable';
+      } else {
+        dockerStatus = 'available';
+      }
+    } else {
+      dockerStatus = 'unknown';
+    }
+  }
+
+  if (!wslStatus) {
+    wslStatus = isWslEnvironment ? 'unavailable' : 'not_detected';
+  }
+
+  let overallStatus = 'ok';
+  if (executor?.status === 'unreachable') {
+    overallStatus = 'executor_unreachable';
+  } else if (wslStatus === 'unavailable') {
+    overallStatus = 'wsl_unavailable';
+  } else if (dockerStatus === 'unavailable') {
+    overallStatus = 'docker_unavailable';
+  }
+
+  return {
+    status: overallStatus,
+    docker: dockerStatus,
+    wsl: wslStatus,
+  };
 }
 
 function getPilotIdentity(manifestDir) {
@@ -146,11 +241,13 @@ async function getCodingAgentConfig(forceRefresh = false) {
     probeMaintenance(maintenanceHost, maintenancePort),
   ]);
   const pilot = getPilotIdentity();
+  const host = probeHostIntegration({ executor });
 
   cachedStatus = {
     executor,
     maintenance,
     pilot,
+    host,
   };
   lastCheckTime = now;
   return cachedStatus;
@@ -161,4 +258,5 @@ module.exports = {
   probeExecutor,
   probeMaintenance,
   getPilotIdentity,
+  probeHostIntegration,
 };

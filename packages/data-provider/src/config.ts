@@ -1737,6 +1737,12 @@ export type TCodingAgentPilotStatus = {
   model?: string | null;
 };
 
+export type TCodingAgentHostStatus = {
+  status?: string | null;
+  docker?: string | null;
+  wsl?: string | null;
+};
+
 export type TCodingAgentStatus = {
   executor?: {
     configured: boolean;
@@ -1748,6 +1754,7 @@ export type TCodingAgentStatus = {
     status?: string | null;
   };
   pilot?: TCodingAgentPilotStatus;
+  host?: TCodingAgentHostStatus;
 };
 
 export type TStartupConfig = {

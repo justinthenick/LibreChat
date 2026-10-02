@@ -40,6 +40,12 @@ function buildDiagnosticsBlob(
       lines.push(`Coding executor version: ${codingAgent.executor.version}`);
     }
     lines.push(`Host maintenance: ${codingAgent.maintenance?.status ?? UNKNOWN_PLACEHOLDER}`);
+    if (codingAgent.host?.docker) {
+      lines.push(`Docker engine: ${codingAgent.host.docker}`);
+    }
+    if (codingAgent.host?.wsl) {
+      lines.push(`WSL integration: ${codingAgent.host.wsl}`);
+    }
     if (codingAgent.pilot?.version) {
       lines.push(`Software Engineering Pilot version: ${codingAgent.pilot.version}`);
     }
@@ -130,6 +136,15 @@ function About() {
               label={localize('com_nav_about_host_maintenance')}
               value={codingAgent.maintenance?.status ?? UNKNOWN_PLACEHOLDER}
             />
+            {codingAgent.host?.docker && (
+              <Row
+                label={localize('com_nav_about_docker_engine')}
+                value={codingAgent.host.docker}
+              />
+            )}
+            {codingAgent.host?.wsl && (
+              <Row label={localize('com_nav_about_wsl_integration')} value={codingAgent.host.wsl} />
+            )}
             {codingAgent.pilot?.version && (
               <Row
                 label={localize('com_nav_about_pilot_version')}
