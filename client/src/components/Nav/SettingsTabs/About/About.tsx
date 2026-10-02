@@ -78,6 +78,20 @@ function About() {
   const codingAgent = startupConfig?.codingAgent;
   const version: string = Constants.VERSION;
 
+  const localizeHostIntegrationStatus = (status: string | null | undefined): string => {
+    switch (status) {
+      case 'available':
+        return localize('com_nav_about_status_available');
+      case 'unavailable':
+        return localize('com_nav_about_status_unavailable');
+      case 'not_detected':
+        return localize('com_nav_about_status_not_detected');
+      case 'unknown':
+      default:
+        return localize('com_nav_about_status_unknown');
+    }
+  };
+
   const diagnosticsBlob = useMemo(
     () => buildDiagnosticsBlob(version, buildInfo, codingAgent),
     [version, buildInfo, codingAgent],
@@ -139,11 +153,14 @@ function About() {
             {codingAgent.host?.docker && (
               <Row
                 label={localize('com_nav_about_docker_engine')}
-                value={codingAgent.host.docker}
+                value={localizeHostIntegrationStatus(codingAgent.host.docker)}
               />
             )}
             {codingAgent.host?.wsl && (
-              <Row label={localize('com_nav_about_wsl_integration')} value={codingAgent.host.wsl} />
+              <Row
+                label={localize('com_nav_about_wsl_integration')}
+                value={localizeHostIntegrationStatus(codingAgent.host.wsl)}
+              />
             )}
             {codingAgent.pilot?.version && (
               <Row

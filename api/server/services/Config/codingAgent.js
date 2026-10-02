@@ -17,13 +17,16 @@ async function probeExecutor(host, port) {
   try {
     const url = `http://${host}:${port}/health`;
     const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
 
     if (!res.ok) {
       return { configured: true, status: `error_${res.status}`, version: null };
     }
 
     const data = await res.json().catch(() => ({}));
+    if (controller.signal.aborted) {
+      return { configured: true, status: 'unreachable', version: null };
+    }
+
     const result = {
       configured: true,
       status: typeof data.status === 'string' ? data.status : 'ok',
@@ -40,8 +43,9 @@ async function probeExecutor(host, port) {
     }
     return result;
   } catch {
-    clearTimeout(timeoutId);
     return { configured: true, status: 'unreachable', version: null };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -60,7 +64,6 @@ async function probeMaintenance(host, portRaw) {
     const res = await fetch(`http://${host}:${port}/health`, {
       signal: controller.signal,
     });
-    clearTimeout(timeoutId);
 
     if (!res.ok) {
       // The maintenance service is reachable but may predate the diagnostic route.
@@ -68,6 +71,10 @@ async function probeMaintenance(host, portRaw) {
     }
 
     const data = await res.json().catch(() => ({}));
+    if (controller.signal.aborted) {
+      return { configured: true, status: 'unreachable' };
+    }
+
     const result = {
       configured: true,
       status: 'running',
@@ -79,8 +86,9 @@ async function probeMaintenance(host, portRaw) {
 
     return result;
   } catch {
-    clearTimeout(timeoutId);
     return { configured: true, status: 'unreachable' };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

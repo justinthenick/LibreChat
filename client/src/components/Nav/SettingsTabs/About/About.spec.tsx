@@ -81,7 +81,7 @@ describe('About', () => {
       expect(screen.getByText('running')).toBeInTheDocument();
       expect(screen.getByText('com_nav_about_docker_engine')).toBeInTheDocument();
       expect(screen.getByText('com_nav_about_wsl_integration')).toBeInTheDocument();
-      expect(screen.getAllByText('available').length).toBe(2);
+      expect(screen.getAllByText('com_nav_about_status_available').length).toBe(2);
       expect(screen.getByText('com_nav_about_pilot_version')).toBeInTheDocument();
       expect(screen.getByText('0.1.16')).toBeInTheDocument();
       expect(screen.getByText('com_nav_about_pilot_provider')).toBeInTheDocument();
@@ -99,7 +99,7 @@ describe('About', () => {
             host: {
               status: 'wsl_unavailable',
               docker: 'unavailable',
-              wsl: 'unavailable',
+              wsl: 'not_detected',
             },
           },
         },
@@ -108,7 +108,8 @@ describe('About', () => {
 
       expect(screen.getByText('com_nav_about_docker_engine')).toBeInTheDocument();
       expect(screen.getByText('com_nav_about_wsl_integration')).toBeInTheDocument();
-      expect(screen.getAllByText('unavailable').length).toBe(2);
+      expect(screen.getByText('com_nav_about_status_unavailable')).toBeInTheDocument();
+      expect(screen.getByText('com_nav_about_status_not_detected')).toBeInTheDocument();
     });
 
     it('renders em-dash placeholders when buildInfo is missing', () => {

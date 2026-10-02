@@ -326,6 +326,35 @@ class BrokerTests(unittest.TestCase):
                     integration_probe_count,
                 )
 
+                original_runner = self.broker.runner
+
+                def delayed_docker(argv, **kwargs):
+                    if argv[1] == "info":
+                        time.sleep(0.1)
+                    return original_runner(argv, **kwargs)
+
+                self.broker.runner = delayed_docker
+                try:
+                    with patch("host_maintenance.server.HOST_INTEGRATION_TTL_SECONDS", 0.01):
+                        time.sleep(0.02)
+
+                        def health_request(_index):
+                            with urllib.request.urlopen(health_url, timeout=5) as response:
+                                return json.load(response)
+
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+                            refreshed = list(pool.map(health_request, range(4)))
+
+                    self.assertTrue(
+                        all(item["host"]["docker"] == "available" for item in refreshed)
+                    )
+                    self.assertEqual(
+                        sum(call[1] == "info" for call in self.calls),
+                        integration_probe_count + 1,
+                    )
+                finally:
+                    self.broker.runner = original_runner
+
                 def request(token=None, method="tools/list", params=None):
                     headers = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream",
                                "MCP-Protocol-Version": "2025-06-18"}

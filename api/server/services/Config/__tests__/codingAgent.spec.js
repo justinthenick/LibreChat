@@ -119,6 +119,39 @@ describe('codingAgent config service', () => {
       }
     });
 
+    it('keeps the timeout active while reading the response body', async () => {
+      jest.useFakeTimers();
+      const originalFetch = global.fetch;
+
+      global.fetch = jest.fn().mockImplementation((_url, options) =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            new Promise((_, reject) => {
+              options.signal.addEventListener('abort', () => reject(new Error('aborted')), {
+                once: true,
+              });
+            }),
+        }),
+      );
+
+      try {
+        const pending = probeMaintenance('127.0.0.1', '8767');
+        await Promise.resolve();
+        await Promise.resolve();
+
+        jest.advanceTimersByTime(2000);
+
+        await expect(pending).resolves.toEqual({
+          configured: true,
+          status: 'unreachable',
+        });
+      } finally {
+        global.fetch = originalFetch;
+        jest.useRealTimers();
+      }
+    });
+
     it('keeps older reachable maintenance services compatible', async () => {
       const originalFetch = global.fetch;
       global.fetch = jest.fn().mockResolvedValue({
