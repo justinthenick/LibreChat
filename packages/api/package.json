@@ -23,6 +23,12 @@
         "types": "./dist/credentials.d.cts",
         "default": "./dist/credentials.cjs"
       }
+    },
+    "./coding": {
+      "require": {
+        "types": "./dist/coding.d.cts",
+        "default": "./dist/coding.cjs"
+      }
     }
   },
   "scripts": {

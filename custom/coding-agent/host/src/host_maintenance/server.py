@@ -14,6 +14,7 @@ from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import AnyHttpUrl
+from starlette.responses import JSONResponse
 
 from host_maintenance.broker import Broker
 
@@ -54,6 +55,13 @@ def build_server(broker: Broker, token: str, url: str) -> MCPServer:
                                          resource_server_url=AnyHttpUrl(url),
                                          required_scopes=["coding:maintain"], validate_token_resource=True),
                        instructions="Use only allowlisted maintenance operations. Preview before cleanup/restart. Tickets expire after 60 seconds and are not human approval. Never infer a task is retired because it is clean. No shell, deployment, force cleanup, branch deletion or push is available.")
+
+    @server.custom_route("/health", methods=["GET"])
+    async def health(_request: object) -> JSONResponse:
+        return JSONResponse({
+            "status": "ok",
+            "host": broker.host_integrations(),
+        })
 
     @server.tool(description="Inspect only the configured executor container, image and health.")
     @audited

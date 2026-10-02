@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const net = require('net');
+const { normalizeCodingHostDiagnostics } = require('@librechat/api/coding');
 
 let cachedStatus = null;
 let lastCheckTime = 0;
@@ -45,118 +45,47 @@ async function probeExecutor(host, port) {
   }
 }
 
-function probeMaintenance(host, portRaw) {
-  return new Promise((resolve) => {
-    const validPort = /^[0-9]+$/.test(String(portRaw));
-    const port = validPort ? Number(portRaw) : 0;
+async function probeMaintenance(host, portRaw) {
+  const validPort = /^[0-9]+$/.test(String(portRaw));
+  const port = validPort ? Number(portRaw) : 0;
 
-    if (!host || !validPort || port <= 0 || port > 65535) {
-      return resolve({ configured: false, status: 'unconfigured' });
+  if (!host || !validPort || port <= 0 || port > 65535) {
+    return { configured: false, status: 'unconfigured' };
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+  try {
+    const res = await fetch(`http://${host}:${port}/health`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      // The maintenance service is reachable but may predate the diagnostic route.
+      return { configured: true, status: 'running' };
     }
 
-    const socket = net.createConnection({ host, port });
-    let settled = false;
-
-    const finish = (status) => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      socket.destroy();
-      resolve({ configured: true, status });
+    const data = await res.json().catch(() => ({}));
+    const result = {
+      configured: true,
+      status: 'running',
     };
 
-    socket.setTimeout(2000);
-    socket.once('connect', () => finish('running'));
-    socket.once('timeout', () => finish('unreachable'));
-    socket.once('error', () => finish('unreachable'));
-  });
+    if (data.host && typeof data.host === 'object') {
+      result.host = data.host;
+    }
+
+    return result;
+  } catch {
+    clearTimeout(timeoutId);
+    return { configured: true, status: 'unreachable' };
+  }
 }
 
-function probeHostIntegration({ executor, wslSocketPath, isWsl } = {}) {
-  const socketPath =
-    wslSocketPath ||
-    process.env.CODING_AGENT_WSL_SOCKET_PATH ||
-    '/mnt/wsl/docker-desktop/shared-sockets/host-services/backend.sock';
-
-  let wslStatus = null;
-  let dockerStatus = null;
-
-  if (executor) {
-    if (typeof executor.docker === 'string') {
-      dockerStatus = executor.docker;
-    } else if (executor.host && typeof executor.host.docker === 'string') {
-      dockerStatus = executor.host.docker;
-    }
-
-    if (typeof executor.wsl === 'string') {
-      wslStatus = executor.wsl;
-    } else if (executor.host && typeof executor.host.wsl === 'string') {
-      wslStatus = executor.host.wsl;
-    }
-  }
-
-  let isWslEnvironment = typeof isWsl === 'boolean' ? isWsl : false;
-  if (typeof isWsl !== 'boolean') {
-    try {
-      if (process.env.WSL_DISTRO_NAME || process.env.WSL_INTEROP) {
-        isWslEnvironment = true;
-      } else if (
-        fs.existsSync('/mnt/wsl') ||
-        fs.existsSync('/proc/sys/fs/binfmt_misc/WSLInterop')
-      ) {
-        isWslEnvironment = true;
-      }
-    } catch {
-      isWslEnvironment = false;
-    }
-  }
-
-  if (isWslEnvironment && !wslStatus) {
-    try {
-      if (fs.existsSync(socketPath)) {
-        wslStatus = 'available';
-      } else {
-        wslStatus = 'unavailable';
-      }
-    } catch {
-      wslStatus = 'unavailable';
-    }
-  }
-
-  if (!dockerStatus) {
-    if (executor?.status === 'unreachable') {
-      dockerStatus = 'unknown';
-    } else if (executor?.status === 'ok') {
-      if (wslStatus === 'unavailable') {
-        dockerStatus = 'unavailable';
-      } else {
-        dockerStatus = 'available';
-      }
-    } else {
-      dockerStatus = 'unknown';
-    }
-  }
-
-  if (!wslStatus) {
-    wslStatus = isWslEnvironment ? 'unavailable' : 'not_detected';
-  }
-
-  let overallStatus = 'ok';
-  if (executor?.status === 'unreachable') {
-    overallStatus = 'executor_unreachable';
-  } else if (wslStatus === 'unavailable') {
-    overallStatus = 'wsl_unavailable';
-  } else if (dockerStatus === 'unavailable') {
-    overallStatus = 'docker_unavailable';
-  }
-
-  return {
-    status: overallStatus,
-    docker: dockerStatus,
-    wsl: wslStatus,
-  };
+function probeHostIntegration({ executor, maintenance } = {}) {
+  return normalizeCodingHostDiagnostics({ executor, maintenance });
 }
 
 function getPilotIdentity(manifestDir) {
@@ -241,7 +170,7 @@ async function getCodingAgentConfig(forceRefresh = false) {
     probeMaintenance(maintenanceHost, maintenancePort),
   ]);
   const pilot = getPilotIdentity();
-  const host = probeHostIntegration({ executor });
+  const host = probeHostIntegration({ executor, maintenance });
 
   cachedStatus = {
     executor,

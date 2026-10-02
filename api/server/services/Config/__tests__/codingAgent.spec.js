@@ -6,7 +6,6 @@ const {
   probeExecutor,
   probeMaintenance,
   getPilotIdentity,
-  probeHostIntegration,
 } = require('../codingAgent');
 
 describe('codingAgent config service', () => {
@@ -91,6 +90,50 @@ describe('codingAgent config service', () => {
         configured: false,
         status: 'unconfigured',
       });
+    });
+
+    it('returns host diagnostics reported by the WSL maintenance broker', async () => {
+      const originalFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: 'ok',
+          host: {
+            docker: 'available',
+            wsl: 'available',
+          },
+        }),
+      });
+
+      try {
+        await expect(probeMaintenance('127.0.0.1', '8767')).resolves.toEqual({
+          configured: true,
+          status: 'running',
+          host: {
+            docker: 'available',
+            wsl: 'available',
+          },
+        });
+      } finally {
+        global.fetch = originalFetch;
+      }
+    });
+
+    it('keeps older reachable maintenance services compatible', async () => {
+      const originalFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+      });
+
+      try {
+        await expect(probeMaintenance('127.0.0.1', '8767')).resolves.toEqual({
+          configured: true,
+          status: 'running',
+        });
+      } finally {
+        global.fetch = originalFetch;
+      }
     });
   });
 
@@ -216,78 +259,6 @@ describe('codingAgent config service', () => {
       expect(typeof config.pilot.configured).toBe('boolean');
       expect(config).toHaveProperty('host');
       expect(typeof config.host.status).toBe('string');
-    });
-  });
-
-  describe('probeHostIntegration', () => {
-    it('reports host ok when executor is healthy and no WSL is detected', () => {
-      const host = probeHostIntegration({
-        executor: { configured: true, status: 'ok', version: '0.1.13' },
-        isWsl: false,
-      });
-      expect(host.status).toBe('ok');
-      expect(host.docker).toBe('available');
-      expect(host.wsl).toBe('not_detected');
-    });
-
-    it('reports executor unreachable when executor fails', () => {
-      const host = probeHostIntegration({
-        executor: { configured: true, status: 'unreachable', version: null },
-        isWsl: false,
-      });
-      expect(host.status).toBe('executor_unreachable');
-      expect(host.docker).toBe('unknown');
-    });
-
-    it('reports docker engine unavailable when executor signals docker failure', () => {
-      const host = probeHostIntegration({
-        executor: {
-          configured: true,
-          status: 'ok',
-          version: '0.1.13',
-          docker: 'unavailable',
-        },
-        isWsl: false,
-      });
-      expect(host.status).toBe('docker_unavailable');
-      expect(host.docker).toBe('unavailable');
-    });
-
-    it('reports WSL integration unavailable when WSL socket is missing', () => {
-      const host = probeHostIntegration({
-        executor: { configured: true, status: 'ok', version: '0.1.13' },
-        wslSocketPath: '/nonexistent/path/backend.sock',
-        isWsl: true,
-      });
-      expect(host.status).toBe('wsl_unavailable');
-      expect(host.wsl).toBe('unavailable');
-      expect(host.docker).toBe('unavailable');
-    });
-
-    it('reports WSL integration available when WSL socket is present', () => {
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wsl-test-'));
-      const fakeSocket = path.join(tmpDir, 'backend.sock');
-      fs.writeFileSync(fakeSocket, '');
-
-      try {
-        const host = probeHostIntegration({
-          executor: { configured: true, status: 'ok', version: '0.1.13' },
-          wslSocketPath: fakeSocket,
-          isWsl: true,
-        });
-        expect(host.status).toBe('ok');
-        expect(host.wsl).toBe('available');
-        expect(host.docker).toBe('available');
-      } finally {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
-      }
-    });
-
-    it('fails safely when executor is missing or options are omitted', () => {
-      const host = probeHostIntegration();
-      expect(typeof host.status).toBe('string');
-      expect(typeof host.docker).toBe('string');
-      expect(typeof host.wsl).toBe('string');
     });
   });
 });

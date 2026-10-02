@@ -74,6 +74,8 @@ class BrokerTests(unittest.TestCase):
             if argv[-1] == "health":
                 return json.dumps({"version": "0.1.9"})
             return json.dumps(self.snapshot)
+        if argv[1] == "info":
+            return "27.5.1"
         raise AssertionError(argv)
 
     def test_unknown_repository_and_injection_never_reach_docker(self):
@@ -98,6 +100,32 @@ class BrokerTests(unittest.TestCase):
 
     def test_health_includes_installed_executor_version(self):
         self.assertEqual(self.broker.health()["version"], "0.1.9")
+
+    def test_host_integrations_are_probed_on_the_wsl_host(self):
+        with patch("host_maintenance.broker._is_wsl_environment", return_value=True):
+            self.assertEqual(
+                self.broker.host_integrations(),
+                {"docker": "available", "wsl": "available"},
+            )
+        self.assertIn(
+            ["/usr/bin/docker", "info", "--format", "{{.ServerVersion}}"],
+            self.calls,
+        )
+
+    def test_host_integrations_report_docker_failure_without_exposing_docker(self):
+        original_runner = self.broker.runner
+
+        def docker_unavailable(argv, **kwargs):
+            if argv[1] == "info":
+                raise RuntimeError("docker unavailable")
+            return original_runner(argv, **kwargs)
+
+        self.broker.runner = docker_unavailable
+        with patch("host_maintenance.broker._is_wsl_environment", return_value=True):
+            self.assertEqual(
+                self.broker.host_integrations(),
+                {"docker": "unavailable", "wsl": "available"},
+            )
 
     def test_concurrent_helpers_are_serialized_and_each_executes_once(self):
         active = threading.Lock()
