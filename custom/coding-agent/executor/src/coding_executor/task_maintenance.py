@@ -5,10 +5,13 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 from pathlib import Path
 from typing import Callable
+
+from coding_executor.coordination import maintenance_lock
 
 
 SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
@@ -225,26 +228,56 @@ def _run_operator_command(
     argv: list[str],
     timeout: int,
 ) -> None:
-    result = subprocess.run(
+    process = subprocess.Popen(
         argv,
         cwd=cwd,
-        check=False,
         stdin=subprocess.DEVNULL,
         stdout=sys.stderr,
         stderr=sys.stderr,
-        timeout=timeout,
         env=_child_environment(),
+        start_new_session=True,
     )
-    if result.returncode != 0:
+
+    try:
+        try:
+            returncode = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired as error:
+            raise RuntimeError(
+                f"{argv[0]} command exceeded "
+                f"{timeout} second timeout"
+            ) from error
+    finally:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait()
+
+    if returncode != 0:
         raise RuntimeError(
-            f"{argv[0]} command failed with exit code {result.returncode}"
+            f"{argv[0]} command failed "
+            f"with exit code {returncode}"
         )
 
 
 def _verify_provisioned_dependencies(task: Path) -> None:
     for relative, (workspace, entrypoint) in LIBRECHAT_WORKSPACE_LINKS.items():
         link = task / relative
-        expected = (task / workspace).resolve(strict=True)
+        workspace_root = task / workspace
+
+        if workspace_root.is_symlink():
+            raise RuntimeError(
+                "workspace package root must not be a symbolic link: "
+                + workspace
+            )
+
+        expected = workspace_root.resolve(strict=True)
+
+        if expected == task or task not in expected.parents:
+            raise RuntimeError(
+                "workspace package root escapes task: "
+                + workspace
+            )
 
         if not link.is_symlink():
             raise RuntimeError(
@@ -274,7 +307,7 @@ def _verify_provisioned_dependencies(task: Path) -> None:
         )
 
 
-def provision_task_dependencies(
+def _provision_task_dependencies_unlocked(
     repository_root: Path,
     task_root: Path,
     task_id: str,
@@ -356,7 +389,7 @@ def provision_task_dependencies(
     }
 
 
-def deprovision_task_dependencies(
+def _deprovision_task_dependencies_unlocked(
     repository_root: Path,
     task_root: Path,
     task_id: str,
@@ -443,6 +476,44 @@ def deprovision_task_dependencies(
             "--untracked-files=all",
         ),
     }
+
+
+def provision_task_dependencies(
+    repository_root: Path,
+    task_root: Path,
+    task_id: str,
+    runner: TaskRunner = _run_operator_command,
+) -> dict[str, object]:
+    task_root = task_root.resolve()
+
+    with maintenance_lock(
+        task_root,
+        exclusive=True,
+    ):
+        return _provision_task_dependencies_unlocked(
+            repository_root,
+            task_root,
+            task_id,
+            runner,
+        )
+
+
+def deprovision_task_dependencies(
+    repository_root: Path,
+    task_root: Path,
+    task_id: str,
+) -> dict[str, object]:
+    task_root = task_root.resolve()
+
+    with maintenance_lock(
+        task_root,
+        exclusive=True,
+    ):
+        return _deprovision_task_dependencies_unlocked(
+            repository_root,
+            task_root,
+            task_id,
+        )
 
 
 def inventory(repository_root: Path, task_root: Path) -> dict[str, object]:

@@ -3,15 +3,19 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import signal
 import subprocess
 import tempfile
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
+from unittest import mock
 
 from coding_executor.task_maintenance import (
     LIBRECHAT_WORKSPACE_LINKS,
     _child_environment,
     _require_librechat_repository,
+    _run_operator_command,
     deprovision_task_dependencies,
     inventory,
     provision_task_dependencies,
@@ -253,6 +257,130 @@ class TaskMaintenanceTest(unittest.TestCase):
             )["tasks"]
         }
         self.assertEqual(states["dependency-task"], "clean")
+
+    def test_dependency_mutations_use_exclusive_maintenance_lock(self) -> None:
+        self._configure_librechat_workspace()
+        self._worktree("dependency-lock-task")
+        locks: list[tuple[Path, bool]] = []
+
+        @contextmanager
+        def fake_lock(
+            task_root: Path,
+            *,
+            exclusive: bool = False,
+            lock_path: Path | None = None,
+        ):
+            del lock_path
+            locks.append(
+                (
+                    task_root.resolve(),
+                    exclusive,
+                )
+            )
+            yield
+
+        with mock.patch(
+            "coding_executor.task_maintenance.maintenance_lock",
+            fake_lock,
+        ):
+            provision_task_dependencies(
+                self.repositories,
+                self.tasks,
+                "dependency-lock-task",
+                runner=self._dependency_runner([]),
+            )
+
+            deprovision_task_dependencies(
+                self.repositories,
+                self.tasks,
+                "dependency-lock-task",
+            )
+
+        self.assertEqual(
+            locks,
+            [
+                (self.tasks.resolve(), True),
+                (self.tasks.resolve(), True),
+            ],
+        )
+
+    def test_dependency_provision_rejects_workspace_symlink_escape(self) -> None:
+        self._configure_librechat_workspace()
+
+        outside = self.tasks.parent / "outside-workspace"
+        outside.mkdir()
+
+        packages = self.repository / "packages"
+        packages.mkdir()
+
+        (packages / "api").symlink_to(
+            outside,
+            target_is_directory=True,
+        )
+
+        self._git(
+            "add",
+            "packages/api",
+        )
+        self._git(
+            "commit",
+            "-m",
+            "add escaped workspace fixture",
+        )
+
+        self._worktree(
+            "dependency-workspace-escape-task"
+        )
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "workspace package root must not be a symbolic link",
+        ):
+            provision_task_dependencies(
+                self.repositories,
+                self.tasks,
+                "dependency-workspace-escape-task",
+                runner=self._dependency_runner([]),
+            )
+
+    def test_operator_command_kills_process_group_on_timeout(self) -> None:
+        process = mock.Mock()
+        process.pid = 4242
+        process.wait.side_effect = [
+            subprocess.TimeoutExpired(
+                ["npm", "ci"],
+                1,
+            ),
+            -signal.SIGKILL,
+        ]
+
+        with (
+            mock.patch(
+                "coding_executor.task_maintenance.subprocess.Popen",
+                return_value=process,
+            ) as popen,
+            mock.patch(
+                "coding_executor.task_maintenance.os.killpg",
+            ) as killpg,
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "exceeded 1 second timeout",
+            ):
+                _run_operator_command(
+                    Path("/tmp"),
+                    ["npm", "ci"],
+                    1,
+                )
+
+        self.assertTrue(
+            popen.call_args.kwargs["start_new_session"]
+        )
+
+        killpg.assert_called_once_with(
+            4242,
+            signal.SIGKILL,
+        )
 
     def test_dependency_provision_requires_pristine_task(self) -> None:
         self._configure_librechat_workspace()
