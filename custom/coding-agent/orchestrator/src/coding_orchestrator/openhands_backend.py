@@ -7,6 +7,7 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
+from urllib.request import getproxies
 
 from .backend import (
     BackendContractError,
@@ -100,10 +101,19 @@ def _validate_endpoint(endpoint: str) -> str:
                 "loopback address; use HTTPS for non-loopback endpoints"
             )
 
+        # The SDK HTTP client honors environment/system proxy settings.
+        # NO_PROXY matching is intentionally not trusted for bearer-token HTTP.
+        if any(value for name, value in getproxies().items() if name != "no"):
+            raise ValueError(
+                "OpenHands executor HTTP requires no configured proxies; "
+                "use HTTPS or remove proxy settings from the process"
+            )
+
     return endpoint
 
 
 def _build_mcp_server(endpoint: str, token: str):
+    endpoint = _validate_endpoint(endpoint)
     from pydantic import SecretStr
     from openhands.sdk.mcp import MCPServer
 
@@ -234,6 +244,7 @@ class OpenHandsBackend:
         )
 
     def probe(self) -> BackendProbe:
+        _validate_endpoint(self._endpoint)
         names = tuple(
             sorted(
                 {

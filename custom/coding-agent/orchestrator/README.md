@@ -137,3 +137,15 @@ The tests exercise real SDK LLM construction with isolated, synthetic credential
 stores. Network refresh/login and CLI execution boundaries are mocked where
 needed; unit tests do not consume subscription usage. The real executor smoke
 and real-model acceptance are separate, explicit operator commands.
+
+## Proxy safety
+
+Plaintext HTTP is limited to literal loopback addresses and is rejected whenever
+Python discovers a configured environment or system proxy. A NO_PROXY exemption
+does not override this conservative check. Use HTTPS with proxies, or remove proxy
+settings from the orchestrator process before using its loopback HTTP endpoint.
+Proxy URLs and credentials are never included in this configuration error.
+
+The endpoint and current proxy configuration are checked at construction, before
+each tool probe, and again when constructing the MCP server for a conversation.
+This also rejects proxy settings introduced after a backend was constructed.
