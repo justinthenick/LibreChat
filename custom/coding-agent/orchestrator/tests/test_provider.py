@@ -24,7 +24,7 @@ class ProviderTests(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.environment = patch.dict(
-            os.environ, {"OH_PERSISTENCE_DIR": self.directory.name},
+            os.environ, {"OH_PERSISTENCE_DIR": self.directory.name}, clear=True,
         )
         self.environment.start()
         self.addCleanup(self.environment.stop)
