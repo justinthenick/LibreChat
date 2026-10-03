@@ -149,6 +149,30 @@ def _discover_openhands_tools(
         )
 
 
+def _validate_non_git_ancestry(path: Path) -> None:
+    for candidate in (path, *path.parents):
+        marker = candidate / ".git"
+        head = candidate / "HEAD"
+        # Bare repositories have their metadata directly in the directory.
+        # Conservatively reject metadata-shaped directories without invoking
+        # Git or honoring repository-location environment overrides.
+        bare_metadata = (
+            (head.exists() or head.is_symlink())
+            and any(
+                entry.exists() or entry.is_symlink()
+                for entry in (
+                    candidate / "objects",
+                    candidate / "refs",
+                    candidate / "reftable",
+                )
+            )
+        )
+        if marker.exists() or marker.is_symlink() or bare_metadata:
+            raise ValueError(
+                "OpenHands scratch/workspace must not be inside a Git repository"
+            )
+
+
 def _validate_scratch_root(value: str | Path) -> Path:
     raw = Path(value).expanduser()
 
@@ -157,22 +181,16 @@ def _validate_scratch_root(value: str | Path) -> Path:
             "OpenHands scratch root must not be a symbolic link"
         )
 
+    # Resolve existing ancestors before mkdir so invalid configuration cannot
+    # create even an empty scratch directory inside a repository.
+    _validate_non_git_ancestry(raw.resolve(strict=False))
     raw.mkdir(
         mode=0o700,
         parents=True,
         exist_ok=True,
     )
-
     root = raw.resolve(strict=True)
-
-    for candidate in (root, *root.parents):
-        marker = candidate / ".git"
-
-        if marker.exists() or marker.is_symlink():
-            raise ValueError(
-                "OpenHands scratch root must not be inside a Git repository"
-            )
-
+    _validate_non_git_ancestry(root)
     return root
 
 
@@ -195,14 +213,7 @@ def _validate_run_workspace(
             "the validated scratch root"
         )
 
-    for candidate in (workspace, *workspace.parents):
-        marker = candidate / ".git"
-
-        if marker.exists() or marker.is_symlink():
-            raise ValueError(
-                "OpenHands run workspace must not be inside a Git repository"
-            )
-
+    _validate_non_git_ancestry(workspace)
     return workspace
 
 

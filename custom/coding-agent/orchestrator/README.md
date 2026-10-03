@@ -149,3 +149,9 @@ Proxy URLs and credentials are never included in this configuration error.
 The endpoint and current proxy configuration are checked at construction, before
 each tool probe, and again when constructing the MCP server for a conversation.
 This also rejects proxy settings introduced after a backend was constructed.
+
+Scratch validation resolves and checks existing ancestors before creating missing
+directories, then repeats the check after creation and for each run workspace.
+Both ordinary Git markers and bare-repository metadata are rejected. The bare
+check conservatively rejects a HEAD entry alongside objects, refs, or reftable
+metadata; it does not execute Git or trust Git environment overrides.
