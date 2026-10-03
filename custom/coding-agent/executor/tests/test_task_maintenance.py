@@ -92,11 +92,33 @@ class TaskMaintenanceTest(unittest.TestCase):
             encoding="utf-8",
         )
 
+        workspace_files: list[str] = []
+
+        for workspace in sorted(
+            {
+                workspace
+                for workspace, _entrypoint in LIBRECHAT_WORKSPACE_LINKS.values()
+            }
+        ):
+            workspace_root = self.repository / workspace
+            workspace_root.mkdir(parents=True, exist_ok=True)
+
+            marker = workspace_root / "workspace-fixture.txt"
+            marker.write_text(
+                "workspace\n",
+                encoding="utf-8",
+            )
+
+            workspace_files.append(
+                str(marker.relative_to(self.repository))
+            )
+
         self._git(
             "add",
             ".gitignore",
             "package.json",
             "package-lock.json",
+            *workspace_files,
         )
         self._git(
             "commit",
@@ -149,6 +171,9 @@ class TaskMaintenanceTest(unittest.TestCase):
                     workspace,
                     entrypoint,
                 ) in LIBRECHAT_WORKSPACE_LINKS.items():
+                    if entrypoint is None:
+                        continue
+
                     target = cwd / workspace / entrypoint
 
                     target.parent.mkdir(
@@ -227,9 +252,10 @@ class TaskMaintenanceTest(unittest.TestCase):
                 (task / relative).resolve(strict=True),
                 (task / workspace).resolve(strict=True),
             )
-            self.assertTrue(
-                (task / workspace / entrypoint).is_file()
-            )
+            if entrypoint is not None:
+                self.assertTrue(
+                    (task / workspace / entrypoint).is_file()
+                )
 
         states = {
             item["task_id"]: item["state"]
@@ -310,18 +336,14 @@ class TaskMaintenanceTest(unittest.TestCase):
         outside = self.tasks.parent / "outside-workspace"
         outside.mkdir()
 
-        packages = self.repository / "packages"
-        packages.mkdir()
+        self._git("rm", "-r", "packages/api")
 
-        (packages / "api").symlink_to(
+        (self.repository / "packages" / "api").symlink_to(
             outside,
             target_is_directory=True,
         )
 
-        self._git(
-            "add",
-            "packages/api",
-        )
+        self._git("add", "packages/api")
         self._git(
             "commit",
             "-m",
@@ -332,6 +354,8 @@ class TaskMaintenanceTest(unittest.TestCase):
             "dependency-workspace-escape-task"
         )
 
+        commands: list[list[str]] = []
+
         with self.assertRaisesRegex(
             RuntimeError,
             "workspace package root must not be a symbolic link",
@@ -340,8 +364,51 @@ class TaskMaintenanceTest(unittest.TestCase):
                 self.repositories,
                 self.tasks,
                 "dependency-workspace-escape-task",
-                runner=self._dependency_runner([]),
+                runner=self._dependency_runner(commands),
             )
+
+        self.assertEqual(commands, [])
+
+    def test_dependency_provision_rejects_root_workspace_symlink_before_npm(
+        self,
+    ) -> None:
+        self._configure_librechat_workspace()
+
+        outside = self.tasks.parent / "outside-api-workspace"
+        outside.mkdir()
+
+        self._git("rm", "-r", "api")
+
+        (self.repository / "api").symlink_to(
+            outside,
+            target_is_directory=True,
+        )
+
+        self._git("add", "api")
+        self._git(
+            "commit",
+            "-m",
+            "add escaped api workspace fixture",
+        )
+
+        self._worktree(
+            "dependency-api-escape-task"
+        )
+
+        commands: list[list[str]] = []
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "workspace package root must not be a symbolic link",
+        ):
+            provision_task_dependencies(
+                self.repositories,
+                self.tasks,
+                "dependency-api-escape-task",
+                runner=self._dependency_runner(commands),
+            )
+
+        self.assertEqual(commands, [])
 
     def test_operator_command_kills_process_group_on_timeout(self) -> None:
         process = mock.Mock()
@@ -466,6 +533,59 @@ class TaskMaintenanceTest(unittest.TestCase):
 
         self.assertTrue((task / "node_modules").exists())
         self.assertTrue((task / "operator-note.tmp").exists())
+
+    def test_dependency_deprovision_refuses_symlinked_generated_parent(
+        self,
+    ) -> None:
+        self._configure_librechat_workspace()
+
+        outside = self.tasks.parent / "outside-deprovision"
+        outside.mkdir()
+
+        self._git("rm", "-r", "packages/api")
+
+        (self.repository / "packages" / "api").symlink_to(
+            outside,
+            target_is_directory=True,
+        )
+
+        self._git("add", "packages/api")
+        self._git(
+            "commit",
+            "-m",
+            "add deprovision symlink fixture",
+        )
+
+        task = self._worktree(
+            "dependency-deprovision-symlink-task"
+        )
+
+        sentinel = outside / "dist" / "sentinel.txt"
+        sentinel.parent.mkdir(parents=True)
+        sentinel.write_text(
+            "preserve\n",
+            encoding="utf-8",
+        )
+
+        ignored = task / "node_modules" / "cache.tmp"
+        ignored.parent.mkdir(parents=True)
+        ignored.write_text(
+            "generated\n",
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "symbolic link parent",
+        ):
+            deprovision_task_dependencies(
+                self.repositories,
+                self.tasks,
+                "dependency-deprovision-symlink-task",
+            )
+
+        self.assertTrue(sentinel.is_file())
+        self.assertTrue(ignored.is_file())
 
     def test_dependency_deprovision_refuses_nonignored_generated_content(self) -> None:
         self._configure_librechat_workspace()

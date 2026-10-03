@@ -32,6 +32,8 @@ LIBRECHAT_GENERATED_ROOTS = (
 )
 
 LIBRECHAT_WORKSPACE_LINKS = {
+    "node_modules/@librechat/backend": ("api", None),
+    "node_modules/@librechat/frontend": ("client", None),
     "node_modules/@librechat/api": ("packages/api", "dist/index.cjs"),
     "node_modules/librechat-data-provider": (
         "packages/data-provider",
@@ -223,6 +225,40 @@ def _validate_librechat_workspace(task: Path) -> None:
         raise ValueError("LibreChat must declare a pinned npm package manager")
 
 
+
+def _validate_task_local_workspace_roots(task: Path) -> None:
+    task = task.resolve()
+
+    workspaces = sorted(
+        {
+            workspace
+            for workspace, _entrypoint in LIBRECHAT_WORKSPACE_LINKS.values()
+        }
+    )
+
+    for workspace in workspaces:
+        workspace_root = task / workspace
+
+        if workspace_root.is_symlink():
+            raise RuntimeError(
+                "workspace package root must not be a symbolic link: "
+                + workspace
+            )
+
+        if not workspace_root.is_dir():
+            raise RuntimeError(
+                "workspace package root is missing: "
+                + workspace
+            )
+
+        resolved = workspace_root.resolve(strict=True)
+
+        if resolved == task or task not in resolved.parents:
+            raise RuntimeError(
+                "workspace package root escapes task: "
+                + workspace
+            )
+
 def _run_operator_command(
     cwd: Path,
     argv: list[str],
@@ -261,39 +297,29 @@ def _run_operator_command(
 
 
 def _verify_provisioned_dependencies(task: Path) -> None:
+    _validate_task_local_workspace_roots(task)
+
     for relative, (workspace, entrypoint) in LIBRECHAT_WORKSPACE_LINKS.items():
         link = task / relative
-        workspace_root = task / workspace
-
-        if workspace_root.is_symlink():
-            raise RuntimeError(
-                "workspace package root must not be a symbolic link: "
-                + workspace
-            )
-
-        expected = workspace_root.resolve(strict=True)
-
-        if expected == task or task not in expected.parents:
-            raise RuntimeError(
-                "workspace package root escapes task: "
-                + workspace
-            )
+        expected = (task / workspace).resolve(strict=True)
 
         if not link.is_symlink():
             raise RuntimeError(
                 f"workspace dependency is not a symbolic link: {relative}"
             )
+
         if link.resolve(strict=True) != expected:
             raise RuntimeError(
                 f"workspace dependency escapes task-local package: {relative}"
             )
 
-        runtime_entrypoint = expected / entrypoint
-        if runtime_entrypoint.is_symlink() or not runtime_entrypoint.is_file():
-            raise RuntimeError(
-                f"workspace runtime entrypoint is missing: "
-                f"{workspace}/{entrypoint}"
-            )
+        if entrypoint is not None:
+            runtime_entrypoint = expected / entrypoint
+            if runtime_entrypoint.is_symlink() or not runtime_entrypoint.is_file():
+                raise RuntimeError(
+                    f"workspace runtime entrypoint is missing: "
+                    f"{workspace}/{entrypoint}"
+                )
 
     unexpected = [
         value
@@ -323,6 +349,7 @@ def _provision_task_dependencies_unlocked(
 
     _require_librechat_repository(repository)
     _validate_librechat_workspace(task)
+    _validate_task_local_workspace_roots(task)
 
     if _git(task, "status", "--porcelain=v1", "--untracked-files=all"):
         raise ValueError(
@@ -389,6 +416,45 @@ def _provision_task_dependencies_unlocked(
     }
 
 
+
+def _validate_generated_root_deletion_paths(task: Path) -> None:
+    task = task.resolve()
+
+    for relative in LIBRECHAT_GENERATED_ROOTS:
+        current = task
+
+        for part in Path(relative).parent.parts:
+            if part in {"", "."}:
+                continue
+
+            current = current / part
+
+            if current.is_symlink():
+                raise ValueError(
+                    "refusing to remove generated root through "
+                    "symbolic link parent: "
+                    + relative
+                )
+
+            if not current.exists():
+                break
+
+            if not current.is_dir():
+                raise ValueError(
+                    "refusing to remove generated root through "
+                    "non-directory parent: "
+                    + relative
+                )
+
+            resolved = current.resolve(strict=True)
+
+            if resolved == task or task not in resolved.parents:
+                raise ValueError(
+                    "refusing to remove generated root through "
+                    "parent outside task: "
+                    + relative
+                )
+
 def _deprovision_task_dependencies_unlocked(
     repository_root: Path,
     task_root: Path,
@@ -445,6 +511,8 @@ def _deprovision_task_dependencies_unlocked(
                 "refusing to remove generated root containing tracked files: "
                 + relative
             )
+
+    _validate_generated_root_deletion_paths(task)
 
     for relative in sorted(
         LIBRECHAT_GENERATED_ROOTS,
