@@ -1,4 +1,4 @@
-# LibreChat coding executor v0.1.6
+# LibreChat coding executor v0.1.14
 
 This service gives a LibreChat Agent a deliberately narrow coding surface without granting access to the NAS Docker socket or the host filesystem.
 
@@ -10,7 +10,7 @@ This service gives a LibreChat Agent a deliberately narrow coding surface withou
 - Final `git_diff` output includes tracked changes and untracked regular files; it fails closed rather than returning a truncated patch.
 - Shell strings are never evaluated. Only test, lint, build and `git diff --check` command prefixes are accepted.
 - Child commands receive a minimal environment that excludes the MCP bearer token.
-- The MCP server has no commit, push, delete-task, package-install or Docker tools.
+- The MCP server has no commit, push, delete-task, package-install or Docker tools. Dependency provisioning is operator-only and is not exposed through MCP.
 - The container runs non-root, drops Linux capabilities, has no Docker socket and has CPU, memory and process limits.
 
 Exploration is server-budgeted per task. Modification tasks warn at 12
@@ -39,7 +39,7 @@ Use the Linux filesystem inside WSL, not `/mnt/c`, for the repositories and work
 3. Replace the example address with the Windows host LAN address that the Synology NAS can reach.
 4. Set `CODING_REPOSITORY_HOST_PATH` and `CODING_TASK_HOST_PATH` to their absolute WSL paths. Compose mounts each directory at the identical path inside the container so Git worktree metadata remains usable from both WSL and the executor.
 5. Create `repos` and `tasks`, clone only approved repositories under `repos`, and run `docker compose -f compose.example.yaml up -d --build`.
-6. Confirm `curl http://127.0.0.1:8765/health` returns `{"status":"ok","version":"0.1.6"}`.
+6. Confirm `curl http://127.0.0.1:8765/health` returns `{"status":"ok","version":"0.1.14"}`.
 
 Do not expose port 8765 to the public internet. Permit it only from the NAS address in Windows Firewall.
 
@@ -72,10 +72,16 @@ Task removal is deliberately not exposed through MCP. Run the maintenance comman
 
 ```bash
 docker exec librechat-coding-executor coding-executor-tasks inventory
+docker exec librechat-coding-executor coding-executor-tasks provision <task-id> --yes
+docker exec librechat-coding-executor coding-executor-tasks deprovision <task-id> --yes
 docker exec librechat-coding-executor coding-executor-tasks remove-clean <task-id> --yes
 ```
 
 `inventory` reports clean, dirty and broken task directories plus stale Git worktree registrations. `remove-clean` refuses tasks containing tracked changes, untracked files, ignored files, invalid paths or broken repository attachment. It removes only the clean worktree and retains the `agent/<task-id>` branch.
+
+`provision` is an operator-only LibreChat action. It requires a pristine task, validates the npm workspace shape, runs `npm ci --ignore-scripts` with the shared `CODING_TASK_ROOT/.npm-cache`, builds the internal packages, and verifies that workspace resolution remains inside the task worktree. It also refuses success if provisioning modifies tracked or ordinary untracked task content.
+
+`deprovision` removes only reviewed dependency/build roots. It refuses unexpected ignored content, tracked content, or non-ignored untracked content inside those roots. Provisioned tasks therefore remain deliberately dirty until deprovisioned.
 
 Stale registrations are reported but never pruned automatically. After confirming the corresponding task directory is genuinely absent, inspect and perform Git's metadata cleanup from WSL:
 
