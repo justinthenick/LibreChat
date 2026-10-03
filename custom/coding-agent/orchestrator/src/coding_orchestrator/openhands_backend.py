@@ -1,0 +1,383 @@
+from __future__ import annotations
+
+import re
+import tempfile
+from collections.abc import Callable, Iterable
+from pathlib import Path
+from typing import Any
+from urllib.parse import urlparse
+
+from .backend import (
+    BackendContractError,
+    BackendProbe,
+    BackendRunRequest,
+    BackendRunResult,
+)
+
+
+EXPECTED_CODING_EXECUTOR_TOOLS = frozenset(
+    {
+        "list_repositories",
+        "create_task",
+        "task_status",
+        "list_files",
+        "read_file",
+        "search_text",
+        "apply_patch",
+        "run_check",
+        "git_diff",
+    }
+)
+
+EXPECTED_OPENHANDS_RUNTIME_TOOLS = frozenset(
+    {
+        *EXPECTED_CODING_EXECUTOR_TOOLS,
+        "finish",
+    }
+)
+
+OPENHANDS_RUNTIME_TOOL_REGEX = (
+    r"^(?:"
+    + "|".join(
+        re.escape(name)
+        for name in sorted(EXPECTED_OPENHANDS_RUNTIME_TOOLS)
+    )
+    + r")$"
+)
+
+RESTRICTED_SYSTEM_PROMPT = """You are a restricted software-engineering agent.
+
+All repository inspection and mutation MUST go through the coding_executor MCP
+tools provided to you.
+
+You do not have and must not attempt to obtain direct terminal, filesystem,
+browser, Docker, package-installation, git commit, git push, git merge,
+deployment, or host-control access.
+
+The coding_executor owns repository scope, worktrees, patch application,
+command allowlists, validation budgets, and mutation boundaries.
+
+Use only the tools actually provided. Use finish when the requested work is
+complete or cannot safely continue.
+"""
+
+ToolDiscovery = Callable[[str, str], Iterable[str]]
+
+
+def _validate_endpoint(endpoint: str) -> str:
+    endpoint = endpoint.strip()
+    parsed = urlparse(endpoint)
+
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.netloc
+        or parsed.path != "/mcp"
+        or parsed.params
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError(
+            "OpenHands executor endpoint must be an http(s) URL ending exactly in /mcp"
+        )
+
+    return endpoint
+
+
+def _build_mcp_server(endpoint: str, token: str):
+    from pydantic import SecretStr
+    from openhands.sdk.mcp import MCPServer
+
+    return MCPServer(
+        transport="streamable-http",
+        url=endpoint,
+        headers={
+            "Authorization": SecretStr(
+                f"Bearer {token}"
+            ),
+        },
+    )
+
+
+def _discover_openhands_tools(
+    endpoint: str,
+    token: str,
+) -> tuple[str, ...]:
+    from openhands.sdk.mcp.utils import create_mcp_tools
+
+    server = _build_mcp_server(
+        endpoint,
+        token,
+    )
+
+    with create_mcp_tools(
+        {"coding_executor": server},
+        timeout=30.0,
+    ) as client:
+        return tuple(
+            tool.name
+            for tool in client.tools
+        )
+
+
+def _validate_scratch_root(value: str | Path) -> Path:
+    raw = Path(value).expanduser()
+
+    if raw.is_symlink():
+        raise ValueError(
+            "OpenHands scratch root must not be a symbolic link"
+        )
+
+    raw.mkdir(
+        mode=0o700,
+        parents=True,
+        exist_ok=True,
+    )
+
+    root = raw.resolve(strict=True)
+
+    for candidate in (root, *root.parents):
+        marker = candidate / ".git"
+
+        if marker.exists() or marker.is_symlink():
+            raise ValueError(
+                "OpenHands scratch root must not be inside a Git repository"
+            )
+
+    return root
+
+
+class OpenHandsBackend:
+    """OpenHands agent loop restricted to coding_executor MCP."""
+
+    name = "openhands"
+
+    def __init__(
+        self,
+        endpoint: str,
+        token: str,
+        *,
+        discover_tools: ToolDiscovery | None = None,
+        llm: Any | None = None,
+        scratch_root: str | Path | None = None,
+    ) -> None:
+        self._endpoint = _validate_endpoint(endpoint)
+
+        if not token:
+            raise ValueError(
+                "coding executor bearer token is required"
+            )
+
+        self._token = token
+        self._discover_tools = (
+            discover_tools
+            or _discover_openhands_tools
+        )
+        self._llm = llm
+        self._scratch_root = (
+            _validate_scratch_root(scratch_root)
+            if scratch_root is not None
+            else None
+        )
+
+    def probe(self) -> BackendProbe:
+        names = tuple(
+            sorted(
+                {
+                    str(name).strip()
+                    for name in self._discover_tools(
+                        self._endpoint,
+                        self._token,
+                    )
+                    if str(name).strip()
+                }
+            )
+        )
+
+        discovered = set(names)
+        missing = (
+            EXPECTED_CODING_EXECUTOR_TOOLS
+            - discovered
+        )
+        unexpected = (
+            discovered
+            - EXPECTED_CODING_EXECUTOR_TOOLS
+        )
+
+        if missing or unexpected:
+            details: list[str] = []
+
+            if missing:
+                details.append(
+                    "missing="
+                    + ",".join(sorted(missing))
+                )
+
+            if unexpected:
+                details.append(
+                    "unexpected="
+                    + ",".join(sorted(unexpected))
+                )
+
+            raise BackendContractError(
+                "OpenHands coding_executor tool contract mismatch: "
+                + "; ".join(details)
+            )
+
+        return BackendProbe(
+            backend=self.name,
+            tool_names=names,
+        )
+
+    def _build_agent(self):
+        if self._llm is None:
+            raise BackendContractError(
+                "OpenHands LLM is not configured"
+            )
+
+        from openhands.sdk import Agent
+
+        return Agent(
+            llm=self._llm,
+            tools=[],
+            include_default_tools=[
+                "FinishTool",
+            ],
+            mcp_config={
+                "coding_executor": _build_mcp_server(
+                    self._endpoint,
+                    self._token,
+                ),
+            },
+            filter_tools_regex=(
+                OPENHANDS_RUNTIME_TOOL_REGEX
+            ),
+            system_prompt=(
+                RESTRICTED_SYSTEM_PROMPT
+            ),
+        )
+
+    def run(
+        self,
+        request: BackendRunRequest,
+    ) -> BackendRunResult:
+        prompt = request.prompt.strip()
+
+        if not prompt:
+            raise ValueError(
+                "agent prompt must not be empty"
+            )
+
+        if not (
+            1
+            <= request.max_iterations
+            <= 100
+        ):
+            raise ValueError(
+                "max_iterations must be between 1 and 100"
+            )
+
+        if self._scratch_root is None:
+            raise BackendContractError(
+                "OpenHands scratch root is not configured"
+            )
+
+        # Fail closed before starting an LLM-driven loop.
+        self.probe()
+
+        from openhands.sdk import Conversation
+        from openhands.sdk.conversation.response_utils import (
+            get_agent_final_response,
+        )
+        from openhands.sdk.event import ActionEvent
+
+        agent = self._build_agent()
+
+        with tempfile.TemporaryDirectory(
+            prefix="run-",
+            dir=self._scratch_root,
+        ) as workspace:
+            conversation = Conversation(
+                agent=agent,
+                workspace=workspace,
+                visualizer=None,
+                max_iteration_per_run=(
+                    request.max_iterations
+                ),
+                stuck_detection=True,
+            )
+
+            try:
+                # send_message() performs lazy agent/MCP
+                # initialization but does not execute the loop.
+                conversation.send_message(prompt)
+
+                runtime_names = tuple(
+                    sorted(
+                        conversation.agent.tools_map
+                    )
+                )
+
+                if (
+                    set(runtime_names)
+                    != EXPECTED_OPENHANDS_RUNTIME_TOOLS
+                ):
+                    raise BackendContractError(
+                        "OpenHands runtime tool contract mismatch: "
+                        + repr(runtime_names)
+                    )
+
+                conversation.run()
+
+                action_tools = tuple(
+                    event.tool_name
+                    for event
+                    in conversation.state.events
+                    if isinstance(
+                        event,
+                        ActionEvent,
+                    )
+                )
+
+                forbidden = (
+                    set(action_tools)
+                    - EXPECTED_OPENHANDS_RUNTIME_TOOLS
+                )
+
+                if forbidden:
+                    raise BackendContractError(
+                        "OpenHands executed forbidden tools: "
+                        + ",".join(
+                            sorted(forbidden)
+                        )
+                    )
+
+                status = (
+                    conversation
+                    .state
+                    .execution_status
+                    .value
+                )
+
+                final_response = (
+                    get_agent_final_response(
+                        conversation.state.events
+                    )
+                )
+
+                if status != "finished":
+                    raise BackendContractError(
+                        "OpenHands conversation did not finish: "
+                        + status
+                    )
+
+                return BackendRunResult(
+                    backend=self.name,
+                    execution_status=status,
+                    final_response=final_response,
+                    runtime_tool_names=(
+                        runtime_names
+                    ),
+                    action_tools=action_tools,
+                )
+            finally:
+                conversation.close()
