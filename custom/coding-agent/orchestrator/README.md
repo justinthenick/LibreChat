@@ -59,3 +59,15 @@ The `smoke openhands` command uses OpenHands' deterministic `TestLLM`. It runs
 the real Agent/Conversation loop and real MCP transport, calls the executor's
 read-only `list_repositories` operation, then invokes only OpenHands' `finish`
 tool. No external LLM credentials are required for this acceptance test.
+
+## Proxy safety
+
+Plaintext HTTP is limited to literal loopback addresses and is rejected whenever
+Python discovers a configured environment or system proxy. A NO_PROXY exemption
+does not override this conservative check. Use HTTPS with proxies, or remove proxy
+settings from the orchestrator process before using its loopback HTTP endpoint.
+Proxy URLs and credentials are never included in this configuration error.
+
+The endpoint and current proxy configuration are checked at construction, before
+each tool probe, and again when constructing the MCP server for a conversation.
+This also rejects proxy settings introduced after a backend was constructed.
