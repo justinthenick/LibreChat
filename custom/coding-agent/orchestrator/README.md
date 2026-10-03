@@ -141,7 +141,8 @@ and real-model acceptance are separate, explicit operator commands.
 ## Proxy safety
 
 Plaintext HTTP is limited to literal loopback addresses and is rejected whenever
-Python discovers a configured environment or system proxy. A NO_PROXY exemption
+Python discovers a configured HTTP, HTTPS, or ALL environment/system proxy.
+Unrelated proxy settings (such as FTP or package-manager proxies) are ignored. A NO_PROXY exemption
 does not override this conservative check. Use HTTPS with proxies, or remove proxy
 settings from the orchestrator process before using its loopback HTTP endpoint.
 Proxy URLs and credentials are never included in this configuration error.
