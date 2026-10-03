@@ -16,6 +16,11 @@ string. The broker pins the reviewed image ID, verifies the container's mounts,
 non-root user, read-only root and dropped capabilities, then addresses the immutable
 container ID. It never builds, recreates, upgrades, deploys or runs caller-selected code.
 
+The service also exposes an unauthenticated `/health` route for deployment diagnostics.
+It returns only coarse `docker` and `wsl` availability strings. It does not expose
+container IDs, image IDs, paths, environment values, tokens, Docker output, or any
+mutation capability. Authenticated MCP tools remain unchanged.
+
 Git and worktree inspection/mutation run in the restricted executor container through
 the installed `coding_executor.maintenance` module, not as the host's Docker-capable
 user. No host Git credentials are forwarded. This initial refresh implementation

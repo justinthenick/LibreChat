@@ -74,6 +74,8 @@ class BrokerTests(unittest.TestCase):
             if argv[-1] == "health":
                 return json.dumps({"version": "0.1.9"})
             return json.dumps(self.snapshot)
+        if argv[1] == "info":
+            return "27.5.1"
         raise AssertionError(argv)
 
     def test_unknown_repository_and_injection_never_reach_docker(self):
@@ -98,6 +100,32 @@ class BrokerTests(unittest.TestCase):
 
     def test_health_includes_installed_executor_version(self):
         self.assertEqual(self.broker.health()["version"], "0.1.9")
+
+    def test_host_integrations_are_probed_on_the_wsl_host(self):
+        with patch("host_maintenance.broker._is_wsl_environment", return_value=True):
+            self.assertEqual(
+                self.broker.host_integrations(),
+                {"docker": "available", "wsl": "available"},
+            )
+        self.assertIn(
+            ["/usr/bin/docker", "info", "--format", "{{.ServerVersion}}"],
+            self.calls,
+        )
+
+    def test_host_integrations_report_docker_failure_without_exposing_docker(self):
+        original_runner = self.broker.runner
+
+        def docker_unavailable(argv, **kwargs):
+            if argv[1] == "info":
+                raise RuntimeError("docker unavailable")
+            return original_runner(argv, **kwargs)
+
+        self.broker.runner = docker_unavailable
+        with patch("host_maintenance.broker._is_wsl_environment", return_value=True):
+            self.assertEqual(
+                self.broker.host_integrations(),
+                {"docker": "unavailable", "wsl": "available"},
+            )
 
     def test_concurrent_helpers_are_serialized_and_each_executes_once(self):
         active = threading.Lock()
@@ -272,6 +300,8 @@ class BrokerTests(unittest.TestCase):
             port = listener.getsockname()[1]
             url = f"http://127.0.0.1:{port}/mcp"
             mcp = build_server(self.broker, "m" * 48, url)
+            integration_probe_count = sum(call[1] == "info" for call in self.calls)
+            self.assertEqual(integration_probe_count, 1)
             app = mcp.streamable_http_app(stateless_http=True, json_response=True,
                 transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=True,
                     allowed_hosts=[f"127.0.0.1:{port}"], allowed_origins=[]))
@@ -283,6 +313,48 @@ class BrokerTests(unittest.TestCase):
                 while not server.started and time.monotonic() < deadline:
                     time.sleep(0.01)
                 self.assertTrue(server.started)
+
+                health_url = f"http://127.0.0.1:{port}/health"
+                for _ in range(2):
+                    with urllib.request.urlopen(health_url, timeout=5) as response:
+                        health = json.load(response)
+                    self.assertEqual(health["status"], "ok")
+                    self.assertEqual(health["host"]["docker"], "available")
+
+                self.assertEqual(
+                    sum(call[1] == "info" for call in self.calls),
+                    integration_probe_count,
+                )
+
+                original_runner = self.broker.runner
+
+                def delayed_docker(argv, **kwargs):
+                    if argv[1] == "info":
+                        time.sleep(0.1)
+                    return original_runner(argv, **kwargs)
+
+                self.broker.runner = delayed_docker
+                try:
+                    with patch("host_maintenance.server.HOST_INTEGRATION_TTL_SECONDS", 0.01):
+                        time.sleep(0.02)
+
+                        def health_request(_index):
+                            with urllib.request.urlopen(health_url, timeout=5) as response:
+                                return json.load(response)
+
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+                            refreshed = list(pool.map(health_request, range(4)))
+
+                    self.assertTrue(
+                        all(item["host"]["docker"] == "available" for item in refreshed)
+                    )
+                    self.assertEqual(
+                        sum(call[1] == "info" for call in self.calls),
+                        integration_probe_count + 1,
+                    )
+                finally:
+                    self.broker.runner = original_runner
+
                 def request(token=None, method="tools/list", params=None):
                     headers = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream",
                                "MCP-Protocol-Version": "2025-06-18"}

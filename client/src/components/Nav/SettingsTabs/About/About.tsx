@@ -40,6 +40,12 @@ function buildDiagnosticsBlob(
       lines.push(`Coding executor version: ${codingAgent.executor.version}`);
     }
     lines.push(`Host maintenance: ${codingAgent.maintenance?.status ?? UNKNOWN_PLACEHOLDER}`);
+    if (codingAgent.host?.docker) {
+      lines.push(`Docker engine: ${codingAgent.host.docker}`);
+    }
+    if (codingAgent.host?.wsl) {
+      lines.push(`WSL integration: ${codingAgent.host.wsl}`);
+    }
     if (codingAgent.pilot?.version) {
       lines.push(`Software Engineering Pilot version: ${codingAgent.pilot.version}`);
     }
@@ -71,6 +77,20 @@ function About() {
   const buildInfo = startupConfig?.buildInfo;
   const codingAgent = startupConfig?.codingAgent;
   const version: string = Constants.VERSION;
+
+  const localizeHostIntegrationStatus = (status: string | null | undefined): string => {
+    switch (status) {
+      case 'available':
+        return localize('com_nav_about_status_available');
+      case 'unavailable':
+        return localize('com_nav_about_status_unavailable');
+      case 'not_detected':
+        return localize('com_nav_about_status_not_detected');
+      case 'unknown':
+      default:
+        return localize('com_nav_about_status_unknown');
+    }
+  };
 
   const diagnosticsBlob = useMemo(
     () => buildDiagnosticsBlob(version, buildInfo, codingAgent),
@@ -130,6 +150,18 @@ function About() {
               label={localize('com_nav_about_host_maintenance')}
               value={codingAgent.maintenance?.status ?? UNKNOWN_PLACEHOLDER}
             />
+            {codingAgent.host?.docker && (
+              <Row
+                label={localize('com_nav_about_docker_engine')}
+                value={localizeHostIntegrationStatus(codingAgent.host.docker)}
+              />
+            )}
+            {codingAgent.host?.wsl && (
+              <Row
+                label={localize('com_nav_about_wsl_integration')}
+                value={localizeHostIntegrationStatus(codingAgent.host.wsl)}
+              />
+            )}
             {codingAgent.pilot?.version && (
               <Row
                 label={localize('com_nav_about_pilot_version')}

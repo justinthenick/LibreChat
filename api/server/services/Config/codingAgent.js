@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const net = require('net');
+const { normalizeCodingHostDiagnostics } = require('@librechat/api/coding');
 
 let cachedStatus = null;
 let lastCheckTime = 0;
@@ -17,51 +17,83 @@ async function probeExecutor(host, port) {
   try {
     const url = `http://${host}:${port}/health`;
     const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
 
     if (!res.ok) {
       return { configured: true, status: `error_${res.status}`, version: null };
     }
 
     const data = await res.json().catch(() => ({}));
-    return {
+    if (controller.signal.aborted) {
+      return { configured: true, status: 'unreachable', version: null };
+    }
+
+    const result = {
       configured: true,
       status: typeof data.status === 'string' ? data.status : 'ok',
       version: typeof data.version === 'string' ? data.version : null,
     };
+    if (data.docker !== undefined) {
+      result.docker = typeof data.docker === 'string' ? data.docker : (data.docker?.status ?? null);
+    }
+    if (data.wsl !== undefined) {
+      result.wsl = typeof data.wsl === 'string' ? data.wsl : (data.wsl?.status ?? null);
+    }
+    if (data.host !== undefined) {
+      result.host = data.host;
+    }
+    return result;
   } catch {
-    clearTimeout(timeoutId);
     return { configured: true, status: 'unreachable', version: null };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
-function probeMaintenance(host, portRaw) {
-  return new Promise((resolve) => {
-    const validPort = /^[0-9]+$/.test(String(portRaw));
-    const port = validPort ? Number(portRaw) : 0;
+async function probeMaintenance(host, portRaw) {
+  const validPort = /^[0-9]+$/.test(String(portRaw));
+  const port = validPort ? Number(portRaw) : 0;
 
-    if (!host || !validPort || port <= 0 || port > 65535) {
-      return resolve({ configured: false, status: 'unconfigured' });
+  if (!host || !validPort || port <= 0 || port > 65535) {
+    return { configured: false, status: 'unconfigured' };
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+  try {
+    const res = await fetch(`http://${host}:${port}/health`, {
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      // The maintenance service is reachable but may predate the diagnostic route.
+      return { configured: true, status: 'running' };
     }
 
-    const socket = net.createConnection({ host, port });
-    let settled = false;
+    const data = await res.json().catch(() => ({}));
+    if (controller.signal.aborted) {
+      return { configured: true, status: 'unreachable' };
+    }
 
-    const finish = (status) => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      socket.destroy();
-      resolve({ configured: true, status });
+    const result = {
+      configured: true,
+      status: 'running',
     };
 
-    socket.setTimeout(2000);
-    socket.once('connect', () => finish('running'));
-    socket.once('timeout', () => finish('unreachable'));
-    socket.once('error', () => finish('unreachable'));
-  });
+    if (data.host && typeof data.host === 'object') {
+      result.host = data.host;
+    }
+
+    return result;
+  } catch {
+    return { configured: true, status: 'unreachable' };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function probeHostIntegration({ executor, maintenance } = {}) {
+  return normalizeCodingHostDiagnostics({ executor, maintenance });
 }
 
 function getPilotIdentity(manifestDir) {
@@ -146,11 +178,13 @@ async function getCodingAgentConfig(forceRefresh = false) {
     probeMaintenance(maintenanceHost, maintenancePort),
   ]);
   const pilot = getPilotIdentity();
+  const host = probeHostIntegration({ executor, maintenance });
 
   cachedStatus = {
     executor,
     maintenance,
     pilot,
+    host,
   };
   lastCheckTime = now;
   return cachedStatus;
@@ -161,4 +195,5 @@ module.exports = {
   probeExecutor,
   probeMaintenance,
   getPilotIdentity,
+  probeHostIntegration,
 };

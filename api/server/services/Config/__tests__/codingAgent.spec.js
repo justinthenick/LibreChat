@@ -91,6 +91,83 @@ describe('codingAgent config service', () => {
         status: 'unconfigured',
       });
     });
+
+    it('returns host diagnostics reported by the WSL maintenance broker', async () => {
+      const originalFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: 'ok',
+          host: {
+            docker: 'available',
+            wsl: 'available',
+          },
+        }),
+      });
+
+      try {
+        await expect(probeMaintenance('127.0.0.1', '8767')).resolves.toEqual({
+          configured: true,
+          status: 'running',
+          host: {
+            docker: 'available',
+            wsl: 'available',
+          },
+        });
+      } finally {
+        global.fetch = originalFetch;
+      }
+    });
+
+    it('keeps the timeout active while reading the response body', async () => {
+      jest.useFakeTimers();
+      const originalFetch = global.fetch;
+
+      global.fetch = jest.fn().mockImplementation((_url, options) =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            new Promise((_, reject) => {
+              options.signal.addEventListener('abort', () => reject(new Error('aborted')), {
+                once: true,
+              });
+            }),
+        }),
+      );
+
+      try {
+        const pending = probeMaintenance('127.0.0.1', '8767');
+        await Promise.resolve();
+        await Promise.resolve();
+
+        jest.advanceTimersByTime(2000);
+
+        await expect(pending).resolves.toEqual({
+          configured: true,
+          status: 'unreachable',
+        });
+      } finally {
+        global.fetch = originalFetch;
+        jest.useRealTimers();
+      }
+    });
+
+    it('keeps older reachable maintenance services compatible', async () => {
+      const originalFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+      });
+
+      try {
+        await expect(probeMaintenance('127.0.0.1', '8767')).resolves.toEqual({
+          configured: true,
+          status: 'running',
+        });
+      } finally {
+        global.fetch = originalFetch;
+      }
+    });
   });
 
   describe('getPilotIdentity', () => {
@@ -213,6 +290,8 @@ describe('codingAgent config service', () => {
       expect(config.maintenance.configured).toBe(false);
       expect(config).toHaveProperty('pilot');
       expect(typeof config.pilot.configured).toBe('boolean');
+      expect(config).toHaveProperty('host');
+      expect(typeof config.host.status).toBe('string');
     });
   });
 });

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -14,8 +15,12 @@ from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import AnyHttpUrl
+from starlette.responses import JSONResponse
 
 from host_maintenance.broker import Broker
+
+
+HOST_INTEGRATION_TTL_SECONDS = 15.0
 
 
 class MaintenanceTokenVerifier(TokenVerifier):
@@ -49,11 +54,41 @@ def audited(function):
 
 
 def build_server(broker: Broker, token: str, url: str) -> MCPServer:
+    host_integrations = broker.host_integrations()
+    host_integrations_checked_at = time.monotonic()
+    host_integrations_refresh: asyncio.Task[dict[str, str]] | None = None
+
+    async def refresh_host_integrations() -> dict[str, str]:
+        nonlocal host_integrations, host_integrations_checked_at
+        host_integrations = await asyncio.to_thread(broker.host_integrations)
+        host_integrations_checked_at = time.monotonic()
+        return host_integrations
+
+    async def current_host_integrations() -> dict[str, str]:
+        nonlocal host_integrations_refresh
+        if time.monotonic() - host_integrations_checked_at < HOST_INTEGRATION_TTL_SECONDS:
+            return host_integrations
+        if host_integrations_refresh is None or host_integrations_refresh.done():
+            host_integrations_refresh = asyncio.create_task(refresh_host_integrations())
+        refresh = host_integrations_refresh
+        try:
+            return await asyncio.shield(refresh)
+        finally:
+            if refresh.done() and host_integrations_refresh is refresh:
+                host_integrations_refresh = None
+
     server = MCPServer("librechat-host-maintenance", token_verifier=MaintenanceTokenVerifier(token, url),
                        auth=AuthSettings(issuer_url=AnyHttpUrl("https://librechat.local"),
                                          resource_server_url=AnyHttpUrl(url),
                                          required_scopes=["coding:maintain"], validate_token_resource=True),
                        instructions="Use only allowlisted maintenance operations. Preview before cleanup/restart. Tickets expire after 60 seconds and are not human approval. Never infer a task is retired because it is clean. No shell, deployment, force cleanup, branch deletion or push is available.")
+
+    @server.custom_route("/health", methods=["GET"])
+    async def health(_request: object) -> JSONResponse:
+        return JSONResponse({
+            "status": "ok",
+            "host": await current_host_integrations(),
+        })
 
     @server.tool(description="Inspect only the configured executor container, image and health.")
     @audited

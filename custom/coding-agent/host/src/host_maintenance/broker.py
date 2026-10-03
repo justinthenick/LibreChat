@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import math
 import json
+import os
 import re
 import secrets
 import threading
@@ -18,6 +19,20 @@ NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,79}")
 DEFAULT_DOCKER_OUTPUT_LIMIT = 65536
 VALIDATION_DOCKER_OUTPUT_LIMIT = 64 * 1024 * 1024
 VALIDATION_PATH_PREVIEW_LIMIT = 100
+
+
+def _is_wsl_environment() -> bool:
+    if os.environ.get("WSL_DISTRO_NAME") or os.environ.get("WSL_INTEROP"):
+        return True
+
+    for path in (Path("/proc/sys/kernel/osrelease"), Path("/proc/version")):
+        try:
+            if "microsoft" in path.read_text(encoding="utf-8").lower():
+                return True
+        except OSError:
+            continue
+
+    return False
 
 
 class Broker:
@@ -112,6 +127,24 @@ class Broker:
     def _enabled(self, operation: str) -> None:
         if self.config.get("enabled_mutations", {}).get(operation) is not True:
             raise ValueError(f"{operation} is disabled by operator policy")
+
+    def host_integrations(self) -> dict[str, str]:
+        try:
+            self._docker(
+                "info",
+                "--format",
+                "{{.ServerVersion}}",
+                timeout=5,
+                limit=1024,
+            )
+            docker = "available"
+        except Exception:
+            docker = "unavailable"
+
+        return {
+            "docker": docker,
+            "wsl": "available" if _is_wsl_environment() else "not_detected",
+        }
 
     def health(self) -> dict:
         data = self._inspect()
