@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 import re
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from coding_orchestrator import (
     BackendContractError,
@@ -21,6 +23,11 @@ from coding_orchestrator.openhands_backend import (
 class OpenHandsBackendTests(
     unittest.TestCase
 ):
+    def setUp(self) -> None:
+        environment = patch.dict(os.environ, {}, clear=True)
+        environment.start()
+        self.addCleanup(environment.stop)
+
     def test_probe_accepts_exact_executor_contract(
         self,
     ) -> None:
