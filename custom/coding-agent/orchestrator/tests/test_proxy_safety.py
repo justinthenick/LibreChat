@@ -31,6 +31,14 @@ class ProxySafetyTests(unittest.TestCase):
                         self.assertNotIn("proxy-secret", str(error.exception))
                         self.assertNotIn("executor-secret", str(error.exception))
 
+    def test_unrelated_proxy_settings_do_not_block_loopback(self) -> None:
+        for name in ("FTP_PROXY", "ftp_proxy", "NPM_CONFIG_HTTP_PROXY"):
+            with self.subTest(name=name), patch.dict(os.environ, {
+                name: "http://192.0.2.1:8080",
+            }):
+                server = _build_mcp_server("http://127.0.0.1:8765/mcp", "secret")
+                self.assertEqual(str(server.url), "http://127.0.0.1:8765/mcp")
+
     def test_https_remains_available_with_proxy(self) -> None:
         with patch.dict(os.environ, {"HTTP_PROXY": "http://192.0.2.1:8080"}):
             backend = OpenHandsBackend("https://executor.example.test/mcp", "secret")

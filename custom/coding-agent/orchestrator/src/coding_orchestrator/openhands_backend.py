@@ -102,7 +102,8 @@ def _validate_endpoint(endpoint: str) -> str:
 
         # The SDK HTTP client honors environment/system proxy settings.
         # NO_PROXY matching is intentionally not trusted for bearer-token HTTP.
-        if any(value for name, value in getproxies().items() if name != "no"):
+        proxies = getproxies()
+        if any(proxies.get(scheme) for scheme in ("http", "https", "all")):
             raise ValueError(
                 "OpenHands executor HTTP requires no configured proxies; "
                 "use HTTPS or remove proxy settings from the process"
