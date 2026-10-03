@@ -14,6 +14,7 @@ from .backend import (
     BackendRunRequest,
     BackendRunResult,
 )
+from .provider import OpenHandsProviderConfig
 
 
 EXPECTED_CODING_EXECUTOR_TOOLS = frozenset(
@@ -207,6 +208,7 @@ class OpenHandsBackend:
         *,
         discover_tools: ToolDiscovery | None = None,
         llm: Any | None = None,
+        provider: OpenHandsProviderConfig | None = None,
         scratch_root: str | Path | None = None,
     ) -> None:
         self._endpoint = _validate_endpoint(endpoint)
@@ -221,7 +223,10 @@ class OpenHandsBackend:
             discover_tools
             or _discover_openhands_tools
         )
+        if llm is not None and provider is not None:
+            raise ValueError("Specify either an injected LLM or a provider, not both")
         self._llm = llm
+        self._provider = provider
         self._scratch_root = (
             _validate_scratch_root(scratch_root)
             if scratch_root is not None
@@ -278,7 +283,12 @@ class OpenHandsBackend:
         )
 
     def _build_agent(self):
-        if self._llm is None:
+        llm = (
+            self._provider.build_llm()
+            if self._provider is not None
+            else self._llm
+        )
+        if llm is None:
             raise BackendContractError(
                 "OpenHands LLM is not configured"
             )
@@ -286,7 +296,7 @@ class OpenHandsBackend:
         from openhands.sdk import Agent
 
         return Agent(
-            llm=self._llm,
+            llm=llm,
             tools=[],
             include_default_tools=[
                 "FinishTool",

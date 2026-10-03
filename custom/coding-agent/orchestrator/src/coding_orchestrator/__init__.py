@@ -11,8 +11,10 @@ from .openhands_backend import (
     OPENHANDS_RUNTIME_TOOL_REGEX,
     OpenHandsBackend,
 )
+from .provider import OpenHandsProviderConfig
 
 __all__ = [
+    "OpenHandsProviderConfig",
     "AgentBackend",
     "BackendContractError",
     "BackendProbe",
