@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import tempfile
+from ipaddress import ip_address
 from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
@@ -71,6 +72,9 @@ def _validate_endpoint(endpoint: str) -> str:
     if (
         parsed.scheme not in {"http", "https"}
         or not parsed.netloc
+        or parsed.hostname is None
+        or parsed.username is not None
+        or parsed.password is not None
         or parsed.path != "/mcp"
         or parsed.params
         or parsed.query
@@ -79,6 +83,21 @@ def _validate_endpoint(endpoint: str) -> str:
         raise ValueError(
             "OpenHands executor endpoint must be an http(s) URL ending exactly in /mcp"
         )
+
+    if parsed.scheme == "http":
+        try:
+            address = ip_address(parsed.hostname)
+        except ValueError as error:
+            raise ValueError(
+                "OpenHands executor endpoint may use HTTP only with a literal "
+                "loopback address; use HTTPS for non-loopback endpoints"
+            ) from error
+
+        if not address.is_loopback:
+            raise ValueError(
+                "OpenHands executor endpoint may use HTTP only with a literal "
+                "loopback address; use HTTPS for non-loopback endpoints"
+            )
 
     return endpoint
 
@@ -144,6 +163,36 @@ def _validate_scratch_root(value: str | Path) -> Path:
             )
 
     return root
+
+
+def _validate_run_workspace(
+    value: str | Path,
+    scratch_root: Path,
+) -> Path:
+    raw = Path(value)
+
+    if raw.is_symlink():
+        raise ValueError(
+            "OpenHands run workspace must not be a symbolic link"
+        )
+
+    workspace = raw.resolve(strict=True)
+
+    if workspace.parent != scratch_root:
+        raise ValueError(
+            "OpenHands run workspace must resolve directly beneath "
+            "the validated scratch root"
+        )
+
+    for candidate in (workspace, *workspace.parents):
+        marker = candidate / ".git"
+
+        if marker.exists() or marker.is_symlink():
+            raise ValueError(
+                "OpenHands run workspace must not be inside a Git repository"
+            )
+
+    return workspace
 
 
 class OpenHandsBackend:
@@ -281,6 +330,12 @@ class OpenHandsBackend:
                 "OpenHands scratch root is not configured"
             )
 
+        # Revalidate immediately before every run. A long-lived backend must
+        # not trust a scratch path that has changed since construction.
+        scratch_root = _validate_scratch_root(
+            self._scratch_root
+        )
+
         # Fail closed before starting an LLM-driven loop.
         self.probe()
 
@@ -294,11 +349,16 @@ class OpenHandsBackend:
 
         with tempfile.TemporaryDirectory(
             prefix="run-",
-            dir=self._scratch_root,
+            dir=scratch_root,
         ) as workspace:
+            workspace_path = _validate_run_workspace(
+                workspace,
+                scratch_root,
+            )
+
             conversation = Conversation(
                 agent=agent,
-                workspace=workspace,
+                workspace=workspace_path,
                 visualizer=None,
                 max_iteration_per_run=(
                     request.max_iterations

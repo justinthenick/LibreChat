@@ -7,10 +7,14 @@ from pathlib import Path
 
 from coding_orchestrator import (
     BackendContractError,
+    BackendRunRequest,
     EXPECTED_CODING_EXECUTOR_TOOLS,
     EXPECTED_OPENHANDS_RUNTIME_TOOLS,
     OPENHANDS_RUNTIME_TOOL_REGEX,
     OpenHandsBackend,
+)
+from coding_orchestrator.openhands_backend import (
+    _validate_run_workspace,
 )
 
 
@@ -244,6 +248,134 @@ class OpenHandsBackendTests(
             agent.filter_tools_regex,
             OPENHANDS_RUNTIME_TOOL_REGEX,
         )
+
+    def test_http_requires_literal_loopback(
+        self,
+    ) -> None:
+        rejected = (
+            "http://192.168.1.120:8765/mcp",
+            "http://localhost:8765/mcp",
+            "http://executor.example.test/mcp",
+        )
+
+        for endpoint in rejected:
+            with self.subTest(endpoint=endpoint):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    r"literal loopback",
+                ):
+                    OpenHandsBackend(
+                        endpoint,
+                        "secret-token",
+                        discover_tools=(
+                            lambda _endpoint, _token: ()
+                        ),
+                    )
+
+        accepted = (
+            "http://127.0.0.1:8765/mcp",
+            "http://127.0.0.42:8765/mcp",
+            "http://[::1]:8765/mcp",
+            "https://192.168.1.120:8765/mcp",
+            "https://executor.example.test/mcp",
+        )
+
+        for endpoint in accepted:
+            with self.subTest(endpoint=endpoint):
+                OpenHandsBackend(
+                    endpoint,
+                    "secret-token",
+                    discover_tools=(
+                        lambda _endpoint, _token: ()
+                    ),
+                )
+
+    def test_run_revalidates_scratch_root_after_git_marker(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as root:
+            scratch = Path(root) / "scratch"
+
+            backend = OpenHandsBackend(
+                "http://127.0.0.1:8765/mcp",
+                "secret-token",
+                discover_tools=(
+                    lambda _endpoint, _token:
+                    EXPECTED_CODING_EXECUTOR_TOOLS
+                ),
+                scratch_root=scratch,
+            )
+
+            (scratch / ".git").mkdir()
+
+            with self.assertRaisesRegex(
+                ValueError,
+                r"must not be inside a Git repository",
+            ):
+                backend.run(
+                    BackendRunRequest(
+                        prompt="test",
+                        max_iterations=1,
+                    )
+                )
+
+    def test_run_revalidates_scratch_root_after_symlink_swap(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as root:
+            base = Path(root)
+            scratch = base / "scratch"
+
+            backend = OpenHandsBackend(
+                "http://127.0.0.1:8765/mcp",
+                "secret-token",
+                discover_tools=(
+                    lambda _endpoint, _token:
+                    EXPECTED_CODING_EXECUTOR_TOOLS
+                ),
+                scratch_root=scratch,
+            )
+
+            original = base / "scratch-original"
+            outside = base / "outside"
+
+            scratch.rename(original)
+            outside.mkdir()
+            scratch.symlink_to(
+                outside,
+                target_is_directory=True,
+            )
+
+            with self.assertRaisesRegex(
+                ValueError,
+                r"must not be a symbolic link",
+            ):
+                backend.run(
+                    BackendRunRequest(
+                        prompt="test",
+                        max_iterations=1,
+                    )
+                )
+
+    def test_run_workspace_must_remain_beneath_scratch_root(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as root:
+            base = Path(root)
+            scratch = base / "scratch"
+            outside = base / "outside"
+
+            scratch.mkdir()
+            outside.mkdir()
+
+            with self.assertRaisesRegex(
+                ValueError,
+                r"directly beneath",
+            ):
+                _validate_run_workspace(
+                    outside,
+                    scratch.resolve(),
+                )
 
     def test_scratch_root_inside_git_repository_is_rejected(
         self,
