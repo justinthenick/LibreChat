@@ -302,6 +302,7 @@ class Broker:
             relay,
             self.acp_relay_image_id,
             Path.home() / ".local/share/coding-maintenance/codex-adapter/run",
+            self.acp_relay_signing_key,
         )
 
         def docker_runner(argv, **_kwargs):

@@ -4,6 +4,7 @@ import json
 import subprocess
 import unittest
 from unittest.mock import patch
+from contextlib import contextmanager
 
 from host_maintenance import codex_adapter
 
@@ -11,6 +12,14 @@ from host_maintenance import codex_adapter
 class CodexAdapterPolicyTests(
     unittest.TestCase
 ):
+    def setUp(self):
+        @contextmanager
+        def reviewed():
+            yield codex_adapter.CODEX, "/proc/self/fd/99", 99
+        self.identity = patch.object(codex_adapter, "_reviewed_codex", reviewed)
+        self.identity.start()
+        self.addCleanup(self.identity.stop)
+
     def test_command_hard_disables_all_model_tools(
         self,
     ) -> None:

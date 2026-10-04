@@ -8,6 +8,12 @@ set -Eeuo pipefail
 # by a disposable Python 3.12 container. The running service imports only from
 # the release venv; PYTHONPATH is explicitly cleared by the systemd unit.
 
+CODEX_ADAPTER_ROOT="$HOME/.local/share/coding-maintenance/codex-adapter"
+if [ "${CODING_CODEX_ADAPTER_ROOT:-$CODEX_ADAPTER_ROOT}" != "$CODEX_ADAPTER_ROOT" ]; then
+  echo "STOP: Codex adapter root override is unsupported"
+  exit 1
+fi
+
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 ROOT="${CODING_MAINTENANCE_ROOT:-$HOME/.local/share/coding-maintenance}"
 COMPOSE="${CODING_MAINTENANCE_COMPOSE:-$ROOT/compose.json}"
@@ -35,7 +41,6 @@ RUNTIME_DROPIN="$UNIT.d/runtime.conf"
 CODEX_DROPIN_DIR="$CODEX_UNIT.d"
 CODEX_CANDIDATE_DROPIN="$CODEX_DROPIN_DIR/candidate.conf"
 
-CODEX_ADAPTER_ROOT="${CODING_CODEX_ADAPTER_ROOT:-$ROOT/codex-adapter}"
 CODEX_SOCKET_DIR="$CODEX_ADAPTER_ROOT/run"
 CODEX_SOCKET="$CODEX_SOCKET_DIR/codex.sock"
 

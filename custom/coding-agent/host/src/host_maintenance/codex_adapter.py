@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import fcntl
+from contextlib import contextmanager
+from collections.abc import Iterator
 
 import json
 import os
@@ -62,82 +65,51 @@ CODEX_EXPECTED_SHA256 = (
 )
 
 
-def _validate_codex_identity(
-    path: Path | None = None,
-) -> Path:
-    candidate = Path(
-        path if path is not None else CODEX
-    ).expanduser()
-
+@contextmanager
+def _reviewed_codex(path: Path | None = None) -> Iterator[tuple[Path, str, int]]:
+    candidate = Path(path if path is not None else CODEX).expanduser()
     try:
-        resolved = candidate.resolve(
-            strict=True
-        )
+        resolved = candidate.resolve(strict=True)
+        if not resolved.is_file() or not os.access(resolved, os.X_OK):
+            raise OSError("not executable")
     except OSError as exc:
-        raise RuntimeError(
-            "reviewed Codex executable is unavailable"
-        ) from exc
+        raise RuntimeError("reviewed Codex executable is unavailable") from exc
 
-    if (
-        not resolved.is_file()
-        or not os.access(
-            resolved,
-            os.X_OK,
-        )
-    ):
-        raise RuntimeError(
-            "reviewed Codex executable is unavailable"
-        )
-
-    digest = hashlib.sha256()
-
-    with resolved.open("rb") as handle:
-        for chunk in iter(
-            lambda: handle.read(
-                1024 * 1024
-            ),
-            b"",
-        ):
-            digest.update(
-                chunk
-            )
-
-    if (
-        digest.hexdigest()
-        != CODEX_EXPECTED_SHA256
-    ):
-        raise RuntimeError(
-            "Codex executable identity mismatch"
-        )
-
+    # A sealed copy binds validation and both executions to the same bytes,
+    # including when an operator upgrade replaces the path during a request.
+    descriptor = os.memfd_create("reviewed-codex", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
     try:
-        result = subprocess.run(
-            [
-                str(resolved),
-                "--version",
-            ],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-    except Exception as exc:
-        raise RuntimeError(
-            "Codex executable version check failed"
-        ) from exc
+        digest = hashlib.sha256()
+        with resolved.open("rb") as source, os.fdopen(os.dup(descriptor), "wb") as target:
+            for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                target.write(chunk)
+                digest.update(chunk)
+        if digest.hexdigest() != CODEX_EXPECTED_SHA256:
+            raise RuntimeError("Codex executable identity mismatch")
+        os.fchmod(descriptor, 0o500)
+        fcntl.fcntl(descriptor, fcntl.F_ADD_SEALS,
+                    fcntl.F_SEAL_WRITE | fcntl.F_SEAL_GROW |
+                    fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL)
+        executable = f"/proc/self/fd/{descriptor}"
+        try:
+            result = subprocess.run(
+                [executable, "--version"], pass_fds=(descriptor,),
+                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, text=True, timeout=10, check=False,
+            )
+        except Exception as exc:
+            raise RuntimeError("Codex executable version check failed") from exc
+        if result.returncode != 0 or result.stdout.strip() != CODEX_EXPECTED_VERSION:
+            raise RuntimeError("Codex executable version mismatch")
+        yield resolved, executable, descriptor
+    finally:
+        os.close(descriptor)
 
-    if (
-        result.returncode != 0
-        or result.stdout.strip()
-        != CODEX_EXPECTED_VERSION
-    ):
-        raise RuntimeError(
-            "Codex executable version mismatch"
-        )
 
-    return resolved
+def _validate_codex_identity(path: Path | None = None) -> Path:
+    with _reviewed_codex(path) as (resolved, _executable, _descriptor):
+        return resolved
+
 
 def log(
     message: str,
@@ -222,9 +194,10 @@ def send_response(
 
 def hardened_command(
     prompt: str,
+    executable: str | None = None,
 ) -> list[str]:
     return [
-        str(CODEX),
+        executable if executable is not None else str(CODEX),
         "exec",
         "--json",
         "--ephemeral",
@@ -304,15 +277,17 @@ def run_codex(
         )
 
     try:
-        result = subprocess.run(
-            hardened_command(prompt),
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=TIMEOUT_SECONDS,
-            env=os.environ.copy(),
-        )
+        with _reviewed_codex() as (_resolved, executable, descriptor):
+            result = subprocess.run(
+                hardened_command(prompt, executable),
+                pass_fds=(descriptor,),
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=TIMEOUT_SECONDS,
+                env=os.environ.copy(),
+            )
 
     except subprocess.TimeoutExpired:
         return {

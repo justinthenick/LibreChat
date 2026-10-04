@@ -92,3 +92,21 @@ from the signal handler is swallowed by Python's selector. The handler now raise
 This evidence covers the contained Broker/stdio boundary. It does not establish
 an OpenClaw/ACPX routed model turn, provider authentication, or deployment
 acceptance. Changes remain in the canonical task worktree pending review.
+
+
+## Reviewed executable and deployment paths
+
+Each host Codex invocation copies the reviewed executable into a sealed Linux
+memory file, validates its digest and version, then runs those same immutable
+bytes. An executable update therefore fails closed until the reviewed identity
+is deliberately updated; symlink or pathname replacement cannot switch a
+validated invocation to different code.
+
+The Broker requires the relay signing key to match its own policy before
+creating a session. Missing, duplicate, malformed or rotated relay keys are
+refused without including key material in diagnostics.
+
+The adapter socket and workspace use the fixed operator-home
+~/.local/share/coding-maintenance/codex-adapter root shared by the systemd
+unit and Broker. A nondefault CODING_CODEX_ADAPTER_ROOT is unsupported and
+is rejected before deployment performs any Git, build or runtime operation.
