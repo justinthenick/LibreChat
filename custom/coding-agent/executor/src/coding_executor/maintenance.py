@@ -371,6 +371,33 @@ def task_snapshot(repositories: Path, tasks: Path, task_id: str) -> dict[str, ob
 
 
 
+
+def task_identity(
+    repositories: Path,
+    tasks: Path,
+    task_id: str,
+) -> dict[str, object]:
+    """Return bounded identity evidence for one validated managed task."""
+    snapshot = task_snapshot(repositories, tasks, task_id)
+    return {
+        "task_id": snapshot["task_id"],
+        "repository": snapshot["repository"],
+        "branch": snapshot["branch"],
+        "head": snapshot["head"],
+        "dirty": snapshot["dirty"],
+        "device": snapshot["device"],
+        "inode": snapshot["inode"],
+        "fingerprint": snapshot["fingerprint"],
+        "state": snapshot["state"],
+        "checks": {
+            "expected_identity": snapshot["checks"]["expected_identity"],
+            "registered_nonbroken": snapshot["checks"]["registered_nonbroken"],
+            "no_git_locks": snapshot["checks"]["no_git_locks"],
+            "no_git_operation": snapshot["checks"]["no_git_operation"],
+        },
+    }
+
+
 def promotion_candidate(repositories: Path, tasks: Path, task_id: str) -> dict[str, object]:
     """Build a deterministic promotion candidate without touching source refs/index/objects."""
     snapshot = task_snapshot(repositories, tasks, task_id)
@@ -640,7 +667,7 @@ def main() -> None:
     signal.signal(signal.SIGALRM, deadline_expired)
     signal.alarm(120)
     parser = argparse.ArgumentParser()
-    parser.add_argument("operation", choices=["health", "status", "fresh-status", "refresh", "inventory", "preview", "promotion-candidate", "validate-promotion-candidate", "remove"])
+    parser.add_argument("operation", choices=["health", "status", "fresh-status", "refresh", "inventory", "task-identity", "preview", "promotion-candidate", "validate-promotion-candidate", "remove"])
     parser.add_argument("--repository", default="")
     parser.add_argument("--branch", default="")
     parser.add_argument("--url", default="")
@@ -663,6 +690,9 @@ def main() -> None:
                 result = refresh(repositories, args.repository, args.branch, args.url)
             elif args.operation == "inventory":
                 result = inventory(repositories, tasks)
+            elif args.operation == "task-identity":
+                result = task_identity(repositories, tasks, args.task)
+                result["exclusive_gate_verified"] = True
             elif args.operation == "preview":
                 result = task_snapshot(repositories, tasks, args.task)
                 result["exclusive_gate_verified"] = True
