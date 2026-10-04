@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import hashlib
-import fcntl
 from contextlib import contextmanager
 from collections.abc import Iterator
 
 import json
 import os
 import socket
+import stat
 import subprocess
 from pathlib import Path
 
@@ -75,21 +75,19 @@ def _reviewed_codex(path: Path | None = None) -> Iterator[tuple[Path, str, int]]
     except OSError as exc:
         raise RuntimeError("reviewed Codex executable is unavailable") from exc
 
-    # A sealed copy binds validation and both executions to the same bytes,
-    # including when an operator upgrade replaces the path during a request.
-    descriptor = os.memfd_create("reviewed-codex", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+    # Hold the validated inode through both executions so an operator upgrade
+    # cannot redirect this invocation by replacing a pathname or symlink.
+    descriptor = os.open(resolved, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW)
     try:
+        identity = os.fstat(descriptor)
+        if not stat.S_ISREG(identity.st_mode) or not identity.st_mode & 0o111:
+            raise RuntimeError("reviewed Codex executable is unavailable")
         digest = hashlib.sha256()
-        with resolved.open("rb") as source, os.fdopen(os.dup(descriptor), "wb") as target:
+        with os.fdopen(os.dup(descriptor), "rb") as source:
             for chunk in iter(lambda: source.read(1024 * 1024), b""):
-                target.write(chunk)
                 digest.update(chunk)
         if digest.hexdigest() != CODEX_EXPECTED_SHA256:
             raise RuntimeError("Codex executable identity mismatch")
-        os.fchmod(descriptor, 0o500)
-        fcntl.fcntl(descriptor, fcntl.F_ADD_SEALS,
-                    fcntl.F_SEAL_WRITE | fcntl.F_SEAL_GROW |
-                    fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL)
         executable = f"/proc/self/fd/{descriptor}"
         try:
             result = subprocess.run(
@@ -101,6 +99,9 @@ def _reviewed_codex(path: Path | None = None) -> Iterator[tuple[Path, str, int]]
             raise RuntimeError("Codex executable version check failed") from exc
         if result.returncode != 0 or result.stdout.strip() != CODEX_EXPECTED_VERSION:
             raise RuntimeError("Codex executable version mismatch")
+        current = os.fstat(descriptor)
+        if (current.st_size, current.st_mtime_ns) != (identity.st_size, identity.st_mtime_ns):
+            raise RuntimeError("Codex executable changed during validation")
         yield resolved, executable, descriptor
     finally:
         os.close(descriptor)

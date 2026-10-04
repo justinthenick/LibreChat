@@ -96,11 +96,12 @@ acceptance. Changes remain in the canonical task worktree pending review.
 
 ## Reviewed executable and deployment paths
 
-Each host Codex invocation copies the reviewed executable into a sealed Linux
-memory file, validates its digest and version, then runs those same immutable
-bytes. An executable update therefore fails closed until the reviewed identity
-is deliberately updated; symlink or pathname replacement cannot switch a
-validated invocation to different code.
+Each host Codex invocation opens the resolved executable read-only, validates
+its digest and version through that descriptor, then executes the same open
+descriptor. A symlink or pathname replacement cannot switch a validated
+invocation to a different inode. Subsequent requests revalidate the configured
+path and reject unreviewed upgrades. The operator account and installation
+remain trusted, as with the host Broker itself.
 
 The Broker requires the relay signing key to match its own policy before
 creating a session. Missing, duplicate, malformed or rotated relay keys are

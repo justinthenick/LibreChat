@@ -50,7 +50,7 @@ class ReviewRegressionTests(unittest.TestCase):
         self.assertIn("adapter root override is unsupported", result.stdout)
 
 
-    def test_replacement_after_version_check_executes_sealed_bytes(self):
+    def test_replacement_after_version_check_executes_validated_descriptor(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             binary = root / "codex"
