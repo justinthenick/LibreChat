@@ -108,7 +108,7 @@ class ReleaseDeploymentContractTests(unittest.TestCase):
             text,
         )
         self.assertIn(
-            'docker rename "$RELAY_BACKUP" "$RELAY_CONTAINER"',
+            'docker rename "$OLD_RELAY_ID" "$RELAY_CONTAINER"',
             text,
         )
 

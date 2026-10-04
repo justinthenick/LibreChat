@@ -86,6 +86,8 @@ CONFIG=""
 OLD_CURRENT=""
 OLD_CODEX_ACTIVE=0
 RELAY_SWITCHED=0
+OLD_RELAY_ID=""
+OLD_RELAY_RUNNING=false
 RELAY_BACKUP=""
 ARMED=0
 
@@ -97,6 +99,47 @@ restore_file() {
     cp -a "$saved" "$destination"
   else
     rm -f "$destination"
+  fi
+}
+
+switch_relay() {
+  RELAY_BACKUP="$RELAY_CONTAINER-rollback-$SHORT_SHA"
+  if docker inspect "$RELAY_BACKUP" >/dev/null 2>&1; then
+    echo "STOP: relay backup already exists: $RELAY_BACKUP"
+    return 1
+  fi
+
+  if docker inspect "$RELAY_CONTAINER" >/dev/null 2>&1; then
+    OLD_RELAY_ID="$(docker inspect "$RELAY_CONTAINER" --format '{{.Id}}')"
+    OLD_RELAY_RUNNING="$(docker inspect "$OLD_RELAY_ID" --format '{{.State.Running}}')"
+  fi
+
+  # Arm before stop: Docker can fail after applying a state change.
+  RELAY_SWITCHED=1
+  if [ -n "$OLD_RELAY_ID" ]; then
+    docker stop "$OLD_RELAY_ID" >/dev/null
+    docker rename "$OLD_RELAY_ID" "$RELAY_BACKUP"
+  fi
+}
+
+rollback_relay() {
+  if [ "$RELAY_SWITCHED" -ne 1 ]; then
+    return
+  fi
+
+  local current_id
+  current_id="$(docker inspect "$RELAY_CONTAINER" --format '{{.Id}}' 2>/dev/null || true)"
+  if [ -n "$current_id" ] && [ "$current_id" != "$OLD_RELAY_ID" ]; then
+    docker rm -f "$current_id" >/dev/null || return
+  fi
+
+  if [ -n "$OLD_RELAY_ID" ]; then
+    if [ "$current_id" != "$OLD_RELAY_ID" ]; then
+      docker rename "$OLD_RELAY_ID" "$RELAY_CONTAINER" || return
+    fi
+    if [ "$OLD_RELAY_RUNNING" = true ]; then
+      docker start "$OLD_RELAY_ID" >/dev/null
+    fi
   fi
 }
 
@@ -117,15 +160,7 @@ rollback() {
     restore_file "$BACKUP/codex-candidate.conf" "$CODEX_CANDIDATE_DROPIN"
     restore_file "$BACKUP/runtime.conf" "$RUNTIME_DROPIN"
 
-    if [ "$RELAY_SWITCHED" -eq 1 ]; then
-      docker rm -f "$RELAY_CONTAINER" >/dev/null 2>&1 || true
-
-      if [ -n "$RELAY_BACKUP" ] && \
-         docker inspect "$RELAY_BACKUP" >/dev/null 2>&1; then
-        docker rename "$RELAY_BACKUP" "$RELAY_CONTAINER"
-        docker start "$RELAY_CONTAINER" >/dev/null
-      fi
-    fi
+    rollback_relay
 
     rm -f "$CURRENT.new"
     if [ -n "$OLD_CURRENT" ]; then
@@ -482,16 +517,7 @@ echo "codex_adapter_socket=$CODEX_SOCKET"
 echo
 echo "=== SWITCH PROVIDER RELAY ==="
 
-RELAY_BACKUP="${RELAY_CONTAINER}-rollback-${SHORT_SHA}"
-
-docker rm -f "$RELAY_BACKUP" >/dev/null 2>&1 || true
-
-if docker inspect "$RELAY_CONTAINER" >/dev/null 2>&1; then
-  docker stop "$RELAY_CONTAINER" >/dev/null
-  docker rename "$RELAY_CONTAINER" "$RELAY_BACKUP"
-fi
-
-RELAY_SWITCHED=1
+switch_relay
 
 RELAY_SIGNING_KEY="$(
   python3 - "$CONFIG" <<'PY2'
