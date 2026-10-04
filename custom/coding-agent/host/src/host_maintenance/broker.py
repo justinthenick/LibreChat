@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import fcntl
+import stat
+from contextlib import contextmanager
 import math
 import json
 import os
@@ -44,6 +47,12 @@ class Broker:
             raise ValueError("invalid configured container")
         if not re.fullmatch(r"sha256:[0-9a-f]{64}", config["image_id"]):
             raise ValueError("pin the validated executor image ID")
+        self.acp_image_id = config.get("acp_image_id", "")
+        if self.acp_image_id and not re.fullmatch(
+            r"sha256:[0-9a-f]{64}",
+            self.acp_image_id,
+        ):
+            raise ValueError("pin the validated ACP sandbox image ID")
         self.tasks = Path(config["task_root"])
         self.repositories = Path(config["repository_root"])
         self.lock = Path(config["lock_path"])
@@ -63,6 +72,7 @@ class Broker:
                 raise ValueError("invalid configured repository URL")
         self._mutex = threading.Lock()
         self._helper_mutex = threading.Lock()
+        self._acp_mutex = threading.Lock()
         self._tickets: dict[str, tuple[float, str, str, str]] = {}
         self._last_restart = float("-inf")
 
@@ -168,6 +178,246 @@ class Broker:
 
     def task_inventory(self) -> dict:
         return self._helper("inventory")
+
+    def task_identity(self, task_id: str) -> dict:
+        """Return executor-validated identity for one managed task."""
+        if not NAME.fullmatch(task_id):
+            raise ValueError("invalid task identifier")
+
+        result = self._helper(
+            "task-identity",
+            "--task",
+            task_id,
+        )
+
+        if result.get("task_id") != task_id:
+            raise RuntimeError("task identity mismatch")
+
+        repository = result.get("repository")
+        if repository not in self.config["repositories"]:
+            raise RuntimeError("task repository is not allowlisted")
+
+        if result.get("branch") != f"agent/{task_id}":
+            raise RuntimeError("task branch identity mismatch")
+
+        fingerprint = result.get("fingerprint")
+        if not isinstance(fingerprint, str) or not re.fullmatch(
+            r"[0-9a-f]{64}",
+            fingerprint,
+        ):
+            raise RuntimeError("task fingerprint is invalid")
+
+        if result.get("exclusive_gate_verified") is not True:
+            raise RuntimeError("task identity gate evidence is missing")
+
+        checks = result.get("checks")
+        if not isinstance(checks, dict):
+            raise RuntimeError("task identity checks are missing")
+
+        required_checks = (
+            "expected_identity",
+            "registered_nonbroken",
+            "no_git_locks",
+            "no_git_operation",
+        )
+        if any(checks.get(name) is not True for name in required_checks):
+            raise RuntimeError("task identity checks failed")
+
+        return result
+
+    def _authorize_acp_task(self, task_id: str, path: Path) -> bool:
+        """Authorize only the exact host path backed by a managed task."""
+        try:
+            if not NAME.fullmatch(task_id):
+                return False
+
+            expected = self.tasks / task_id
+
+            if (
+                path != expected
+                or path.is_symlink()
+                or not path.is_dir()
+                or path.resolve() != expected
+            ):
+                return False
+
+            identity = self.task_identity(task_id)
+
+            return (
+                identity["task_id"] == task_id
+                and identity["repository"] in self.config["repositories"]
+                and identity["branch"] == f"agent/{task_id}"
+            )
+        except (OSError, RuntimeError, ValueError):
+            return False
+
+    def _acp_manager(self):
+        """Construct the fixed-policy ACP sandbox manager internally."""
+        if not self.acp_image_id:
+            raise ValueError("ACP sandbox image is not configured")
+
+        from host_maintenance.acp_sandbox import AcpSandboxManager
+
+        def docker_runner(argv, **_kwargs):
+            if (
+                not isinstance(argv, (list, tuple))
+                or not argv
+                or argv[0] != "/usr/bin/docker"
+            ):
+                raise ValueError("ACP sandbox runner accepts only Docker")
+
+            return self._docker(*argv[1:])
+
+        return AcpSandboxManager(
+            task_root=self.tasks,
+            image=self.acp_image_id,
+            runner=docker_runner,
+            task_authorizer=self._authorize_acp_task,
+        )
+
+    @contextmanager
+    def _acp_operation(self, task_id: str):
+        if not NAME.fullmatch(task_id):
+            raise ValueError("invalid task identifier")
+        if not self._acp_mutex.acquire(timeout=15):
+            raise RuntimeError("acp_sandbox_queue_full: no operation started")
+        descriptor = None
+        try:
+            lock_path = self.lock.with_name(f"acp-{task_id}.lock")
+            descriptor = os.open(lock_path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+            info = os.fstat(descriptor)
+            if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+                    or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600):
+                raise RuntimeError("invalid ACP session lock")
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise RuntimeError("ACP task already has an active operation") from exc
+            yield
+        finally:
+            if descriptor is not None:
+                os.close(descriptor)
+            self._acp_mutex.release()
+
+    def acp_sandbox_stream(self, task_id: str, stdin, stdout, stderr) -> int:
+        """Own one disposable ACP session; accept no container or command selector."""
+        from host_maintenance.acp_stream import attach, cleanup_signals
+
+        with self._acp_operation(task_id):
+            manager = self._acp_manager()
+            workspace = manager.task_path(task_id)
+            identity = workspace.stat()
+            container_id = manager.create(task_id)
+            info = manager.inspect(task_id)
+            if (info.get("Id") != container_id
+                    or info.get("State", {}).get("Status") != "created"
+                    or info.get("State", {}).get("Running") is not False):
+                raise RuntimeError("new ACP sandbox failed validation; left for operator inspection")
+            try:
+                manager.start(task_id)
+                info = manager.inspect(task_id)
+                if info.get("Id") != container_id:
+                    raise RuntimeError("ACP container identity changed before attach")
+                with maintenance_lock(self.tasks, lock_path=self.lock):
+                    current = workspace.lstat()
+                    if (not stat.S_ISDIR(current.st_mode)
+                            or (current.st_dev, current.st_ino) != (identity.st_dev, identity.st_ino)):
+                        raise RuntimeError("ACP task identity changed before attach")
+                    return attach(info, self.acp_image_id, stdin, stdout, stderr, workspace=workspace)
+            finally:
+                with cleanup_signals():
+                    info = manager.inspect(task_id)
+                    if info.get("Id") != container_id:
+                        raise RuntimeError("ACP container identity changed; cleanup refused")
+                    manager.remove(task_id)
+
+    def _acp_summary(
+        self,
+        manager,
+        task_id: str,
+        info: dict,
+    ) -> dict:
+        state = info.get("State", {})
+        config = info.get("Config", {})
+        host = info.get("HostConfig", {})
+
+        return {
+            "task_id": task_id,
+            "container": manager.container_name(task_id),
+            "status": state.get("Status"),
+            "running": state.get("Running"),
+            "image": config.get("Image"),
+            "open_stdin": config.get("OpenStdin"),
+            "stdin_once": config.get("StdinOnce"),
+            "network": host.get("NetworkMode"),
+            "read_only_root": host.get("ReadonlyRootfs"),
+        }
+
+    def acp_sandbox_create(self, task_id: str) -> dict:
+        """Create and immediately revalidate one stopped task sandbox."""
+        with self._acp_operation(task_id):
+            manager = self._acp_manager()
+            container_id = manager.create(task_id)
+
+            try:
+                info = manager.inspect(task_id)
+            except Exception as exc:
+                raise RuntimeError(
+                    "ACP sandbox was created but failed policy revalidation; "
+                    "left stopped for operator inspection"
+                ) from exc
+
+            state = info.get("State", {})
+            if (
+                state.get("Status") != "created"
+                or state.get("Running") is not False
+            ):
+                raise RuntimeError(
+                    "new ACP sandbox is not in the expected stopped state"
+                )
+
+            result = self._acp_summary(manager, task_id, info)
+            result["container_id"] = container_id
+            return result
+
+    def acp_sandbox_inspect(self, task_id: str) -> dict:
+        """Revalidate and report one existing ACP sandbox."""
+        with self._acp_operation(task_id):
+            manager = self._acp_manager()
+            info = manager.inspect(task_id)
+            return self._acp_summary(manager, task_id, info)
+
+    def acp_sandbox_start(self, task_id: str) -> dict:
+        """Start only a validated sandbox and prove it remains running."""
+        with self._acp_operation(task_id):
+            manager = self._acp_manager()
+
+            # manager.start() itself performs pre-start policy validation.
+            manager.start(task_id)
+
+            # Revalidate the real object after Docker changes its state.
+            info = manager.inspect(task_id)
+
+            if info.get("State", {}).get("Running") is not True:
+                raise RuntimeError(
+                    "ACP sandbox failed to remain running after start"
+                )
+
+            return self._acp_summary(manager, task_id, info)
+
+    def acp_sandbox_remove(self, task_id: str) -> dict:
+        """Remove only a sandbox that still matches the fixed policy."""
+        with self._acp_operation(task_id):
+            manager = self._acp_manager()
+
+            # manager.remove() revalidates identity and policy first.
+            manager.remove(task_id)
+
+            return {
+                "task_id": task_id,
+                "container": manager.container_name(task_id),
+                "removed": True,
+            }
 
     def validate_promotion_candidate(self, task_id: str) -> dict:
         if not NAME.fullmatch(task_id):
