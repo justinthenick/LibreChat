@@ -692,6 +692,19 @@ class Handler(
             )
             return
 
+        if not isinstance(
+            body,
+            dict,
+        ):
+            self.send_json(
+                400,
+                {
+                    "error":
+                        "invalid_request",
+                },
+            )
+            return
+
         if (
             body.get("model")
             != MODEL

@@ -32,6 +32,17 @@ class CodexAdapterServiceTests(
             text,
         )
 
+        self.assertNotIn(
+            "EnvironmentFile=",
+            text,
+        )
+
+        self.assertNotIn(
+            "coding-maintenance.env",
+            text,
+        )
+
+
         self.assertIn(
             "NoNewPrivileges=true",
             text,

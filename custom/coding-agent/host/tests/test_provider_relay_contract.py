@@ -670,3 +670,93 @@ class ProviderRelayToolCompatibilityTests(
                     relay.validate_request_surface(
                         body
                     )
+
+
+class ProviderRelayHandlerShapeTests(
+    unittest.TestCase
+):
+    def _load_relay(self):
+        import importlib.util
+        import os
+        from pathlib import Path
+        from unittest.mock import patch
+
+        relay_path = (
+            Path(__file__)
+            .resolve()
+            .parents[2]
+            / "provider-relay"
+            / "relay.py"
+        )
+
+        spec = importlib.util.spec_from_file_location(
+            "provider_relay_handler_shape_test",
+            relay_path,
+        )
+
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+
+        module = importlib.util.module_from_spec(
+            spec
+        )
+
+        with patch.dict(
+            os.environ,
+            {
+                "RELAY_SIGNING_KEY":
+                    "11" * 32,
+                "ALLOWED_MODEL":
+                    "phase3-mock",
+                "CODEX_ADAPTER_SOCKET":
+                    "/tmp/nonexistent",
+            },
+            clear=False,
+        ):
+            spec.loader.exec_module(
+                module
+            )
+
+        return module
+
+    def test_non_object_json_fails_with_bounded_400(
+        self,
+    ) -> None:
+        import io
+        from unittest.mock import Mock
+
+        relay = self._load_relay()
+
+        handler = object.__new__(
+            relay.Handler
+        )
+
+        payload = b"[]"
+
+        handler.path = (
+            "/v1/chat/completions"
+        )
+        handler.headers = {
+            "Content-Length":
+                str(len(payload)),
+        }
+        handler.rfile = io.BytesIO(
+            payload
+        )
+        handler.authenticated = (
+            lambda: {
+                "task":
+                    "shape-test",
+            }
+        )
+        handler.send_json = Mock()
+
+        handler.do_POST()
+
+        handler.send_json.assert_called_once_with(
+            400,
+            {
+                "error":
+                    "invalid_request",
+            },
+        )

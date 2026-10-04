@@ -32,6 +32,8 @@ RELAY_DIR="$REPO_ROOT/custom/coding-agent/provider-relay"
 UNIT_TEMPLATE="$HOST_DIR/systemd/coding-agent-host-maintenance.service"
 CODEX_UNIT_TEMPLATE="$HOST_DIR/systemd/coding-agent-codex-adapter.service"
 RUNTIME_DROPIN="$UNIT.d/runtime.conf"
+CODEX_DROPIN_DIR="$CODEX_UNIT.d"
+CODEX_CANDIDATE_DROPIN="$CODEX_DROPIN_DIR/candidate.conf"
 
 CODEX_ADAPTER_ROOT="${CODING_CODEX_ADAPTER_ROOT:-$ROOT/codex-adapter}"
 CODEX_SOCKET_DIR="$CODEX_ADAPTER_ROOT/run"
@@ -107,6 +109,7 @@ rollback() {
     restore_file "$BACKUP/policy.json" "$CONFIG"
     restore_file "$BACKUP/unit.service" "$UNIT"
     restore_file "$BACKUP/codex-unit.service" "$CODEX_UNIT"
+    restore_file "$BACKUP/codex-candidate.conf" "$CODEX_CANDIDATE_DROPIN"
     restore_file "$BACKUP/runtime.conf" "$RUNTIME_DROPIN"
 
     if [ "$RELAY_SWITCHED" -eq 1 ]; then
@@ -161,6 +164,26 @@ test -d "$RELAY_DIR"
 test -f "$RELAY_DIR/Dockerfile"
 test -f "$RELAY_DIR/relay.py"
 test ! -e "$RELEASE"
+
+if [ -e "$CODEX_CANDIDATE_DROPIN" ] && {
+     [ ! -f "$CODEX_CANDIDATE_DROPIN" ] ||
+     [ -L "$CODEX_CANDIDATE_DROPIN" ]
+   }
+then
+  echo "STOP: candidate Codex adapter drop-in is not a regular file"
+  exit 1
+fi
+
+CODEX_EFFECTIVE_DROPINS="$(
+  systemctl --user show coding-agent-codex-adapter -p DropInPaths --value 2>/dev/null || true
+)"
+
+if [ -n "$CODEX_EFFECTIVE_DROPINS" ] &&
+   [ "$CODEX_EFFECTIVE_DROPINS" != "$CODEX_CANDIDATE_DROPIN" ]
+then
+  echo "STOP: unexpected Codex adapter drop-in: $CODEX_EFFECTIVE_DROPINS"
+  exit 1
+fi
 
 CODEX_BIN="${CODEX_ADAPTER_CODEX:-$HOME/.local/bin/codex}"
 CODEX_REAL="$(readlink -f "$CODEX_BIN")"
@@ -229,6 +252,7 @@ cp -a "$COMPOSE" "$BACKUP/compose.json"
 cp -a "$CONFIG" "$BACKUP/policy.json"
 [ ! -f "$UNIT" ] || cp -a "$UNIT" "$BACKUP/unit.service"
 [ ! -f "$CODEX_UNIT" ] || cp -a "$CODEX_UNIT" "$BACKUP/codex-unit.service"
+[ ! -f "$CODEX_CANDIDATE_DROPIN" ] || cp -a "$CODEX_CANDIDATE_DROPIN" "$BACKUP/codex-candidate.conf"
 [ ! -f "$RUNTIME_DROPIN" ] || cp -a "$RUNTIME_DROPIN" "$BACKUP/runtime.conf"
 printf '%s\n' "$OLD_CURRENT" > "$BACKUP/old-current.txt"
 
@@ -397,6 +421,12 @@ mkdir -p "$(dirname "$CODEX_UNIT")"
 cp -a "$UNIT_TEMPLATE" "$UNIT"
 cp -a "$CODEX_UNIT_TEMPLATE" "$CODEX_UNIT"
 
+# Candidate acceptance uses an ExecStart drop-in.
+# Production promotion must remove it so the adapter
+# follows the immutable current release symlink.
+rm -f "$CODEX_CANDIDATE_DROPIN"
+rmdir "$CODEX_DROPIN_DIR" 2>/dev/null || true
+
 rm -f "$RUNTIME_DROPIN"
 rmdir "$UNIT.d" 2>/dev/null || true
 
@@ -470,7 +500,7 @@ value = json.loads(
 ).get("acp_relay_signing_key", "")
 
 if not isinstance(value, str) or not re.fullmatch(
-    r"[0-9a-fA-F]{64,}",
+    r"[0-9a-f]{64}",
     value,
 ):
     raise SystemExit(
@@ -629,6 +659,13 @@ printf '%s\n' \
   "$CODEX_SYSTEMD_EXEC" |
   grep -F "$ROOT/current/venv/bin/python" \
   >/dev/null
+
+CODEX_SYSTEMD_DROPINS="$(
+  systemctl --user show     coding-agent-codex-adapter     -p DropInPaths     --value
+)"
+
+test -z "$CODEX_SYSTEMD_DROPINS"
+test ! -e "$CODEX_CANDIDATE_DROPIN"
 
 systemctl --user is-active --quiet \
   coding-agent-codex-adapter

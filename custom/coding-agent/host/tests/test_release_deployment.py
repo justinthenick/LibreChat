@@ -178,3 +178,59 @@ class CodexIdentityDeploymentContractTests(
             'sha256sum "$CODEX_REAL"',
             text,
         )
+
+
+class CodexCandidateDropInDeploymentTests(
+    unittest.TestCase
+):
+    def test_release_neutralizes_candidate_dropin_and_rolls_back(
+        self,
+    ) -> None:
+        text = DEPLOY.read_text()
+
+        self.assertIn(
+            'CODEX_DROPIN_DIR="$CODEX_UNIT.d"',
+            text,
+        )
+        self.assertIn(
+            'CODEX_CANDIDATE_DROPIN="$CODEX_DROPIN_DIR/candidate.conf"',
+            text,
+        )
+        self.assertIn(
+            '"$BACKUP/codex-candidate.conf"',
+            text,
+        )
+        self.assertIn(
+            'restore_file "$BACKUP/codex-candidate.conf" "$CODEX_CANDIDATE_DROPIN"',
+            text,
+        )
+        self.assertIn(
+            'rm -f "$CODEX_CANDIDATE_DROPIN"',
+            text,
+        )
+        self.assertIn(
+            'test ! -e "$CODEX_CANDIDATE_DROPIN"',
+            text,
+        )
+        self.assertIn(
+            'STOP: unexpected Codex adapter drop-in',
+            text,
+        )
+        self.assertIn(
+            'test -z "$CODEX_SYSTEMD_DROPINS"',
+            text,
+        )
+
+    def test_release_requires_exact_lowercase_relay_signing_key(
+        self,
+    ) -> None:
+        text = DEPLOY.read_text()
+
+        self.assertIn(
+            'r"[0-9a-f]{64}"',
+            text,
+        )
+        self.assertNotIn(
+            'r"[0-9a-fA-F]{64,}"',
+            text,
+        )

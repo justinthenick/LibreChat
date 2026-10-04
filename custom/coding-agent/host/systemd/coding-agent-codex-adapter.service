@@ -5,7 +5,6 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-EnvironmentFile=%h/.config/coding-maintenance.env
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=PYTHONPATH=
 
