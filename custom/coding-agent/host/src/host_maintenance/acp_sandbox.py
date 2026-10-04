@@ -24,9 +24,9 @@ ACP_RELAY_BASE_URL = f"http://{ACP_RELAY_CONTAINER}:8080/v1"
 ACP_RELAY_AUDIENCE = ACP_RELAY_CONTAINER
 ACP_RELAY_TOKEN_SECONDS = 3900
 
-ACP_PROVIDER_ID = "phase3-relay"
-ACP_PROVIDER_MODEL = "phase3-mock"
-ACP_RELAY_TOKEN_ENV = "PHASE3_RELAY_TOKEN"
+ACP_PROVIDER_ID = "coding-agent-relay"
+ACP_PROVIDER_MODEL = "coding-agent-text"
+ACP_RELAY_TOKEN_ENV = "CODING_AGENT_RELAY_TOKEN"
 
 OPENCODE_CONFIG_CONTENT = json.dumps(
     {
@@ -41,7 +41,7 @@ OPENCODE_CONFIG_CONTENT = json.dumps(
                 },
                 "models": {
                     ACP_PROVIDER_MODEL: {
-                        "name": "Phase 3 Mock",
+                        "name": "Coding Agent Text",
                     },
                 },
             },

@@ -47,6 +47,6 @@ def validate_relay(info: dict, image: str, socket_directory: Path) -> None:
         raise RuntimeError("ACP relay resource policy mismatch")
     environment = dict(value.split("=", 1) for value in config.get("Env", []) if "=" in value)
     if (environment.get("CODEX_ADAPTER_SOCKET") != "/run/codex-adapter/codex.sock"
-            or environment.get("ALLOWED_MODEL") != "phase3-mock"
+            or environment.get("ALLOWED_MODEL") != "coding-agent-text"
             or any(key in environment for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"))):
         raise RuntimeError("ACP relay environment policy mismatch")

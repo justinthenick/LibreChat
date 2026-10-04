@@ -29,3 +29,8 @@ resources, one isolated ACP network attachment and exactly one reviewed,
 read-only bind of the adapter socket directory.
 
 Callers do not select relay image, command, network, socket, model or mounts.
+
+Contained ACP sessions use provider ID `coding-agent-relay` and the fixed
+model alias `coding-agent-text`. This alias identifies the bounded text backend;
+it does not allow callers to select an upstream model. Deploy the sandbox
+configuration, relay image and relay runtime policy together when changing it.

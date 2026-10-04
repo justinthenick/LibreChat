@@ -10,7 +10,7 @@ SOCKET = Path('/reviewed/run')
 def specimen():
     return {'Name': '/' + ACP_RELAY_CONTAINER, 'Image': IMAGE, 'State': {'Running': True},
         'Config': {'User': '10001:10001', 'Entrypoint': ['python3', '/app/relay.py'], 'Cmd': None,
-                   'Env': ['CODEX_ADAPTER_SOCKET=/run/codex-adapter/codex.sock', 'ALLOWED_MODEL=phase3-mock']},
+                   'Env': ['CODEX_ADAPTER_SOCKET=/run/codex-adapter/codex.sock', 'ALLOWED_MODEL=coding-agent-text']},
         'HostConfig': {'ReadonlyRootfs': True, 'Privileged': False, 'CapDrop': ['ALL'],
                        'SecurityOpt': ['no-new-privileges'], 'NetworkMode': ACP_NETWORK,
                        'PidsLimit': 64, 'Memory': 134217728, 'MemorySwap': 134217728, 'NanoCpus': 500000000},

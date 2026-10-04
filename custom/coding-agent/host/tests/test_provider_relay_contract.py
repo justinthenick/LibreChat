@@ -56,7 +56,7 @@ class ProviderRelayContractTests(
             "token expired",
             "claim mismatch",
             "CODEX_ADAPTER_SOCKET",
-            "phase3-mock",
+            "coding-agent-text",
             "MAX_BODY",
             "MAX_PROMPT",
             "MAX_ADAPTER_RESPONSE",
@@ -96,7 +96,7 @@ class ProviderRelayContractTests(
         spec = (
             importlib.util
             .spec_from_file_location(
-                "phase3_provider_relay_test",
+                "coding_agent_provider_relay_test",
                 RELAY,
             )
         )
@@ -121,7 +121,7 @@ class ProviderRelayContractTests(
                 "RELAY_SIGNING_KEY":
                     key_hex,
                 "ALLOWED_MODEL":
-                    "phase3-mock",
+                    "coding-agent-text",
             },
             clear=False,
         ):
@@ -140,7 +140,7 @@ class ProviderRelayContractTests(
             "task":
                 "canonical-test-task",
             "model":
-                "phase3-mock",
+                "coding-agent-text",
             "iat":
                 now,
             "exp":
@@ -281,7 +281,7 @@ class ProviderRelayRequestSurfaceTests(
         spec = (
             importlib.util
             .spec_from_file_location(
-                "phase3_provider_relay_surface_test",
+                "coding_agent_provider_relay_surface_test",
                 RELAY,
             )
         )
@@ -306,7 +306,7 @@ class ProviderRelayRequestSurfaceTests(
                 "RELAY_SIGNING_KEY":
                     "11" * 32,
                 "ALLOWED_MODEL":
-                    "phase3-mock",
+                    "coding-agent-text",
             },
             clear=False,
         ):
@@ -323,7 +323,7 @@ class ProviderRelayRequestSurfaceTests(
 
         relay.validate_request_surface({
             "model":
-                "phase3-mock",
+                "coding-agent-text",
             "messages": [
                 {
                     "role":
@@ -353,7 +353,7 @@ class ProviderRelayRequestSurfaceTests(
                 ):
                     relay.validate_request_surface({
                         "model":
-                            "phase3-mock",
+                            "coding-agent-text",
                         "messages": [
                             {
                                 "role":
@@ -379,7 +379,7 @@ class ProviderRelayRequestSurfaceTests(
         ):
             relay.validate_request_surface({
                 "model":
-                    "phase3-mock",
+                    "coding-agent-text",
                 "messages": [],
                 "stream":
                     "true",
@@ -433,7 +433,7 @@ class ProviderRelayToolCompatibilityTests(
                 "RELAY_SIGNING_KEY":
                     "11" * 32,
                 "ALLOWED_MODEL":
-                    "phase3-mock",
+                    "coding-agent-text",
                 "CODEX_ADAPTER_SOCKET":
                     "/tmp/nonexistent-codex.sock",
             },
@@ -465,7 +465,7 @@ class ProviderRelayToolCompatibilityTests(
                 },
             ],
             "model":
-                "phase3-mock",
+                "coding-agent-text",
             "stream":
                 True,
             "stream_options": {
@@ -707,7 +707,7 @@ class ProviderRelayHandlerShapeTests(
                 "RELAY_SIGNING_KEY":
                     "11" * 32,
                 "ALLOWED_MODEL":
-                    "phase3-mock",
+                    "coding-agent-text",
                 "CODEX_ADAPTER_SOCKET":
                     "/tmp/nonexistent",
             },

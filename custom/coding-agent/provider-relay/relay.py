@@ -20,7 +20,7 @@ KEY_HEX = os.environ[
 
 MODEL = os.environ.get(
     "ALLOWED_MODEL",
-    "phase3-mock",
+    "coding-agent-text",
 )
 
 ADAPTER_SOCKET = os.environ.get(
@@ -603,7 +603,7 @@ class Handler(
                             "id": MODEL,
                             "object": "model",
                             "owned_by":
-                                "phase3-relay",
+                                "coding-agent-relay",
                         }
                     ],
                 },
@@ -858,7 +858,7 @@ class Handler(
         )
 
         ident = (
-            "chatcmpl-phase3-codex"
+            "chatcmpl-coding-agent"
         )
 
         if not body.get(
@@ -999,7 +999,7 @@ def main() -> None:
     )
 
     print(
-        "phase3 signed Codex relay "
+        "coding-agent signed Codex relay "
         "listening on :8080",
         flush=True,
     )

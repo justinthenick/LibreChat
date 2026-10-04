@@ -530,7 +530,7 @@ docker run \
   --mount \
     "type=bind,src=$CODEX_SOCKET_DIR,dst=/run/codex-adapter,readonly" \
   -e RELAY_SIGNING_KEY \
-  -e ALLOWED_MODEL=phase3-mock \
+  -e ALLOWED_MODEL=coding-agent-text \
   -e CODEX_ADAPTER_SOCKET=/run/codex-adapter/codex.sock \
   "$NEW_RELAY_IMAGE" \
   >/dev/null
