@@ -13,6 +13,7 @@ ROOT="${CODING_MAINTENANCE_ROOT:-$HOME/.local/share/coding-maintenance}"
 COMPOSE="${CODING_MAINTENANCE_COMPOSE:-$ROOT/compose.json}"
 ENV_FILE="${CODING_MAINTENANCE_ENV_FILE:-$HOME/.config/coding-maintenance.env}"
 UNIT="${CODING_MAINTENANCE_UNIT:-$HOME/.config/systemd/user/coding-agent-host-maintenance.service}"
+CODEX_UNIT="${CODING_CODEX_ADAPTER_UNIT:-$HOME/.config/systemd/user/coding-agent-codex-adapter.service}"
 INSTALLER_IMAGE="${CODING_MAINTENANCE_INSTALLER_IMAGE:-python:3.12-slim-bookworm}"
 EXPECTED_BRANCH="${CODING_MAINTENANCE_SOURCE_BRANCH:-server/synology}"
 
@@ -27,8 +28,17 @@ BACKUP="$ROOT/backups/$(date +%Y%m%dT%H%M%S)-release-deploy"
 EXECUTOR_DIR="$REPO_ROOT/custom/coding-agent/executor"
 HOST_DIR="$REPO_ROOT/custom/coding-agent/host"
 BENCHMARK_DIR="$REPO_ROOT/custom/coding-agent/benchmarks"
+RELAY_DIR="$REPO_ROOT/custom/coding-agent/provider-relay"
 UNIT_TEMPLATE="$HOST_DIR/systemd/coding-agent-host-maintenance.service"
+CODEX_UNIT_TEMPLATE="$HOST_DIR/systemd/coding-agent-codex-adapter.service"
 RUNTIME_DROPIN="$UNIT.d/runtime.conf"
+
+CODEX_ADAPTER_ROOT="${CODING_CODEX_ADAPTER_ROOT:-$ROOT/codex-adapter}"
+CODEX_SOCKET_DIR="$CODEX_ADAPTER_ROOT/run"
+CODEX_SOCKET="$CODEX_SOCKET_DIR/codex.sock"
+
+RELAY_CONTAINER="librechat-acp-provider-relay"
+RELAY_NETWORK="librechat-acp-provider-internal"
 
 read_version() {
   python3 - "$1" <<'PY'
@@ -62,10 +72,14 @@ PY
 EXECUTOR_VERSION="$(read_version "$EXECUTOR_DIR/pyproject.toml")"
 HOST_VERSION="$(read_version "$HOST_DIR/pyproject.toml")"
 TAG="librechat-coding-executor:${EXECUTOR_VERSION}-${SHORT_SHA}"
+RELAY_TAG="librechat-acp-provider-relay:${HOST_VERSION}-${SHORT_SHA}"
 
 PROJECT=""
 CONFIG=""
 OLD_CURRENT=""
+OLD_CODEX_ACTIVE=0
+RELAY_SWITCHED=0
+RELAY_BACKUP=""
 ARMED=0
 
 restore_file() {
@@ -92,7 +106,18 @@ rollback() {
     restore_file "$BACKUP/compose.json" "$COMPOSE"
     restore_file "$BACKUP/policy.json" "$CONFIG"
     restore_file "$BACKUP/unit.service" "$UNIT"
+    restore_file "$BACKUP/codex-unit.service" "$CODEX_UNIT"
     restore_file "$BACKUP/runtime.conf" "$RUNTIME_DROPIN"
+
+    if [ "$RELAY_SWITCHED" -eq 1 ]; then
+      docker rm -f "$RELAY_CONTAINER" >/dev/null 2>&1 || true
+
+      if [ -n "$RELAY_BACKUP" ] && \
+         docker inspect "$RELAY_BACKUP" >/dev/null 2>&1; then
+        docker rename "$RELAY_BACKUP" "$RELAY_CONTAINER"
+        docker start "$RELAY_CONTAINER" >/dev/null
+      fi
+    fi
 
     rm -f "$CURRENT.new"
     if [ -n "$OLD_CURRENT" ]; then
@@ -103,9 +128,17 @@ rollback() {
     fi
 
     systemctl --user daemon-reload
+
+    if [ "$OLD_CODEX_ACTIVE" -eq 1 ]; then
+      systemctl --user restart coding-agent-codex-adapter || true
+    else
+      systemctl --user stop coding-agent-codex-adapter >/dev/null 2>&1 || true
+    fi
+
     if [ -n "$PROJECT" ]; then
       docker compose -p "$PROJECT" -f "$COMPOSE" up -d --force-recreate coding-executor
     fi
+
     systemctl --user restart coding-agent-host-maintenance
     echo "Rollback attempted; failed release and image were retained for inspection."
   else
@@ -122,8 +155,43 @@ test -z "$(git status --porcelain)"
 test -f "$COMPOSE"
 test -f "$ENV_FILE"
 test -f "$UNIT_TEMPLATE"
+test -f "$CODEX_UNIT_TEMPLATE"
 test -d "$BENCHMARK_DIR"
+test -d "$RELAY_DIR"
+test -f "$RELAY_DIR/Dockerfile"
+test -f "$RELAY_DIR/relay.py"
 test ! -e "$RELEASE"
+
+CODEX_BIN="${CODEX_ADAPTER_CODEX:-$HOME/.local/bin/codex}"
+CODEX_REAL="$(readlink -f "$CODEX_BIN")"
+
+test -x "$CODEX_REAL"
+
+test "$(
+  sha256sum "$CODEX_REAL" |
+  awk '{print $1}'
+)" = "3188814c35471432d4123203e0eb38e5bddc60226e3d7ddf0e59e649ea140022"
+
+test "$(
+  "$CODEX_REAL" --version
+)" = "codex-cli 0.154.0"
+
+if docker ps -a \
+    --filter label=com.librechat.coding-agent.kind=acp-sandbox \
+    --format '{{.ID}}' |
+    grep -q .
+then
+  echo "STOP: ACP sandbox exists; refuse release switch"
+  exit 1
+fi
+
+RELAY_NETWORK_POLICY="$(
+  docker network inspect \
+    "$RELAY_NETWORK" \
+    --format '{{.Internal}} {{index .Options "com.docker.network.bridge.gateway_mode_ipv4"}}'
+)"
+
+test "$RELAY_NETWORK_POLICY" = "true isolated"
 if [ -e "$CURRENT" ] && [ ! -L "$CURRENT" ]; then
   echo "STOP: $CURRENT exists but is not a symlink"
   exit 1
@@ -141,6 +209,12 @@ if [ -L "$CURRENT" ]; then
   OLD_CURRENT="$(readlink -f "$CURRENT")"
 fi
 
+if systemctl --user is-active --quiet \
+    coding-agent-codex-adapter 2>/dev/null
+then
+  OLD_CODEX_ACTIVE=1
+fi
+
 echo "source_sha=$SHA"
 echo "executor_version=$EXECUTOR_VERSION"
 echo "host_version=$HOST_VERSION"
@@ -154,6 +228,7 @@ chmod 700 "$BACKUP"
 cp -a "$COMPOSE" "$BACKUP/compose.json"
 cp -a "$CONFIG" "$BACKUP/policy.json"
 [ ! -f "$UNIT" ] || cp -a "$UNIT" "$BACKUP/unit.service"
+[ ! -f "$CODEX_UNIT" ] || cp -a "$CODEX_UNIT" "$BACKUP/codex-unit.service"
 [ ! -f "$RUNTIME_DROPIN" ] || cp -a "$RUNTIME_DROPIN" "$BACKUP/runtime.conf"
 printf '%s\n' "$OLD_CURRENT" > "$BACKUP/old-current.txt"
 
@@ -163,6 +238,7 @@ mkdir -p "$RELEASE/custom/coding-agent"
 cp -a "$EXECUTOR_DIR" "$RELEASE/custom/coding-agent/"
 cp -a "$HOST_DIR" "$RELEASE/custom/coding-agent/"
 cp -a "$BENCHMARK_DIR" "$RELEASE/custom/coding-agent/"
+cp -a "$RELAY_DIR" "$RELEASE/custom/coding-agent/"
 python3 -m venv --without-pip "$RELEASE/venv"
 
 PY="$RELEASE/venv/bin/python"
@@ -250,11 +326,30 @@ test -n "$NEW_IMAGE"
 echo "new_image=$NEW_IMAGE"
 
 echo
+echo "=== BUILD PROVIDER RELAY IMAGE ==="
+
+docker build \
+  -t "$RELAY_TAG" \
+  "$RELEASE/custom/coding-agent/provider-relay"
+
+NEW_RELAY_IMAGE="$(
+  docker image inspect \
+    "$RELAY_TAG" \
+    --format '{{.Id}}'
+)"
+
+test -n "$NEW_RELAY_IMAGE"
+
+echo "new_relay_image=$NEW_RELAY_IMAGE"
+
+echo
 echo "=== PREPARE SWITCH ==="
 ARMED=1
-systemctl --user stop coding-agent-host-maintenance
 
-python3 - "$COMPOSE" "$CONFIG" "$NEW_IMAGE" <<'PY'
+systemctl --user stop coding-agent-host-maintenance
+systemctl --user stop coding-agent-codex-adapter >/dev/null 2>&1 || true
+
+python3 - "$COMPOSE" "$CONFIG" "$NEW_IMAGE" "$NEW_RELAY_IMAGE" <<'PY'
 import json
 import re
 import sys
@@ -263,8 +358,13 @@ from pathlib import Path
 compose_path = Path(sys.argv[1])
 policy_path = Path(sys.argv[2])
 image = sys.argv[3]
+relay_image = sys.argv[4]
+
 if not re.fullmatch(r"sha256:[0-9a-f]{64}", image):
     raise SystemExit(f"invalid executor image ID: {image}")
+
+if not re.fullmatch(r"sha256:[0-9a-f]{64}", relay_image):
+    raise SystemExit(f"invalid relay image ID: {relay_image}")
 
 def rewrite(path: Path, update):
     data = json.loads(path.read_text())
@@ -285,13 +385,18 @@ def update_policy(data):
     if old is not None and not re.fullmatch(r"sha256:[0-9a-f]{64}", str(old)):
         raise SystemExit(f"unexpected existing policy image_id: {old!r}")
     data["image_id"] = image
+    data["acp_relay_image_id"] = relay_image
 
 rewrite(compose_path, update_compose)
 rewrite(policy_path, update_policy)
 PY
 
 mkdir -p "$(dirname "$UNIT")"
+mkdir -p "$(dirname "$CODEX_UNIT")"
+
 cp -a "$UNIT_TEMPLATE" "$UNIT"
+cp -a "$CODEX_UNIT_TEMPLATE" "$CODEX_UNIT"
+
 rm -f "$RUNTIME_DROPIN"
 rmdir "$UNIT.d" 2>/dev/null || true
 
@@ -319,6 +424,115 @@ for _ in $(seq 1 30); do
   sleep 2
 done
 test "$OK" -eq 1
+
+echo
+echo "=== START CODEX ADAPTER ==="
+
+systemctl --user reset-failed coding-agent-codex-adapter || true
+systemctl --user start coding-agent-codex-adapter
+
+for _ in $(seq 1 30); do
+  systemctl --user is-active --quiet coding-agent-codex-adapter && \
+    [ -S "$CODEX_SOCKET" ] && \
+    break
+  sleep 1
+done
+
+systemctl --user is-active --quiet coding-agent-codex-adapter
+test -S "$CODEX_SOCKET"
+test "$(stat -c '%a' "$CODEX_SOCKET")" = "660"
+
+echo "codex_adapter_socket=$CODEX_SOCKET"
+
+echo
+echo "=== SWITCH PROVIDER RELAY ==="
+
+RELAY_BACKUP="${RELAY_CONTAINER}-rollback-${SHORT_SHA}"
+
+docker rm -f "$RELAY_BACKUP" >/dev/null 2>&1 || true
+
+if docker inspect "$RELAY_CONTAINER" >/dev/null 2>&1; then
+  docker stop "$RELAY_CONTAINER" >/dev/null
+  docker rename "$RELAY_CONTAINER" "$RELAY_BACKUP"
+fi
+
+RELAY_SWITCHED=1
+
+RELAY_SIGNING_KEY="$(
+  python3 - "$CONFIG" <<'PY2'
+import json
+import re
+import sys
+from pathlib import Path
+
+value = json.loads(
+    Path(sys.argv[1]).read_text()
+).get("acp_relay_signing_key", "")
+
+if not isinstance(value, str) or not re.fullmatch(
+    r"[0-9a-fA-F]{64,}",
+    value,
+):
+    raise SystemExit(
+        "invalid ACP relay signing key"
+    )
+
+print(value)
+PY2
+)"
+
+HOST_GID="$(id -g)"
+
+RELAY_SIGNING_KEY="$RELAY_SIGNING_KEY" \
+docker run \
+  -d \
+  --name "$RELAY_CONTAINER" \
+  --network "$RELAY_NETWORK" \
+  --read-only \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 64 \
+  --memory 128m \
+  --memory-swap 128m \
+  --cpus 0.50 \
+  --group-add "$HOST_GID" \
+  --tmpfs /tmp:rw,noexec,nosuid,nodev,size=16m \
+  --mount \
+    "type=bind,src=$CODEX_SOCKET_DIR,dst=/run/codex-adapter,readonly" \
+  -e RELAY_SIGNING_KEY \
+  -e ALLOWED_MODEL=phase3-mock \
+  -e CODEX_ADAPTER_SOCKET=/run/codex-adapter/codex.sock \
+  "$NEW_RELAY_IMAGE" \
+  >/dev/null
+
+sleep 2
+
+test "$(
+  docker inspect "$RELAY_CONTAINER" \
+    --format '{{.State.Running}}'
+)" = "true"
+
+test "$(
+  docker inspect "$RELAY_CONTAINER" \
+    --format '{{.Image}}'
+)" = "$NEW_RELAY_IMAGE"
+
+test "$(
+  docker inspect "$RELAY_CONTAINER" \
+    --format '{{len .Mounts}}'
+)" -eq 1
+
+test "$(
+  docker inspect "$RELAY_CONTAINER" \
+    --format '{{len .NetworkSettings.Networks}}'
+)" -eq 1
+
+docker exec \
+  "$RELAY_CONTAINER" \
+  sh -c \
+  'test -S /run/codex-adapter/codex.sock'
+
+echo "provider_relay=$NEW_RELAY_IMAGE"
 
 echo
 echo "=== START HOST MAINTENANCE ==="
@@ -403,12 +617,66 @@ print(json.dumps({
 PY
 
 SYSTEMD_EXEC="$(systemctl --user show coding-agent-host-maintenance -p ExecStart --value)"
+
+CODEX_SYSTEMD_EXEC="$(
+  systemctl --user show \
+    coding-agent-codex-adapter \
+    -p ExecStart \
+    --value
+)"
+
+printf '%s\n' \
+  "$CODEX_SYSTEMD_EXEC" |
+  grep -F "$ROOT/current/venv/bin/python" \
+  >/dev/null
+
+systemctl --user is-active --quiet \
+  coding-agent-codex-adapter
+
+test -S "$CODEX_SOCKET"
+
+test "$(
+  docker inspect "$RELAY_CONTAINER" \
+    --format '{{.Image}}'
+)" = "$NEW_RELAY_IMAGE"
+
+test "$(
+  docker inspect "$RELAY_CONTAINER" \
+    --format '{{.HostConfig.ReadonlyRootfs}}'
+)" = "true"
+
+test "$(
+  docker inspect "$RELAY_CONTAINER" \
+    --format '{{.HostConfig.NetworkMode}}'
+)" = "$RELAY_NETWORK"
+
+test "$(
+  docker inspect "$RELAY_CONTAINER" \
+    --format '{{len .Mounts}}'
+)" -eq 1
+
+test "$(
+  docker inspect "$RELAY_CONTAINER" \
+    --format '{{len .NetworkSettings.Networks}}'
+)" -eq 1
 printf '%s\n' "$SYSTEMD_EXEC" | grep -F "$ROOT/current/venv/bin/python" >/dev/null
 if systemctl --user show coding-agent-host-maintenance -p Environment --value | grep -E 'PYTHONPATH=[^ ]+' >/dev/null; then
   echo "STOP: maintenance service has a non-empty PYTHONPATH"
   exit 1
 fi
 
+if systemctl --user show coding-agent-codex-adapter -p Environment --value | grep -E 'PYTHONPATH=[^ ]+' >/dev/null; then
+  echo "STOP: Codex adapter service has a non-empty PYTHONPATH"
+  exit 1
+fi
+
+if [ -n "$RELAY_BACKUP" ] && \
+   docker inspect "$RELAY_BACKUP" >/dev/null 2>&1
+then
+  docker rm -f "$RELAY_BACKUP" >/dev/null
+fi
+
+RELAY_SWITCHED=0
 ARMED=0
 trap - ERR
 
@@ -417,5 +685,6 @@ echo "=== RELEASE DEPLOYMENT COMPLETE ==="
 echo "release=$SHA"
 echo "executor=$EXECUTOR_VERSION"
 echo "host=$HOST_VERSION"
+echo "relay=$NEW_RELAY_IMAGE"
 echo "current=$(readlink -f "$CURRENT")"
 echo "backup=$BACKUP"

@@ -53,6 +53,44 @@ class Broker:
             self.acp_image_id,
         ):
             raise ValueError("pin the validated ACP sandbox image ID")
+        self.acp_relay_image_id = config.get(
+            "acp_relay_image_id",
+            "",
+        )
+        if (
+            self.acp_relay_image_id
+            and not re.fullmatch(
+                r"sha256:[0-9a-f]{64}",
+                self.acp_relay_image_id,
+            )
+        ):
+            raise ValueError(
+                "pin the validated ACP relay image ID"
+            )
+
+        self.acp_relay_signing_key = b""
+
+        if self.acp_image_id:
+            encoded_key = config.get(
+                "acp_relay_signing_key",
+                "",
+            )
+
+            if not isinstance(
+                encoded_key,
+                str,
+            ) or not re.fullmatch(
+                r"[0-9a-f]{64}",
+                encoded_key,
+            ):
+                raise ValueError(
+                    "configure a 32-byte hex ACP relay signing key"
+                )
+
+            self.acp_relay_signing_key = bytes.fromhex(
+                encoded_key
+            )
+
         self.tasks = Path(config["task_root"])
         self.repositories = Path(config["repository_root"])
         self.lock = Path(config["lock_path"])
@@ -256,7 +294,15 @@ class Broker:
         if not self.acp_image_id:
             raise ValueError("ACP sandbox image is not configured")
 
-        from host_maintenance.acp_sandbox import AcpSandboxManager
+        from host_maintenance.acp_sandbox import AcpSandboxManager, ACP_RELAY_CONTAINER
+        from host_maintenance.relay_policy import validate_relay
+
+        relay = json.loads(self._docker("inspect", "--type", "container", ACP_RELAY_CONTAINER))[0]
+        validate_relay(
+            relay,
+            self.acp_relay_image_id,
+            Path.home() / ".local/share/coding-maintenance/codex-adapter/run",
+        )
 
         def docker_runner(argv, **_kwargs):
             if (
@@ -273,6 +319,7 @@ class Broker:
             image=self.acp_image_id,
             runner=docker_runner,
             task_authorizer=self._authorize_acp_task,
+            relay_signing_key=self.acp_relay_signing_key,
         )
 
     @contextmanager

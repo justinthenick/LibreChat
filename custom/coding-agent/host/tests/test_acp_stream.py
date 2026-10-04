@@ -222,7 +222,8 @@ class AcpSessionLockTests(unittest.TestCase):
 
     def test_lock_with_unsafe_permissions_is_rejected(self):
         lock = self.root / 'acp-task-one.lock'
-        lock.touch(mode=0o644)
+        lock.touch(mode=0o600)
+        lock.chmod(0o644)
         with self.assertRaisesRegex(RuntimeError, 'invalid ACP session lock'):
             with self.broker._acp_operation('task-one'):
                 self.fail('unsafe lock admitted')

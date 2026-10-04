@@ -2,6 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from host_maintenance.acp_sandbox import ACP_NETWORK
 from host_maintenance.broker import Broker
 
 
@@ -23,7 +24,7 @@ class FakeAcpManager:
                 "StdinOnce": True,
             },
             "HostConfig": {
-                "NetworkMode": "none",
+                "NetworkMode": ACP_NETWORK,
                 "ReadonlyRootfs": True,
             },
         }
@@ -77,6 +78,8 @@ class AcpBrokerAuthorizationTests(unittest.TestCase):
             "container": "executor-test",
             "image_id": IMAGE,
             "acp_image_id": ACP_IMAGE,
+            "acp_relay_image_id": "sha256:" + "e" * 64,
+            "acp_relay_signing_key": "c" * 64,
             "task_root": str(self.tasks),
             "repository_root": str(self.repositories),
             "lock_path": str(self.state / "maintenance.lock"),
@@ -185,6 +188,12 @@ class AcpBrokerAuthorizationTests(unittest.TestCase):
         )
 
     def test_acp_manager_is_internally_pinned(self) -> None:
+        import json
+        from test_relay_policy import specimen
+        info = specimen()
+        info["Image"] = self.config["acp_relay_image_id"]
+        info["Mounts"][0]["Source"] = str(Path.home() / ".local/share/coding-maintenance/codex-adapter/run")
+        self.broker._docker = lambda *args, **kwargs: json.dumps([info])
         manager = self.broker._acp_manager()
 
         self.assertEqual(manager.image, ACP_IMAGE)
@@ -208,7 +217,10 @@ class AcpBrokerAuthorizationTests(unittest.TestCase):
         )
         self.assertEqual(result["status"], "created")
         self.assertFalse(result["running"])
-        self.assertEqual(result["network"], "none")
+        self.assertEqual(
+            result["network"],
+            ACP_NETWORK,
+        )
         self.assertTrue(result["read_only_root"])
 
     def test_acp_start_revalidates_after_start(self) -> None:
@@ -242,6 +254,36 @@ class AcpBrokerAuthorizationTests(unittest.TestCase):
             result["container"],
             f"librechat-acp-{self.task_id}",
         )
+
+    def test_acp_relay_signing_key_is_required(self) -> None:
+        config = dict(self.config)
+        config.pop(
+            "acp_relay_signing_key"
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "relay signing key",
+        ):
+            Broker(
+                config,
+                runner=lambda *_args, **_kwargs: "",
+            )
+
+    def test_mutable_acp_relay_image_is_rejected(self) -> None:
+        config = dict(self.config)
+        config["acp_relay_image_id"] = (
+            "librechat-acp-provider-relay:latest"
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "pin the validated ACP relay image ID",
+        ):
+            Broker(
+                config,
+                runner=lambda *_args, **_kwargs: "",
+            )
 
     def test_mutable_acp_image_is_rejected(self) -> None:
         config = dict(self.config)

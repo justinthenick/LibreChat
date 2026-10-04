@@ -1,0 +1,29 @@
+[Unit]
+Description=Hardened LibreChat coding-agent Codex model adapter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/coding-maintenance.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONPATH=
+
+ExecStartPre=/usr/bin/install -d -m 0700 %h/.local/share/coding-maintenance/codex-adapter
+ExecStartPre=/usr/bin/install -d -m 0750 %h/.local/share/coding-maintenance/codex-adapter/run
+ExecStartPre=/usr/bin/install -d -m 0555 %h/.local/share/coding-maintenance/codex-adapter/workspace
+
+ExecStart=%h/.local/share/coding-maintenance/current/venv/bin/python -m host_maintenance.codex_adapter
+
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
