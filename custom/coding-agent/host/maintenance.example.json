@@ -10,7 +10,14 @@
       "url": "https://github.com/justinthenick/LibreChat.git"
     }
   },
-  "enabled_mutations": {"refresh": false, "cleanup": false, "restart": false},
+  "enabled_mutations": {
+    "refresh": false,
+    "cleanup": false,
+    "restart": false
+  },
   "minimum_retirement_age_seconds": 86400,
-  "retired_tasks": {}
+  "retired_tasks": {},
+  "acp_image_id": "sha256:REPLACE_WITH_VALIDATED_64_HEX_ACP_IMAGE_ID",
+  "acp_relay_image_id": "sha256:REPLACE_WITH_VALIDATED_64_HEX_RELAY_IMAGE_ID",
+  "acp_relay_signing_key": "REPLACE_WITH_RANDOM_64_HEX_RELAY_SIGNING_KEY"
 }
