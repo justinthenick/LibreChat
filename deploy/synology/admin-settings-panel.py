@@ -29,6 +29,8 @@ COOKIE_SECURE = os.environ.get("ADMIN_SETTINGS_COOKIE_SECURE", "false").lower() 
 COOKIE_NAME = "librechat_admin_settings"
 SESSION_TTL = 8 * 60 * 60
 MAX_BODY = 128 * 1024
+# Two 600s recreations, validation/health/optional-removal budgets and margin.
+APPLY_RESPONSE_TIMEOUT = 1800
 PBKDF2_ITERATIONS = 310000
 LOGIN_WINDOW = 300
 LOGIN_MAX_FAILURES = 8
@@ -209,7 +211,8 @@ def worker_call(payload):
         raise RuntimeError("Request too large")
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     try:
-        sock.settimeout(180); sock.connect(str(SOCKET_PATH)); sock.sendall(raw)
+        sock.settimeout(APPLY_RESPONSE_TIMEOUT if payload.get("action") == "apply" else 180)
+        sock.connect(str(SOCKET_PATH)); sock.sendall(raw)
         chunks=[]; total=0
         while True:
             data=sock.recv(65536)

@@ -30,6 +30,24 @@ DEFAULT_STATE = Path("/volume1/docker/librechat/admin-settings-state")
 DEPLOY_LOCK = Path("/tmp/librechat-autodeploy.lock")
 MAX_REQUEST = 128 * 1024
 MAX_HEALTH_RESPONSE = 16 * 1024
+# The observed successful NAS recreation took 344 seconds. Allow two 300s
+# Docker requests (stop/create/start can involve more than one request).
+SERVICE_RECREATE_TIMEOUT = 600
+COMPOSE_HTTP_TIMEOUT = 300
+RECOVERY_NAME = "recovery-required.json"
+SERVICE_CONTAINERS = {
+    "api": "librechat", "cloudflared": "librechat-cloudflared",
+    "admin-settings": "librechat-admin-settings", "rag_api": "librechat-rag-api",
+}
+ERROR_SIGNALS = {
+    "docker_timeout": ("read timed out", "readtimeout", "timed out"),
+    "docker_permission": ("permission denied", "access is denied"),
+    "docker_unavailable": ("cannot connect", "connection refused", "connection aborted"),
+    "container_conflict": ("already in use", "conflict."),
+    "port_conflict": ("port is already allocated", "address already in use"),
+    "storage_full": ("no space left on device",),
+    "compose_container_config": ("containerconfig",),
+}
 
 SPEC = importlib.util.spec_from_file_location("manage_env", ROOT / "manage-env.py")
 manage_env = importlib.util.module_from_spec(SPEC)
@@ -40,11 +58,25 @@ class WorkerError(RuntimeError):
     pass
 
 
+class CommandError(WorkerError):
+    def __init__(self, message, diagnostic):
+        super().__init__(message)
+        self.diagnostic = diagnostic
+
+
+def error_details(exc):
+    if isinstance(exc, CommandError):
+        return exc.diagnostic
+    # Exception strings may contain settings or credentials. Persist only type
+    # categories we control; no arbitrary exception messages or command output.
+    return {"category": "worker_error" if isinstance(exc, WorkerError) else "internal_error"}
+
+
 def utc_now():
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def audit(state_dir, action, keys, outcome, stage=None):
+def audit(state_dir, action, keys, outcome, stage=None, error=None):
     state_dir.mkdir(parents=True, exist_ok=True)
     entry = {
         "time": utc_now(),
@@ -54,6 +86,8 @@ def audit(state_dir, action, keys, outcome, stage=None):
     }
     if stage:
         entry["stage"] = str(stage)[:80]
+    if error is not None:
+        entry["error"] = error_details(error)
     path = state_dir / "audit.log"
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(entry, ensure_ascii=False, sort_keys=True) + "\n")
@@ -213,25 +247,86 @@ def compose_cmd(values, args):
     return cmd
 
 
-def run(cmd, timeout=180):
+def command_details(cmd, started, category, returncode=None, output=""):
+    if isinstance(output, bytes):
+        output = output.decode("utf-8", errors="replace")
+    lower = output.lower()
+    return {
+        "command": "compose" if cmd[0] == "docker-compose" else "docker",
+        "category": category,
+        "returncode": returncode,
+        "duration_ms": round((time.monotonic() - started) * 1000),
+        "signals": [name for name, needles in ERROR_SIGNALS.items()
+                    if any(needle in lower for needle in needles)],
+    }
+
+
+def run(cmd, timeout=180, env=None):
+    started = time.monotonic()
     try:
-        return subprocess.run(cmd, cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout)
+        proc = subprocess.run(cmd, cwd=str(ROOT), stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, text=True, timeout=timeout, env=env)
     except FileNotFoundError as exc:
-        raise WorkerError("Required host command is unavailable") from exc
+        raise CommandError("Required host command is unavailable",
+                           command_details(cmd, started, "command_missing")) from exc
     except subprocess.TimeoutExpired as exc:
-        raise WorkerError("Host command timed out") from exc
+        raise CommandError("Host command timed out",
+                           command_details(cmd, started, "command_timeout",
+                                           output=exc.stderr or b"")) from exc
+    except OSError as exc:
+        raise CommandError("Host command could not be started",
+                           command_details(cmd, started, "command_oserror")) from exc
+    proc.diagnostic = command_details(cmd, started, "command_exit", proc.returncode, proc.stderr)
+    return proc
+
+
+def observe_runtime(services):
+    result = {}
+    for service in services:
+        name = SERVICE_CONTAINERS.get(service)
+        if name is None:
+            continue
+        try:
+            proc = run(["docker", "inspect", "--format", "{{json .State}}", name], timeout=10)
+            state = json.loads(proc.stdout) if proc.returncode == 0 else {}
+            status = state.get("Status")
+            result[service] = {
+                "status": status if status in ("created", "running", "paused", "restarting", "removing", "exited", "dead") else "unknown",
+                "running": state.get("Running") is True,
+                "restarting": state.get("Restarting") is True,
+            }
+        except Exception:
+            result[service] = {"status": "unknown"}
+    return result
+
+
+def write_recovery(path, record):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp = path.with_name(path.name + ".tmp")
+    fd = os.open(str(temp), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        os.fchmod(handle.fileno(), 0o600)
+        json.dump(record, handle, sort_keys=True)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(str(temp), str(path))
+    directory = os.open(str(path.parent), os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
 
 
 def compose_validate(values):
     proc = run(compose_cmd(values, ["config"]), timeout=60)
     if proc.returncode != 0:
-        raise WorkerError("Compose validation failed; inspect local deployment diagnostics")
+        raise CommandError("Compose validation failed; inspect local deployment diagnostics", proc.diagnostic)
 
 
 def remove_container(name):
     proc = run(["docker", "rm", "-f", name], timeout=30)
     if proc.returncode not in (0, 1):
-        raise WorkerError("Could not remove disabled optional service")
+        raise CommandError("Could not remove disabled optional service", proc.diagnostic)
 
 
 def recreate_services(values, services):
@@ -245,9 +340,12 @@ def recreate_services(values, services):
             enabled.append(service)
     if not enabled:
         return
-    proc = run(compose_cmd(values, ["up", "-d", "--no-deps", "--force-recreate"] + enabled), timeout=240)
+    env = dict(os.environ, COMPOSE_HTTP_TIMEOUT=str(COMPOSE_HTTP_TIMEOUT),
+               DOCKER_CLIENT_TIMEOUT=str(COMPOSE_HTTP_TIMEOUT))
+    proc = run(compose_cmd(values, ["up", "-d", "--no-deps", "--force-recreate"] + enabled),
+               timeout=SERVICE_RECREATE_TIMEOUT, env=env)
     if proc.returncode != 0:
-        raise WorkerError("Service recreate failed; inspect local deployment diagnostics")
+        raise CommandError("Service recreate failed; inspect local deployment diagnostics", proc.diagnostic)
 
 
 def health_api():
@@ -418,28 +516,13 @@ def read_lock_pid(lock_dir):
         return None
 
 
-def pid_alive(pid):
-    if not pid:
-        return False
-    try:
-        os.kill(pid, 0)
-        return True
-    except OSError:
-        return False
-
-
 def acquire_deploy_lock():
     try:
         DEPLOY_LOCK.mkdir()
-    except FileExistsError:
-        pid = read_lock_pid(DEPLOY_LOCK)
-        if pid_alive(pid):
-            raise WorkerError("A deployment or settings apply is already running; retry shortly")
-        shutil.rmtree(str(DEPLOY_LOCK), ignore_errors=True)
-        try:
-            DEPLOY_LOCK.mkdir()
-        except FileExistsError as exc:
-            raise WorkerError("Could not acquire deployment lock; retry shortly") from exc
+    except FileExistsError as exc:
+        # A dead/missing owner does not prove its Docker request has finished.
+        # Never steal a lock automatically, including the mkdir/pid-write window.
+        raise WorkerError("Deployment lock is present; wait for its owner or review interrupted deployment on the host") from exc
     (DEPLOY_LOCK / "pid").write_text(str(os.getpid()) + "\n", encoding="utf-8")
 
 
@@ -484,12 +567,18 @@ class WorkerCore:
         }
 
     def apply(self, payload):
-        with self.lock:
+        if not self.lock.acquire(blocking=False):
+            raise WorkerError("A settings apply is already running; retry after it completes")
+        try:
             acquire_deploy_lock()
             try:
+                if (self.state_dir / RECOVERY_NAME).exists():
+                    raise WorkerError("Settings recovery requires host review; deployment and settings apply are held")
                 return self._apply_locked(payload)
             finally:
                 release_deploy_lock()
+        finally:
+            self.lock.release()
 
     def _apply_locked(self, payload):
         schema, settings, lines, values, positions = load_context(self.env_path, self.schema_path)
@@ -499,7 +588,15 @@ class WorkerCore:
             return {"ok": True, "changed": [], "message": "No changes required", "state": self.state()}
 
         backup = manage_env.backup_env(self.env_path)
+        recovery_path = self.state_dir / RECOVERY_NAME
+        record = {"time": utc_now(), "backup": backup.name, "keys": keys,
+                  "services": plan["services"], "stage": "write"}
+        # Persist before changing configuration: a worker crash must not allow
+        # autodeploy to consume a partially applied transaction.
+        write_recovery(recovery_path, record)
         stage = "write"
+        runtime_uncertain = False
+        runtime_changed = False
         try:
             manage_env.atomic_write(self.env_path, replace_many(lines, positions, plan["normalized"]))
             _, new_values, _ = manage_env.read_env(self.env_path, set(settings))
@@ -507,41 +604,57 @@ class WorkerCore:
             compose_validate(new_values)
             if plan["services"]:
                 stage = "service_recreate"
+                record["stage"] = stage
+                write_recovery(recovery_path, record)
+                runtime_uncertain = True
                 recreate_services(new_values, plan["services"])
+                runtime_uncertain = False
+                runtime_changed = True
                 stage = "health_check"
                 if not wait_health(plan["services"], new_values):
                     raise WorkerError("Health check failed after applying settings")
+            state = self.state()
             audit(self.state_dir, "apply", keys, "success")
+            recovery_path.unlink()
             return {
-                "ok": True,
-                "changed": keys,
-                "services": plan["services"],
-                "warnings": plan["warnings"],
-                "backup": backup.name,
-                "message": "Settings applied and health checks passed",
-                "state": self.state(),
+                "ok": True, "changed": keys, "services": plan["services"],
+                "warnings": plan["warnings"], "backup": backup.name,
+                "message": "Settings applied and health checks passed", "state": state,
             }
         except Exception as exc:
-            audit(self.state_dir, "apply", keys, "failed", stage)
+            audit(self.state_dir, "apply", keys, "failed", stage, exc)
+            record.update(stage=stage, error=error_details(exc))
+            if runtime_uncertain:
+                # A failed/killed client does not cancel a Docker daemon request.
+                # Running alone cannot establish the requested config or quiescence.
+                record["runtime"] = observe_runtime(plan["services"])
+                write_recovery(recovery_path, record)
+                raise WorkerError("Settings recreate outcome is uncertain; backup retained, rollback deferred and deployment held for host review") from exc
             rollback_stage = "restore_env"
             try:
                 restore_backup(backup, self.env_path)
                 _, old_values, _ = manage_env.read_env(self.env_path, set(settings))
                 rollback_stage = "rollback_compose_validation"
                 compose_validate(old_values)
-                if plan["services"]:
+                if runtime_changed:
                     rollback_stage = "rollback_service_recreate"
+                    record["rollback_stage"] = rollback_stage
+                    write_recovery(recovery_path, record)
                     recreate_services(old_values, plan["services"])
                     rollback_stage = "rollback_health_check"
                     if not wait_health(plan["services"], old_values, timeout=75):
                         raise WorkerError("Rollback health check failed")
                 audit(self.state_dir, "apply", keys, "rolled_back", stage)
-            except Exception:
-                audit(self.state_dir, "apply", keys, "rollback_failed", rollback_stage)
-                raise WorkerError("Settings apply failed and automatic rollback did not restore a healthy runtime; inspect local deployment diagnostics")
+                recovery_path.unlink()
+            except Exception as rollback_exc:
+                audit(self.state_dir, "apply", keys, "rollback_failed", rollback_stage, rollback_exc)
+                record.update(rollback_stage=rollback_stage, rollback_error=error_details(rollback_exc),
+                              runtime=observe_runtime(plan["services"]))
+                write_recovery(recovery_path, record)
+                raise WorkerError("Settings apply and rollback failed; deployment held for host review; inspect local audit and recovery record") from rollback_exc
             if isinstance(exc, WorkerError):
-                raise WorkerError("Settings apply failed; previous configuration restored: {}".format(str(exc)))
-            raise WorkerError("Settings apply failed; previous configuration restored; inspect local deployment diagnostics")
+                raise WorkerError("Settings apply failed; previous configuration restored: {}".format(str(exc))) from exc
+            raise WorkerError("Settings apply failed; previous configuration restored; inspect local deployment diagnostics") from exc
 
     def handle(self, request):
         action = request.get("action") if isinstance(request, dict) else None
