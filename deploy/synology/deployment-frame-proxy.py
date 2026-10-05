@@ -10,6 +10,7 @@ PORT = int(os.environ.get("DEPLOYMENT_GATEWAY_PORT", "3211"))
 UPSTREAM = os.environ.get("DEPLOYMENT_GATEWAY_UPSTREAM", "http://admin-settings:3210")
 FRAME_ANCESTOR_RAW = os.environ.get("DEPLOYMENT_GATEWAY_FRAME_ANCESTOR", "")
 MAX_BODY = 128 * 1024
+APPLY_RESPONSE_TIMEOUT = 2460
 
 
 def normalize_frame_ancestor(value):
@@ -54,7 +55,8 @@ class Handler(BaseHTTPRequestHandler):
                 headers[name] = value
         headers["Host"] = upstream.netloc
 
-        connection = HTTPConnection(upstream.hostname, upstream.port, timeout=30)
+        timeout = APPLY_RESPONSE_TIMEOUT if self.command == "POST" and self.path == "/api/apply" else 30
+        connection = HTTPConnection(upstream.hostname, upstream.port, timeout=timeout)
         try:
             connection.request(self.command, self.path, body=body, headers=headers)
             response = connection.getresponse()
