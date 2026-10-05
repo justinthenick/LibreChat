@@ -30,6 +30,7 @@ DEFAULT_STATE = Path("/volume1/docker/librechat/admin-settings-state")
 DEPLOY_LOCK = Path("/tmp/librechat-autodeploy.lock")
 MAX_REQUEST = 128 * 1024
 MAX_HEALTH_RESPONSE = 16 * 1024
+SERVICE_RECREATE_TIMEOUT = 900
 
 SPEC = importlib.util.spec_from_file_location("manage_env", ROOT / "manage-env.py")
 manage_env = importlib.util.module_from_spec(SPEC)
@@ -213,9 +214,9 @@ def compose_cmd(values, args):
     return cmd
 
 
-def run(cmd, timeout=180):
+def run(cmd, timeout=180, env=None):
     try:
-        return subprocess.run(cmd, cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout)
+        return subprocess.run(cmd, cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout, env=env)
     except FileNotFoundError as exc:
         raise WorkerError("Required host command is unavailable") from exc
     except subprocess.TimeoutExpired as exc:
@@ -245,7 +246,10 @@ def recreate_services(values, services):
             enabled.append(service)
     if not enabled:
         return
-    proc = run(compose_cmd(values, ["up", "-d", "--no-deps", "--force-recreate"] + enabled), timeout=240)
+    env = dict(os.environ, COMPOSE_HTTP_TIMEOUT=str(SERVICE_RECREATE_TIMEOUT),
+               DOCKER_CLIENT_TIMEOUT=str(SERVICE_RECREATE_TIMEOUT))
+    proc = run(compose_cmd(values, ["up", "-d", "--no-deps", "--force-recreate"] + enabled),
+               timeout=SERVICE_RECREATE_TIMEOUT, env=env)
     if proc.returncode != 0:
         raise WorkerError("Service recreate failed; inspect local deployment diagnostics")
 

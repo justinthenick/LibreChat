@@ -2,6 +2,7 @@ import importlib.util
 import tempfile
 from pathlib import Path
 import unittest
+from unittest.mock import patch, MagicMock
 
 ROOT = Path(__file__).resolve().parent
 
@@ -15,6 +16,18 @@ def load(name, path):
 
 panel = load("admin_settings_panel", ROOT / "admin-settings-panel.py")
 renderer = load("render_librechat_config", ROOT / "render-librechat-config.py")
+
+
+class WorkerDeadlineTests(unittest.TestCase):
+    def test_apply_waits_for_forward_and_rollback_but_reads_stay_short(self):
+        for action, expected in [("apply", 2400), ("state", 180), ("preview", 180)]:
+            with self.subTest(action=action):
+                sock = MagicMock()
+                sock.recv.return_value = b'{"ok":true}\n'
+                with patch.object(panel.socket, "socket", return_value=sock):
+                    self.assertEqual(panel.worker_call({"action": action}), {"ok": True})
+                sock.settimeout.assert_called_once_with(expected)
+                sock.close.assert_called_once()
 
 
 class AdminPasswordTests(unittest.TestCase):

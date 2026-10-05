@@ -138,6 +138,8 @@ A normal browser apply is:
 10. success is audited and returned;
 11. on any apply/health failure, the previous `.env` is restored and the prior services are recreated.
 
+Service recreation and its Compose/Docker client requests allow up to 15 minutes on slow NAS storage, including rollback recreation. The panel waits up to 40 minutes for the complete apply/rollback response; state and preview requests retain their three-minute timeout. Keep the apply request open and do not start a competing deployment while it runs. A timeout remains a failure and does not establish whether Docker completed the requested change; verify current runtime health before retrying.
+
 Secret values are neither returned in state/preview nor written to audit output.
 
 ## Autodeploy integration
