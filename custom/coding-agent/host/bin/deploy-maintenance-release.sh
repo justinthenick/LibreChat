@@ -96,7 +96,13 @@ restore_file() {
   local destination="$2"
   if [ -f "$saved" ]; then
     mkdir -p "$(dirname "$destination")"
-    cp -a "$saved" "$destination"
+    local replacement
+    replacement="$(mktemp "$(dirname "$destination")/.maintenance-file.XXXXXX")"
+    if cp -a "$saved" "$replacement" && mv -Tf "$replacement" "$destination"; then
+      return 0
+    fi
+    rm -f "$replacement"
+    return 1
   else
     rm -f "$destination"
   fi
@@ -559,8 +565,8 @@ PY
 mkdir -p "$(dirname "$UNIT")"
 mkdir -p "$(dirname "$CODEX_UNIT")"
 
-cp -a "$UNIT_TEMPLATE" "$UNIT"
-cp -a "$CODEX_UNIT_TEMPLATE" "$CODEX_UNIT"
+restore_file "$UNIT_TEMPLATE" "$UNIT"
+restore_file "$CODEX_UNIT_TEMPLATE" "$CODEX_UNIT"
 
 # Candidate acceptance uses an ExecStart drop-in.
 # Production promotion must remove it so the adapter

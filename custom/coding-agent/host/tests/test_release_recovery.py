@@ -114,7 +114,7 @@ elif action == "inspect":""").replace(
             docker.write_text(mock)
             docker.chmod(0o755)
             systemctl = root / "systemctl"
-            systemctl.write_text("#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$SYSTEM_CALLS\"\n")
+            systemctl.write_text("#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$SYSTEM_CALLS\"\n")
             systemctl.chmod(0o755)
             env = dict(os.environ, PATH=str(root) + ":" + os.environ["PATH"],
                        STATE=str(state), FAILURE="none", OLD_IMAGE=IMAGE,
@@ -157,3 +157,34 @@ elif action == "inspect":""").replace(
 
     def test_failed_sandbox_query_fails_before_any_stop(self):
         self.run_recovery(daemon_failure=True)
+
+
+class AtomicServiceFileTests(unittest.TestCase):
+    def test_install_and_restore_replace_readonly_units_atomically(self):
+        text = DEPLOY.read_text()
+        function = text[text.index("restore_file() {"):text.index("\nswitch_relay() {")]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            original = root / "original"
+            original.write_text("original service")
+            original.chmod(0o444)
+            template = root / "template"
+            template.write_text("new service")
+            template.chmod(0o644)
+            destination = root / "unit"
+            destination.write_text("original service")
+            destination.chmod(0o444)
+            with destination.open() as prior:
+                result = subprocess.run(
+                    ["bash", "-c", "set -e\n" + function + '\nrestore_file "$1" "$2"',
+                     "bash", str(template), str(destination)], text=True, capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(destination.read_text(), "new service")
+                self.assertEqual(prior.read(), "original service")
+            result = subprocess.run(
+                ["bash", "-c", "set -e\n" + function + '\nrestore_file "$1" "$2"',
+                 "bash", str(original), str(destination)], text=True, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(destination.read_text(), "original service")
+            self.assertEqual(destination.stat().st_mode & 0o777, 0o444)
+            self.assertEqual(list(root.glob(".maintenance-file.*")), [])
