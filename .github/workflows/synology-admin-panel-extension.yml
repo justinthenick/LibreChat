@@ -45,7 +45,7 @@ jobs:
       - name: Test pinned Bun apply deadline and persistent recovery notice
         run: |
           bun test deploy/synology/admin-panel-extension/*.test.ts
-          python -m unittest -v deploy/synology/test_deployment_deadline.py
+          LIBRECHAT_TEST_DELAY_SECONDS=310 python -m unittest -v deploy/synology/test_deployment_deadline.py
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

@@ -68,7 +68,7 @@ possible completed-operation rollback. The outer Bun server disables its 10-seco
 idle timer only for POST `/deployment-control/api/apply`, with a separate 1900-second
 deadline covering authentication, request handling, response headers and the complete
 response body. The response is capped at 1 MiB; client cancellation and the deadline
-abort downstream fetch. Ordinary routes retain their default timeout. These limits
+abort downstream fetch. Apply requests also set Bun fetch `timeout: false`, disabling its separate five-minute socket timer while retaining the bounded outer AbortController deadline. Ordinary routes retain their default timeouts. These limits
 require the rebuilt Admin Panel image as well as refreshed Python panel/gateway
 processes; replacing bind-mounted files alone does not reload running interpreters.
 

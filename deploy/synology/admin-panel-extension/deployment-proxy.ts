@@ -56,7 +56,10 @@ export async function handleDeploymentControl(request: Request): Promise<Respons
   const cookies = deploymentCookies(request.headers.get('cookie'));
   if (cookies) headers.set('cookie', cookies);
 
-  const init: RequestInit = { method, headers, redirect: 'manual', signal: request.signal };
+  const init: RequestInit & { timeout?: false } = { method, headers, redirect: 'manual', signal: request.signal };
+  // The outer apply wrapper supplies the bounded deadline; Bun's socket timer
+  // would otherwise terminate a slow NAS response after five minutes.
+  if (method === 'POST' && suffix === '/api/apply') init.timeout = false;
   if (method !== 'GET' && method !== 'HEAD') {
     init.body = await request.arrayBuffer();
   }

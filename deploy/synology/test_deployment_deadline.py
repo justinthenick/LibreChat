@@ -15,13 +15,14 @@ import urllib.request
 
 HERE = Path(__file__).resolve().parent / "admin-panel-extension"
 BUN = shutil.which("bun")
+DELAY_SECONDS = int(os.environ.get("LIBRECHAT_TEST_DELAY_SECONDS", "16"))
 
 
 class Gateway(BaseHTTPRequestHandler):
     def log_message(self, *args): pass
     def do_POST(self):
         mode = self.rfile.read(int(self.headers.get("Content-Length", "0"))).decode()
-        if mode == "headers": time.sleep(16)
+        if mode == "headers": time.sleep(DELAY_SECONDS)
         payload = b'{"ok":true}'
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -30,7 +31,7 @@ class Gateway(BaseHTTPRequestHandler):
         if mode == "body":
             self.wfile.write(payload[:1])
             self.wfile.flush()
-            time.sleep(16)
+            time.sleep(DELAY_SECONDS)
             payload = payload[1:]
         try: self.wfile.write(payload)
         except (BrokenPipeError, ConnectionResetError): pass
@@ -74,8 +75,9 @@ class BunDeadlineTests(unittest.TestCase):
                 url = "http://" + base + "/deployment-control/api/apply"
                 def request(mode):
                     req = urllib.request.Request(url, data=mode.encode(), headers={"Authorization":"Bearer fixture-admin"})
-                    with urllib.request.urlopen(req, timeout=24) as response:
+                    with urllib.request.urlopen(req, timeout=DELAY_SECONDS + 25) as response:
                         return response.status, response.read()
+                print("Pinned Bun header/body requests starting; delay={}s".format(DELAY_SECONDS), flush=True)
                 with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
                     results = list(pool.map(request, ["headers", "body"]))
                 self.assertEqual(results, [(200, b'{"ok":true}'), (200, b'{"ok":true}')])
