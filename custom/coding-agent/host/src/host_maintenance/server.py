@@ -11,6 +11,7 @@ from pathlib import Path
 
 import uvicorn
 from mcp.server import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.transport_security import TransportSecuritySettings
@@ -18,6 +19,7 @@ from pydantic import AnyHttpUrl
 from starlette.responses import JSONResponse
 
 from host_maintenance.broker import Broker
+from host_maintenance.refusals import PolicyRefusal
 
 
 HOST_INTEGRATION_TTL_SECONDS = 15.0
@@ -45,6 +47,9 @@ def audited(function):
         logger.info("request=%s operation=%s result=started", request_id, function.__name__)
         try:
             result = function(*args, **kwargs)
+        except PolicyRefusal as error:
+            logger.warning("request=%s operation=%s result=refused", request_id, function.__name__)
+            raise ToolError(error.reason.value) from None
         except Exception:
             logger.warning("request=%s operation=%s result=failed", request_id, function.__name__)
             raise
@@ -81,7 +86,7 @@ def build_server(broker: Broker, token: str, url: str) -> MCPServer:
                        auth=AuthSettings(issuer_url=AnyHttpUrl("https://librechat.local"),
                                          resource_server_url=AnyHttpUrl(url),
                                          required_scopes=["coding:maintain"], validate_token_resource=True),
-                       instructions="Use only allowlisted maintenance operations. Preview before cleanup/restart. Tickets expire after 60 seconds and are not human approval. Never infer a task is retired because it is clean. No shell, deployment, force cleanup, branch deletion or push is available.")
+                       instructions="Executor repository discovery does not grant maintenance access. Stop on permission or environment blockers; do not substitute task creation, patching or execution to obtain refused metadata. Use only allowlisted maintenance operations. Preview before cleanup/restart. Tickets expire after 60 seconds and are not human approval. Never infer a task is retired because it is clean. No shell, deployment, force cleanup, branch deletion or push is available.")
 
     @server.custom_route("/health", methods=["GET"])
     async def health(_request: object) -> JSONResponse:

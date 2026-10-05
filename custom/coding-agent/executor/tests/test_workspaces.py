@@ -505,6 +505,19 @@ class WorkspaceManagerTest(unittest.TestCase):
         self.assertTrue(source_sync_lock.is_file())
         self.assertFalse(source_sync_lock.is_symlink())
 
+    def _assert_no_admission_artifacts(self) -> None:
+        branches = subprocess.check_output(
+            ["git", "for-each-ref", "--format=%(refname)", "refs/heads/agent/"],
+            cwd=self.repository, text=True,
+        )
+        self.assertEqual(branches, "")
+        worktrees = subprocess.check_output(
+            ["git", "worktree", "list", "--porcelain"], cwd=self.repository, text=True,
+        )
+        self.assertEqual(worktrees.count("worktree "), 1)
+        self.assertFalse(any(path.is_dir() for path in self.tasks.iterdir()))
+        self.assertEqual(list(self.tasks.glob(".state-*.json")), [])
+
     def test_create_task_rejects_when_behind_upstream(self) -> None:
         upstream_dir = self._setup_upstream()
         other_repo = Path(self.temporary.name) / "other_clone"
@@ -521,6 +534,7 @@ class WorkspaceManagerTest(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "behind its configured upstream"):
             self.manager.create_task("demo", "stale task", "main")
+        self._assert_no_admission_artifacts()
 
     def test_create_task_rejects_when_source_has_tracked_changes(self) -> None:
         (self.repository / "example.txt").write_text("dirty\n", encoding="utf-8")
@@ -529,6 +543,7 @@ class WorkspaceManagerTest(unittest.TestCase):
             r"is not clean \(contains tracked, staged, or untracked changes\)",
         ):
             self.manager.create_task("demo", "dirty task", "main")
+        self._assert_no_admission_artifacts()
 
     def test_create_task_rejects_when_source_has_staged_changes(self) -> None:
         (self.repository / "staged.txt").write_text("staged\n", encoding="utf-8")
@@ -538,6 +553,7 @@ class WorkspaceManagerTest(unittest.TestCase):
             r"is not clean \(contains tracked, staged, or untracked changes\)",
         ):
             self.manager.create_task("demo", "staged task", "main")
+        self._assert_no_admission_artifacts()
 
     def test_create_task_rejects_when_source_has_untracked_files(self) -> None:
         (self.repository / "untracked.txt").write_text("untracked\n", encoding="utf-8")
@@ -546,6 +562,7 @@ class WorkspaceManagerTest(unittest.TestCase):
             r"is not clean \(contains tracked, staged, or untracked changes\)",
         ):
             self.manager.create_task("demo", "untracked task", "main")
+        self._assert_no_admission_artifacts()
 
     def test_create_task_succeeds_when_source_has_no_configured_upstream(self) -> None:
         task = self.manager.create_task("demo", "no upstream task", "main")

@@ -16,6 +16,7 @@ from unittest.mock import patch
 
 import uvicorn
 from mcp.server.transport_security import TransportSecuritySettings
+from mcp.server.mcpserver.exceptions import ToolError
 
 from coding_executor.coordination import maintenance_lock
 from host_maintenance.broker import (Broker, LOCK_DESTINATION, VALIDATION_DOCKER_OUTPUT_LIMIT,
@@ -287,7 +288,8 @@ class BrokerTests(unittest.TestCase):
             self.assertFalse(result.is_error)
             with self.assertRaises(Exception) as refused:
                 await server.call_tool("refresh_repository", {"repository": "../escape"})
-            self.assertIsInstance(refused.exception.__cause__, ValueError)
+            self.assertIsInstance(refused.exception, ToolError)
+            self.assertIn("maintenance_repository_not_allowed", str(refused.exception))
             verifier = MaintenanceTokenVerifier("m" * 48, "http://127.0.0.1:8766/mcp")
             self.assertIsNone(await verifier.verify_token("executor-token"))
             token = await verifier.verify_token("m" * 48)
@@ -374,6 +376,28 @@ class BrokerTests(unittest.TestCase):
                 self.assertEqual(len(discovered["result"]["tools"]), 11)
                 result = request("m" * 48, "tools/call", {"name": "executor_health", "arguments": {}})
                 self.assertFalse(result["result"].get("isError", False))
+                for name in ("repository_status", "fresh_repository_status"):
+                    refused = request("m" * 48, "tools/call", {
+                        "name": name, "arguments": {"repository": "/private/SECRET"}})
+                    self.assertTrue(refused["result"]["isError"])
+                    message = json.dumps(refused["result"])
+                    self.assertIn("maintenance_repository_not_allowed", message)
+                    self.assertIn("Stop", message)
+                    self.assertNotIn("SECRET", message)
+                self.config["enabled_mutations"]["refresh"] = False
+                refused = request("m" * 48, "tools/call", {
+                    "name": "refresh_repository", "arguments": {"repository": "demo"}})
+                self.assertTrue(refused["result"]["isError"])
+                self.assertIn("maintenance_operation_disabled", json.dumps(refused["result"]))
+                def broken_docker(argv, **kwargs):
+                    raise ValueError("/private/SECRET unexpected internal failure")
+                self.broker.runner = broken_docker
+                failed = request("m" * 48, "tools/call", {
+                    "name": "repository_status", "arguments": {"repository": "demo"}})
+                self.assertTrue(failed["result"]["isError"])
+                self.assertNotIn("SECRET", json.dumps(failed["result"]))
+                self.assertNotIn("unexpected internal failure", json.dumps(failed["result"]))
+                self.assertNotIn("maintenance_repository_not_allowed", json.dumps(failed["result"]))
             finally:
                 server.should_exit = True
                 thread.join(timeout=5)

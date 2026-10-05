@@ -15,6 +15,7 @@ from pathlib import Path
 
 from coding_executor.bounded import run
 from coding_executor.coordination import maintenance_lock
+from .refusals import PolicyReason, PolicyRefusal
 
 
 LOCK_DESTINATION = "/run/coding-agent/maintenance.lock"
@@ -169,12 +170,12 @@ class Broker:
 
     def _repository(self, repository: str) -> dict:
         if repository not in self.config["repositories"]:
-            raise ValueError("repository is not allowlisted")
+            raise PolicyRefusal(PolicyReason.REPOSITORY)
         return self.config["repositories"][repository]
 
     def _enabled(self, operation: str) -> None:
         if self.config.get("enabled_mutations", {}).get(operation) is not True:
-            raise ValueError(f"{operation} is disabled by operator policy")
+            raise PolicyRefusal(PolicyReason.DISABLED)
 
     def host_integrations(self) -> dict[str, str]:
         try:
