@@ -6,6 +6,8 @@ on:
       - 'deploy/synology/admin-panel-extension/**'
       - 'deploy/synology/deployment-frame-proxy.py'
       - 'deploy/synology/test_deployment_frame_proxy.py'
+      - 'deploy/synology/test_deployment_deadline.py'
+      - 'deploy/synology/admin-settings-panel.py'
       - 'deploy/synology/docker-compose.admin.yml'
       - '.github/workflows/synology-admin-panel-extension.yml'
   push:
@@ -15,6 +17,8 @@ on:
       - 'deploy/synology/admin-panel-extension/**'
       - 'deploy/synology/deployment-frame-proxy.py'
       - 'deploy/synology/test_deployment_frame_proxy.py'
+      - 'deploy/synology/test_deployment_deadline.py'
+      - 'deploy/synology/admin-settings-panel.py'
       - 'deploy/synology/docker-compose.admin.yml'
       - '.github/workflows/synology-admin-panel-extension.yml'
   workflow_dispatch:
@@ -33,6 +37,15 @@ jobs:
         run: |
           python -m py_compile deploy/synology/deployment-frame-proxy.py
           python -m unittest -v deploy/synology/test_deployment_frame_proxy.py
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.11'
+
+      - name: Test pinned Bun apply deadline and persistent recovery notice
+        run: |
+          bun test deploy/synology/admin-panel-extension/*.test.ts
+          python -m unittest -v deploy/synology/test_deployment_deadline.py
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -65,10 +78,27 @@ jobs:
 
           cat > "$RUNNER_TEMP/fake-gateway.py" <<'PY'
           from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+          import time
 
           class Handler(BaseHTTPRequestHandler):
               def log_message(self, fmt, *args):
                   pass
+
+              def do_POST(self):
+                  mode = self.rfile.read(int(self.headers.get('Content-Length', '0'))).decode()
+                  if self.path != '/api/apply':
+                      self.send_error(404)
+                      return
+                  if mode == 'headers': time.sleep(16)
+                  payload = b'{"ok":true}'
+                  self.send_response(200)
+                  self.send_header('Content-Type', 'application/json')
+                  self.send_header('Content-Length', str(len(payload)))
+                  self.end_headers()
+                  if mode == 'body':
+                      self.wfile.write(payload[:1]); self.wfile.flush(); time.sleep(16)
+                      payload = payload[1:]
+                  self.wfile.write(payload)
 
               def do_GET(self):
                   if self.path == '/health':
@@ -176,6 +206,12 @@ jobs:
             const health = await context.request.get(`${base}/deployment-control/health`);
             assert.equal(health.status(), 200);
             assert.deepEqual(await health.json(), { ok: true, bridge: 'synthetic' });
+
+            for (const phase of ['headers', 'body']) {
+              const delayed = await context.request.post(`${base}/deployment-control/api/apply`, { data: phase, timeout: 25000 });
+              assert.equal(delayed.status(), 200);
+              assert.deepEqual(await delayed.json(), { ok: true });
+            }
 
             const root = await context.request.get(`${base}/deployment-control`);
             assert.equal(root.status(), 200);

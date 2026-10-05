@@ -9,12 +9,15 @@ services, health-checks them, and rolls the previous .env back on failure.
 """
 
 import argparse
+import contextlib
 import datetime as dt
 import importlib.util
 import json
 import os
 from pathlib import Path
 import shutil
+import secrets
+import stat
 import socket
 import socketserver
 import subprocess
@@ -27,6 +30,7 @@ ROOT = Path(__file__).resolve().parent
 DEFAULT_ENV = ROOT / ".env"
 DEFAULT_SCHEMA = ROOT / "admin-settings.schema.json"
 DEFAULT_STATE = Path("/volume1/docker/librechat/admin-settings-state")
+DEFAULT_RECOVERY = Path("/var/lib/librechat-admin-settings")
 DEPLOY_LOCK = Path("/tmp/librechat-autodeploy.lock")
 MAX_REQUEST = 128 * 1024
 MAX_HEALTH_RESPONSE = 16 * 1024
@@ -300,21 +304,86 @@ def observe_runtime(services):
     return result
 
 
-def write_recovery(path, record):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_name(path.name + ".tmp")
-    fd = os.open(str(temp), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as handle:
-        os.fchmod(handle.fileno(), 0o600)
-        json.dump(record, handle, sort_keys=True)
-        handle.flush()
-        os.fsync(handle.fileno())
-    os.replace(str(temp), str(path))
-    directory = os.open(str(path.parent), os.O_RDONLY | os.O_DIRECTORY)
+@contextlib.contextmanager
+def recovery_directory(path, create=False):
+    """Open only trusted directories, rejecting links and writable ancestors."""
+    path = Path(path)
+    if not path.is_absolute() or ".." in path.parts:
+        raise WorkerError("Recovery directory must be an absolute trusted path")
+    descriptor = os.open("/", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
-        os.fsync(directory)
+        for component in path.parts[1:-1]:
+            child = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=descriptor)
+            os.close(descriptor)
+            descriptor = child
+            info = os.fstat(descriptor)
+            if info.st_uid not in (0, os.geteuid()) or (info.st_mode & 0o022 and not info.st_mode & stat.S_ISVTX):
+                raise WorkerError("Recovery directory has an untrusted ancestor")
+        if create:
+            try:
+                os.mkdir(path.name, 0o700, dir_fd=descriptor)
+            except FileExistsError:
+                pass
+        try:
+            child = os.open(path.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=descriptor)
+        except FileNotFoundError:
+            yield None
+            return
+        os.close(descriptor)
+        descriptor = child
+        info = os.fstat(descriptor)
+        if info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
+            raise WorkerError("Recovery directory must be privately owned by the worker")
+        yield descriptor
+    except OSError as exc:
+        raise WorkerError("Recovery storage is unavailable or unsafe") from exc
     finally:
-        os.close(directory)
+        os.close(descriptor)
+
+
+def recovery_entry(descriptor, name):
+    try:
+        info = os.stat(name, dir_fd=descriptor, follow_symlinks=False)
+    except FileNotFoundError:
+        return False
+    if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid()
+            or stat.S_IMODE(info.st_mode) != 0o600 or info.st_nlink != 1):
+        raise WorkerError("Recovery record has unsafe ownership, type or permissions")
+    return True
+
+
+def recovery_pending(directory):
+    with recovery_directory(directory) as descriptor:
+        return descriptor is not None and recovery_entry(descriptor, RECOVERY_NAME)
+
+
+def write_recovery(path, record):
+    with recovery_directory(path.parent, create=True) as descriptor:
+        recovery_entry(descriptor, path.name)
+        temporary = ".recovery-" + secrets.token_hex(16) + ".tmp"
+        fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                     0o600, dir_fd=descriptor)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                os.fchmod(handle.fileno(), 0o600)
+                json.dump(record, handle, sort_keys=True)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, path.name, src_dir_fd=descriptor, dst_dir_fd=descriptor)
+            os.fsync(descriptor)
+        finally:
+            try:
+                os.unlink(temporary, dir_fd=descriptor)
+            except FileNotFoundError:
+                pass
+
+
+def clear_recovery(path):
+    with recovery_directory(path.parent) as descriptor:
+        if descriptor is None or not recovery_entry(descriptor, path.name):
+            raise WorkerError("Recovery record disappeared during the transaction")
+        os.unlink(path.name, dir_fd=descriptor)
+        os.fsync(descriptor)
 
 
 def compose_validate(values):
@@ -533,10 +602,11 @@ def release_deploy_lock():
 
 
 class WorkerCore:
-    def __init__(self, env_path, schema_path, state_dir):
+    def __init__(self, env_path, schema_path, state_dir, recovery_dir=DEFAULT_RECOVERY):
         self.env_path = env_path
         self.schema_path = schema_path
         self.state_dir = state_dir
+        self.recovery_dir = recovery_dir
         self.lock = threading.Lock()
 
     def state(self):
@@ -544,6 +614,10 @@ class WorkerCore:
         result = sanitize_state(schema, settings, values)
         result["warnings"] = validation_warnings(values)
         result["worker_time"] = utc_now()
+        try:
+            result["recovery_required"] = recovery_pending(self.recovery_dir)
+        except WorkerError:
+            result["recovery_required"] = True
         try:
             result["coding_executor"] = probe_coding_executor(values)
         except Exception:
@@ -572,7 +646,7 @@ class WorkerCore:
         try:
             acquire_deploy_lock()
             try:
-                if (self.state_dir / RECOVERY_NAME).exists():
+                if recovery_pending(self.recovery_dir):
                     raise WorkerError("Settings recovery requires host review; deployment and settings apply are held")
                 return self._apply_locked(payload)
             finally:
@@ -588,7 +662,7 @@ class WorkerCore:
             return {"ok": True, "changed": [], "message": "No changes required", "state": self.state()}
 
         backup = manage_env.backup_env(self.env_path)
-        recovery_path = self.state_dir / RECOVERY_NAME
+        recovery_path = self.recovery_dir / RECOVERY_NAME
         record = {"time": utc_now(), "backup": backup.name, "keys": keys,
                   "services": plan["services"], "stage": "write"}
         # Persist before changing configuration: a worker crash must not allow
@@ -615,7 +689,8 @@ class WorkerCore:
                     raise WorkerError("Health check failed after applying settings")
             state = self.state()
             audit(self.state_dir, "apply", keys, "success")
-            recovery_path.unlink()
+            clear_recovery(recovery_path)
+            state["recovery_required"] = False
             return {
                 "ok": True, "changed": keys, "services": plan["services"],
                 "warnings": plan["warnings"], "backup": backup.name,
@@ -645,7 +720,7 @@ class WorkerCore:
                     if not wait_health(plan["services"], old_values, timeout=75):
                         raise WorkerError("Rollback health check failed")
                 audit(self.state_dir, "apply", keys, "rolled_back", stage)
-                recovery_path.unlink()
+                clear_recovery(recovery_path)
             except Exception as rollback_exc:
                 audit(self.state_dir, "apply", keys, "rollback_failed", rollback_stage, rollback_exc)
                 record.update(rollback_stage=rollback_stage, rollback_error=error_details(rollback_exc),
@@ -718,17 +793,23 @@ def parse_args():
     parser.add_argument("--env-file", type=Path, default=DEFAULT_ENV)
     parser.add_argument("--schema", type=Path, default=DEFAULT_SCHEMA)
     parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE)
+    parser.add_argument("--recovery-dir", type=Path, default=DEFAULT_RECOVERY)
     parser.add_argument("--socket", type=Path)
     parser.add_argument("--socket-group", type=int, default=100)
-    parser.add_argument("command", choices=("serve", "state", "ping"))
+    parser.add_argument("command", choices=("serve", "state", "ping", "recovery-status"))
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+    if args.command == "recovery-status":
+        try:
+            return 1 if recovery_pending(args.recovery_dir) else 0
+        except WorkerError:
+            return 2
     state_dir = args.state_dir.resolve()
     socket_path = args.socket.resolve() if args.socket else state_dir / "worker.sock"
-    core = WorkerCore(args.env_file.resolve(), args.schema.resolve(), state_dir)
+    core = WorkerCore(args.env_file.resolve(), args.schema.resolve(), state_dir, args.recovery_dir)
     if args.command == "serve":
         serve(core, socket_path, args.socket_group)
         return 0

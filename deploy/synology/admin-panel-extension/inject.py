@@ -33,3 +33,12 @@ if 'com_nav_deployment' in data:
     raise SystemExit('translation already contains com_nav_deployment; upstream layout changed')
 data['com_nav_deployment'] = 'Deployment'
 translations.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+server = ROOT / 'server.ts'
+replace_once(server, "import { Glob } from 'bun';", "import { Glob } from 'bun';\nimport { withDeploymentDeadline } from './src/server/deploymentDeadline';")
+replace_once(server, "'/*': async (req) => {", "'/*': async (req, server) => {")
+replace_once(
+    server,
+    "const res = await withHttpMetrics(req, metricsPath, () => handler.fetch(req));",
+    "const res = await withHttpMetrics(req, metricsPath, () => withDeploymentDeadline(req, server, metricsPath, (request) => handler.fetch(request)));",
+)

@@ -47,8 +47,9 @@ class RecoveryTests(unittest.TestCase):
         self.env.write_text(self.original)
         self.state = self.root / "state"
         self.lock = self.root / "lock"
-        self.marker = self.state / "recovery-required.json"
-        self.core = worker.WorkerCore(self.env, HERE / "admin-settings.schema.json", self.state)
+        self.recovery = self.root / "private-recovery"
+        self.marker = self.recovery / "recovery-required.json"
+        self.core = worker.WorkerCore(self.env, HERE / "admin-settings.schema.json", self.state, self.recovery)
         (self.root / "scenario").write_text("success")
         for name in ("docker", "docker-compose"):
             path = self.root / name
@@ -101,7 +102,7 @@ class RecoveryTests(unittest.TestCase):
         self.assertIsNone(self.audit()[0]["error"]["returncode"])
 
     def test_existing_hold_blocks_apply_before_backup_or_config_write(self):
-        self.state.mkdir()
+        self.recovery.mkdir(mode=0o700)
         self.marker.write_text('{}')
         with self.assertRaises(worker.WorkerError):
             self.apply()
@@ -113,6 +114,7 @@ class RecoveryTests(unittest.TestCase):
         with patch.object(worker, "wait_health", return_value=True):
             result = self.apply()
         self.assertTrue(result["ok"])
+        self.assertFalse(result["state"]["recovery_required"])
         self.assertFalse(self.marker.exists())
         self.assertFalse(self.lock.exists())
         self.assertEqual(self.calls(), ["config", "up"])
@@ -192,9 +194,9 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(self.calls().count("up"), 1)
 
     def test_marker_failure_prevents_configuration_mutation(self):
-        self.state.mkdir()
-        (self.state / "recovery-required.json.tmp").mkdir()
-        with self.assertRaises(OSError):
+        self.recovery.mkdir(mode=0o700)
+        self.recovery.chmod(0o770)
+        with self.assertRaises(worker.WorkerError):
             self.apply()
         self.assertEqual(self.env.read_text(), self.original)
         self.assertFalse((self.root / "calls").exists())
@@ -248,7 +250,7 @@ class AutodeployHoldTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             marker = Path(temp) / "recovery-required.json"
             marker.write_text('{}')
-            script = 'LOCK_DIR="{0}/lock"\nRECOVERY_FILE="{1}"\nLOCK_HELD=0\nlog() {{ :; }}\n'.format(temp, marker)
+            script = 'LOCK_DIR="{0}/lock"\nRECOVERY_DIR="{2}"\nADMIN_WORKER="{3}"\nLOCK_HELD=0\nlog() {{ :; }}\n'.format(temp, marker, temp, HERE / "admin-settings-worker.py")
             proc = subprocess.run(["sh", "-c", script + functions + "\nacquire_lock"], capture_output=True)
             self.assertNotEqual(proc.returncode, 0)
 
@@ -259,7 +261,7 @@ class AutodeployHoldTests(unittest.TestCase):
             lock = Path(temp) / "lock"
             lock.mkdir()
             (lock / "pid").write_text("99999999")
-            script = 'LOCK_DIR="{0}"\nRECOVERY_FILE="{1}/absent"\nLOCK_HELD=0\nlog() {{ :; }}\n'.format(lock, temp)
+            script = 'LOCK_DIR="{0}"\nRECOVERY_DIR="{1}/absent"\nADMIN_WORKER="{2}"\nLOCK_HELD=0\nlog() {{ :; }}\n'.format(lock, temp, HERE / "admin-settings-worker.py")
             proc = subprocess.run(["sh", "-c", script + functions + "\nacquire_lock"], capture_output=True)
             self.assertNotEqual(proc.returncode, 0)
             self.assertEqual((lock / "pid").read_text(), "99999999")

@@ -69,6 +69,7 @@ jobs:
             deploy/synology/test_manage_env.py \
             deploy/synology/test_admin_settings_worker.py \
             deploy/synology/test_admin_settings_recovery.py \
+            deploy/synology/test_admin_settings_security.py \
             deploy/synology/test_admin_settings_timeouts.py \
             deploy/synology/test_deployment_frame_proxy.py \
             deploy/synology/test_admin_settings_panel.py \

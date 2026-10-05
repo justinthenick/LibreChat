@@ -64,11 +64,17 @@ therefore allows 600 seconds overall (two 300-second Docker request budgets), wi
 `COMPOSE_HTTP_TIMEOUT=300` and `DOCKER_CLIENT_TIMEOUT=300`. This is a bounded budget,
 not a guarantee that every NAS operation will finish. Apply responses allow 1800
 seconds at the panel and 1860 seconds at the embedded gateway for apply plus a
-possible completed-operation rollback; ordinary requests keep their shorter limits.
+possible completed-operation rollback. The outer Bun server disables its 10-second
+idle timer only for POST `/deployment-control/api/apply`, with a separate 1900-second
+deadline covering authentication, request handling, response headers and the complete
+response body. The response is capped at 1 MiB; client cancellation and the deadline
+abort downstream fetch. Ordinary routes retain their default timeout. These limits
+require the rebuilt Admin Panel image as well as refreshed Python panel/gateway
+processes; replacing bind-mounted files alone does not reload running interpreters.
 
 Before writing configuration, the worker atomically persists a mode-600
-`admin-settings-state/recovery-required.json` record with the backup filename and
-affected keys/services. Success or successful rollback removes it. Worker interruption,
+`/var/lib/librechat-admin-settings/recovery-required.json` record with the backup filename and
+affected keys/services. This mode-700 root-owned directory is outside the panel mount; its ancestor ownership, directory/file modes and link types are checked. Temporary files use unpredictable names, exclusive/no-follow creation and directory-relative operations. The deployer uses the same read-only validator and fails closed on unsafe storage. Success or successful rollback removes it. Worker interruption,
 failed recreation, or failed rollback retains it. The scheduled deployer and later
 settings applies refuse to mutate while this record exists, even after worker restart.
 The shared deployment directory lock is never automatically stolen when its owner
@@ -85,7 +91,7 @@ not prove that the requested configuration is active or the daemon request is co
 
 For an uncertain recreation, the proposed `.env` remains in place with its original
 private backup; the worker does not rewrite it while Docker may still consume it.
-The browser receives a recovery-required error, never a success claim. Automatic
+The browser receives a recovery-required error, never a success claim. A separate recovery notice remains visible after refresh and prevents further previews/applies; state exposes only a hold boolean, not the private record. Automatic
 availability recovery is intentionally held until a host operator resolves ambiguity.
 
 Recovery procedure (explicitly coordinated host maintenance, never an automatic retry):

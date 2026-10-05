@@ -128,7 +128,7 @@ The UI is intentionally staged:
 4. preview changed keys, derived URLs, restart impact, and warnings;
 5. confirm Apply;
 6. worker backs up `.env`, validates the change, runs `docker-compose config`, recreates only affected services, and health-checks them;
-7. on failure the previous `.env` is restored and the previous runtime is recreated.
+7. pre-recreation failures restore `.env`; completed recreation followed by failed health checks can roll back the runtime. Uncertain recreation or failed rollback retains a private recovery hold for host review. See [the recovery procedure](ADMIN-SETTINGS.md#slow-recreation-and-recovery-holds).
 
 Panel transport settings (`ADMIN_SETTINGS_PORT` and the panel access token itself) remain host-managed so the panel cannot disconnect itself while applying a change. Change those through the local CLI/bootstrap path instead.
 

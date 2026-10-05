@@ -9,7 +9,7 @@ ADMIN_OVERLAY="$DEPLOY_DIR/docker-compose.admin.yml"
 ADMIN_WORKER="$DEPLOY_DIR/admin-settings-worker.py"
 ADMIN_STATE_DIR="$REPO_DIR/admin-settings-state"
 ADMIN_SOCKET="$ADMIN_STATE_DIR/worker.sock"
-RECOVERY_FILE="$ADMIN_STATE_DIR/recovery-required.json"
+RECOVERY_DIR="/var/lib/librechat-admin-settings"
 ADMIN_UNIT="/etc/systemd/system/librechat-admin-settings-worker.service"
 NAS_INFRA_WORKER="$DEPLOY_DIR/nas-infra-readonly-worker.py"
 NAS_INFRA_STATE_DIR="$REPO_DIR/nas-infra-readonly-state"
@@ -147,14 +147,14 @@ publish_telemetry() {
 }
 
 acquire_lock() {
-  if [ -e "$RECOVERY_FILE" ]; then
+  if ! /usr/bin/python3 "$ADMIN_WORKER" --recovery-dir "$RECOVERY_DIR" recovery-status; then
     log "Settings transaction requires host review; deployment held (recovery-required.json)"
     return 1
   fi
   if mkdir "$LOCK_DIR" 2>/dev/null; then
     printf '%s\n' "$$" > "$LOCK_DIR/pid"
     LOCK_HELD=1
-    if [ -e "$RECOVERY_FILE" ]; then
+    if ! /usr/bin/python3 "$ADMIN_WORKER" --recovery-dir "$RECOVERY_DIR" recovery-status; then
       log "Settings transaction requires host review; deployment held"
       release_lock
       return 1

@@ -56,7 +56,7 @@ export async function handleDeploymentControl(request: Request): Promise<Respons
   const cookies = deploymentCookies(request.headers.get('cookie'));
   if (cookies) headers.set('cookie', cookies);
 
-  const init: RequestInit = { method, headers, redirect: 'manual' };
+  const init: RequestInit = { method, headers, redirect: 'manual', signal: request.signal };
   if (method !== 'GET' && method !== 'HEAD') {
     init.body = await request.arrayBuffer();
   }
