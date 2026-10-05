@@ -180,12 +180,13 @@ A normal browser apply is:
 3. worker validates and returns a redacted preview plus derived values, warnings and affected services;
 4. administrator confirms Apply;
 5. worker re-reads current `.env` and re-validates the request;
-6. worker creates a local backup and atomically writes the proposed values;
+6. worker creates a local backup, persists a recovery record and atomically writes the proposed values;
 7. worker runs Compose validation;
 8. affected services are recreated only when required;
 9. health checks run;
 10. success is audited and returned;
-11. on any apply/health failure, the previous `.env` is restored and the prior services are recreated.
+11. pre-recreation failures restore `.env` without a needless restart; health failure after completed recreation restores and recreates the prior runtime; uncertain recreation or failed rollback retains the recovery hold for host review.
+
 
 Secret values are neither returned in state/preview nor written to audit output.
 
@@ -218,7 +219,7 @@ v0.1 is designed to satisfy:
 - restart/recreate impact shown in preview;
 - Compose validation before runtime changes;
 - affected-service health checks;
-- automatic `.env` rollback on apply/health failure;
+- automatic `.env` rollback when no Docker operation is uncertain, with a persistent hold otherwise;
 - locked JWT/credential material excluded from routine UI changes;
 - browser-facing service has neither `.env` nor Docker access.
 

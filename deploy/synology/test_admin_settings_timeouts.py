@@ -1,6 +1,4 @@
 import importlib.util
-import json
-import os
 from pathlib import Path
 import socket
 import tempfile
@@ -56,40 +54,6 @@ class TransportTests(unittest.TestCase):
                     listener.close()
                     thread.join(2)
 
-    def test_gateway_allows_apply_budget_without_expanding_other_routes(self):
-        os.environ.setdefault("DEPLOYMENT_GATEWAY_FRAME_ANCESTOR", "http://admin.example.test:3220")
-        import io
-        gateway = load("timeout_gateway", "deployment-frame-proxy.py")
-        # Exercise the handler's upstream request seam. No external HTTP request.
-        class Connection:
-            def __init__(self, host, port, timeout):
-                self.timeout = timeout
-                observed.append(timeout)
-            def request(self, *args, **kwargs):
-                pass
-            def getresponse(self):
-                class Response:
-                    status = 200
-                    def read(self): return b'{"ok":true}'
-                    def getheaders(self): return []
-                return Response()
-            def close(self):
-                pass
-        for method, route, minimum in (("POST", "/api/apply", 1860), ("GET", "/health", 30), ("POST", "/api/preview", 30)):
-            observed = []
-            handler = object.__new__(gateway.Handler)
-            handler.command, handler.path = method, route
-            handler.headers = {}
-            handler.rfile, handler.wfile = io.BytesIO(), io.BytesIO()
-            handler.send_response = lambda *args: None
-            handler.send_header = lambda *args: None
-            handler.end_headers = lambda: None
-            with patch.object(gateway, "HTTPConnection", Connection):
-                handler._proxy()
-            self.assertEqual(json.loads(handler.wfile.getvalue()), {"ok": True})
-            self.assertGreaterEqual(observed[0], minimum)
-            if route != "/api/apply":
-                self.assertEqual(observed[0], 30)
 
 
 if __name__ == "__main__":

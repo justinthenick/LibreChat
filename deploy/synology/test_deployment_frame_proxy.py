@@ -4,6 +4,7 @@ from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import threading
 import unittest
+from unittest.mock import patch
 import urllib.request
 from urllib.parse import urlsplit
 
@@ -28,6 +29,10 @@ class UpstreamHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
+
+    def do_POST(self):
+        self.rfile.read(int(self.headers.get("Content-Length", "0")))
+        self.do_GET()
 
 
 class FrameAncestorTests(unittest.TestCase):
@@ -65,6 +70,22 @@ class GatewayTests(unittest.TestCase):
         cls.upstream.shutdown()
         cls.gateway.server_close()
         cls.upstream.server_close()
+
+    def test_only_apply_gets_transaction_deadline_over_real_http(self):
+        port = self.gateway.server_address[1]
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        for method, path, timeout in [("POST", "/api/apply", 1860),
+                                      ("POST", "/api/preview", 30),
+                                      ("GET", "/api/apply", 30)]:
+            with self.subTest(method=method, path=path):
+                request = urllib.request.Request(f"http://127.0.0.1:{port}{path}",
+                                                 data=b'{}' if method == "POST" else None,
+                                                 method=method)
+                with patch.object(proxy, "HTTPConnection", wraps=proxy.HTTPConnection) as connection:
+                    with opener.open(request, timeout=5) as response:
+                        self.assertEqual(response.status, 200)
+                        self.assertEqual(response.read(), b'{"ok":true}')
+                    self.assertEqual(connection.call_args.kwargs["timeout"], timeout)
 
     def test_gateway_replaces_upstream_frame_policy_and_preserves_response(self):
         port = self.gateway.server_address[1]
