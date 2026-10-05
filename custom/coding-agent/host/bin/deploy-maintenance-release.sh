@@ -143,6 +143,69 @@ rollback_relay() {
   fi
 }
 
+restore_release() {
+  test "$(readlink -f "$CURRENT")" = "$RELEASE"
+  test -d "$OLD_CURRENT"
+  test -f "$BACKUP/compose.json"
+  test -f "$BACKUP/policy.json"
+  test "$(docker inspect librechat-coding-executor --format '{{.Id}}')" = "$NEW_EXECUTOR_ID"
+  test "$(docker inspect "$RELAY_CONTAINER" --format '{{.Id}}')" = "$NEW_RELAY_ID"
+  test "$(docker image inspect "$OLD_EXECUTOR_IMAGE" --format '{{.Id}}')" = "$OLD_EXECUTOR_IMAGE"
+  if [ -n "$OLD_RELAY_ID" ]; then
+    test "$(docker inspect "$RELAY_BACKUP" --format '{{.Id}}')" = "$OLD_RELAY_ID"
+  fi
+  local sandboxes
+  sandboxes="$(docker ps -a --filter label=com.librechat.coding-agent.kind=acp-sandbox --format '{{.ID}}')"
+  if [ -n "$sandboxes" ]; then
+    echo "STOP: ACP sandbox exists; refuse rollback"
+    return 1
+  fi
+
+  systemctl --user stop coding-agent-host-maintenance
+  systemctl --user stop coding-agent-codex-adapter
+  restore_file "$BACKUP/compose.json" "$COMPOSE"
+  restore_file "$BACKUP/policy.json" "$CONFIG"
+  restore_file "$BACKUP/unit.service" "$UNIT"
+  restore_file "$BACKUP/codex-unit.service" "$CODEX_UNIT"
+  restore_file "$BACKUP/codex-candidate.conf" "$CODEX_CANDIDATE_DROPIN"
+  restore_file "$BACKUP/runtime.conf" "$RUNTIME_DROPIN"
+  rollback_relay
+  rm -f "$CURRENT.new"
+  ln -s "$OLD_CURRENT" "$CURRENT.new"
+  mv -Tf "$CURRENT.new" "$CURRENT"
+  systemctl --user daemon-reload
+  if [ "$OLD_CODEX_ACTIVE" -eq 1 ]; then
+    systemctl --user start coding-agent-codex-adapter
+  fi
+  docker compose -p "$PROJECT" -f "$COMPOSE" up -d --force-recreate coding-executor
+  systemctl --user start coding-agent-host-maintenance
+  systemctl --user is-active --quiet coding-agent-host-maintenance
+  test "$(docker inspect librechat-coding-executor --format '{{.Image}}')" = "$OLD_EXECUTOR_IMAGE"
+  test "$(readlink -f "$CURRENT")" = "$OLD_CURRENT"
+  if [ -n "$OLD_RELAY_ID" ]; then
+    test "$(docker inspect "$RELAY_CONTAINER" --format '{{.Id}}')" = "$OLD_RELAY_ID"
+    test "$(docker inspect "$OLD_RELAY_ID" --format '{{.State.Running}}')" = "$OLD_RELAY_RUNNING"
+  fi
+  echo "Previous release restored. Run authenticated endpoint acceptance before closing rollback."
+}
+
+write_rollback() {
+  (
+    umask 077
+    {
+      printf '%s\n' '#!/usr/bin/env bash' 'set -Eeuo pipefail'
+      declare -p BACKUP COMPOSE CONFIG UNIT CODEX_UNIT CODEX_CANDIDATE_DROPIN \
+        RUNTIME_DROPIN CURRENT OLD_CURRENT RELEASE PROJECT OLD_CODEX_ACTIVE \
+        RELAY_SWITCHED RELAY_CONTAINER RELAY_BACKUP OLD_RELAY_ID OLD_RELAY_RUNNING \
+        NEW_RELAY_ID NEW_EXECUTOR_ID OLD_EXECUTOR_IMAGE
+      declare -f restore_file rollback_relay restore_release
+      printf '%s\n' 'restore_release'
+    } > "$BACKUP/rollback.sh.new"
+    chmod 700 "$BACKUP/rollback.sh.new"
+    mv -f "$BACKUP/rollback.sh.new" "$BACKUP/rollback.sh"
+  )
+}
+
 rollback() {
   local status="${1:-1}"
   trap - ERR
@@ -262,6 +325,43 @@ fi
 
 CONFIG="$(read_env_value CODING_MAINTENANCE_CONFIG)"
 test -f "$CONFIG"
+
+RELAY_SIGNING_KEY="$(
+  python3 - "$CONFIG" <<'PY2'
+import json
+import re
+import sys
+from pathlib import Path
+
+policy = json.loads(Path(sys.argv[1]).read_text())
+image = policy.get("acp_image_id", "")
+if not isinstance(image, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", image):
+    raise SystemExit("invalid or missing ACP image pin")
+value = policy.get("acp_relay_signing_key", "")
+
+if not isinstance(value, str) or not re.fullmatch(
+    r"[0-9a-f]{64}",
+    value,
+):
+    raise SystemExit(
+        "invalid ACP relay signing key"
+    )
+
+print(value)
+PY2
+)"
+
+ACP_IMAGE="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["acp_image_id"])' "$CONFIG")"
+test "$(docker image inspect "$ACP_IMAGE" --format '{{.Id}}')" = "$ACP_IMAGE"
+CONFIG_DIGEST="$(sha256sum "$CONFIG" | awk '{print $1}')"
+if docker inspect "$RELAY_CONTAINER-rollback-$SHORT_SHA" >/dev/null 2>&1; then
+  echo "STOP: relay backup already exists"
+  exit 1
+fi
+OLD_EXECUTOR_IMAGE="$(docker inspect librechat-coding-executor --format '{{.Image}}')"
+test -n "$OLD_EXECUTOR_IMAGE"
+test -L "$CURRENT"
+test -d "$(readlink -f "$CURRENT")"
 
 CURRENT_CONTAINER="$(docker inspect librechat-coding-executor --format '{{.Id}}')"
 PROJECT="$(docker inspect librechat-coding-executor --format '{{index .Config.Labels "com.docker.compose.project"}}')"
@@ -408,6 +508,7 @@ echo "new_relay_image=$NEW_RELAY_IMAGE"
 
 echo
 echo "=== PREPARE SWITCH ==="
+test "$(sha256sum "$CONFIG" | awk '{print $1}')" = "$CONFIG_DIGEST"
 ARMED=1
 
 systemctl --user stop coding-agent-host-maintenance
@@ -518,29 +619,6 @@ echo
 echo "=== SWITCH PROVIDER RELAY ==="
 
 switch_relay
-
-RELAY_SIGNING_KEY="$(
-  python3 - "$CONFIG" <<'PY2'
-import json
-import re
-import sys
-from pathlib import Path
-
-value = json.loads(
-    Path(sys.argv[1]).read_text()
-).get("acp_relay_signing_key", "")
-
-if not isinstance(value, str) or not re.fullmatch(
-    r"[0-9a-f]{64}",
-    value,
-):
-    raise SystemExit(
-        "invalid ACP relay signing key"
-    )
-
-print(value)
-PY2
-)"
 
 HOST_GID="$(id -g)"
 
@@ -738,11 +816,9 @@ if systemctl --user show coding-agent-codex-adapter -p Environment --value | gre
   exit 1
 fi
 
-if [ -n "$RELAY_BACKUP" ] && \
-   docker inspect "$RELAY_BACKUP" >/dev/null 2>&1
-then
-  docker rm -f "$RELAY_BACKUP" >/dev/null
-fi
+NEW_EXECUTOR_ID="$(docker inspect librechat-coding-executor --format '{{.Id}}')"
+NEW_RELAY_ID="$(docker inspect "$RELAY_CONTAINER" --format '{{.Id}}')"
+write_rollback
 
 RELAY_SWITCHED=0
 ARMED=0
@@ -756,3 +832,4 @@ echo "host=$HOST_VERSION"
 echo "relay=$NEW_RELAY_IMAGE"
 echo "current=$(readlink -f "$CURRENT")"
 echo "backup=$BACKUP"
+echo "rollback=bash $BACKUP/rollback.sh"

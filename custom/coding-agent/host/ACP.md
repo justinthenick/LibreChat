@@ -111,3 +111,32 @@ The adapter socket and workspace use the fixed operator-home
 ~/.local/share/coding-maintenance/codex-adapter root shared by the systemd
 unit and Broker. A nondefault CODING_CODEX_ADAPTER_ROOT is unsupported and
 is rejected before deployment performs any Git, build or runtime operation.
+
+
+### Release preflight and retained rollback
+
+Production activation requires a separately reviewed ACP image digest and relay signing
+key in the protected maintenance policy. The release command does not generate these.
+It validates both fields and local ACP image availability before building or stopping
+services, then rejects policy changes detected before activation. An existing current
+release is required so a rollback target exists.
+
+Successful deployment retains the previous relay container under its rollback name,
+alongside the prior configuration, units, drop-ins and release link in the mode-0700
+backup directory. It writes a mode-0700 rollback.sh there and prints its location.
+Run bash /absolute/backup/path/rollback.sh for an explicit rollback. The script
+contains paths and container/image identities, not the signing key. The protected
+policy backup still contains credentials and must remain private.
+
+The rollback command first verifies the current release and exact new container IDs,
+the old executor image, the retained old relay when present, and absence of ACP
+sandboxes. It refuses drift before stopping services. It then restores the saved
+configuration and units, restores the original relay identity/running state, switches
+the release link, recreates the executor from the saved Compose configuration, and
+starts maintenance. Authenticated endpoint acceptance remains necessary after rollback.
+If restoration itself fails, stop and inspect the retained backup; this is not an
+automatic retry command. Do not prune the retained relay/image/release until the
+rollback window has been explicitly closed.
+
+Tests execute the generated rollback script against disposable files and a fault-
+injected Docker boundary. They do not constitute a live production rollback drill.

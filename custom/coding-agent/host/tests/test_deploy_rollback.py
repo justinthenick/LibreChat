@@ -59,7 +59,7 @@ sys.exit(status)
 class DeploymentRollbackTests(unittest.TestCase):
     def run_case(self, failure, *, original=True, running=True, conflict=False):
         text = DEPLOY.read_text()
-        functions = text[text.index("switch_relay() {"):text.index("rollback() {")]
+        functions = text[text.index("switch_relay() {"):text.index("\nrollback() {")]
         containers = {}
         if original:
             containers["old-id"] = {"name": "relay", "running": running}
