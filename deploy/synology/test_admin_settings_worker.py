@@ -59,6 +59,25 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(plan["services"], ["api"])
         self.assertTrue(plan["restart_required"])
 
+    def test_coding_hosts_can_be_updated_together_without_changing_tokens(self):
+        values = dict(self.values, CODING_EXECUTOR_HOST="192.0.2.20",
+                      CODING_MAINTENANCE_HOST="192.0.2.20",
+                      CODING_EXECUTOR_TOKEN="executor-secret",
+                      CODING_MAINTENANCE_TOKEN="maintenance-secret")
+        updates = {"CODING_EXECUTOR_HOST": "192.0.2.10",
+                   "CODING_MAINTENANCE_HOST": "192.0.2.10"}
+        plan = worker.build_plan(self.schema, self.settings, values, {"updates": updates})
+        self.assertEqual(plan["normalized"], updates)
+        self.assertEqual(plan["services"], ["api"])
+        self.assertTrue(plan["restart_required"])
+        self.assertNotIn("executor-secret", str(plan))
+        self.assertNotIn("maintenance-secret", str(plan))
+        lines = [key + "=" + value + "\n" for key, value in values.items()]
+        positions = {key: index for index, key in enumerate(values)}
+        result = "".join(worker.replace_many(lines, positions, plan["normalized"]))
+        self.assertIn("CODING_EXECUTOR_TOKEN=executor-secret", result)
+        self.assertIn("CODING_MAINTENANCE_TOKEN=maintenance-secret", result)
+
     def test_hidden_admin_token_cannot_be_changed_from_web_payload(self):
         with self.assertRaises(worker.WorkerError):
             worker.build_plan(self.schema, self.settings, self.values, {"secrets": {"ADMIN_SETTINGS_ACCESS_TOKEN": "replacement"}})
