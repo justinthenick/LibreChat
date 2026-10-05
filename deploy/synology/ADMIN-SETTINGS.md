@@ -53,8 +53,63 @@ The worker:
 - runs `docker-compose config`;
 - recreates only services mapped to changed settings;
 - health-checks affected services;
-- restores the previous `.env` and recreates the previous runtime on failure;
-- writes a local audit log containing timestamps, changed key names and outcomes, but no setting values.
+- restores the previous `.env` on pre-recreation failures; after a completed recreation followed by failed health checks, restores and recreates the previous runtime;
+- holds uncertain recreation outcomes for host review without launching a potentially overlapping rollback;
+- writes a local audit log containing timestamps, changed key names, stages, outcomes and bounded error metadata, but no setting values or raw command output.
+
+### Slow recreation and recovery holds
+
+A successful NAS API recreation was observed taking 344 seconds. Settings recreation
+therefore allows 600 seconds overall (two 300-second Docker request budgets), with
+`COMPOSE_HTTP_TIMEOUT=300` and `DOCKER_CLIENT_TIMEOUT=300`. This is a bounded budget,
+not a guarantee that every NAS operation will finish. Apply responses allow 1800
+seconds at the panel and 1860 seconds at the embedded gateway for apply plus a
+possible completed-operation rollback. The outer Bun server disables its 10-second
+idle timer only for POST `/deployment-control/api/apply`, with a separate 1900-second
+deadline covering authentication, request handling, response headers and the complete
+response body. The response is capped at 1 MiB; client cancellation and the deadline
+abort downstream fetch. Apply requests also set Bun fetch `timeout: false`, disabling its separate five-minute socket timer while retaining the bounded outer AbortController deadline. Ordinary routes retain their default timeouts. These limits
+require the rebuilt Admin Panel image as well as refreshed Python panel/gateway
+processes; replacing bind-mounted files alone does not reload running interpreters.
+
+Before writing configuration, the worker atomically persists a mode-600
+`/var/lib/librechat-admin-settings/recovery-required.json` record with the backup filename and
+affected keys/services. This mode-700 root-owned directory is outside the panel mount; its ancestor ownership, directory/file modes and link types are checked. Temporary files use unpredictable names, exclusive/no-follow creation and directory-relative operations. The deployer uses the same read-only validator and fails closed on unsafe storage. Success or successful rollback removes it. Worker interruption,
+failed recreation, or failed rollback retains it. The scheduled deployer and later
+settings applies refuse to mutate while this record exists, even after worker restart.
+The shared deployment directory lock is never automatically stolen when its owner
+is missing or dead; that cannot establish that Docker has finished its work.
+
+The audit preserves each original and rollback failure separately: stage, command
+category, exit code (null for timeout), elapsed milliseconds and fixed diagnostic
+signals such as `docker_timeout`, `port_conflict` or `compose_container_config`.
+It deliberately discards free-form stdout/stderr, which can contain arbitrary secrets.
+An unrecognized error retains its category/code/duration but not its raw message.
+The recovery record also retains the original error, any rollback error, and a
+read-only observation of affected container states. A running container alone does
+not prove that the requested configuration is active or the daemon request is complete.
+
+For an uncertain recreation, the proposed `.env` remains in place with its original
+private backup; the worker does not rewrite it while Docker may still consume it.
+The browser receives a recovery-required error, never a success claim. A separate recovery notice remains visible after refresh and prevents further previews/applies; state exposes only a hold boolean, not the private record. Automatic
+availability recovery is intentionally held until a host operator resolves ambiguity.
+
+Recovery procedure (explicitly coordinated host maintenance, never an automatic retry):
+
+1. Keep scheduled deployment and settings requests quiescent. Inspect the audit,
+   recovery record, worker/process state and Docker events/status without dumping env.
+2. Establish that the old Compose client and its daemon operation have completed.
+   If completion cannot be established, retain the hold; elapsed time or one running
+   container observation is insufficient.
+3. Under the same deployment lock, choose the desired configuration or recorded
+   backup and perform at most one approved reconciliation. Verify affected runtime
+   configuration and health before clearing the recovery record.
+4. Clear an abandoned directory lock only after reviewing its former owner and
+   Docker work. Resume scheduled deployment only after releasing the maintenance
+   lock. Do not clear the recovery record merely to let autodeploy race a retry.
+
+Ship worker and deployer changes together in one coordinated release. Production
+acceptance of endpoint changes remains a separate approved operation.
 
 ## Setting classes
 
@@ -131,12 +186,13 @@ A normal browser apply is:
 3. worker validates and returns a redacted preview plus derived values, warnings and affected services;
 4. administrator confirms Apply;
 5. worker re-reads current `.env` and re-validates the request;
-6. worker creates a local backup and atomically writes the proposed values;
+6. worker creates a local backup, persists a recovery record and atomically writes the proposed values;
 7. worker runs Compose validation;
 8. affected services are recreated only when required;
 9. health checks run;
 10. success is audited and returned;
-11. on any apply/health failure, the previous `.env` is restored and the prior services are recreated.
+11. pre-recreation failures restore `.env` without a needless restart; health failure after completed recreation restores and recreates the prior runtime; uncertain recreation or failed rollback retains the recovery hold for host review.
+
 
 Secret values are neither returned in state/preview nor written to audit output.
 
@@ -169,7 +225,7 @@ v0.1 is designed to satisfy:
 - restart/recreate impact shown in preview;
 - Compose validation before runtime changes;
 - affected-service health checks;
-- automatic `.env` rollback on apply/health failure;
+- automatic `.env` rollback when no Docker operation is uncertain, with a persistent hold otherwise;
 - locked JWT/credential material excluded from routine UI changes;
 - browser-facing service has neither `.env` nor Docker access.
 

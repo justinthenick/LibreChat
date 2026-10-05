@@ -2,6 +2,8 @@
 import importlib.util
 from pathlib import Path
 import tempfile
+import subprocess
+import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -41,6 +43,22 @@ class WorkerTests(unittest.TestCase):
 
     def tearDown(self):
         self.temp.cleanup()
+
+    def test_recreate_uses_long_docker_deadlines_for_affected_service_only(self):
+        with patch.object(worker, "run", return_value=subprocess.CompletedProcess([], 0)) as run:
+            worker.recreate_services(self.values, ["api"])
+        command = run.call_args.args[0]
+        self.assertEqual(command[-5:], ["up", "-d", "--no-deps", "--force-recreate", "api"])
+        self.assertGreater(run.call_args.kwargs["timeout"], 344)
+        self.assertEqual(run.call_args.kwargs["env"]["COMPOSE_HTTP_TIMEOUT"], "300")
+        self.assertEqual(run.call_args.kwargs["env"]["DOCKER_CLIENT_TIMEOUT"], "300")
+
+    def test_run_passes_environment_and_enforces_deadline(self):
+        env = dict(worker.os.environ, COMPOSE_HTTP_TIMEOUT="900")
+        result = worker.run([sys.executable, "-c", "import os; print(os.environ['COMPOSE_HTTP_TIMEOUT'])"], env=env)
+        self.assertEqual(result.stdout.strip(), "900")
+        with self.assertRaisesRegex(worker.WorkerError, "timed out"):
+            worker.run([sys.executable, "-c", "import time; time.sleep(5)"], timeout=0.05)
 
     def test_state_hides_all_secret_values_and_hidden_token(self):
         state = worker.sanitize_state(self.schema, self.settings, self.values)

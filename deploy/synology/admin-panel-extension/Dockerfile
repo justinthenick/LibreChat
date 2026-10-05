@@ -9,6 +9,7 @@ COPY inject.py /tmp/inject.py
 RUN python3 /tmp/inject.py
 COPY deployment.tsx /src/src/routes/_app/deployment.tsx
 COPY deployment-proxy.ts /src/src/server/deploymentProxy.ts
+COPY deployment-deadline.ts /src/src/server/deploymentDeadline.ts
 COPY deployment-control-root.ts /src/src/routes/deployment-control.ts
 COPY deployment-control-splat.ts /tmp/deployment-control-splat.ts
 RUN cp /tmp/deployment-control-splat.ts '/src/src/routes/deployment-control.$.ts'

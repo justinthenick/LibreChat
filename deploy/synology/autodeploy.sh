@@ -9,6 +9,7 @@ ADMIN_OVERLAY="$DEPLOY_DIR/docker-compose.admin.yml"
 ADMIN_WORKER="$DEPLOY_DIR/admin-settings-worker.py"
 ADMIN_STATE_DIR="$REPO_DIR/admin-settings-state"
 ADMIN_SOCKET="$ADMIN_STATE_DIR/worker.sock"
+RECOVERY_DIR="/var/lib/librechat-admin-settings"
 ADMIN_UNIT="/etc/systemd/system/librechat-admin-settings-worker.service"
 NAS_INFRA_WORKER="$DEPLOY_DIR/nas-infra-readonly-worker.py"
 NAS_INFRA_STATE_DIR="$REPO_DIR/nas-infra-readonly-state"
@@ -146,23 +147,22 @@ publish_telemetry() {
 }
 
 acquire_lock() {
+  if ! /usr/bin/python3 "$ADMIN_WORKER" --recovery-dir "$RECOVERY_DIR" recovery-status; then
+    log "Settings transaction requires host review; deployment held (recovery-required.json)"
+    return 1
+  fi
   if mkdir "$LOCK_DIR" 2>/dev/null; then
     printf '%s\n' "$$" > "$LOCK_DIR/pid"
     LOCK_HELD=1
+    if ! /usr/bin/python3 "$ADMIN_WORKER" --recovery-dir "$RECOVERY_DIR" recovery-status; then
+      log "Settings transaction requires host review; deployment held"
+      release_lock
+      return 1
+    fi
     return 0
   fi
-  LOCK_PID=""
-  if [ -f "$LOCK_DIR/pid" ]; then LOCK_PID="$(sed -n '1p' "$LOCK_DIR/pid" 2>/dev/null || true)"; fi
-  if [ -n "$LOCK_PID" ] && kill -0 "$LOCK_PID" 2>/dev/null; then
-    log "Another LibreChat deployment check is already running as PID $LOCK_PID; skipping"
-    return 1
-  fi
-  log "WARN: removing stale deployment lock"
-  rm -rf "$LOCK_DIR"
-  mkdir "$LOCK_DIR"
-  printf '%s\n' "$$" > "$LOCK_DIR/pid"
-  LOCK_HELD=1
-  return 0
+  log "Deployment lock is present; wait for its owner or review interrupted deployment on the host"
+  return 1
 }
 
 release_lock() {
