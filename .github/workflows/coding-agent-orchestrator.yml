@@ -1,0 +1,39 @@
+name: Coding-agent orchestrator
+
+on:
+  pull_request:
+    paths:
+      - 'custom/coding-agent/orchestrator/**'
+      - '.github/workflows/coding-agent-orchestrator.yml'
+  push:
+    branches:
+      - server/synology
+    paths:
+      - 'custom/coding-agent/orchestrator/**'
+      - '.github/workflows/coding-agent-orchestrator.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: custom/coding-agent/orchestrator
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Install SDK and test dependencies
+        run: python -m pip install --disable-pip-version-check '.[openhands,test]'
+      - name: Check dependency compatibility
+        run: python -m pip check
+      - name: Compile Python sources
+        run: python -m compileall -q src tests
+      - name: Run isolated SDK regression tests
+        run: PYTHONPATH=src python -B tests/run_tests.py
