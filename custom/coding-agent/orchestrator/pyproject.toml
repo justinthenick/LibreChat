@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "librechat-coding-orchestrator"
+version = "0.1.0"
+description = "Backend-neutral orchestration boundary for LibreChat coding agents"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+test = [
+  "fastmcp==3.4.8",
+  "uvicorn==0.54.0",
+]
+openhands = [
+  "openhands-sdk==1.51.0",
+]
+
+[project.scripts]
+coding-agent-backend = "coding_orchestrator.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/coding_orchestrator"]
