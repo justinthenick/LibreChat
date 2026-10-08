@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import sys
+from pathlib import Path
 
 from .backend import (
     BackendContractError,
@@ -12,6 +13,8 @@ from .backend import (
 from .openhands_backend import (
     OpenHandsBackend,
 )
+
+from .provider import OpenHandsProviderConfig
 
 
 def _required_environment(
@@ -168,6 +171,66 @@ def _smoke_openhands() -> int:
     return 0
 
 
+def _provider_command(args: argparse.Namespace) -> int:
+    try:
+        provider = OpenHandsProviderConfig.from_environment()
+        if args.command == "login":
+            provider.login()
+            result = {"provider": provider.mode, "model": provider.model}
+        else:
+            prompt = (
+                sys.stdin.read()
+                if args.prompt_file == "-"
+                else Path(args.prompt_file).read_text(encoding="utf-8")
+            )
+            if not prompt.strip():
+                raise ValueError("agent prompt must not be empty")
+            backend = OpenHandsBackend(
+                **_backend_kwargs(),
+                provider=provider,
+                scratch_root=_required_environment("CODING_OPENHANDS_SCRATCH_ROOT"),
+            )
+            try:
+                run = backend.run(BackendRunRequest(
+                    prompt=prompt,
+                    max_iterations=args.max_iterations,
+                ))
+            except BackendContractError:
+                raise
+            except Exception:
+                raise BackendContractError(
+                    "OpenHands run failed; check provider credentials and "
+                    "executor connectivity; no fallback was attempted"
+                ) from None
+            result = {
+                "provider": provider.mode,
+                "model": provider.model,
+                **run.as_dict(),
+            }
+    except (BackendContractError, ValueError) as error:
+        print(str(error), file=sys.stderr)
+        return 1
+    except Exception:
+        print(
+            "OpenHands provider command failed; check input, credentials, "
+            "executor connectivity, and installed SDK",
+            file=sys.stderr,
+        )
+        return 1
+    print(json.dumps({"ok": True, **result}, indent=2, sort_keys=True))
+    return 0
+
+
+def _iterations(value: str) -> int:
+    try:
+        count = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("max-iterations must be an integer") from None
+    if not 1 <= count <= 100:
+        raise argparse.ArgumentTypeError("max-iterations must be between 1 and 100")
+    return count
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="coding-agent-backend",
@@ -190,11 +253,24 @@ def build_parser() -> argparse.ArgumentParser:
             choices=["openhands"],
         )
 
+    login = commands.add_parser("login")
+    login.add_argument("backend", choices=["openhands"])
+    run = commands.add_parser("run")
+    run.add_argument("backend", choices=["openhands"])
+    run.add_argument(
+        "--prompt-file", required=True,
+        help="UTF-8 prompt file, or - to read standard input",
+    )
+    run.add_argument("--max-iterations", type=_iterations, default=12)
+
     return parser
 
 
 def main() -> int:
     args = build_parser().parse_args()
+
+    if args.command in {"login", "run"}:
+        return _provider_command(args)
 
     if (
         args.command == "probe"

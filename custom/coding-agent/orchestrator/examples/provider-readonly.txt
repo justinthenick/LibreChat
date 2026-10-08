@@ -1,0 +1,5 @@
+Perform a bounded, read-only provider acceptance run.
+Call list_repositories exactly once through coding_executor.
+Do not create tasks or mutate any repository.
+After the tool succeeds, call finish and report that repository discovery succeeded.
+If discovery fails, report that failure honestly and finish.
