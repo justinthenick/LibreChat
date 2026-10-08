@@ -341,6 +341,8 @@ class OpenHandsBackend:
     def run(
         self,
         request: BackendRunRequest,
+        *,
+        on_event: Callable[[Any], None] | None = None,
     ) -> BackendRunResult:
         prompt = request.prompt.strip()
 
@@ -397,6 +399,7 @@ class OpenHandsBackend:
                 agent=agent,
                 workspace=workspace_path,
                 visualizer=None,
+                callbacks=[on_event] if on_event is not None else [],
                 max_iteration_per_run=(
                     request.max_iterations
                 ),

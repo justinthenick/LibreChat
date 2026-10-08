@@ -141,6 +141,71 @@ stores. Network refresh/login and CLI execution boundaries are mocked where
 needed; unit tests do not consume subscription usage. The real executor smoke
 and real-model acceptance are separate, explicit operator commands.
 
+## Optional execution-job boundary (not activated)
+
+`coding_orchestrator.jobs` adds transport-neutral `start_run`, `get_run` and
+`cancel_run` operations. They are disabled by default. There is no listener,
+CLI activation command or registered production execution profile. The Google
+Pilot, LibreChat agent selection and Synology startup remain unchanged.
+
+An embedding application must supply a private SQLite state path, a trusted
+authenticated user/tenant `Principal`, and an explicitly enabled
+`ExecutionProfile`. A principal object is not authentication: the future
+LibreChat adapter must derive it from existing auth/ACL middleware, never from
+request JSON. The profile supplies repository authorization, a static trusted
+runner and a nonblocking check that its owned execution has stopped. Requests
+cannot choose credentials, endpoints, filesystem paths, modules or commands.
+Keep profile code/import paths and state outside model-editable worktrees.
+
+`JobRequest` supplies the prompt, repository alias/task mode, owner-scoped
+idempotency key, generation ID/epoch and lowerable limits. Maximum limits are ten
+physical provider requests and 300 seconds from admission. Reviewed runners must
+call `WorkerControl.before_provider_request()` immediately before each physical
+dispatch, disable retries/fallback, and enforce repository/task scope. The job
+layer does not automatically instrument arbitrary callables. No live profile,
+ambient credential discovery or login is installed here. These bounds are not
+token or spending caps.
+
+SQLite admission/transitions are atomic, with an exclusive service-instance lock
+and one active slot. Repeating an identical owner/key/request returns its existing
+job; changing the payload conflicts. Prompt text is not persisted in the job
+database. Public status excludes owner identities and internal fingerprints.
+Explicit cancellation records cancelling before stopping dispatch. It becomes
+cancelled only after local and profile-owned execution are confirmed stopped;
+otherwise it is interrupted with `execution_stop_unconfirmed`. Generation epochs
+fence stale aborts, and cancellation cannot be overwritten by late completion.
+
+Workers isolate environment/HOME/state, enforce a parent deadline plus a kernel
+alarm, and stop their owned process group before reaping the leader. This is
+process supervision, not a repository/network sandbox. Remote execution and
+processes escaping the session require separate profile lease reconciliation.
+After restart, active records become interrupted and are never replayed; this
+does not prove remote work stopped. Before activation, the embedding supervisor
+must reconcile old leases before admitting new work. No automatic record or
+artifact deletion is performed.
+
+`EvidenceCollector` accepts matched SDK action/observation identities and keeps
+task/source metadata, bounded diff/status and check exit/truncation details plus
+output hashes. Exploratory contents and finish prose are not retained. A passing
+rerun may supersede its baseline failure, but an overlapping or pre-patch check
+cannot verify a later mutation. `observed_checks_status`, `evidence_complete` and
+job completion are distinct; finish alone never proves tests passed. Partial
+evidence survives failure/cancellation, with consistent UTF-8 JSON limits through
+collection, IPC and storage.
+
+`OpenHandsBackend.run(..., on_event=callback)` exposes real SDK events without
+changing default CLI behavior or the exact nine-executor-tools-plus-finish map.
+The offline tests cover races/recovery, worker deadlines/descendants, matched
+evidence and a real pinned SDK job using `TestLLM` and loopback MCP. They use no
+Docker, provider credentials or live model calls.
+
+A later LibreChat client adapter must reuse GenerationJobManager for chat/SSE
+replay and durable message publication, propagate authenticated ownership and
+explicit aborts, fence late events by generation epoch, and await the existing
+persistence barrier before FINAL. SSE disconnect is not automatically cancel.
+Chat resume, steering, approvals, maintenance tools and skill parity are not
+implemented by this job boundary.
+
 ## Proxy safety
 
 Plaintext HTTP is limited to literal loopback addresses and is rejected whenever
