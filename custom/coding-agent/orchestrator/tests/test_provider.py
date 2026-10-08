@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import base64
-import json
 import os
 import tempfile
 import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+
+from joserfc import jwk, jwt
 
 from openhands.sdk import LLM
 from openhands.sdk.llm.auth import CredentialStore, OAuthCredentials, OpenAISubscriptionAuth
@@ -29,19 +29,54 @@ class ProviderTests(unittest.TestCase):
         self.environment.start()
         self.addCleanup(self.environment.stop)
         self.config = OpenHandsProviderConfig("chatgpt_subscription", "gpt-5.6-sol")
+        self.signing_key = jwk.RSAKey.generate_key(
+            parameters={"kid": "orchestrator-test-key"},
+        )
+        public_keys = jwk.KeySet.import_key_set({
+            "keys": [self.signing_key.as_dict(private=False)],
+        })
+        # Only the external trust-key lookup is replaced. The real SDK still
+        # verifies every synthetic token's signature against these local keys.
+        key_lookup = patch(
+            "openhands.sdk.llm.auth.openai._jwks_cache.get_key_set",
+            return_value=public_keys,
+        )
+        key_lookup.start()
+        self.addCleanup(key_lookup.stop)
 
     def save_credentials(self, *, expired: bool = False) -> CredentialStore:
-        payload = base64.urlsafe_b64encode(json.dumps({
-            "https://api.openai.com/auth": {"chatgpt_account_id": "test-account"},
-        }).encode()).decode().rstrip("=")
+        token = jwt.encode(
+            {"alg": "RS256", "kid": "orchestrator-test-key"},
+            {
+                "iss": "https://auth.openai.com",
+                "exp": int(time.time()) + 3600,
+                "https://api.openai.com/auth": {"chatgpt_account_id": "test-account"},
+            },
+            self.signing_key,
+        )
         store = CredentialStore(Path(self.directory.name) / "auth")
         store.save(OAuthCredentials(
             vendor="openai",
-            access_token=f"test.{payload}.signature",
+            access_token=token,
             refresh_token="test-refresh-secret",
             expires_at=int(time.time() * 1000) + (-1000 if expired else 3600000),
         ))
         return store
+
+    def test_fixture_verifies_signatures_without_network(self) -> None:
+        from openhands.sdk.llm.auth.openai import _extract_chatgpt_account_id
+
+        token = self.save_credentials().get("openai").access_token
+        header, payload, signature = token.split(".")
+        invalid_signature = ("A" if signature[0] != "A" else "B") + signature[1:]
+        tampered = ".".join((header, payload, invalid_signature))
+        with patch(
+            "openhands.sdk.llm.auth.openai.Client",
+            side_effect=AssertionError("Fixture must not fetch remote signing keys"),
+        ) as client:
+            self.assertEqual(_extract_chatgpt_account_id(token), "test-account")
+            self.assertIsNone(_extract_chatgpt_account_id(tampered))
+            client.assert_not_called()
 
     def test_configuration_requires_both_explicit_fields(self) -> None:
         for environment in (
@@ -104,6 +139,7 @@ class ProviderTests(unittest.TestCase):
             self.assertEqual(llm.subscription_vendor, "openai")
             self.assertNotIn("invalid.example.test", llm.base_url)
             self.assertIsNone(llm.api_key)
+            self.assertEqual(llm.extra_headers["chatgpt-account-id"], "test-account")
 
     def test_expired_credentials_refresh_through_sdk(self) -> None:
         store = self.save_credentials(expired=True)

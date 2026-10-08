@@ -28,7 +28,10 @@ tools:
 For an active OpenHands conversation:
 
 - OpenHands native tools are configured as `tools=[]`.
-- Only the built-in non-mutating `FinishTool` is enabled.
+- Only the built-in non-mutating `FinishTool` is enabled. A small, per-agent
+  SDK adapter initializes this tool explicitly, so saved vision profiles cannot
+  inject a fallback tool. It does not scan profiles, change process-wide SDK
+  state, or change the LLM's reported capabilities.
 - A second exact allowlist filter permits only the nine executor tools plus
   `finish`.
 - The initialized runtime tool map is checked again before the LLM loop runs.
@@ -156,3 +159,41 @@ directories, then repeats the check after creation and for each run workspace.
 Both ordinary Git markers and bare-repository metadata are rejected. The bare
 check conservatively rejects a HEAD entry alongside objects, refs, or reftable
 metadata; it does not execute Git or trust Git environment overrides.
+
+## Credential-free regression suite and CI
+
+Use a dedicated Python 3.12+ environment with this package's `openhands` and
+`test` extras installed. Dependency installation is a separate step. Once the
+reviewed dependencies are available, run from this directory:
+
+    PYTHONPATH=src python -B tests/run_tests.py
+
+The launcher uses disposable OpenHands state, clears inherited credentials,
+uses the bundled LiteLLM model-cost map, and rejects non-loopback TCP connection
+attempts. Tests use synthetic MCP tools and scripted `TestLLM` responses; they
+do not contact an LLM provider, require secrets, or use a live coding executor.
+This test shim is not an OS-level network sandbox. Scratch must be outside any
+Git checkout, as in production; set `TMPDIR` to a suitable temporary location
+before launching if your system temporary directory is inside a checkout.
+
+The vision regression creates a temporary credential-free vision profile and
+first reproduces the stock SDK's automatic `inspect_image_with_vision` injection.
+It then runs the actual restricted Agent/Conversation loop and loopback MCP
+transport twice, checking the exact ten-tool map, actions, and scratch cleanup.
+It also proves that an unexpected runtime tool still aborts before an LLM call.
+The profile fixture is isolated even under ordinary unittest discovery.
+
+`RestrictedOpenHandsAgent._initialize` is a deliberately narrow compatibility
+adapter for `openhands-sdk==1.51.0`, which has no per-agent vision-fallback opt-out.
+It creates the real SDK `FinishTool`; inherited MCP registration and the exact
+pre-loop contract check remain unchanged. Review this private SDK hook and rerun
+the real-library regressions before changing the SDK pin. The PyPI 1.51.0 release
+is tested here; the original PR's development reference commit
+`84d4470acd85688b52c510532ffc83b234ebf453` is not the release tag commit.
+
+The Coding Agent Orchestrator workflow runs this suite and syntax checks for
+orchestrator/workflow changes on pull requests, including stacked branches, and
+pushes to `server/synology`. It uses read-only repository permissions, no saved
+checkout credentials, immutable action revisions, and no secrets. Top-level
+SDK/test dependencies are pinned; transitive dependencies are not fully locked.
+A passing local suite does not mean GitHub Actions has run for an unpublished patch.

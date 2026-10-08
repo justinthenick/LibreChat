@@ -316,9 +316,9 @@ class OpenHandsBackend:
                 "OpenHands LLM is not configured"
             )
 
-        from openhands.sdk import Agent
+        from .restricted_agent import RestrictedOpenHandsAgent
 
-        return Agent(
+        return RestrictedOpenHandsAgent(
             llm=llm,
             tools=[],
             include_default_tools=[
