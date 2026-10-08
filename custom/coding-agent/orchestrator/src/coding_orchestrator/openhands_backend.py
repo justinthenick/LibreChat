@@ -380,6 +380,10 @@ class OpenHandsBackend:
 
         agent = self._build_agent()
 
+        # Discovery and provider initialization may block or change the root.
+        # Recheck after both, immediately before allocating the workspace.
+        scratch_root = _validate_scratch_root(self._scratch_root)
+
         with tempfile.TemporaryDirectory(
             prefix="run-",
             dir=scratch_root,

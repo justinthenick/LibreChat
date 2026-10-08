@@ -160,6 +160,13 @@ Both ordinary Git markers and bare-repository metadata are rejected. The bare
 check conservatively rejects a HEAD entry alongside objects, refs, or reftable
 metadata; it does not execute Git or trust Git environment overrides.
 
+The root is revalidated after tool discovery and provider initialization,
+immediately before workspace allocation, and workspace ancestry is checked again
+before the conversation starts. Keep the scratch root and its ancestors private
+to trusted operators. These path checks are not atomic isolation against another
+process concurrently replacing/moving directories or adding Git metadata between
+filesystem operations.
+
 ## Credential-free regression suite and CI
 
 Use a dedicated Python 3.12+ environment with this package's `openhands` and
