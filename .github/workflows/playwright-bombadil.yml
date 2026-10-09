@@ -1,15 +1,8 @@
 name: Bombadil Property Exploration
 
 on:
-  pull_request:
-    paths:
-      - '**'
-      - '!**.md'
-      - '!custom/coding-agent/**'
-      - '!.github/workflows/**'
-      - '.github/workflows/playwright-bombadil.yml'
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '30 5 * * *'
   workflow_dispatch:
     inputs:
       reason:
