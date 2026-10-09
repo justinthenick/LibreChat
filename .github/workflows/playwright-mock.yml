@@ -1,12 +1,6 @@
 name: Playwright E2E Tests
 
 on:
-  pull_request:
-    paths:
-      - '**'
-      - '!**.md'
-      - '!.github/workflows/**'
-      - '.github/workflows/playwright-mock.yml'
   schedule:
     - cron: '0 5 * * *'
   workflow_dispatch:
@@ -28,6 +22,40 @@ env:
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
 
 jobs:
+  resolve_target:
+    name: Resolve test commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.target.outputs.sha }}
+    steps:
+      - name: Pin the scheduled server branch or selected manual commit
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME" in
+            schedule)
+              sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/server/synology" --jq '.object.sha')"
+              ;;
+            workflow_dispatch)
+              sha="$GITHUB_SHA"
+              ;;
+            *)
+              echo "::error::Unsupported browser-check event: $EVENT_NAME"
+              exit 1
+              ;;
+          esac
+          if [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Unable to resolve an immutable browser-check commit"
+            exit 1
+          fi
+          printf 'sha=%s\n' "$sha" >> "$GITHUB_OUTPUT"
+          printf 'Browser checks will test commit `%s`.\n' "$sha" >> "$GITHUB_STEP_SUMMARY"
+
   # Stage 2 of codegraph gating (stage 1 = backend jest in backend-review.yml). The graph decides
   # two matrix lanes whose relevance is a reachability question: the redis-transport lane (the ten
   # stream-boundary specs under a real Redis round-trip) and the MCP list_changed lanes. Memory
@@ -151,9 +179,10 @@ jobs:
 
   e2e_shards:
     name: e2e (${{ matrix.name }})
-    needs: [codegraph_select]
+    needs: [resolve_target, codegraph_select]
     if: >-
       !cancelled() &&
+      needs.resolve_target.result == 'success' &&
       (github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
@@ -187,6 +216,8 @@ jobs:
       REDIS_URI: redis://127.0.0.1:6379
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve_target.outputs.sha }}
 
       - name: Use Node.js 24.16.0
         uses: actions/setup-node@v5
@@ -380,9 +411,10 @@ jobs:
 
   mcp_tool_list_changed:
     name: MCP list_changed (replica count ${{ matrix.replicas }})
-    needs: [codegraph_select]
+    needs: [resolve_target, codegraph_select]
     if: >-
       !cancelled() &&
+      needs.resolve_target.result == 'success' &&
       needs.codegraph_select.outputs.mcp_run != 'false' &&
       (github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
@@ -402,6 +434,8 @@ jobs:
       E2E_REPLICAS: ${{ matrix.replicas }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve_target.outputs.sha }}
 
       - name: Use Node.js 24.16.0
         uses: actions/setup-node@v4
@@ -539,12 +573,13 @@ jobs:
       (github.event_name == 'pull_request' &&
       github.event.pull_request != null &&
       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)))
-    needs: [codegraph_select, e2e_shards, mcp_tool_list_changed]
+    needs: [resolve_target, codegraph_select, e2e_shards, mcp_tool_list_changed]
     runs-on: ubuntu-latest
     steps:
       # A codegraph-skipped MCP lane reports `skipped`; that is a decision, not a failure.
       - name: Verify every Playwright job passed
         if: >-
+          needs.resolve_target.result != 'success' ||
           needs.e2e_shards.result != 'success' ||
           (needs.mcp_tool_list_changed.result != 'success' &&
           !(needs.mcp_tool_list_changed.result == 'skipped' && needs.codegraph_select.outputs.mcp_run == 'false'))
