@@ -236,6 +236,7 @@ function Conversation({
       }}
       style={{ cursor: renaming ? 'default' : 'pointer' }}
       data-testid="convo-item"
+      data-conversation-id={conversationId}
     >
       {renaming ? (
         <RenameForm
