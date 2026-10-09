@@ -1,12 +1,8 @@
 name: Bombadil Property Exploration
 
 on:
-  pull_request:
-    paths:
-      - '**'
-      - '!**.md'
-      - '!.github/workflows/**'
-      - '.github/workflows/playwright-bombadil.yml'
+  schedule:
+    - cron: '30 5 * * *'
   workflow_dispatch:
     inputs:
       reason:
@@ -26,12 +22,45 @@ env:
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
 
 jobs:
+  resolve_target:
+    name: Resolve test commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.target.outputs.sha }}
+    steps:
+      - name: Pin the scheduled server branch or selected manual commit
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME" in
+            schedule)
+              sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/server/synology" --jq '.object.sha')"
+              ;;
+            workflow_dispatch)
+              sha="$GITHUB_SHA"
+              ;;
+            *)
+              echo "::error::Unsupported browser-check event: $EVENT_NAME"
+              exit 1
+              ;;
+          esac
+          if [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Unable to resolve an immutable browser-check commit"
+            exit 1
+          fi
+          printf 'sha=%s\n' "$sha" >> "$GITHUB_OUTPUT"
+          printf 'Browser checks will test commit `%s`.\n' "$sha" >> "$GITHUB_STEP_SUMMARY"
+
   bombadil:
+    needs: [resolve_target]
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' &&
-      github.event.pull_request != null &&
-      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association))
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch'
     continue-on-error: true
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -40,6 +69,8 @@ jobs:
       E2E_CHROMIUM_CHANNEL: chrome
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve_target.outputs.sha }}
 
       - name: Use Node.js 24.16.0
         uses: actions/setup-node@v4
