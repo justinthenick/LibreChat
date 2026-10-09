@@ -87,7 +87,7 @@ function object(value: Json): value is ObjectValue {
 function keys(value: Json, required: string[], optional: string[] = []): value is ObjectValue {
   return (
     object(value) &&
-    required.every((key) => Object.hasOwn(value, key)) &&
+    required.every((key) => Object.prototype.hasOwnProperty.call(value, key)) &&
     Object.keys(value).every((key) => required.includes(key) || optional.includes(key))
   );
 }
@@ -367,7 +367,7 @@ function reply(raw: unknown): PreviewReply {
       requireValue(
         keys(value, ['version', 'ok', 'error']) &&
           typeof value.error === 'string' &&
-          Object.hasOwn(ERROR_STATUS, value.error),
+          Object.prototype.hasOwnProperty.call(ERROR_STATUS, value.error),
       );
       return { version: 1, ok: false, error: value.error as PreviewErrorCode };
     }

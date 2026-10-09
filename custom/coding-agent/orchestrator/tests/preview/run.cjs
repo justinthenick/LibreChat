@@ -15,6 +15,22 @@ if (!process.env.PREVIEW_TEST_TOOLS || !process.env.PREVIEW_TEST_PYTHON) {
 const tools = path.resolve(process.env.PREVIEW_TEST_TOOLS, 'node_modules');
 const root = path.resolve(__dirname, '../../../../..');
 const source = path.join(root, 'packages/api/src/coding/preview');
+const typescript = require(path.join(tools, 'typescript'));
+const repositoryConfig = typescript.readConfigFile(
+  path.join(root, 'packages/api/tsconfig.json'),
+  typescript.sys.readFile,
+);
+if (repositoryConfig.error) throw new Error('Cannot read the repository TypeScript config.');
+const { target, lib } = repositoryConfig.config.compilerOptions;
+if (
+  typeof target !== 'string' ||
+  !Array.isArray(lib) ||
+  lib.some((name) => typeof name !== 'string')
+) {
+  throw new Error(
+    'Expected explicit target and library settings in the repository TypeScript config.',
+  );
+}
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'preview-http-build-'));
 const build = path.join(temporary, 'compiled');
 function run(script, args, env = process.env) {
@@ -33,7 +49,9 @@ try {
     '--strict',
     '--noEmitOnError',
     '--target',
-    'ES2022',
+    target,
+    '--lib',
+    lib.join(','),
     '--module',
     'commonjs',
     '--moduleResolution',
