@@ -241,15 +241,17 @@ class JobWorkerTests(unittest.TestCase):
         self.assertEqual(len(outcome.result["large"]), MAX_JSON_BYTES - 100)
 
     def test_result_from_still_living_child_is_not_completion(self):
-        worker = self.worker(lingering_thread_runner, timeout_seconds=0.5)
+        worker = self.worker(lingering_thread_runner, timeout_seconds=5)
         worker.start()
-        until = time.monotonic() + 0.4
+        until = time.monotonic() + 4
         while worker._pending is None and time.monotonic() < until:
             self.assertIsNone(worker.poll())
             time.sleep(0.005)
         self.assertIsNotNone(worker._pending)
         self.assertTrue(worker._process.is_alive())
-        self.assertEqual(self.finish(worker).state, "timed_out")
+        clock = time.monotonic
+        with patch("coding_orchestrator.job_worker.time.monotonic", side_effect=lambda: clock() + 6):
+            self.assertEqual(self.finish(worker).state, "timed_out")
 
     def test_isolates_home_state_environment_stdio_and_process_group(self):
         parent_environment = {"OPENAI_API_KEY": "secret", "HTTP_PROXY": "secret",
@@ -366,7 +368,7 @@ class JobWorkerTests(unittest.TestCase):
     def test_child_deadline_fires_without_parent_polling(self):
         worker = self.worker(blocked_runner, timeout_seconds=0.5)
         worker.start()
-        time.sleep(0.7)
+        worker._process.join(timeout=3)
         self.assertFalse(worker._process.is_alive())
         outcome = self.finish(worker)
         self.assertEqual((outcome.state, outcome.error_code),
