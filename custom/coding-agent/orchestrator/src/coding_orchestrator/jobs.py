@@ -90,7 +90,7 @@ class ExecutionProfile:
     repository/task scope and emit only bounded evidence. authorize and
     confirm_stopped are trusted, nonblocking policy/lease checks. The latter
     must confirm external execution has stopped, not merely the local process.
-    No runnable profile or ambient-credential discovery is supplied by this PR.
+    No production profile is registered and no ambient credentials are discovered.
     """
 
     profile_id: str
