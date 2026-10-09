@@ -269,3 +269,57 @@ pushes to `server/synology`. It uses read-only repository permissions, no saved
 checkout credentials, immutable action revisions, and no secrets. Top-level
 SDK/test dependencies are pinned; transitive dependencies are not fully locked.
 A passing local suite does not mean GitHub Actions has run for an unpublished patch.
+# Disabled preview job-control API
+
+The optional `/api/agents/preview` routes expose the job boundary to a future
+preview interface. They are a separate API with immutable preview job IDs;
+they do not create chat turns, publish chat SSE events, or persist chat history.
+The existing Google Pilot and normal chat routes keep their current behavior.
+
+The routes run after LibreChat's existing JWT authentication and ban checks.
+With the default configuration they return `404 preview_jobs_disabled`.
+`CODING_OPENHANDS_PREVIEW=true` alone returns `503 job_service_unavailable`:
+no live transport, credentials, or execution profile are installed by this code.
+The server-only `createPreviewRouter` factory accepts an explicitly supplied
+transport and admission policy for integration; request JSON cannot supply them.
+
+- `POST /jobs`: accepts `prompt`, `idempotency_key`, `scope` (repository alias
+  and `read_only` or `modification` task mode), plus optional `max_requests`
+  and `timeout_seconds` (defaults 10 and 300).
+- `GET /jobs/:jobId`: returns an owner- and tenant-scoped snapshot.
+- `POST /jobs/:jobId/cancel`: accepts an empty body and requests cancellation
+  using the stored preview generation identity. A request is not proof that
+  remote execution has stopped; the returned job state remains authoritative.
+- Resume and steering routes reject the operation. Disconnecting HTTP does not
+  cancel execution. There is no automatic transport retry or provider fallback.
+
+Identity comes only from authenticated `req.user.id` and `req.user.tenantId`.
+The Python dispatcher takes a trusted `Principal` separately from command JSON.
+An eventual transport must authenticate its caller and preserve that identity;
+the stdin/stdout fixture is test-only and is not a deployable auth service.
+The required server admission policy must enforce repository access and, for
+start, text/rate policy before dispatch. Mounting this API does not inherit the
+normal chat router's moderation, conversation ACL, or message-limiter chain.
+Repository authorization is checked again before returning status or cancelling.
+
+Commands use a versioned, closed schema with a 40 KiB serialized JSON budget;
+snapshots use a 256 KiB budget. The controller also checks Content-Length when
+present. These are parsed-payload limits, not a replacement for the application's
+global raw-body parser limit. Errors use fixed codes and responses use no-store.
+An unavailable/timeout response does not establish whether remote work started
+or stopped. Retain the idempotency key and job ID when reconciling that outcome.
+Completion, observed check results, and complete evidence remain separate fields.
+
+The focused test toolchain lives in `tests/preview` with an exact lockfile.
+`run.cjs` uses existing Node 24 and Python interpreters plus an explicitly supplied
+installed toolchain (`PREVIEW_TEST_TOOLS` and `PREVIEW_TEST_PYTHON`); it installs
+nothing itself. Tests compile the real TypeScript controller, load the actual
+Express routes, and exchange synthetic jobs with the real Python store/service
+and supervised worker. Existing JWT verification is stubbed only to establish
+test principals; these tests do not validate the application's login system.
+No real repository, provider credential, or model call is used.
+
+Before live activation, implement and review the authenticated transport and
+bounded execution profile, supply the full admission policy, add the preview UI,
+and verify deployment-specific cancellation/restart reconciliation. Integration
+with the normal resumable chat lifecycle is a separate change.
