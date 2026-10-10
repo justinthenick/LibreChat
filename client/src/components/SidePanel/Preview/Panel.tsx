@@ -19,6 +19,13 @@ const states: Record<PreviewState, TranslationKeys> = {
   interrupted: 'com_ui_preview_interrupted',
 };
 
+const errors = {
+  disabled: 'com_ui_preview_disabled',
+  unavailable: 'com_ui_preview_unavailable',
+  identity: 'com_ui_preview_identity',
+  access: 'com_ui_preview_access',
+} as const;
+
 export const previewUIEnabled = () => import.meta.env.VITE_OPENHANDS_PREVIEW_UI === 'true';
 
 export default function PreviewPanel() {
@@ -85,7 +92,7 @@ export function PreviewControls({ owner }: { owner: string }) {
           </Button>
         )}
       </form>
-      {preview.failure && <p role="alert">{localize(`com_ui_preview_${preview.failure}`)}</p>}
+      {preview.failure && <p role="alert">{localize(errors[preview.failure])}</p>}
       {session && !session.jobId && <p role="status">{localize('com_ui_preview_start_unknown')}</p>}
       {session?.jobId && (
         <div className="flex flex-wrap gap-2">
