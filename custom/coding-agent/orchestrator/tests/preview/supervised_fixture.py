@@ -1,5 +1,5 @@
 """Synthetic private-pipe host. Real job/attempt ledgers and supervised child; no providers."""
-from dataclasses import dataclass, replace
+from dataclasses import replace
 import json
 from pathlib import Path
 import sys
@@ -10,25 +10,10 @@ from coding_orchestrator.job_store import JobStore
 from coding_orchestrator.jobs import ExecutionProfile, JobService, Principal
 from coding_orchestrator.preview_pipe import PreviewPipe
 from coding_orchestrator.worker_supervisor import LedgerWorkerSupervisor
-from fixture_runner import run
+from fixture_runner import BoundRunner, run
 
 OWNER = Principal("owner", "tenant")
 GRANTS = {OWNER: frozenset({"fixture"})}
-
-
-@dataclass(frozen=True)
-class BoundRunner:
-    runner: object
-    claim: object
-
-    def __call__(self, context, control):
-        identity = self.claim.identity
-        if (identity.execution_id != context.execution_id or identity.job_id != context.job_id
-                or identity.repository_alias != context.repository_alias
-                or identity.task_mode != context.task_mode or identity.user_id != OWNER.user_id
-                or identity.tenant_id != OWNER.tenant_id):
-            raise ValueError("synthetic dispatch identity mismatch")
-        return self.runner(context, control)
 
 
 def bind(runner, claim):
