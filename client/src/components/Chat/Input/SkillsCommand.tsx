@@ -2,9 +2,11 @@ import { memo, useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { ScrollText } from 'lucide-react';
 import { AutoSizer, List } from 'react-virtualized';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
-import { Input, Spinner, useCombobox } from '@librechat/client';
+import { Input, Spinner, useCombobox, useToastContext } from '@librechat/client';
 import {
   encodeSkillSelection,
+  parseSkillSelection,
+  dataService,
   getSkillLifecycle,
   getSkillLogicalName,
 } from 'librechat-data-provider';
@@ -99,6 +101,18 @@ function SkillsCommandContent({
   agentId?: string | null;
 }) {
   const localize = useLocalize();
+  const { showToast } = useToastContext();
+  const selectingRef = useRef(false);
+  const selectionContextRef = useRef({ conversationId, agentId, mounted: true });
+  selectionContextRef.current.conversationId = conversationId;
+  selectionContextRef.current.agentId = agentId;
+  useEffect(() => {
+    const context = selectionContextRef.current;
+    context.mounted = true;
+    return () => {
+      context.mounted = false;
+    };
+  }, []);
   const setShowSkillsPopover = useSetRecoilState(store.showSkillsPopoverFamily(index));
   const setEphemeralAgent = useSetRecoilState(ephemeralAgentByConvoId(conversationId));
   const setPendingManualSkills = useSetRecoilState(
@@ -144,7 +158,7 @@ function SkillsCommandContent({
     [hasExplicitAgentSkillSelection, isActive, isActiveWithSharedDefault],
   );
 
-  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
+  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } =
     useSkillsInfiniteQuery({ limit: 50 });
 
   /* Auto-fetch all pages so client-side search covers the full catalog,
@@ -189,10 +203,7 @@ function SkillsCommandContent({
 
       options.push({
         label: skill.displayTitle ?? logicalName,
-        value:
-          lifecycle === 'published'
-            ? logicalName
-            : encodeSkillSelection({ _id: skill._id, name: logicalName }),
+        value: skill._id,
         description: skill.description,
         badge,
         type: 'skill',
@@ -221,9 +232,37 @@ function SkillsCommandContent({
   });
 
   const handleSelect = useCallback(
-    (mention?: MentionOption) => {
-      if (!mention) {
+    async (mention?: MentionOption) => {
+      if (!mention || selectingRef.current) {
         return;
+      }
+      selectingRef.current = true;
+      let selection: string;
+      try {
+        const summary = data?.pages
+          .flatMap((page) => page.skills)
+          .find((skill) => skill._id === mention.value);
+        const skill = await dataService.getSkill(mention.value);
+        const context = selectionContextRef.current;
+        if (
+          !context.mounted ||
+          context.conversationId !== conversationId ||
+          context.agentId !== agentId
+        ) {
+          return;
+        }
+        if (!summary || skill._id !== summary._id || skill.version !== summary.version) {
+          throw new Error('Skill selection changed');
+        }
+        selection = encodeSkillSelection({ ...skill, name: getSkillLogicalName(skill) });
+      } catch {
+        if (selectionContextRef.current.mounted) {
+          showToast({ message: localize('com_error_invalid_skill_selection'), status: 'error' });
+          void refetch();
+        }
+        return;
+      } finally {
+        selectingRef.current = false;
       }
 
       setSearchValue('');
@@ -244,13 +283,20 @@ function SkillsCommandContent({
          free-form text invocation is supported. Visual confirmation after
          submit comes from `SkillPills` on the user message bubble
          until the live skill-card stream takes over. */
-      setPendingManualSkills((prev) =>
-        prev.includes(mention.value) ? prev : [...prev, mention.value],
-      );
+      setPendingManualSkills((prev) => [
+        ...prev.filter((existing) => parseSkillSelection(existing).skillId !== mention.value),
+        selection,
+      ]);
 
       textAreaRef.current?.focus();
     },
     [
+      data,
+      agentId,
+      conversationId,
+      showToast,
+      localize,
+      refetch,
       setSearchValue,
       setOpen,
       setShowSkillsPopover,
