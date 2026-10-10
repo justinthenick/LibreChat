@@ -101,7 +101,7 @@ list, and `list_repositories`, then `finish`, in the action list. Verify the
 reported tool outcome; finishing a conversation alone does not prove task success.
 
 For other authorized tasks, provide a UTF-8 prompt file or use `--prompt-file -`
-to read standard input. The iteration limit defaults to 12 and must be 1–100.
+to read standard input. The iteration limit defaults to 12 and must be 1â€“100.
 The existing executor controls still determine permitted repository operations.
 The orchestrator does not grant commit, push, merge, or deployment capabilities.
 
@@ -266,6 +266,15 @@ worker-start/monitor failure or service restart. An identical owner-scoped
 idempotency request still returns its existing job without dispatching again.
 Terminal job outcomes and partial evidence keep their existing meanings; an
 `interrupted` outcome does not clear admission quarantine.
+
+There is one synchronous no-dispatch case: a freshly admitted job can fail before
+the worker factory is invoked, for example when a tiny deadline expires during
+admission. The service then atomically records failure and resolves that exact
+reservation from its own control-flow proof that dispatch never became possible.
+Once factory invocation begins, even an exception without a returned worker is
+ambiguous and retains quarantine. Queued state, zero requests, an expired deadline
+or restart alone never establish this proof; failed persistence retains the
+reservation. Idempotent retries preserve the failed job without replay.
 
 The trusted `ExecutionProfile.confirm_stopped` hook now receives a private
 `ExecutionIdentity` rather than a prompt-bearing `RunContext`, and returns

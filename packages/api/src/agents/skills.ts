@@ -6,6 +6,7 @@ import type { LCToolRegistry, LCTool, InjectedMessage } from '@librechat/agents'
 import type { BaseMessage } from '@librechat/agents/langchain/messages';
 import type { Agent } from 'librechat-data-provider';
 import type { Types } from 'mongoose';
+import { getSkillSelectionRevision, SkillSelectionError } from '../skills/selection';
 import { createSkillContentDigest } from './compatibility';
 import { registerCodeExecutionTools } from './tools';
 import { logAxiosError } from '~/utils';
@@ -971,7 +972,13 @@ export async function resolveManualSkills(
     defaultActiveOnShare,
   } = params;
 
-  if (!names.length || accessibleSkillIds.length === 0) {
+  if (!names.length) {
+    return [];
+  }
+  if (
+    accessibleSkillIds.length === 0 &&
+    !names.some((selection) => parseSkillSelection(selection).explicit)
+  ) {
     return [];
   }
 
@@ -992,6 +999,9 @@ export async function resolveManualSkills(
    */
   let boundedNames = uniqueNames;
   if (uniqueNames.length > MAX_MANUAL_SKILLS) {
+    if (uniqueNames.some((selection) => parseSkillSelection(selection).explicit)) {
+      throw new SkillSelectionError();
+    }
     logger.warn(
       `[resolveManualSkills] Truncating manual skill list from ${uniqueNames.length} to ${MAX_MANUAL_SKILLS}`,
     );
@@ -1000,18 +1010,29 @@ export async function resolveManualSkills(
 
   const resolved = await Promise.all(
     boundedNames.map(async (selection) => {
+      const { name, skillId, revision, explicit } = parseSkillSelection(selection);
       try {
-        const { name, skillId } = parseSkillSelection(selection);
         /* Revision-aware UI selections carry the exact skill id. Resolve it
            only when that id is already inside the caller's ACL-scoped set;
            crafted ids cannot widen access. Legacy name-only payloads keep
            the established preference-based lookup. */
+        if (explicit && (!skillId || !revision || !getSkillById || !accessibleIdSet.has(skillId))) {
+          throw new SkillSelectionError();
+        }
         const skill =
-          skillId && getSkillById && accessibleIdSet.has(skillId)
+          explicit && skillId && getSkillById
             ? await getSkillById(skillId)
             : await getSkillByName(name, accessibleSkillIds, {
                 preferUserInvocable: true,
               });
+        if (
+          explicit &&
+          (!skill ||
+            skill._id.toString() !== skillId ||
+            getSkillSelectionRevision(skill) !== revision)
+        ) {
+          throw new SkillSelectionError();
+        }
         if (!skill) {
           logger.warn('[resolveManualSkills] Requested skill not found or not accessible');
           return null;
@@ -1031,10 +1052,12 @@ export async function resolveManualSkills(
          * operators triage faster.
          */
         if (skill.userInvocable === false) {
+          if (explicit) throw new SkillSelectionError();
           logger.warn('[resolveManualSkills] Requested skill is not user-invocable — skipping');
           return null;
         }
         if (!skill.body) {
+          if (explicit) throw new SkillSelectionError();
           logger.warn('[resolveManualSkills] Requested skill has empty body — skipping');
           return null;
         }
@@ -1045,6 +1068,7 @@ export async function resolveManualSkills(
           defaultActiveOnShare,
         });
         if (!active) {
+          if (explicit) throw new SkillSelectionError();
           logger.warn('[resolveManualSkills] Requested skill is inactive for this user — skipping');
           return null;
         }
@@ -1060,6 +1084,7 @@ export async function resolveManualSkills(
         }
         return resolved;
       } catch {
+        if (explicit) throw new SkillSelectionError();
         logger.warn('[resolveManualSkills] Failed to resolve a requested skill');
         return null;
       }
@@ -1736,6 +1761,14 @@ export function extractManualSkills(body: unknown): string[] | undefined {
   const raw = (body as { manualSkills?: unknown }).manualSkills;
   if (!Array.isArray(raw)) {
     return undefined;
+  }
+  if (
+    raw.some(
+      (entry) =>
+        typeof entry === 'string' && entry.length > MAX_SKILL_NAME_LENGTH && entry.includes('@@'),
+    )
+  ) {
+    throw new SkillSelectionError();
   }
   const filtered = raw.filter(
     (entry): entry is string =>

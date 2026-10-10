@@ -14,9 +14,21 @@ import React from 'react';
 import { act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from '@testing-library/react';
+import { encodeSkillSelection } from 'librechat-data-provider';
 import type { TSkillSummary } from 'librechat-data-provider';
 
 const CONVO_ID = 'convo-1';
+const revision = 'a'.repeat(64);
+const mockGetSkill = jest.fn();
+const mockShowToast = jest.fn();
+const mockRefetch = jest.fn();
+jest.mock('librechat-data-provider', () => ({
+  ...jest.requireActual('librechat-data-provider'),
+  dataService: {
+    ...jest.requireActual('librechat-data-provider').dataService,
+    getSkill: (...args: string[]) => mockGetSkill(...args),
+  },
+}));
 
 const mockSetShowSkillsPopover = jest.fn();
 const mockSetEphemeralAgent = jest.fn();
@@ -89,6 +101,7 @@ jest.mock('@librechat/client', () => {
   return {
     ...actual,
     Spinner: () => null,
+    useToastContext: () => ({ showToast: mockShowToast }),
   };
 });
 
@@ -128,7 +141,7 @@ const makeTextarea = (initial = '$', selectionStart = initial.length) => {
 };
 
 const makeSkill = (overrides: Partial<TSkillSummary>): TSkillSummary => ({
-  _id: '1',
+  _id: '000000000000000000000001',
   name: 'brand-guidelines',
   displayTitle: 'Brand Guidelines',
   description: 'Apply brand styling',
@@ -156,8 +169,16 @@ const twoSkillsResponse = {
   pages: [
     {
       skills: [
-        makeSkill({ _id: '1', name: 'brand-guidelines', displayTitle: 'Brand Guidelines' }),
-        makeSkill({ _id: '2', name: 'style-guide', displayTitle: 'Style Guide' }),
+        makeSkill({
+          _id: '000000000000000000000001',
+          name: 'brand-guidelines',
+          displayTitle: 'Brand Guidelines',
+        }),
+        makeSkill({
+          _id: '000000000000000000000002',
+          name: 'style-guide',
+          displayTitle: 'Style Guide',
+        }),
       ],
       has_more: false,
       after: null,
@@ -169,8 +190,14 @@ beforeEach(() => {
   jest.clearAllMocks();
   document.body.innerHTML = '';
   mockShowSkillsPopover.current = true;
+  mockGetSkill.mockImplementation(async (id: string) => ({
+    ...makeSkill({ _id: id }),
+    body: 'REVIEWED',
+    selectionRevision: revision,
+  }));
   mockUseSkillsInfiniteQuery.mockReturnValue({
     data: skillsResponse,
+    refetch: mockRefetch,
     isLoading: false,
     isError: false,
     fetchNextPage: jest.fn(),
@@ -250,8 +277,16 @@ describe('SkillsCommand', () => {
        and drained by `useChatFunctions.ask` on submission. */
     expect(mockSetPendingManualSkills).toHaveBeenCalledTimes(1);
     const updater = mockSetPendingManualSkills.mock.calls[0][0] as (prev: string[]) => string[];
-    expect(updater([])).toEqual(['brand-guidelines']);
-    expect(updater(['brand-guidelines'])).toEqual(['brand-guidelines']);
+    const token = encodeSkillSelection({
+      _id: '000000000000000000000001',
+      name: 'brand-guidelines',
+      selectionRevision: revision,
+    });
+    expect(updater([])).toEqual([token]);
+    expect(updater([token])).toEqual([token]);
+    const oldToken = token.replace(revision, 'b'.repeat(64));
+    const otherToken = token.replace('000000000000000000000001', '000000000000000000000002');
+    expect(updater([oldToken, otherToken])).toEqual([otherToken, token]);
 
     /* Ephemeral agent gets skills enabled so the badge lights up and the
        backend includes the skill catalog. */
@@ -272,6 +307,77 @@ describe('SkillsCommand', () => {
     expect(mockSetShowSkillsPopover).toHaveBeenCalledWith(false);
   });
 
+  it.each(['stale', 'denied', 'missing-revision'])(
+    'asks for reselection when detail is %s',
+    async (scenario) => {
+      if (scenario === 'denied') mockGetSkill.mockRejectedValue(new Error('403'));
+      else
+        mockGetSkill.mockResolvedValue({
+          ...makeSkill({}),
+          body: 'CHANGED',
+          version: scenario === 'stale' ? 2 : 1,
+        });
+      render(<SkillsCommand index={0} textAreaRef={makeTextarea()} conversationId={CONVO_ID} />);
+      await userEvent.click(await screen.findByRole('button', { name: /Brand Guidelines/i }));
+      expect(mockSetPendingManualSkills).not.toHaveBeenCalled();
+      expect(mockShowToast).toHaveBeenCalledWith({
+        message: 'com_error_invalid_skill_selection',
+        status: 'error',
+      });
+      expect(mockRefetch).toHaveBeenCalled();
+    },
+  );
+
+  it.each(['published', 'trial'])('pins the exact %s entry from the picker', async (lifecycle) => {
+    const skill = makeSkill({
+      name: lifecycle === 'trial' ? 'brand-guidelines-draft' : 'brand-guidelines',
+      source: lifecycle === 'trial' ? 'inline' : 'github',
+      sourceMetadata: { lifecycle, logicalName: 'brand-guidelines' },
+    });
+    mockUseSkillsInfiniteQuery.mockReturnValue({
+      data: { pages: [{ skills: [skill], has_more: false, after: null }] },
+      refetch: mockRefetch,
+    });
+    mockGetSkill.mockResolvedValue({ ...skill, body: 'REVIEWED', selectionRevision: revision });
+    render(<SkillsCommand index={0} textAreaRef={makeTextarea()} conversationId={CONVO_ID} />);
+    await userEvent.click(await screen.findByRole('button', { name: /Brand Guidelines/i }));
+    const updater = mockSetPendingManualSkills.mock.calls[0][0] as (prev: string[]) => string[];
+    expect(updater([])).toEqual([
+      encodeSkillSelection({
+        _id: skill._id,
+        name: 'brand-guidelines',
+        selectionRevision: revision,
+      }),
+    ]);
+    expect(mockGetSkill).toHaveBeenCalledWith(skill._id);
+  });
+
+  it('does not apply a pending selection after the conversation changes', async () => {
+    let finish:
+      | ((
+          skill: ReturnType<typeof makeSkill> & { body: string; selectionRevision: string },
+        ) => void)
+      | undefined;
+    mockGetSkill.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const textAreaRef = makeTextarea();
+    const { rerender } = render(
+      <SkillsCommand index={0} textAreaRef={textAreaRef} conversationId={CONVO_ID} />,
+    );
+    await userEvent.click(await screen.findByRole('button', { name: /Brand Guidelines/i }));
+    rerender(
+      <SkillsCommand index={0} textAreaRef={textAreaRef} conversationId="another-conversation" />,
+    );
+    await act(async () => {
+      finish?.({ ...makeSkill({}), body: 'REVIEWED', selectionRevision: revision });
+    });
+    expect(mockSetPendingManualSkills).not.toHaveBeenCalled();
+  });
+
   it('narrows the list to the agent-configured scope when agent.skills is set and skills_enabled is true', async () => {
     mockUseSkillsInfiniteQuery.mockReturnValue({
       data: twoSkillsResponse,
@@ -282,7 +388,7 @@ describe('SkillsCommand', () => {
       isFetchingNextPage: false,
     });
     mockUseAgentsMapContext.mockReturnValue({
-      agent_1: { id: 'agent_1', skills: ['2'], skills_enabled: true },
+      agent_1: { id: 'agent_1', skills: ['000000000000000000000002'], skills_enabled: true },
     });
 
     const textAreaRef = makeTextarea('$');
@@ -310,7 +416,7 @@ describe('SkillsCommand', () => {
       isFetchingNextPage: false,
     });
     mockUseAgentsMapContext.mockReturnValue({
-      agent_1: { id: 'agent_1', skills: ['1'], skills_enabled: true },
+      agent_1: { id: 'agent_1', skills: ['000000000000000000000001'], skills_enabled: true },
     });
     mockIsActive.mockReturnValue(false);
     mockIsActiveWithSharedDefault.mockReturnValue(true);
@@ -328,7 +434,7 @@ describe('SkillsCommand', () => {
     expect(await screen.findByRole('button', { name: /Brand Guidelines/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Style Guide/i })).toBeNull();
     expect(mockIsActiveWithSharedDefault).toHaveBeenCalledWith(
-      expect.objectContaining({ _id: '1' }),
+      expect.objectContaining({ _id: '000000000000000000000001' }),
       true,
     );
   });
@@ -343,7 +449,11 @@ describe('SkillsCommand', () => {
       isFetchingNextPage: false,
     });
     mockUseAgentsMapContext.mockReturnValue({
-      agent_1: { id: 'agent_1', skills: ['1', '2'], skills_enabled: false },
+      agent_1: {
+        id: 'agent_1',
+        skills: ['000000000000000000000001', '000000000000000000000002'],
+        skills_enabled: false,
+      },
     });
 
     const textAreaRef = makeTextarea('$');
@@ -507,7 +617,9 @@ describe('SkillsCommand', () => {
       hasNextPage: false,
       isFetchingNextPage: false,
     });
-    mockIsActive.mockImplementation((skill: { _id: string }) => skill._id !== '1');
+    mockIsActive.mockImplementation(
+      (skill: { _id: string }) => skill._id !== '000000000000000000000001',
+    );
 
     const textAreaRef = makeTextarea('$');
     render(<SkillsCommand index={0} textAreaRef={textAreaRef} conversationId={CONVO_ID} />);
@@ -520,6 +632,7 @@ describe('SkillsCommand', () => {
     const fetchNextPage = jest.fn();
     mockUseSkillsInfiniteQuery.mockReturnValue({
       data: skillsResponse,
+      refetch: mockRefetch,
       isLoading: false,
       isError: true,
       fetchNextPage,
@@ -535,6 +648,7 @@ describe('SkillsCommand', () => {
 
     mockUseSkillsInfiniteQuery.mockReturnValue({
       data: skillsResponse,
+      refetch: mockRefetch,
       isLoading: false,
       isError: false,
       fetchNextPage,
@@ -550,18 +664,18 @@ describe('SkillsCommand', () => {
 describe('filterSkillsForPopover', () => {
   const active = () => true;
   const inactive = () => false;
-  const s1 = makeSkill({ _id: '1', name: 'a' });
-  const s2 = makeSkill({ _id: '2', name: 'b' });
-  const s3 = makeSkill({ _id: '3', name: 'c', userInvocable: false });
+  const s1 = makeSkill({ _id: '000000000000000000000001', name: 'a' });
+  const s2 = makeSkill({ _id: '000000000000000000000002', name: 'b' });
+  const s3 = makeSkill({ _id: '000000000000000000000003', name: 'c', userInvocable: false });
 
   it('passes everything through when agentSkillIds is undefined', () => {
     const out = filterSkillsForPopover([s1, s2], { agentSkillIds: undefined, isActive: active });
-    expect(out.map((s) => s._id)).toEqual(['1', '2']);
+    expect(out.map((s) => s._id)).toEqual(['000000000000000000000001', '000000000000000000000002']);
   });
 
   it('passes everything through when agentSkillIds is null', () => {
     const out = filterSkillsForPopover([s1, s2], { agentSkillIds: null, isActive: active });
-    expect(out.map((s) => s._id)).toEqual(['1', '2']);
+    expect(out.map((s) => s._id)).toEqual(['000000000000000000000001', '000000000000000000000002']);
   });
 
   it('returns empty when agentSkillIds is []', () => {
@@ -570,8 +684,11 @@ describe('filterSkillsForPopover', () => {
   });
 
   it('intersects with a non-empty agentSkillIds', () => {
-    const out = filterSkillsForPopover([s1, s2], { agentSkillIds: ['2'], isActive: active });
-    expect(out.map((s) => s._id)).toEqual(['2']);
+    const out = filterSkillsForPopover([s1, s2], {
+      agentSkillIds: ['000000000000000000000002'],
+      isActive: active,
+    });
+    expect(out.map((s) => s._id)).toEqual(['000000000000000000000002']);
   });
 
   it('allows a managed draft when its published parent is in agent scope', () => {
@@ -581,35 +698,35 @@ describe('filterSkillsForPopover', () => {
       source: 'inline',
       sourceMetadata: {
         lifecycle: 'trial',
-        draftOfSkillId: '1',
+        draftOfSkillId: '000000000000000000000001',
         logicalName: 'a',
       },
     });
     const out = filterSkillsForPopover([s1, draft, s2], {
-      agentSkillIds: ['1'],
+      agentSkillIds: ['000000000000000000000001'],
       isActive: active,
     });
-    expect(out.map((s) => s._id)).toEqual(['1', 'draft-id']);
+    expect(out.map((s) => s._id)).toEqual(['000000000000000000000001', 'draft-id']);
   });
 
   it('does not inherit agent scope for an unrelated local skill', () => {
     const local = makeSkill({ _id: 'local-id', name: 'local' });
     const out = filterSkillsForPopover([s1, local], {
-      agentSkillIds: ['1'],
+      agentSkillIds: ['000000000000000000000001'],
       isActive: active,
     });
-    expect(out.map((s) => s._id)).toEqual(['1']);
+    expect(out.map((s) => s._id)).toEqual(['000000000000000000000001']);
   });
 
   it('excludes inactive skills', () => {
-    const isActive = (skill: { _id: string }) => skill._id !== '1';
+    const isActive = (skill: { _id: string }) => skill._id !== '000000000000000000000001';
     const out = filterSkillsForPopover([s1, s2], { agentSkillIds: null, isActive });
-    expect(out.map((s) => s._id)).toEqual(['2']);
+    expect(out.map((s) => s._id)).toEqual(['000000000000000000000002']);
   });
 
   it('excludes skills with userInvocable: false via isUserInvocable', () => {
     const out = filterSkillsForPopover([s1, s3], { agentSkillIds: null, isActive: active });
-    expect(out.map((s) => s._id)).toEqual(['1']);
+    expect(out.map((s) => s._id)).toEqual(['000000000000000000000001']);
   });
 
   it('still empty when agent scope is [] even if everything is active and invocable', () => {
@@ -618,14 +735,18 @@ describe('filterSkillsForPopover', () => {
   });
 
   it('layers all three filters (agent scope ∩ active ∩ invocable)', () => {
-    const isActive = (skill: { _id: string }) => skill._id !== '2';
+    const isActive = (skill: { _id: string }) => skill._id !== '000000000000000000000002';
     const out = filterSkillsForPopover([s1, s2, s3], {
-      agentSkillIds: ['1', '2', '3'],
+      agentSkillIds: [
+        '000000000000000000000001',
+        '000000000000000000000002',
+        '000000000000000000000003',
+      ],
       isActive,
     });
     /* s1 passes (active, user-invocable by default, scoped), s2 drops (inactive),
        s3 drops (userInvocable: false). */
-    expect(out.map((s) => s._id)).toEqual(['1']);
+    expect(out.map((s) => s._id)).toEqual(['000000000000000000000001']);
   });
 
   it('drops everything when isActive returns false for all inputs', () => {
