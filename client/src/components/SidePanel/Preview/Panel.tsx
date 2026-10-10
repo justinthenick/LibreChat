@@ -13,7 +13,7 @@ const states: Record<PreviewState, TranslationKeys> = {
   running: 'com_ui_preview_running',
   cancelling: 'com_ui_preview_cancelling',
   completed: 'com_ui_preview_completed',
-  failed: 'com_ui_preview_failed',
+  failed: 'com_ui_openhands_preview_failed',
   cancelled: 'com_ui_preview_cancelled',
   timed_out: 'com_ui_preview_timed_out',
   interrupted: 'com_ui_preview_interrupted',
@@ -21,7 +21,7 @@ const states: Record<PreviewState, TranslationKeys> = {
 
 const errors = {
   disabled: 'com_ui_preview_disabled',
-  unavailable: 'com_ui_preview_unavailable',
+  unavailable: 'com_ui_openhands_preview_unavailable',
   identity: 'com_ui_preview_identity',
   access: 'com_ui_preview_access',
 } as const;
