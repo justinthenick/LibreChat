@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'custom/coding-agent/orchestrator/**'
+      - 'custom/coding-agent/executor/src/coding_executor/**'
       - 'packages/api/src/coding/**'
       - 'api/server/routes/agents/preview.js'
       - 'api/server/routes/agents/index.js'
@@ -13,6 +14,7 @@ on:
       - server/synology
     paths:
       - 'custom/coding-agent/orchestrator/**'
+      - 'custom/coding-agent/executor/src/coding_executor/**'
       - 'packages/api/src/coding/**'
       - 'api/server/routes/agents/preview.js'
       - 'api/server/routes/agents/index.js'

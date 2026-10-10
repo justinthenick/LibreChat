@@ -306,6 +306,30 @@ The offline regressions cover this migration, restart, races and persistence
 failures with real SQLite and synthetic workers/remote ledgers. Authentication,
 the live remote reconciler and UI remain unimplemented and disabled.
 
+## Dormant executor stop adapter
+
+`ExecutorStopAdapter` in `coding_orchestrator.executor_adapter` can be explicitly
+supplied as a profile's `confirm_stopped` hook. It is not registered or instantiated
+by production code. Its trusted control callback must idempotently seal and stop
+the exact executor identity and return `{authority_id, status}` with the complete
+`ExecutionService.stop` snapshot. Authentication and remote transport remain
+unimplemented; the adapter cannot establish trust in an arbitrary response.
+
+Confirmation waits at most its configured positive budget (maximum one second).
+One timed-out daemon callback remains pending, with no queue or automatic retries;
+another identity cannot consume its result. A later explicit call for the same
+identity may consume late evidence. A permanently hung callback retains quarantine
+and occupies the adapter; timeout does not kill or cancel remote work. The real
+transport must enforce its own resource and deadline limits before activation.
+
+Only the configured authority, exact full identity, durable sealed/stopped state
+and at most 64 distinct stopped operation claims produce `StopEvidence`. Missing,
+malformed, mismatched or uncertain evidence returns no confirmation. Synthetic
+tests connect the real job and executor SQLite ledgers to a fake supervisor and
+check bounded cancellation, admission quarantine, explicit reconciliation and
+idempotent retry without replay. No HTTP/MCP routes, credentials or live profiles
+are added.
+
 ## Proxy safety
 
 Plaintext HTTP is limited to literal loopback addresses and is rejected whenever
