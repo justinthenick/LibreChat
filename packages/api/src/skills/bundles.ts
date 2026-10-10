@@ -52,6 +52,7 @@ export interface SkillBundleAccess {
   tenantId: string | null;
   canView: boolean;
   active: boolean;
+  userInvocable: boolean;
   inAgentScope: boolean;
 }
 
@@ -294,6 +295,7 @@ export function createSkillBundleHost(deps: SkillBundleHostDeps) {
           access.tenantId !== actor.tenantId ||
           access.canView !== true ||
           access.active !== true ||
+          access.userInvocable !== true ||
           access.inAgentScope !== true
         )
           fail();

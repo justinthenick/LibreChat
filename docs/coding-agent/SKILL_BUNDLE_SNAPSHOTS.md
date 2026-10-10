@@ -29,6 +29,7 @@ own manifest as evidence of a published revision.
 `createSkillBundleHost` requires three adapters:
 
 - `getAccess`: authoritative current skill existence, VIEW permission, tenant, activation,
+  manual-invocation eligibility (`userInvocable` must be exactly true),
   and agent scope for the authenticated actor. Never supply startup ACL caches or infer
   authority from snapshot possession. Actor identity must come from the authenticated
   request, not user-submitted IDs. Return null for deleted/inaccessible resources.
@@ -46,7 +47,7 @@ Binary and image reads return captured bytes plus MIME type, without live storag
 Publication, sync, or draft edits create a different manifest/snapshot. A retained older pin
 continues to identify its original bytes while the actor remains authorized. Deleting a file
 from a newer revision does not rewrite a retained snapshot; deleting the skill or revoking
-VIEW, tenant membership, activation or agent scope denies subsequent reads. Retention and
+VIEW, tenant membership, activation, manual-invocation eligibility or agent scope denies subsequent reads. Retention and
 eviction policy belong to the future storage adapter. This is content identity, not a claim
 that a trial establishes correctness, quality, safety, or author approval.
 

@@ -62,6 +62,7 @@ async function environment() {
     tenantId: 'tenant',
     canView: true,
     active: true,
+    userInvocable: true,
     inAgentScope: true,
   };
   const calls = { access: 0, load: 0, inspect: 0 };
@@ -237,7 +238,7 @@ describe('immutable host skill bundles', () => {
     await expect(e.read()).rejects.toThrow(failure);
   });
 
-  it.each(['canView', 'active', 'inAgentScope'] as const)(
+  it.each(['canView', 'active', 'userInvocable', 'inAgentScope'] as const)(
     'checks current %s even after a successful cached read',
     async (key) => {
       const e = await environment();
@@ -257,6 +258,25 @@ describe('immutable host skill bundles', () => {
       await expect(e.read()).rejects.toThrow(failure);
     }
   });
+
+  it.each(['load', 'inspect'])('denies manual eligibility revocation during %s', async (phase) => {
+    const e = await environment();
+    const revoke = () => e.setAccess({ userInvocable: false });
+    if (phase === 'load') e.onLoad(revoke);
+    else e.onInspect(revoke);
+    await expect(e.host.prime({ selection: e.token, actor })).rejects.toThrow(failure);
+    await expect(e.read()).rejects.toThrow(failure);
+  });
+
+  it.each(['{}', '{"userInvocable":"false"}', '{"userInvocable":null}'])(
+    'fails closed for missing or malformed current eligibility: %s',
+    async (json) => {
+      const e = await environment();
+      const patch = JSON.parse(json) as Partial<SkillBundleAccess>;
+      e.setAccess({ userInvocable: undefined, ...patch });
+      await expect(e.read()).rejects.toThrow(failure);
+    },
+  );
 
   it.each([
     { ...actor, tenantId: 'other' },
