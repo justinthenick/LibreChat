@@ -68,6 +68,18 @@ function fixture() {
 }
 
 describe('managed draft source provenance', () => {
+  it('rejects lifecycle and Git mode values that would pass string coercion', async () => {
+    const f = fixture();
+    f.draft.lifecycle = ['draft'];
+    expect(() => f.check()).toThrow(failure);
+    f.draft.lifecycle = 'draft';
+    f.responses.set(`/git/trees/${digest(4)}`, {
+      sha: digest(4),
+      truncated: false,
+      tree: [{ path: 'SKILL.md', type: 'blob', mode: ['100644'], sha: digest(7) }],
+    });
+    await expect(f.check()).rejects.toThrow(failure);
+  });
   it.each(['draft', 'trial', 'publish_pending'])(
     'accepts intact %s provenance',
     async (lifecycle) => {

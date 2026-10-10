@@ -61,7 +61,8 @@ export function validateManagedDraftProvenance(
   const current = object(published.sourceMetadata);
   if (
     published.source !== 'github' ||
-    !['draft', 'trial', 'publish_pending'].includes(String(draft.lifecycle)) ||
+    typeof draft.lifecycle !== 'string' ||
+    !['draft', 'trial', 'publish_pending'].includes(draft.lifecycle) ||
     draft.draftOfSkillId !== published._id.toString() ||
     draft.provider !== 'github' ||
     current.provider !== 'github' ||
@@ -135,7 +136,8 @@ export async function assertManagedDraftUpstream(
     if (
       definition.length !== 1 ||
       definition[0].type !== 'blob' ||
-      !['100644', '100755'].includes(String(definition[0].mode)) ||
+      typeof definition[0].mode !== 'string' ||
+      !['100644', '100755'].includes(definition[0].mode) ||
       definition[0].sha !== provenance.baseSkillBlobSha
     )
       fail();
