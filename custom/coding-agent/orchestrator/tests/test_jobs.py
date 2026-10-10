@@ -8,7 +8,7 @@ import time
 from types import SimpleNamespace
 import unittest
 
-from coding_orchestrator.job_store import IdempotencyConflict, JobNotFound, JobStore
+from coding_orchestrator.job_store import IdempotencyConflict, JobNotFound, JobStore, StoreBusy
 from coding_orchestrator.jobs import ExecutionProfile, JobError, JobRequest, JobService, Principal, RunScope
 
 
@@ -141,6 +141,18 @@ class JobServiceTests(unittest.TestCase):
         self.assertEqual(terminal["result"], partial)
         self.workers[0].kwargs["on_progress"]({"evidence": {**evidence(), "action_count": 99}})
         self.assertEqual(self.service.get_run(self.owner, job["job_id"]), terminal)
+
+    def test_uncertain_remote_execution_blocks_new_admission(self):
+        self.stopped = False
+        job = self.service.start_run(self.owner, self.request)
+        self.service.cancel_run(self.owner, job["job_id"],
+            generation_id="generation-1", generation_epoch=123)
+        terminal = self.wait_terminal(job["job_id"])
+        self.assertEqual(terminal["state"], "interrupted")
+        self.assertEqual(self.service.start_run(self.owner, self.request), terminal)
+        with self.assertRaises(StoreBusy):
+            self.service.start_run(self.owner, replace(self.request, idempotency_key="second"))
+        self.assertEqual(len(self.workers), 1)
 
     def test_cancel_during_stop_confirmation_wins_over_completion(self):
         entered, release = threading.Event(), threading.Event()
