@@ -321,13 +321,25 @@ test.each(['preview_jobs_disabled', 'job_service_unavailable', 'job_not_found'])
     failure = code;
     mount();
     start();
-    await screen.findByRole('alert');
+    const alert = await screen.findByRole('alert');
+    if (code === 'job_service_unavailable') {
+      expect(alert).toHaveTextContent('The last outcome is unconfirmed');
+      expect(alert).toHaveTextContent('a failed request does not prove execution stopped');
+    }
     expect(
       screen.queryByText('Cancellation confirmed by the job service.'),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Retry same start' })).toBeEnabled();
   },
 );
+
+test('labels a failed job separately from attachment preview failures', async () => {
+  job.state = 'failed';
+  mount();
+  start();
+  await screen.findByText('Failed', { exact: true });
+  expect(screen.queryByText('Preview unavailable')).not.toBeInTheDocument();
+});
 
 test('renders evidence as text and does not equate completion to checks passing', async () => {
   job.state = 'completed';
