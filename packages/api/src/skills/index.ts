@@ -1,4 +1,5 @@
 export * from './binary';
+export * from './bundles';
 export * from './handlers';
 export * from './import';
 export * from './path';
