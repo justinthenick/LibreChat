@@ -14,7 +14,8 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "executor" / "src"))
 from coding_executor.executions import Observation
 from coding_orchestrator.job_store import JobStore, StoreBusy
-from coding_orchestrator.jobs import JobRequest, JobService, Principal, RunScope
+from coding_orchestrator.jobs import JobError, JobRequest, JobService, Principal, RunScope
+from coding_orchestrator.job_worker import ProcessWorker, RunContext
 from coding_orchestrator.openhands_profile import create_openhands_profile
 from test_profile_sdk_integration import (ExecutorFixture, FixtureTransport, GuardedFixtureRunner,
                                          fixture_llm, fixture_token, BEFORE, AFTER)
@@ -28,6 +29,21 @@ def bind_fixture_runner(runner, claim):
     return GuardedFixtureRunner(replace(runner, token_factory=partial(attempt_token, claim)), runner.endpoint)
 
 
+def simple_runner(context, control):
+    from test_jobs import result
+    control.before_provider_request()
+    return result()
+
+
+class SlowSerializedRunner:
+    def __reduce__(self):
+        time.sleep(.1)
+        return (SlowSerializedRunner, ())
+
+    def __call__(self, context, control):
+        return simple_runner(context, control)
+
+
 class FencedFixture(ExecutorFixture):
     authority_id = "synthetic-supervisor"
 
@@ -39,6 +55,8 @@ class FencedFixture(ExecutorFixture):
         self.proof_available = True
         self.launch_mode = "running"
         self.inspect = None
+        self.stop_gate = None
+        self.stop_entered = threading.Event()
 
     def launch(self, claim):
         persisted = self.inspect(claim.identity)
@@ -55,6 +73,9 @@ class FencedFixture(ExecutorFixture):
         return Observation(claim, "running", False)
 
     def stop(self, claim):
+        self.stop_entered.set()
+        if self.stop_gate is not None:
+            self.stop_gate.wait(5)
         with self.lock:
             if claim != self.claim:
                 raise AssertionError("wrong stop identity")
@@ -147,7 +168,18 @@ class WorkerSupervisorTests(unittest.TestCase):
             time.sleep(.02)
             run = service.get_run(owner, run["job_id"])
         self.assertNotIn(run["state"], {"queued", "running", "cancelling"}, run)
+        while service._active is not None and time.monotonic() < deadline:
+            time.sleep(.01)
+        self.assertIsNone(service._active)
         return run
+
+    def reconcile(self, service, owner, job_id):
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline:
+            if service.reconcile_run(owner, job_id):
+                return
+            time.sleep(.01)
+        self.fail("exact fenced proof did not reconcile")
 
     def test_actual_sdk_failing_check_patch_passing_check_is_bound_to_durable_attempt(self):
         import httpx
@@ -179,7 +211,7 @@ class WorkerSupervisorTests(unittest.TestCase):
                 service.start_run(owner, replace(request, idempotency_key="next", generation_epoch=2))
             self.assertFalse(service.reconcile_run(owner, run["job_id"]))
             fixture.proof_available = True
-            self.assertTrue(service.reconcile_run(owner, run["job_id"]))
+            self.reconcile(service, owner, run["job_id"])
             self.assertEqual(service.get_run(owner, run["job_id"]), run)
             self.assertEqual(adapter.ledger.status(fixture.claim.identity).state, "stopped")
 
@@ -191,7 +223,7 @@ class WorkerSupervisorTests(unittest.TestCase):
                 self.assertEqual(fixture.calls, [])
                 self.assertEqual(run["error_code"], "execution_stop_unconfirmed")
                 fixture.proof_available = True
-                self.assertTrue(service.reconcile_run(owner, run["job_id"]))
+                self.reconcile(service, owner, run["job_id"])
 
     def test_request_limit_is_preserved_through_supervised_worker(self):
         with self.job() as (service, fixture, owner, adapter):
@@ -210,3 +242,69 @@ class WorkerSupervisorTests(unittest.TestCase):
             self.assertEqual(run["state"], "timed_out", run)
             self.assertEqual(run["request_count"], 0)
             self.assertEqual(fixture.calls, [])
+
+    def test_bind_and_serialization_failure_have_no_child_dispatch(self):
+        def failed(*args):
+            raise RuntimeError("synthetic binding failure")
+        def unpicklable(*args):
+            return lambda *a: None
+        for bind in (failed, unpicklable):
+            with self.subTest(bind=bind), self.job(bind=bind) as (service, fixture, owner, adapter):
+                run = self.wait(service, owner, service.start_run(owner, self.request()))
+                self.assertEqual(run["state"], "failed", run)
+                self.assertEqual(run["request_count"], 0)
+                self.assertEqual(fixture.calls, [])
+                self.assertEqual(adapter.ledger.status(fixture.claim.identity).state, "stopped")
+
+    def test_claim_commit_failure_prevents_authority_and_child_launch(self):
+        with self.job() as (service, fixture, owner, adapter):
+            adapter.ledger._db.execute("CREATE TRIGGER reject_claim BEFORE INSERT ON operations BEGIN SELECT RAISE(ABORT, 'fixture'); END")
+            with self.assertRaises(JobError):
+                service.start_run(owner, self.request())
+            self.assertIsNone(fixture.claim)
+            self.assertEqual(fixture.calls, [])
+
+    def test_restart_missing_local_handle_never_infers_quiescence(self):
+        with self.job(scenario="finish", proof_available=False) as (service, fixture, owner, adapter):
+            run = self.wait(service, owner, service.start_run(owner, self.request()))
+            identity = service.store.execution_identity(owner.user_id, owner.tenant_id, run["job_id"])
+            service.close()
+            adapter.close()
+            fixture.proof_available = True
+            replacement = self.adapter_type()(fixture.source.parent / "executor", authority=fixture,
+                identity_for=lambda _: identity, bind_runner=bind_fixture_runner)
+            try:
+                self.assertIsNone(replacement.confirm_stopped(identity))
+                self.assertEqual(replacement.ledger.status(fixture.claim.identity).state, "unknown")
+            finally:
+                replacement.close()
+
+    def test_cancel_remains_local_while_external_stop_is_stalled(self):
+        gate = threading.Event()
+        with self.job(stop_gate=gate) as (service, fixture, owner, adapter):
+            try:
+                run = service.start_run(owner, self.request())
+                start = time.monotonic()
+                service.cancel_run(owner, run["job_id"], generation_id="generation", generation_epoch=1)
+                self.assertLess(time.monotonic() - start, .2)
+                run = self.wait(service, owner, run)
+                self.assertTrue(fixture.stop_entered.is_set())
+                self.assertEqual(run["error_code"], "execution_stop_unconfirmed")
+            finally:
+                gate.set()
+            self.reconcile(service, owner, run["job_id"])
+
+    def test_absolute_deadline_includes_trusted_runner_serialization(self):
+        try:
+            worker = ProcessWorker(SlowSerializedRunner(), RunContext("job", "test", "fixture", "read_only"),
+                                   timeout_seconds=10, deadline_monotonic=time.monotonic() + .05)
+        except TypeError:
+            self.fail("worker lacks absolute admission deadline")
+        try:
+            worker.start()
+            outcome = worker.poll()
+            self.assertIsNotNone(outcome)
+            self.assertEqual(outcome.state, "timed_out")
+            self.assertEqual(outcome.request_count, 0)
+        finally:
+            worker.close()
