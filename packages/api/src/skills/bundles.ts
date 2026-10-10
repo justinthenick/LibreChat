@@ -338,7 +338,7 @@ export function createSkillBundleHost(deps: SkillBundleHostDeps) {
       selection: string;
       actor: SkillBundleActor;
       execution?: 'host-read-only' | 'sandbox-mount' | 'execute';
-    }) {
+    }): Promise<{ selection: string; revision: string; definition: SkillBundleDefinition }> {
       if (execution !== 'host-read-only') fail();
       const { snapshot, manifest } = await resolve(selection, actor);
       return { selection, revision: snapshot.revision, definition: manifest.definition };
