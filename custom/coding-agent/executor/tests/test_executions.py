@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib
 import os
+import signal
 import sqlite3
 import tempfile
 import threading
@@ -370,6 +371,31 @@ class LedgerTests(unittest.TestCase):
         _, status = os.waitpid(child, 0)
         self.assertEqual(os.waitstatus_to_exitcode(status), 0)
         self.assertEqual(self.service.status(self.identity).state, "running")
+
+    def test_fork_rejects_before_waiting_on_a_vanished_threads_lock(self):
+        acquired, release = threading.Event(), threading.Event()
+        def hold_lock():
+            with self.service._lock:
+                acquired.set()
+                release.wait(10)
+        holder = threading.Thread(target=hold_lock)
+        holder.start()
+        self.assertTrue(acquired.wait(5))
+        try:
+            for call in (lambda: self.service.status(self.identity), self.service.close):
+                child = os.fork()
+                if child == 0:
+                    signal.alarm(2)
+                    try:
+                        call()
+                    except RuntimeError:
+                        os._exit(0)
+                    os._exit(1)
+                _, status = os.waitpid(child, 0)
+                self.assertEqual(os.waitstatus_to_exitcode(status), 0)
+        finally:
+            release.set()
+            holder.join(5)
 
     def test_operation_budget_bounds_status_and_blocks_dispatch(self):
         self.service.advance(self.identity)
