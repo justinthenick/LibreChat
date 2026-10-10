@@ -206,6 +206,59 @@ persistence barrier before FINAL. SSE disconnect is not automatically cancel.
 Chat resume, steering, approvals, maintenance tools and skill parity are not
 implemented by this job boundary.
 
+### Dormant SDK execution profile
+
+`openhands_profile.create_openhands_profile` assembles a reusable SDK runner for
+the job boundary. It is not registered with the preview API, enabled by an
+environment flag, or exposed through a new CLI command. Tests are its only
+checked-in caller. Trusted server code must supply repository authorization,
+the endpoint, and fresh child-side token/LLM factories. Factories must not capture
+credentials: the worker serializes its runner before starting. This module does
+not discover credentials, log in, reuse an operator's auth cache or provision an
+executor. It accepts only the existing `openai/gpt-5.6-sol` Codex route.
+SDK subscription LLM objects are rejected: their separate credential discovery,
+refresh and account-header validation can make requests before the guarded
+inference transport. Integrating a reviewed authentication boundary remains a
+prerequisite for live subscription use. The injected LLM in the offline fixture
+contains only synthetic credentials and never invokes that path.
+
+`BoundedResponses` binds one synchronous SDK LLM instance to an owned HTTP client.
+It checks the exact destination/model and calls the worker's request gate
+immediately before each physical dispatch. SDK/LiteLLM retries, prompt caching,
+fallback and auth-refresh callbacks are disabled; async/chat inference and a
+second dispatch within one logical call fail closed. Provider/parser failures
+are sticky, including errors the SDK would otherwise catch and retry on another
+turn. The existing SDK parses
+responses. The parent worker deadline still bounds the whole job; these controls
+are not token or subscription-usage caps. The adapter relies on the pinned SDK
+and LiteLLM's synchronous `HTTPHandler` interface, which the real-path regression
+tests exercise. Dependency updates must retain those tests.
+
+Before tool dispatch, the profile checks the selected repository and explicit
+task mode, permits only the observed task ID, and rejects patches in read-only
+mode. Repository inventory and multi-action responses are rejected. Under the
+pinned SDK the entire action batch is emitted before execution, so a denied
+action prevents even earlier actions in that batch from reaching MCP. Evidence
+continues to use matched action/observation IDs; errors, limits and cancellation
+retain partial evidence and never make finish prose count as successful checks.
+
+The offline integration test runs JobService, its child worker, the actual SDK,
+a fake physical provider transport and a loopback MCP fixture. It creates a
+synthetic worktree, observes a failing check, applies one exact trusted patch,
+reruns the same check successfully, and verifies diff/status evidence plus the
+unchanged source. Only fixed synthetic code executes in this fixture; it is not
+a sandbox for arbitrary model-written code. Negative cases cover scope/batch
+denials before MCP dispatch, partial evidence, limits and uncertain stops.
+
+Live activation remains blocked on admission quarantine and remote execution
+lease/restart reconciliation. The default stop confirmer always returns false;
+local worker exit does not establish remote executor stop. The synthetic fixture
+can confirm its own synchronous ledger, but that proof does not transfer to a
+live executor. The current job service releases its active slot after recording
+an interrupted run, so a live embedding must first reconcile outstanding work
+before admitting another job. This development profile does not implement that
+activation prerequisite or change the default preview API behavior.
+
 ## Proxy safety
 
 Plaintext HTTP is limited to literal loopback addresses and is rejected whenever
