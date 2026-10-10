@@ -13,6 +13,7 @@ import tempfile
 
 from .backend import BackendRunRequest
 from .evidence import EvidenceCollector
+from .job_store import ExecutionIdentity, StopEvidence
 from .job_worker import RunContext, WorkerCancelled, WorkerControl, WorkerDeadline, WorkerLimit
 from .jobs import ExecutionProfile, Principal, RunScope
 from .openhands_backend import OpenHandsBackend, _validate_endpoint
@@ -143,8 +144,8 @@ class OpenHandsJobRunner:
             raise OpenHandsProfileError("openhands_profile_failed") from None
 
 
-def _execution_unconfirmed(_context: RunContext) -> bool:
-    return False
+def _execution_unconfirmed(_identity: ExecutionIdentity) -> None:
+    return None
 
 
 def create_openhands_profile(*, profile_id: str, repository_aliases: frozenset[str],
@@ -152,7 +153,7 @@ def create_openhands_profile(*, profile_id: str, repository_aliases: frozenset[s
                              llm_factory: Callable[[], object],
                              authorize: Callable[[Principal, RunScope], bool],
                              transport_factory: Callable[[], object] | None = None,
-                             confirm_stopped: Callable[[RunContext], bool] = _execution_unconfirmed
+                             confirm_stopped: Callable[[ExecutionIdentity], StopEvidence | None] = _execution_unconfirmed
                              ) -> ExecutionProfile:
     """Assemble dormant trusted configuration; does not enable JobService."""
     return ExecutionProfile(profile_id, repository_aliases,

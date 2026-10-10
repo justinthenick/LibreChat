@@ -14,7 +14,7 @@ import sys
 import tempfile
 
 from coding_orchestrator.dispatch import dispatch_job
-from coding_orchestrator.job_store import JobStore
+from coding_orchestrator.job_store import JobStore, StopEvidence
 from coding_orchestrator.job_worker import ProcessWorker
 from coding_orchestrator.jobs import ExecutionProfile, JobService, Principal
 from fixture_runner import run
@@ -72,7 +72,7 @@ def main():
 
         profile = ExecutionProfile("http-fixture", frozenset({"fixture"}), run,
                                    lambda _principal, _scope: True,
-                                   lambda _context: confirmed)
+                                   lambda identity: StopEvidence(identity, confirmed))
         service = JobService(store, profile=profile, enabled=True, worker_factory=ObservedWorker)
         try:
             write({"ready": True})

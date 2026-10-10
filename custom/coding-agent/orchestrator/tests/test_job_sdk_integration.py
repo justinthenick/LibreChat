@@ -12,7 +12,7 @@ import unittest
 from urllib.parse import urlsplit
 from unittest.mock import patch
 
-from coding_orchestrator.job_store import JobStore
+from coding_orchestrator.job_store import JobStore, StopEvidence
 from coding_orchestrator.jobs import ExecutionProfile, JobRequest, JobService, Principal, RunScope
 
 
@@ -71,7 +71,8 @@ class JobSDKIntegrationTests(unittest.TestCase):
                 time.sleep(.01)
             self.assertTrue(server.started)
             profile = ExecutionProfile("offline-sdk", frozenset({"fixture"}),
-                partial(scripted_sdk_run, endpoint=endpoint), lambda *_: True, lambda *_: True)
+                partial(scripted_sdk_run, endpoint=endpoint), lambda *_: True,
+                lambda identity: StopEvidence(identity, True))
             with tempfile.TemporaryDirectory() as directory, JobStore(Path(directory) / "jobs.sqlite") as store:
                 with JobService(store, profile=profile, enabled=True) as service:
                     owner = Principal("owner", "tenant")
