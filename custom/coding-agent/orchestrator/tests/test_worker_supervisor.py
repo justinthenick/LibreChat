@@ -263,6 +263,9 @@ class WorkerSupervisorTests(unittest.TestCase):
                 service.start_run(owner, self.request())
             self.assertIsNone(fixture.claim)
             self.assertEqual(fixture.calls, [])
+            run = service.start_run(owner, self.request())
+            self.reconcile(service, owner, run["job_id"])
+            self.assertEqual(service.get_run(owner, run["job_id"])["state"], "failed")
 
     def test_restart_missing_local_handle_never_infers_quiescence(self):
         with self.job(scenario="finish", proof_available=False) as (service, fixture, owner, adapter):

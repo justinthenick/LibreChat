@@ -199,8 +199,17 @@ class LedgerWorkerSupervisor:
 
     def _control(self, identity, *, timeout_seconds):
         self._check()
+        remote = ExecutionIdentity(**identity)
+        status = self.ledger.status(remote)
+        worker = self._worker
+        if status.state == "stopped" and status.sealed:
+            return {"authority_id": self.authority_id, "status": asdict(status)}
+        if worker is None or worker.identity != remote:
+            return None
+        # Only owned local history permits minting a stop tombstone. Missing
+        # records/handles alone cannot prove that a worker never dispatched.
         return {"authority_id": self.authority_id,
-                "status": asdict(self.ledger.stop(ExecutionIdentity(**identity)))}
+                "status": asdict(self.ledger.stop(remote))}
 
     def confirm_stopped(self, identity):
         self._check()
