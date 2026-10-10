@@ -11,6 +11,7 @@ const hookFile = 'client/src/hooks/SSE/useStepHandler.ts';
 const messagesFile = 'client/src/utils/messages.ts';
 const groupingFile = 'client/src/components/Chat/Messages/Content/ParallelContent.tsx';
 const activityFile = 'client/src/utils/activityLabels.ts';
+const resumableFile = 'client/src/hooks/SSE/useResumableSSE.ts';
 
 function extract(file, name) {
   const ast = ts.createSourceFile(file, read(file), ts.ScriptTarget.Latest, true);
@@ -67,11 +68,16 @@ const primary = 'agent_primary';
 const secondary = 'agent_secondary____1';
 
 // Execute the complete checked-in hook, with only its React/Recoil/import and
-// scheduling seams mocked. Initial placeholders and grouping also execute their
-// actual declarations. These are handler regressions, not a browser/provider
+// scheduling seams mocked. Initial placeholders, grouping, and the resumable
+// activity-label callback also execute their actual declarations. These are
+// handler regressions, not a browser/provider
 // integration test or a claim about which event caused a saved Bombadil trace.
 const hookSource = compile(read(hookFile));
 const activitySource = compile(read(activityFile));
+const activityHandlerSource = compile(
+  `${extract(resumableFile, 'applyActivityLabelToMessages')}\n` +
+    'globalThis.applyActivityLabelToMessages = applyActivityLabelToMessages;',
+);
 const helpersSource = compile(
   [
     // These cases deliberately use real agent IDs, so ephemeral encoding is not used.
@@ -124,6 +130,9 @@ function harness(initialContent) {
     `(function (exports) {
     ${activitySource}
     globalThis.lastCursorContentIdx = exports.lastCursorContentIdx;
+    globalThis.applyActivityLabelPart = exports.applyActivityLabelPart;
+    globalThis.findActivityLabelMessageIndex = exports.findActivityLabelMessageIndex;
+    globalThis.offsetActivityPhaseBoundary = exports.offsetActivityPhaseBoundary;
   })({});`,
     context,
     { filename: activityFile },
@@ -159,10 +168,32 @@ function harness(initialContent) {
     lastAnnouncementTimeRef: { current: Date.now() },
   });
   const send = (event, data) => hook.stepHandler({ event, data }, submission);
+  Object.assign(context, {
+    isCurrentSubscription: () => true,
+    flushPendingDeltas: hook.flushPendingDeltas,
+    syncStepMessage: hook.syncStepMessage,
+    getMessages: () => messages,
+    setMessages: (next) => {
+      messages = next;
+    },
+    currentSubmission: submission,
+    editPrefixClearedRef: { current: false },
+    editPrefixFirstPartFoldedRef: { current: false },
+    activityLabelRetryFramesRef: { current: new Set() },
+    PENDING_ACTION_MAX_RETRY_FRAMES: 3,
+  });
+  vm.runInContext(activityHandlerSource, context, { filename: resumableFile });
   return {
     hook,
     send,
     start,
+    activityLabel(index, part) {
+      context.applyActivityLabelToMessages({
+        responseMessageId: submission.initialResponse.messageId,
+        index,
+        part,
+      });
+    },
     get response() {
       return messages.find((message) => message.messageId === submission.initialResponse.messageId);
     },
@@ -347,6 +378,106 @@ test('a delta buffered before its run step also retains both lanes', () => {
   state.hook.flushPendingDeltas();
   assertColumns(state);
   assert.equal(state.response.content[0].text, 'buffered');
+});
+
+for (const first of [secondary, primary]) {
+  test(`${first} can complete two labeled tool batches while the other lane is pending`, () => {
+    const state = harness();
+    const second = first === secondary ? primary : secondary;
+    const expected = [];
+    for (let batch = 0; batch < 2; batch += 1) {
+      const index = batch * 2;
+      const id = `tool-${batch}`;
+      const callId = `call-${batch}`;
+      state.runStep(id, index, first, 1, {
+        type: StepTypes.TOOL_CALLS,
+        tool_calls: [{ id: callId, name: 'synthetic_tool', args: '' }],
+      });
+      state.send(StepEvents.ON_RUN_STEP_COMPLETED, {
+        result: { id, tool_call: { id: callId, name: 'synthetic_tool', output: `done ${batch}` } },
+      });
+      const pending = { type: ContentTypes.ACTIVITY_LABEL, activity_label: '', pending: true };
+      state.activityLabel(index + 1, pending);
+      assertColumns(state);
+      const resolved = {
+        type: ContentTypes.ACTIVITY_LABEL,
+        activity_label: `Tool batch ${batch}`,
+        pending: false,
+      };
+      state.activityLabel(index + 1, resolved);
+      assertColumns(state);
+      const settled = state.response;
+      state.activityLabel(index + 1, resolved);
+      state.activityLabel(index + 1, pending);
+      assert.strictEqual(state.response, settled, 'Replays and stale reservations must be no-ops');
+      expected.push(state.response.content[index], state.response.content[index + 1]);
+      assert.equal(state.response.content[index].tool_call.output, `done ${batch}`);
+      assert.equal(state.response.content[index + 1].activity_label, `Tool batch ${batch}`);
+    }
+    state.runStep('fast-text', 4, first);
+    state.text('fast-text', 'still working', false);
+    state.activityLabel(5, {
+      type: ContentTypes.ACTIVITY_LABEL,
+      activity_label: 'Working',
+      pending: false,
+    });
+    const columns = assertColumns(state);
+    assert.equal(columns.find((column) => column.agentId === second).parts.length, 0);
+    assert.equal(state.response.content[4].text, 'still working');
+    for (let index = 0; index < expected.length; index += 1) {
+      assert.strictEqual(state.response.content[index], expected[index]);
+    }
+    state.text('fast-text', ' after label');
+    assertColumns(state);
+    assert.equal(state.response.content[4].text, 'still working after label');
+    state.runStep('slow-text', 6, second);
+    state.text('slow-text', 'finally ready');
+    assertColumns(state);
+    assert.equal(state.response.content[6].text, 'finally ready');
+    assert.equal(state.response.content.filter((part) => part?.type === '').length, 0);
+    assert.equal(state.cursorIndex(), 6);
+  });
+}
+
+test('a label preserves displaced column identity across different parallel groups', () => {
+  const state = harness([
+    { type: '', agentId: primary, groupId: 1 },
+    { type: 'text', text: 'other group', agentId: primary, groupId: 2 },
+    { type: 'text', text: 'same group', agentId: secondary, groupId: 1 },
+  ]);
+  const otherGroup = state.response.content[1];
+  const sameGroup = state.response.content[2];
+  state.activityLabel(0, {
+    type: ContentTypes.ACTIVITY_LABEL,
+    activity_label: 'A phase',
+    pending: false,
+  });
+  assertColumns(state);
+  assertColumns(state, 2, [primary]);
+  assert.strictEqual(state.response.content[1], otherGroup);
+  assert.strictEqual(state.response.content[2], sameGroup);
+  assert.equal(state.response.content.length, 4);
+  assert.equal(state.response.content[3].agentId, primary);
+  assert.equal(state.response.content[3].groupId, 1);
+});
+
+test('a label does not restore a displaced placeholder for an already represented column', () => {
+  for (const type of ['', ContentTypes.TEXT]) {
+    const state = harness([
+      { type: '', agentId: primary, groupId: 1 },
+      { type, text: 'represented', agentId: primary, groupId: 1 },
+      { type: '', agentId: secondary, groupId: 1 },
+    ]);
+    state.activityLabel(0, {
+      type: ContentTypes.ACTIVITY_LABEL,
+      activity_label: '',
+      pending: true,
+    });
+    assertColumns(state);
+    assert.equal(state.response.content.length, 3);
+    assert.equal(state.response.content[1].agentId, primary);
+    assert.equal(state.response.content[1].type, type);
+  }
 });
 
 test('a represented primary lane is not appended again when its old placeholder is displaced', () => {

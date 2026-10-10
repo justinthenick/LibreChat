@@ -442,6 +442,20 @@ export function applyActivityLabelPart(message: TMessage, event: TActivityLabelE
     return message;
   }
   const nextContent = [...content] as TMessageContentParts[];
+  const displaced = nextContent[index];
+  const { agentId, groupId } = displaced ?? {};
   nextContent[index] = part as TMessageContentParts;
+  /** Client-only column placeholders may occupy the server's claimed slot. */
+  if (
+    displaced != null &&
+    !displaced.type &&
+    agentId &&
+    groupId != null &&
+    !nextContent.some(
+      (candidate) => candidate?.agentId === agentId && candidate?.groupId === groupId,
+    )
+  ) {
+    nextContent.push(displaced);
+  }
   return { ...message, content: nextContent };
 }
