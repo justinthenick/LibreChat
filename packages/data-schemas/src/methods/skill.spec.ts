@@ -157,6 +157,106 @@ function makeSkillInput(overrides: Record<string, unknown> = {}) {
   };
 }
 
+describe('Managed draft capture: datastore characterization, not coherence acceptance', () => {
+  async function bounded<T>(promise: PromiseLike<T>): Promise<T> {
+    let deadline: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        promise,
+        new Promise<never>((_resolve, reject) => {
+          deadline = setTimeout(
+            () => reject(new Error('Capture test operation did not settle')),
+            3000,
+          );
+        }),
+      ]);
+    } finally {
+      clearTimeout(deadline);
+    }
+  }
+
+  it.each(['replace', 'add', 'delete'] as const)(
+    'exposes changed file rows before the parent version bump: %s',
+    async (change) => {
+      const { skill } = await methods.createSkill(makeSkillInput());
+      const original = {
+        skillId: skill._id,
+        relativePath: 'references/guide.md',
+        file_id: 'file-A',
+        filename: 'guide.md',
+        filepath: '/synthetic/A',
+        source: 'local',
+        mimeType: 'text/markdown',
+        bytes: 5,
+        author: owner._id,
+      };
+      await methods.upsertSkillFile(original);
+      const before = await methods.getSkillById(skill._id);
+      let release = () => {};
+      let entered = () => {};
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const arrived = new Promise<void>((resolve) => {
+        entered = resolve;
+      });
+      const actual = Skill.findByIdAndUpdate.bind(Skill);
+      const bump = jest
+        .spyOn(Skill, 'findByIdAndUpdate')
+        .mockImplementationOnce((id, update, options) => {
+          const query = actual(id, update, options);
+          const execute = query.exec.bind(query);
+          jest.spyOn(query, 'exec').mockImplementationOnce(async () => {
+            entered();
+            await gate;
+            return execute();
+          });
+          return query;
+        });
+      const mutation =
+        change === 'delete'
+          ? methods.deleteSkillFile(skill._id, original.relativePath)
+          : methods.upsertSkillFile({
+              ...original,
+              relativePath: change === 'add' ? 'references/new.md' : original.relativePath,
+              file_id: 'file-B',
+              filepath: '/synthetic/B',
+            });
+      try {
+        await bounded(
+          Promise.race([
+            arrived,
+            mutation.then(() => {
+              throw new Error('Mutation completed without the version barrier');
+            }),
+          ]),
+        );
+        const during = await bounded(methods.getSkillById(skill._id));
+        const rows = await bounded(methods.listSkillFiles(skill._id));
+        expect(during?.version).toBe(before?.version);
+        expect(during?.body).toBe(before?.body);
+        if (change === 'delete') {
+          expect(rows).toEqual([]);
+          expect(during?.fileCount).toBe(1);
+        } else {
+          expect(rows.find((row) => row.file_id === 'file-B')?.filepath).toBe('/synthetic/B');
+          expect(rows).toHaveLength(change === 'add' ? 2 : 1);
+          expect(during?.fileCount).toBe(1);
+        }
+      } finally {
+        release();
+        try {
+          await bounded(mutation);
+        } finally {
+          bump.mockRestore();
+        }
+      }
+      expect((await methods.getSkillById(skill._id))?.version).toBe((before?.version ?? 0) + 1);
+    },
+    15000,
+  );
+});
+
 describe('Skill schema indexes', () => {
   it('supports GitHub sync source metadata lookups', () => {
     const indexSpecs = Skill.schema.indexes().map(([fields]) => fields);
