@@ -425,6 +425,29 @@ test('oversized, duplicate-key and multi-frame requests dispatch nothing', async
   expect(fs.existsSync(path.join(f.root, 'launches.jsonl'))).toBe(false);
 });
 
+test('malformed principal values reject only their connection without admission', async () => {
+  const f = await host(directory());
+  for (const identity of [
+    { ...principal, user_id: '' },
+    { ...principal, tenant_id: [] },
+  ]) {
+    const frame = {
+      version: 1,
+      request_id: 'a'.repeat(36),
+      principal: identity,
+      payload: { version: 1, operation: 'start', request: body() },
+    };
+    await expect(wire(f, JSON.stringify(frame) + '\n')).rejects.toThrow();
+    expect(fs.existsSync(path.join(f.root, 'launches.jsonl'))).toBe(false);
+  }
+  const started = await f.request('post').send(body('finish-evidence'));
+  expect(started.status).toBe(200);
+  expect((await terminal(f, started.body.job.job_id)).result.evidence.evidence_complete).toBe(true);
+  expect(
+    fs.readFileSync(path.join(f.root, 'launches.jsonl'), 'utf8').trim().split('\n'),
+  ).toHaveLength(1);
+});
+
 test('absolute broker deadline closes a slow partial body without admission', async () => {
   const f = await host(directory());
   const socket = connect({ host: '127.0.0.1', port: f.port, ...tlsOptions(f.root) });

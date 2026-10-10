@@ -99,7 +99,10 @@ class PreviewPipe:
         identity = frame["principal"]
         if type(identity) is not dict or set(identity) != {"user_id", "tenant_id"}:
             raise ValueError("invalid pipe principal")
-        principal = Principal(**identity)
+        try:
+            principal = Principal(**identity)
+        except JobError as exc:
+            raise ValueError("invalid pipe principal") from exc
         try:
             result = self._dispatch(principal, frame["payload"])
         except Exception:
