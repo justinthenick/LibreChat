@@ -306,6 +306,33 @@ The offline regressions cover this migration, restart, races and persistence
 failures with real SQLite and synthetic workers/remote ledgers. Authentication,
 the live remote reconciler and UI remain unimplemented and disabled.
 
+## Dormant worker supervisor composition
+
+`worker_supervisor.LedgerWorkerSupervisor` is an optional Linux embedding module
+requiring both the orchestrator and executor packages to be installed. It is not
+imported by the default server or registered as a profile. Supply an authenticated
+identity resolver, an external executor `Supervisor` authority and a trusted
+`bind_runner(runner, claim)` factory. The binder must return picklable child
+configuration that binds every external request to the exact durable attempt;
+neither bearer-token presence nor an idle socket establishes that contract.
+
+Pass its `worker_factory` and `confirm_stopped` hooks explicitly to the existing
+job/profile interfaces. Claims commit before one authority launch and child
+dispatch. A matching running acknowledgement is required before the child starts.
+Binding and serialization consume the original monotonic deadline; existing
+request caps remain enforced by `ProcessWorker`. Local cancellation does not
+call the external authority. Terminal publication requires local quiescence and
+exact external quiescence with delayed-request fencing. Unknown launch or stop
+replies retain quarantine, and restart never infers local stop from a missing
+handle. Close the JobService before closing this ledger owner.
+
+Launch/binding callbacks are trusted, synchronous and must be bounded by the
+embedding application. Stop confirmation uses the bounded stop adapter below;
+it cannot terminate a stuck callback. No live authority, authentication grant,
+credential resolution or network permission is installed. Synthetic tests use
+the real SDK, process worker and SQLite ledgers with a fixture authority whose
+loopback MCP endpoint checks the attempt token and rejects requests after seal.
+
 ## Dormant executor stop adapter
 
 `ExecutorStopAdapter` in `coding_orchestrator.executor_adapter` can be explicitly
