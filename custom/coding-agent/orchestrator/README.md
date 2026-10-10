@@ -306,9 +306,7 @@ The offline regressions cover this migration, restart, races and persistence
 failures with real SQLite and synthetic workers/remote ledgers. Authentication,
 the live remote reconciler and UI remain unimplemented and disabled.
 
-## Proxy safety
-
-### Dormant executor stop adapter
+## Dormant executor stop adapter
 
 `ExecutorStopAdapter` in `coding_orchestrator.executor_adapter` can be explicitly
 supplied as a profile's `confirm_stopped` hook. It is not registered or instantiated
@@ -331,6 +329,8 @@ tests connect the real job and executor SQLite ledgers to a fake supervisor and
 check bounded cancellation, admission quarantine, explicit reconciliation and
 idempotent retry without replay. No HTTP/MCP routes, credentials or live profiles
 are added.
+
+## Proxy safety
 
 Plaintext HTTP is limited to literal loopback addresses and is rejected whenever
 Python discovers a configured HTTP, HTTPS, or ALL environment/system proxy.
