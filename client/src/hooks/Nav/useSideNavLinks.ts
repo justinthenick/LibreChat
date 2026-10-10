@@ -26,6 +26,7 @@ import {
   useGetAgentsConfig,
   useHasAccess,
 } from '~/hooks';
+import PreviewPanel, { previewUIEnabled } from '~/components/SidePanel/Preview/Panel';
 import MCPBuilderPanel from '~/components/SidePanel/MCPBuilder/MCPBuilderPanel';
 import AgentPanelSwitch from '~/components/SidePanel/Agents/AgentPanelSwitch';
 import BookmarkPanel from '~/components/SidePanel/Bookmarks/BookmarkPanel';
@@ -101,6 +102,16 @@ export default function useSideNavLinks({
 
   const Links = useMemo(() => {
     const links: NavLink[] = [];
+
+    if (hasAccessToAgents && previewUIEnabled()) {
+      links.push({
+        title: 'com_ui_preview_title',
+        label: '',
+        icon: Bot,
+        id: 'openhands-preview',
+        Component: PreviewPanel,
+      });
+    }
 
     if (
       endpointsConfig?.[EModelEndpoint.agents] &&
