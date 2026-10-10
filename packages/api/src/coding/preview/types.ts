@@ -1,11 +1,23 @@
-import type { RequestHandler } from 'express';
 import type {
   PreviewPrincipal,
   PreviewScope,
   PreviewStartRequest,
   PreviewJobMessage,
-} from '../../../../data-provider/src/types/preview';
-export * from '../../../../data-provider/src/types/preview';
+} from 'librechat-data-provider';
+import type { RequestHandler } from 'express';
+export type {
+  PreviewPrincipal,
+  PreviewScope,
+  PreviewStartRequest,
+  PreviewJobMessage,
+  PreviewErrorCode,
+  PreviewState,
+  PreviewProof,
+  PreviewTask,
+  PreviewEvidence,
+  PreviewJob,
+  PreviewReply,
+} from 'librechat-data-provider';
 
 /** An injected server capability must authenticate origin and preserve principal integrity. */
 export interface PreviewTransport {
