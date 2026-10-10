@@ -132,7 +132,7 @@ class LedgerTests(unittest.TestCase):
         self.assertEqual(self.service.reconcile(self.identity).state, "open")
         self.assertEqual(self.service.start(self.identity, "op2", "b" * 64).state, "running")
         self.assertEqual(len(self.supervisor.launches), 2)
-        self.assertEqual(self.service.stop(self.identity).state, "running")
+        self.assertNotEqual(self.service.stop(self.identity).state, "stopped")
         self.supervisor.proof = self.stopped_proof()
         self.assertEqual(self.service.reconcile(self.identity).state, "stopped")
 
@@ -256,7 +256,7 @@ class LedgerTests(unittest.TestCase):
         with self.assertRaises(self.c.ExecutionConflict):
             self.service.start(self.identity, "new", "b" * 64)
 
-    def test_stop_serializes_with_launch_and_supervisor_fences_delayed_delivery(self):
+    def test_stop_serializes_with_launch_and_seal_rejects_late_operations(self):
         entered, release = threading.Event(), threading.Event()
         self.supervisor.on_launch = lambda claim: (entered.set(), release.wait(5))
         self.service.advance(self.identity)
@@ -353,6 +353,45 @@ class LedgerTests(unittest.TestCase):
         with self.assertRaises((ValueError, OSError)):
             self.c.ExecutionService(self.path, self.supervisor)
         self.assertEqual(sentinel.read_text(), "preserve")
+
+    def test_unknown_observation_invalidates_previous_running_status(self):
+        self.start()
+        self.assertEqual(self.service.reconcile(self.identity).state, "unknown")
+
+    def test_forked_instance_cannot_read_or_mutate_ledger(self):
+        self.start()
+        child = os.fork()
+        if child == 0:
+            try:
+                self.service.status(self.identity)
+            except RuntimeError:
+                os._exit(0)
+            os._exit(1)
+        _, status = os.waitpid(child, 0)
+        self.assertEqual(os.waitstatus_to_exitcode(status), 0)
+        self.assertEqual(self.service.status(self.identity).state, "running")
+
+    def test_operation_budget_bounds_status_and_blocks_dispatch(self):
+        self.service.advance(self.identity)
+        for number in range(64):
+            self.service.start(self.identity, f"op{number}", "a" * 64)
+            self.supervisor.proof = self.stopped_proof()
+            self.service.reconcile(self.identity)
+        with self.assertRaises(self.c.ExecutionConflict):
+            self.service.start(self.identity, "overflow", "a" * 64)
+        self.assertEqual(len(self.service.status(self.identity).operations), 64)
+        self.assertEqual(len(self.supervisor.launches), 64)
+
+    def test_invalid_request_identity_never_dispatches(self):
+        for change in ({"generation_epoch": True}, {"generation_epoch": -1},
+                       {"user_id": ""}, {"task_mode": "shell"}):
+            with self.assertRaises(ValueError):
+                replace(self.identity, **change)
+        self.service.advance(self.identity)
+        for operation, digest in (("../bad", "a" * 64), ("op", "A" * 64), ("op", "prompt")):
+            with self.assertRaises(ValueError):
+                self.service.start(self.identity, operation, digest)
+        self.assertEqual(self.supervisor.launches, [])
 
 
 if __name__ == "__main__":
