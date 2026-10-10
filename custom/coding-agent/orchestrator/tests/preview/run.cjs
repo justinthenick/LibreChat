@@ -68,7 +68,9 @@ try {
           ],
         },
       },
-      files: ['controller.ts', 'types.ts', 'pipe.ts'].map((file) => path.join(source, file)),
+      files: ['controller.ts', 'types.ts', 'pipe.ts', 'https.ts'].map((file) =>
+        path.join(source, file),
+      ),
     }),
   );
   run(path.join(tools, 'typescript/bin/tsc'), ['--project', config]);

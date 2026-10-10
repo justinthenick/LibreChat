@@ -85,35 +85,43 @@ class PreviewPipe:
                 return _failure("scope_not_authorized")
         return dispatch_job(self.service, principal, payload)
 
+    def exchange(self, line):
+        """One bounded frame, shared by private-pipe and authenticated broker adapters."""
+        if len(line) > MAX_INPUT_BYTES or not line.endswith(b"\n"):
+            raise ValueError("invalid pipe frame")
+        frame = json.loads(line.decode("utf-8"), object_pairs_hook=_object,
+                           parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
+        if (type(frame) is not dict or set(frame) != {"version", "request_id", "principal", "payload"}
+                or type(frame["version"]) is not int or frame["version"] != 1
+                or type(frame["request_id"]) is not str
+                or not re.fullmatch(r"[a-f0-9-]{36}", frame["request_id"])):
+            raise ValueError("invalid pipe frame")
+        identity = frame["principal"]
+        if type(identity) is not dict or set(identity) != {"user_id", "tenant_id"}:
+            raise ValueError("invalid pipe principal")
+        try:
+            principal = Principal(**identity)
+        except JobError as exc:
+            raise ValueError("invalid pipe principal") from exc
+        try:
+            result = self._dispatch(principal, frame["payload"])
+        except Exception:
+            result = _failure("job_service_unavailable")
+        response = json.dumps({"version": 1, "request_id": frame["request_id"],
+                               "principal": {"user_id": principal.user_id, "tenant_id": principal.tenant_id},
+                               "result": result}, ensure_ascii=False, allow_nan=False,
+                              separators=(",", ":")).encode("utf-8") + b"\n"
+        if len(response) > MAX_OUTPUT_BYTES:
+            raise ValueError("pipe reply exceeds bound")
+        return response
+
     def serve(self, reader, writer):
         """Use blocking binary streams; short writes close by raising without job replay."""
         while True:
             line = reader.readline(MAX_INPUT_BYTES + 1)
             if not line:
                 return
-            if len(line) > MAX_INPUT_BYTES or not line.endswith(b"\n"):
-                raise ValueError("invalid pipe frame")
-            frame = json.loads(line.decode("utf-8"), object_pairs_hook=_object,
-                               parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
-            if (type(frame) is not dict or set(frame) != {"version", "request_id", "principal", "payload"}
-                    or type(frame["version"]) is not int or frame["version"] != 1
-                    or type(frame["request_id"]) is not str
-                    or not re.fullmatch(r"[a-f0-9-]{36}", frame["request_id"])):
-                raise ValueError("invalid pipe frame")
-            identity = frame["principal"]
-            if type(identity) is not dict or set(identity) != {"user_id", "tenant_id"}:
-                raise ValueError("invalid pipe principal")
-            principal = Principal(**identity)
-            try:
-                result = self._dispatch(principal, frame["payload"])
-            except Exception:
-                result = _failure("job_service_unavailable")
-            response = json.dumps({"version": 1, "request_id": frame["request_id"],
-                                   "principal": {"user_id": principal.user_id, "tenant_id": principal.tenant_id},
-                                   "result": result}, ensure_ascii=False, allow_nan=False,
-                                  separators=(",", ":")).encode("utf-8") + b"\n"
-            if len(response) > MAX_OUTPUT_BYTES:
-                raise ValueError("pipe reply exceeds bound")
+            response = self.exchange(line)
             written = writer.write(response)
             if type(written) is not int or written != len(response):
                 raise ValueError("incomplete pipe reply")
