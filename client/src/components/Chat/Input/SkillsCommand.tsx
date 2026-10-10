@@ -107,9 +107,10 @@ function SkillsCommandContent({
   selectionContextRef.current.conversationId = conversationId;
   selectionContextRef.current.agentId = agentId;
   useEffect(() => {
-    selectionContextRef.current.mounted = true;
+    const context = selectionContextRef.current;
+    context.mounted = true;
     return () => {
-      selectionContextRef.current.mounted = false;
+      context.mounted = false;
     };
   }, []);
   const setShowSkillsPopover = useSetRecoilState(store.showSkillsPopoverFamily(index));
