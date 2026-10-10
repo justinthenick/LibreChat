@@ -1,5 +1,5 @@
-import { TextDecoder } from 'node:util';
 import { randomUUID } from 'node:crypto';
+import { decodePreviewReply } from './frame';
 import type { Readable, Writable } from 'node:stream';
 import type { PreviewOptions, PreviewPrincipal, PreviewStartRequest } from './types';
 
@@ -22,27 +22,6 @@ const owner = (principal: PreviewPrincipal) =>
 const unavailable = () => new Error('job_service_unavailable');
 const INPUT_LIMIT = 49152;
 const OUTPUT_LIMIT = 270336;
-
-/** JSON.parse alone silently accepts duplicate keys; the already-valid token stream must not. */
-function decode(bytes: Buffer): Record<string, unknown> {
-  const source = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-  const value: unknown = JSON.parse(source);
-  const objects: Set<string>[] = [];
-  for (const token of source.matchAll(/"(?:\\.|[^"\\])*"|[{}]/g)) {
-    if (token[0] === '{') objects.push(new Set());
-    else if (token[0] === '}') objects.pop();
-    else if (/^\s*:/.test(source.slice(token.index + token[0].length))) {
-      const key = JSON.parse(token[0]) as string;
-      const current = objects[objects.length - 1];
-      if (!current || current.has(key) || ['__proto__', 'constructor', 'prototype'].includes(key)) {
-        throw unavailable();
-      }
-      current.add(key);
-    }
-  }
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) throw unavailable();
-  return value as Record<string, unknown>;
-}
 
 /** Dormant single-flight adapter. Closing a pipe never confirms remote execution stopped.
  * The caller owns process lifecycle and must create a NEW adapter after disconnect; no replay.
@@ -111,19 +90,12 @@ export function createPreviewPipe(options: PipeOptions): PreviewOptions & { clos
       const newline = buffer.indexOf(10);
       if (newline === -1) return;
       if (newline !== buffer.length - 1) throw unavailable();
-      const frame = decode(buffer.subarray(0, newline));
-      if (
-        Object.keys(frame).sort().join(',') !== 'principal,request_id,result,version' ||
-        frame.version !== 1 ||
-        frame.request_id !== pending.id ||
-        JSON.stringify(frame.principal) !== JSON.stringify(pending.principal)
-      )
-        throw unavailable();
+      const result = decodePreviewReply(buffer, pending.id, pending.principal);
       const current = pending;
       pending = undefined;
       buffer = Buffer.alloc(0);
       clearTimeout(current.timer);
-      current.resolve(frame.result);
+      current.resolve(result);
     } catch {
       close();
     }

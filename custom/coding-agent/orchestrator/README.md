@@ -570,3 +570,54 @@ refresh and account-header validation may dispatch outside its request gate.
 Existing offline provider tests cover that SDK contract; the preview continues to
 reject subscription LLM objects. A reviewed bounded authentication integration is
 still required; no operator auth files or credential caches are touched here.
+
+
+### Dormant certificate-authenticated preview broker
+
+`PreviewBroker.handle(accepted_socket)` processes one HTTPS `POST /preview/v1`
+using the existing finite frame exchange. It binds no port, registers no route or
+service, opens no certificate file and defaults off. The trusted host injects an
+SSLContext requiring client certificates, an exact NAS certificate SHA-256 pin,
+a client realm ID, immutable principal/repository grants, bounded start admission,
+and an already composed JobService. Use one NAS identity realm per store for its
+entire lifetime; certificate rotation within that realm is explicit host policy.
+Do not share the store across independent NAS identity namespaces.
+
+`createPreviewHttps` implements the existing TypeScript transport interface with
+an injected client SecureContext, fixed HTTPS endpoint and exact server certificate
+pin. It validates the server chain and hostname, performs one bounded exchange,
+and never follows redirects or retries. API principal values still originate in
+authenticated `req.user`; mTLS authenticates the NAS, not individual users. The
+broker accepts assertions only within its configured grants. Forwarded identity
+headers and request-selected endpoints, commands, paths or attempt proofs grant
+no authority. Keep supplied TLS contexts exclusively owned and immutable.
+
+There is one active broker exchange and no queue. Header bytes, frame bytes and
+absolute TLS/read/write time are bounded; host acceptance/concurrency must also be
+bounded. Supplied admission and JobService callbacks remain trusted bounded code.
+An expired connection cannot undo admitted work and never proves stop. Correlation
+IDs match replies; they are not durable execution identities. Repeated starts use
+the original idempotency key and immutable job ID. Cancel derives generation from
+owned durable state; callers cannot supply generation/attempt bindings. Existing
+supervisor claims and its child binder retain attempt enforcement. This broker
+adds no executor authority and does not implement the missing live executor fence
+or bounded subscription authentication.
+
+Synthetic tests create temporary CA/client/server certificates, use real loopback
+TLS and the actual HTTP/controller/job/supervisor path. They cover trusted-but-wrong
+and untrusted/missing clients, server identity, owner/tenant denial, replay, stale
+attempt fields, unknown stop, lost replies/restart and malformed/slow input. The
+broker fixtures do not authenticate a real NAS or load any operator auth files.
+
+Setup checklist (not applied):
+
+| Value | Required source |
+| --- | --- |
+| NAS runtime source/image, current executor endpoint/version, existing supervisor capabilities | Local read-only inspection through an approved route; WSL access is not established here |
+| Existing private addressing, certificate-management availability, service accounts and durable storage capacity | Local inspection; do not read or copy private keys/auth files |
+| Dedicated broker process placement/account, listener address/port and NAS-only network policy | User security/deployment decision |
+| Dedicated client/server certificate issuer, exact pins, names, expiry/rotation and revocation procedure | User authentication decision; no reuse of executor/maintenance tokens |
+| Job/attempt ledger paths, ownership, persistence and recovery policy | User storage/access decision after inspection |
+| NAS realm ID, exact user/tenant grants, synthetic repository alias/path and start policy | User access decision; synthetic read-only repository first |
+| Live executor attempt-fence authority/binder and bounded subscription-auth integration | Further implementation and reviewed acceptance; broker configuration alone is insufficient |
+| Explicit default-off switches, rollout/rollback source and image digest, restart window | Deployment decision after acceptance; no NAS restart merely to deliver dormant code |
