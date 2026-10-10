@@ -9,11 +9,13 @@ from __future__ import annotations
 
 import fcntl
 import json
+import math
 import os
 import re
 import sqlite3
 import stat
 import threading
+import time
 import uuid
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
@@ -135,6 +137,8 @@ class ExecutionService:
         self._pid = os.getpid()
         self._closed = False
         self._callback_active = False
+        self._active_actions = set()
+        self._dispatch_deadlines = {}
         self._supervisor = supervisor
         self._authority = supervisor.authority_id
         self._fd = _private_file(directory / "owner.lock")
@@ -159,6 +163,8 @@ class ExecutionService:
                 self._db.execute("CREATE TABLE IF NOT EXISTS executions (execution_id TEXT PRIMARY KEY, identity TEXT NOT NULL, lineage TEXT NOT NULL, epoch INTEGER NOT NULL, sealed INTEGER NOT NULL)")
                 self._db.execute("CREATE TABLE IF NOT EXISTS generations (lineage TEXT PRIMARY KEY, epoch INTEGER NOT NULL, execution_id TEXT NOT NULL)")
                 self._db.execute("CREATE TABLE IF NOT EXISTS operations (execution_id TEXT NOT NULL REFERENCES executions(execution_id), operation_id TEXT NOT NULL, request_sha256 TEXT NOT NULL, attempt_id TEXT NOT NULL UNIQUE, authority_id TEXT NOT NULL, state TEXT NOT NULL, PRIMARY KEY(execution_id, operation_id))")
+                self._db.execute("CREATE TABLE IF NOT EXISTS dispatch_limits (attempt_id TEXT PRIMARY KEY REFERENCES operations(attempt_id), maximum INTEGER NOT NULL, timeout REAL NOT NULL, task_id TEXT)")
+                self._db.execute("CREATE TABLE IF NOT EXISTS dispatch_actions (attempt_id TEXT NOT NULL REFERENCES operations(attempt_id), action_id TEXT NOT NULL, digest TEXT NOT NULL, state TEXT NOT NULL, PRIMARY KEY(attempt_id, action_id))")
                 self._db.execute("UPDATE executions SET sealed=1 WHERE sealed=0")
                 self._db.execute("UPDATE operations SET state='unknown' WHERE state!='stopped'")
         except BaseException:
@@ -198,7 +204,7 @@ class ExecutionService:
         with self._lock:
             if self._closed:
                 return
-            if self._callback_active or os.getpid() != self._pid:
+            if self._callback_active or self._active_actions or os.getpid() != self._pid:
                 raise RuntimeError("cannot close from supervisor or fork")
             self._db.close()
             os.close(self._fd)
@@ -272,13 +278,16 @@ class ExecutionService:
         state = "unknown"
         if (type(observation) is Observation and type(observation.claim) is Claim
                 and observation.claim == claim and type(observation.fenced) is bool):
-            if observation.state == "quiescent" and observation.fenced:
+            if (observation.state == "quiescent" and observation.fenced
+                    and claim.attempt_id not in self._active_actions):
                 state = "stopped"
             elif observation.state == "running":
                 state = "running"
         with self._transaction():
             self._db.execute("UPDATE operations SET state=? WHERE execution_id=? AND operation_id=? AND attempt_id=? AND authority_id=? AND state!='stopped'",
                              (state, claim.identity.execution_id, claim.operation_id, claim.attempt_id, claim.authority_id))
+            if state == "stopped":
+                self._db.execute("UPDATE dispatch_actions SET state='resolved_unknown' WHERE attempt_id=? AND state='unknown'", (claim.attempt_id,))
 
     def start(self, identity: ExecutionIdentity, operation_id: str, request_sha256: str) -> ExecutionStatus:
         """Commit before one dispatch. Replays return status, including after seal."""
@@ -330,3 +339,126 @@ class ExecutionService:
         """Explicitly query the configured authority without dispatching work."""
         with self._access(mutate=True):
             return self._reconcile(identity, stop=False)
+
+    def _claim_record(self, claim):
+        if type(claim) is not Claim or type(claim.identity) is not ExecutionIdentity:
+            raise ExecutionConflict("persisted claim required")
+        record = self._record(claim.identity)
+        row = self._db.execute("SELECT * FROM operations WHERE attempt_id=?", (claim.attempt_id,)).fetchone()
+        if (record is None or row is None or claim.authority_id != self._authority
+                or self._supervisor.authority_id != self._authority
+                or Claim(claim.identity, row["operation_id"], row["request_sha256"],
+                         row["attempt_id"], row["authority_id"]) != claim
+                or row["execution_id"] != claim.identity.execution_id):
+            raise ExecutionConflict("persisted claim mismatch")
+        return record, row
+
+    def configure_dispatch(self, claim: Claim, *, max_requests: int, timeout_seconds: float):
+        """Trusted admission only. Repeated configuration never renews the deadline."""
+        if (type(max_requests) is not int or not 1 <= max_requests <= 64
+                or type(timeout_seconds) not in (int, float)
+                or not math.isfinite(timeout_seconds) or not 0 < timeout_seconds <= 300):
+            raise ValueError("bounded dispatch limits required")
+        with self._access(mutate=True), self._transaction():
+            record, operation = self._claim_record(claim)
+            if record["sealed"] or operation["state"] != "running":
+                raise ExecutionConflict("execution is not admitted")
+            previous = self._db.execute("SELECT * FROM dispatch_limits WHERE attempt_id=?",
+                                        (claim.attempt_id,)).fetchone()
+            if previous is not None:
+                if previous["maximum"] != max_requests or previous["timeout"] != timeout_seconds:
+                    raise ExecutionConflict("dispatch limits changed")
+                return
+            self._db.execute("INSERT INTO dispatch_limits VALUES (?, ?, ?, NULL)",
+                             (claim.attempt_id, max_requests, timeout_seconds))
+            self._dispatch_deadlines[claim.attempt_id] = time.monotonic() + timeout_seconds
+
+    def task_for(self, claim: Claim):
+        with self._access():
+            self._claim_record(claim)
+            row = self._db.execute("SELECT task_id FROM dispatch_limits WHERE attempt_id=?",
+                                   (claim.attempt_id,)).fetchone()
+            return None if row is None else row["task_id"]
+
+    def bind_task(self, claim: Claim, task_id: str):
+        """Called by the owned create action after WorkspaceManager returns its task."""
+        _identifier(task_id)
+        with self._access(mutate=True), self._transaction():
+            self._claim_record(claim)
+            if claim.attempt_id not in self._active_actions or self.task_for(claim) is not None:
+                raise ExecutionConflict("task binding already consumed or not active")
+            self._db.execute("UPDATE dispatch_limits SET task_id=? WHERE attempt_id=?",
+                             (task_id, claim.attempt_id))
+
+    def dispatch(self, claim: Claim, action_id: str, digest: str, action):
+        """Consume one durable action before bounded caller wait; never replay side effects.
+
+        action is an injected capability receiving remaining seconds, not request code.
+        Stop seals immediately while it runs. Timeout does not kill work or prove stop;
+        its owned thread remains tracked, and exact supervisor proof is still required.
+        """
+        _identifier(action_id)
+        if not callable(action) or type(digest) is not str or not re.fullmatch(r"[a-f0-9]{64}", digest):
+            raise ValueError("bounded action and canonical digest required")
+        with self._access(mutate=True):
+            with self._transaction():
+                record, operation = self._claim_record(claim)
+                limits = self._db.execute("SELECT * FROM dispatch_limits WHERE attempt_id=?",
+                                          (claim.attempt_id,)).fetchone()
+                previous = self._db.execute("SELECT digest FROM dispatch_actions WHERE attempt_id=? AND action_id=?",
+                                            (claim.attempt_id, action_id)).fetchone()
+                if previous is not None:
+                    raise ExecutionConflict("action already admitted" if previous["digest"] == digest else "action digest mismatch")
+                deadline = self._dispatch_deadlines.get(claim.attempt_id, 0)
+                if (record["sealed"] or operation["state"] != "running" or limits is None
+                        or time.monotonic() >= deadline):
+                    raise ExecutionConflict("dispatch is not admitted")
+                if self._active_actions or self._db.execute("SELECT 1 FROM dispatch_actions WHERE state='unknown' LIMIT 1").fetchone():
+                    raise ExecutionBusy("unresolved action")
+                count = self._db.execute("SELECT count(*) FROM dispatch_actions WHERE attempt_id=?", (claim.attempt_id,)).fetchone()[0]
+                if count >= limits["maximum"]:
+                    raise ExecutionConflict("dispatch request limit")
+                self._db.execute("INSERT INTO dispatch_actions VALUES (?, ?, ?, 'unknown')",
+                                 (claim.attempt_id, action_id, digest))
+            self._active_actions.add(claim.attempt_id)
+        done, result = threading.Event(), []
+
+        def invoke():
+            succeeded = False
+            try:
+                with self._access():
+                    current, _ = self._claim_record(claim)
+                    if current["sealed"] or time.monotonic() >= deadline:
+                        raise ExecutionConflict("dispatch sealed before delivery")
+                value = action(max(0, deadline - time.monotonic()))
+                succeeded = time.monotonic() < deadline
+                if succeeded:
+                    result.append(value)
+            except Exception:
+                pass
+            finally:
+                with self._access(mutate=True), self._transaction():
+                    if succeeded:
+                        self._db.execute("UPDATE dispatch_actions SET state='complete' WHERE attempt_id=? AND action_id=?",
+                                         (claim.attempt_id, action_id))
+                    else:
+                        self._db.execute("UPDATE executions SET sealed=1 WHERE execution_id=?", (claim.identity.execution_id,))
+                        self._db.execute("UPDATE operations SET state='unknown' WHERE attempt_id=? AND state!='stopped'", (claim.attempt_id,))
+                    self._active_actions.discard(claim.attempt_id)
+                done.set()
+
+        thread = threading.Thread(target=invoke, daemon=True)
+        try:
+            thread.start()
+        except BaseException:
+            with self._access(mutate=True), self._transaction():
+                self._active_actions.discard(claim.attempt_id)
+                self._db.execute("UPDATE executions SET sealed=1 WHERE execution_id=?", (claim.identity.execution_id,))
+                self._db.execute("UPDATE operations SET state='unknown' WHERE attempt_id=? AND state!='stopped'", (claim.attempt_id,))
+            raise
+        if not done.wait(max(0, deadline - time.monotonic())) or not result:
+            with self._access(mutate=True), self._transaction():
+                self._db.execute("UPDATE executions SET sealed=1 WHERE execution_id=?", (claim.identity.execution_id,))
+                self._db.execute("UPDATE operations SET state='unknown' WHERE attempt_id=? AND state!='stopped'", (claim.attempt_id,))
+            raise ExecutionConflict("dispatch outcome unknown")
+        return result[0]

@@ -120,8 +120,9 @@ survive restarts; legacy tasks without saved state default to read-only/exhauste
 ## Dormant execution records (offline development)
 
 `coding_executor.executions.ExecutionService` is a library only. It is not
-imported by the MCP server, registered as a tool, connected to WorkspaceManager,
-or used by the orchestrator. Existing live tools and configuration are unchanged.
+imported by the MCP server or registered as a tool. The dormant orchestrator
+supervisor and explicit FencedWorkspace adapter compose it; live tools and
+configuration are unchanged.
 
 A trusted embedding supervisor supplies an authority ID and bounded launch,
 observe and stop callbacks. The caller must first authenticate/authorize the full
@@ -167,3 +168,35 @@ exclusive ownership and concurrent launch/stop. The existing Coding Agent Execut
 Linux CI runs these tests. No live transport, credentials, provider calls or service
 activation are required. Authentication, request/result transport, a durable
 process supervisor and orchestrator integration remain separate work.
+
+### Dormant claim-bound workspace dispatch
+
+`FencedWorkspace` defaults off and is never registered by `server.py`. A trusted
+host supplies an authenticated full Claim, exact authorization policy, the existing
+ExecutionService and WorkspaceManager. `admit` fixes a maximum of 64 actions and
+an absolute monotonic deadline of at most 300 seconds; reconfiguration cannot
+renew it. Tool frames cannot select identity, task ID, commands or repository.
+Only read-only task creation, bounded inspection and operator-named checks are
+available. Existing path validation, exploration budgets and maintenance locking
+remain in the actual WorkspaceManager path.
+
+Action IDs/digests and the created task binding live in the existing execution
+database, beneath the existing job-worker claim. They are not another attempt
+ledger. Each action commits an unknown receipt before dispatch; replay never
+executes again, even if a response was lost. A single owned action thread allows
+stop to seal immediately without waiting on workspace work. No database or
+admission lock spans that work. Caller wait is deadline-bounded; late work remains
+tracked and blocks further admission. Deadlines do not kill work or prove stop.
+
+Exact external supervisor evidence is still required for quiescence, including
+after successful workspace return. In-flight action threads suppress stop proof.
+Restart seals all executions, retains action receipts/task bindings and cannot
+replay delayed requests. Unknown outcomes are resolved only by exact authority
+evidence; absence of a thread, a PID exit or WorkspaceManager process-group cleanup
+does not establish containment of escaped descendants. A production supervisor
+and authenticated transport must enforce this contract before activation.
+
+Synthetic tests use real SQLite, real disposable Git worktrees and an injected
+authority. They cover commit-before-dispatch, request/deadline limits, replay,
+identity mismatch, stop races, late completion, restart, task binding and traversal.
+No service, network setting, credential file or provider is configured by this code.
