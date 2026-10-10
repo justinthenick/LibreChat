@@ -284,6 +284,7 @@ profile and repository authorization, queries that trusted hook, and compares
 the complete identity again inside the release transaction. It accepts no
 caller-provided evidence and has no preview protocol/HTTP route. False, missing,
 mismatched or unavailable evidence retains quarantine. Repeated reconciliation
+also waits for any currently owned local worker to finish cleanup. It
 is safe; it neither rewrites terminal history nor replays work. Resolved rows
 remain durable so restart cannot resurrect their quarantine.
 

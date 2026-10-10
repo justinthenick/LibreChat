@@ -60,7 +60,10 @@ class QuarantineTests(unittest.TestCase):
         deadline = time.monotonic() + 3
         while time.monotonic() < deadline:
             record = self.service.get_run(self.owner, job["job_id"])
-            if record["state"] not in {"queued", "running", "cancelling"}:
+            with self.service._lock:
+                active = self.service._active
+            if (record["state"] not in {"queued", "running", "cancelling"}
+                    and (active is None or active[2].job_id != job["job_id"])):
                 return record
             time.sleep(.01)
         self.fail("job did not become terminal")
@@ -193,6 +196,7 @@ class QuarantineTests(unittest.TestCase):
                 ("repository_alias", "other"), ("task_mode", "modification")):
             proofs.append(StopEvidence(replace(identity, **{field: value}), True))
         for proof in proofs:
+            self.assertFalse(self.store.resolve_execution("owner", "tenant", job["job_id"], proof))
             self.service.profile = replace(self.profile, confirm_stopped=lambda _, proof=proof: proof)
             self.assertFalse(self.service.reconcile_run(self.owner, job["job_id"]))
             self.assert_blocked()
@@ -282,6 +286,30 @@ class QuarantineTests(unittest.TestCase):
             self.assertTrue(future.result(timeout=3))
         self.start("next")
 
+    def test_profile_change_or_disable_during_confirmation_cannot_release(self):
+        job = self.interrupt()
+        for change in ("profile", "enabled"):
+            entered, release = threading.Event(), threading.Event()
+            def confirm(identity):
+                entered.set()
+                return StopEvidence(identity, release.wait(3))
+            self.service.profile = replace(self.profile, confirm_stopped=confirm)
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(self.service.reconcile_run, self.owner, job["job_id"])
+                try:
+                    self.assertTrue(entered.wait(2))
+                    if change == "profile":
+                        self.service.profile = self.profile
+                    else:
+                        self.service.enabled = False
+                finally:
+                    release.set()
+                with self.assertRaisesRegex(JobError, "preview_jobs_disabled"):
+                    future.result(timeout=3)
+            self.service.enabled = True
+            self.service.profile = self.profile
+            self.assert_blocked()
+
     def test_normal_completion_releases_only_its_confirmed_reservation(self):
         job = self.start()
         self.ledger[self.identity(job)] = "stopped"
@@ -334,6 +362,30 @@ class QuarantineTests(unittest.TestCase):
         self.assertEqual(terminal["error_code"], "job_monitor_interrupted")
         self.assertNotIn("private polling failure", str(terminal))
         self.assert_blocked()
+
+    def test_reconciliation_waits_for_local_cleanup_after_monitor_failure(self):
+        job = self.start()
+        worker = self.workers[-1]
+        entered, release = threading.Event(), threading.Event()
+        def broken():
+            raise RuntimeError("synthetic monitor failure")
+        def closing():
+            entered.set()
+            if not release.wait(3):
+                raise RuntimeError("fixture close deadline")
+            FakeWorker.close(worker)
+        worker.close = closing
+        worker.poll = broken
+        try:
+            self.assertTrue(entered.wait(2))
+            self.assertEqual(self.service.get_run(self.owner, job["job_id"])["state"], "interrupted")
+            self.ledger[self.identity(job)] = "stopped"
+            self.assertFalse(self.service.reconcile_run(self.owner, job["job_id"]))
+            self.assert_blocked()
+        finally:
+            release.set()
+        self.terminal(job)
+        self.assertTrue(self.service.reconcile_run(self.owner, job["job_id"]))
 
     def test_start_failure_after_possible_dispatch_keeps_reservation(self):
         def ambiguous(runner, context, **kwargs):

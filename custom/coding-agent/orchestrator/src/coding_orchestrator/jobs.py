@@ -253,12 +253,15 @@ class JobService:
             except Exception:
                 authorized = False
             _require(authorized, "scope_not_authorized")
-            if record["state"] not in _TERMINAL:
+            if (record["state"] not in _TERMINAL
+                    or (self._active and self._active[2].job_id == job_id)):
                 return False
         evidence = self._stop_evidence(profile, identity)
         with self._lock:
             _require(not self._closed and self.enabled and self.profile is profile,
                      "preview_jobs_disabled")
+            if self._active and self._active[2].job_id == job_id:
+                return False
             return self.store.resolve_execution(user, tenant, job_id, evidence)
 
     def cancel_run(self, principal: Principal, job_id: str, *, generation_id: str,
