@@ -18,7 +18,7 @@ class ExecutionTests(unittest.TestCase):
         except ModuleNotFoundError:
             self.fail("durable executor execution contract is missing")
         identity = contract.ExecutionIdentity("job", "execution", "user", "tenant", "generation", 1,
-                                              "profile", "repo", "modify")
+                                              "profile", "repo", "modification")
 
         class Supervisor:
             authority_id = "synthetic-supervisor"
@@ -64,7 +64,7 @@ class LedgerTests(unittest.TestCase):
         self.addCleanup(self.root.cleanup)
         self.path = Path(self.root.name) / "ledger"
         self.identity = self.c.ExecutionIdentity("job", "execution", "user", "tenant", "generation",
-                                                 1, "profile", "repo", "modify")
+                                                 1, "profile", "repo", "modification")
         contract = self.c
 
         class Supervisor:
@@ -153,7 +153,7 @@ class LedgerTests(unittest.TestCase):
         wrong_identities = [replace(self.identity, **{key: value}) for key, value in
                             [("job_id", "other"), ("execution_id", "other"), ("user_id", "other"),
                              ("tenant_id", "other"), ("generation_id", "other"), ("generation_epoch", 2),
-                             ("profile_id", "other"), ("repository_alias", "other"), ("task_mode", "read-only")]]
+                             ("profile_id", "other"), ("repository_alias", "other"), ("task_mode", "read_only")]]
         bad = [None, True, replace(proof, fenced=False), replace(proof, fenced=1),
                replace(proof, state="running"), replace(proof, claim=replace(proof.claim, attempt_id="old")),
                replace(proof, claim=replace(proof.claim, authority_id="other")),
@@ -209,7 +209,7 @@ class LedgerTests(unittest.TestCase):
         self.service.advance(self.identity)
         for key in ("user_id", "tenant_id", "generation_id", "profile_id", "repository_alias", "task_mode"):
             other = replace(self.identity, execution_id=key, job_id=key, generation_epoch=100,
-                            **{key: "read-only" if key == "task_mode" else "other"})
+                            **{key: "read_only" if key == "task_mode" else "other"})
             self.service.advance(other)
         self.assertFalse(self.service.status(self.identity).sealed)
 

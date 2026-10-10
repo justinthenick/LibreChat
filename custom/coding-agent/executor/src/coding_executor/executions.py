@@ -29,8 +29,8 @@ class ExecutionBusy(RuntimeError):
     """Another ledger owner or unresolved operation prevents dispatch."""
 
 
-def _identifier(value: str) -> None:
-    if type(value) is not str or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", value):
+def _identifier(value: str, *, empty=False) -> None:
+    if type(value) is not str or not ((empty and value == "") or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:@-]{0,127}", value)):
         raise ValueError("invalid execution identifier")
 
 
@@ -49,10 +49,10 @@ class ExecutionIdentity:
     def __post_init__(self):
         for key, value in asdict(self).items():
             if key != "generation_epoch":
-                _identifier(value)
+                _identifier(value, empty=key == "tenant_id")
         if type(self.generation_epoch) is not int or not 0 <= self.generation_epoch < 2**63:
             raise ValueError("invalid generation epoch")
-        if self.task_mode not in ("read-only", "modify"):
+        if self.task_mode not in ("read_only", "modification"):
             raise ValueError("invalid task mode")
 
 
@@ -103,7 +103,7 @@ class Supervisor(Protocol):
 
 
 def _private_file(path: Path) -> int:
-    fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600)
     info = os.fstat(fd)
     if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
             or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600):
@@ -146,7 +146,10 @@ class ExecutionService:
                 raise ExecutionBusy("ledger already owned") from error
             db_path = directory / "executions.sqlite3"
             os.close(_private_file(db_path))
-            # SQLite owns journals inside this private, trusted directory.
+            for suffix in ("-journal", "-wal", "-shm"):
+                sidecar = db_path.with_name(db_path.name + suffix)
+                if sidecar.exists() or sidecar.is_symlink():
+                    os.close(_private_file(sidecar))
             self._db = sqlite3.connect(db_path, isolation_level=None, check_same_thread=False)
             self._db.row_factory = sqlite3.Row
             self._db.execute("PRAGMA journal_mode=DELETE")
@@ -243,7 +246,7 @@ class ExecutionService:
             state = "stopped" if row["sealed"] else "open"
             if "running" in states:
                 state = "running"
-            if "unknown" in states:
+            if states - {"running", "stopped"}:
                 state = "unknown"
             return ExecutionStatus(identity, state, bool(row["sealed"]), operations)
 
@@ -260,14 +263,13 @@ class ExecutionService:
             self._callback_active = False
 
     def _observe(self, claim, observation):
-        if (type(observation) is not Observation or type(observation.claim) is not Claim
-                or observation.claim != claim or type(observation.fenced) is not bool):
-            return
         state = "unknown"
-        if observation.state == "quiescent" and observation.fenced:
-            state = "stopped"
-        elif observation.state == "running":
-            state = "running"
+        if (type(observation) is Observation and type(observation.claim) is Claim
+                and observation.claim == claim and type(observation.fenced) is bool):
+            if observation.state == "quiescent" and observation.fenced:
+                state = "stopped"
+            elif observation.state == "running":
+                state = "running"
         with self._transaction():
             self._db.execute("UPDATE operations SET state=? WHERE execution_id=? AND operation_id=? AND attempt_id=? AND authority_id=? AND state!='stopped'",
                              (state, claim.identity.execution_id, claim.operation_id, claim.attempt_id, claim.authority_id))
