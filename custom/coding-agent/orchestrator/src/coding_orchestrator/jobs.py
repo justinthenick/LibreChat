@@ -196,9 +196,13 @@ class JobService:
                 result = _result(value, request.scope, partial=True)
                 self.store.update_progress(user, tenant, record["job_id"], result=result)
             worker = None
+            dispatch_possible = False
             try:
                 remaining = record["deadline_at"] - self._clock()
                 _require(remaining > 0, "admission_deadline_exceeded")
+                # A factory can dispatch before returning (or raising). Only
+                # control flow before this point proves no execution existed.
+                dispatch_possible = True
                 worker = self._worker_factory(profile.runner, context, max_requests=request.max_requests,
                     timeout_seconds=min(request.timeout_seconds, remaining), on_progress=progress)
                 active = (principal, request, context, worker)
@@ -213,7 +217,8 @@ class JobService:
                 if worker is not None:
                     worker.close()
                 self.store.transition(user, tenant, record["job_id"], {"queued", "running"}, "failed",
-                                      error_code="worker_start_failed")
+                                      error_code="worker_start_failed",
+                                      stop_evidence=StopEvidence(identity, True) if not dispatch_possible else None)
                 self._active = None
                 raise JobError("worker_start_failed") from None
             return self.get_run(principal, record["job_id"])

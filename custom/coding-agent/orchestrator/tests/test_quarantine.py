@@ -400,6 +400,49 @@ class QuarantineTests(unittest.TestCase):
         self.assertEqual(self.start()["state"], "failed")
         self.assert_blocked()
 
+    def test_deadline_before_worker_factory_releases_reservation_across_restart(self):
+        ticks = iter((100.0, 100.001))
+        self.service._clock = lambda: next(ticks, 100.001)
+        expired = replace(self.request, timeout_seconds=0.000001)
+        with self.assertRaisesRegex(JobError, "worker_start_failed"):
+            self.service.start_run(self.owner, expired)
+        self.assertEqual(self.workers, [])
+        self.assertEqual(self.observed, [])
+        failed = self.service.start_run(self.owner, expired)
+        self.assertEqual(failed["state"], "failed")
+        self.service.close()
+        self.store.close()
+        self.store = JobStore(self.path)
+        self.service = self.make_service()
+        self.assertEqual(self.service.start_run(self.owner, expired), failed)
+        self.assertNotEqual(self.start("after-expiry")["job_id"], failed["job_id"])
+
+    def test_factory_exception_without_returned_worker_retains_quarantine(self):
+        def ambiguous(runner, context, **kwargs):
+            self.worker(runner, context, **kwargs)
+            raise RuntimeError("factory may have dispatched before returning")
+        self.service._worker_factory = ambiguous
+        with self.assertRaisesRegex(JobError, "worker_start_failed"):
+            self.start()
+        self.assertEqual(len(self.workers), 1)
+        self.assert_blocked()
+
+    def test_predispatch_resolution_failure_rolls_back_terminal_state(self):
+        ticks = iter((100.0, 100.001))
+        self.service._clock = lambda: next(ticks, 100.001)
+        with sqlite3.connect(self.path) as database:
+            database.execute("""CREATE TRIGGER reject_resolution AFTER UPDATE ON reservations
+                BEGIN SELECT RAISE(ABORT, 'synthetic persistence failure'); END""")
+        with self.assertRaises(StoreError):
+            self.service.start_run(self.owner, replace(self.request, timeout_seconds=0.000001))
+        self.assertEqual(self.workers, [])
+        with sqlite3.connect(self.path) as database:
+            self.assertEqual(database.execute("SELECT state FROM jobs").fetchone()[0], "queued")
+            self.assertIsNone(database.execute("SELECT resolved_at FROM reservations").fetchone()[0])
+            database.execute("DROP TRIGGER reject_resolution")
+        self.service._clock = time.time
+        self.assert_blocked()
+
 
 if __name__ == "__main__":
     unittest.main()
