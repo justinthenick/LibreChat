@@ -40,23 +40,37 @@ export type SkillLifecycle = 'published' | 'draft' | 'trial' | 'publish_pending'
  */
 export const SKILL_SELECTION_SEPARATOR = '@@';
 
-export function encodeSkillSelection(skill: Pick<TSkillSummary, '_id' | 'name'>): string {
-  return /^[a-fA-F0-9]{24}$/.test(skill._id)
-    ? `${skill.name}${SKILL_SELECTION_SEPARATOR}${skill._id}`
-    : skill.name;
+export function encodeSkillSelection(
+  skill: Pick<TSkill, '_id' | 'name' | 'selectionRevision'>,
+): string {
+  if (
+    !/^[a-fA-F0-9]{24}$/.test(skill._id) ||
+    !/^[a-f0-9]{64}$/.test(skill.selectionRevision ?? '')
+  ) {
+    throw new Error('Invalid skill selection revision');
+  }
+  return `${skill.name}${SKILL_SELECTION_SEPARATOR}${skill._id.toLowerCase()}${SKILL_SELECTION_SEPARATOR}${skill.selectionRevision}`;
 }
 
-export function parseSkillSelection(value: string): { name: string; skillId?: string } {
-  const index = value.lastIndexOf(SKILL_SELECTION_SEPARATOR);
-  if (index <= 0) {
+export function parseSkillSelection(value: string): {
+  name: string;
+  explicit?: boolean;
+  skillId?: string;
+  revision?: string;
+} {
+  if (!value.includes(SKILL_SELECTION_SEPARATOR)) {
     return { name: value };
   }
-  const name = value.slice(0, index);
-  const skillId = value.slice(index + SKILL_SELECTION_SEPARATOR.length);
-  if (!/^[a-fA-F0-9]{24}$/.test(skillId)) {
-    return { name: value };
+  const [name, skillId, revision, extra] = value.split(SKILL_SELECTION_SEPARATOR);
+  if (!name || !/^[a-fA-F0-9]{24}$/.test(skillId ?? '') || extra !== undefined) {
+    return { name, explicit: true };
   }
-  return { name, skillId };
+  return {
+    name,
+    explicit: true,
+    skillId: skillId.toLowerCase(),
+    revision: /^[a-f0-9]{64}$/.test(revision ?? '') ? revision : undefined,
+  };
 }
 
 export function getSkillLifecycle(
@@ -179,6 +193,8 @@ export type TSkillWarning = {
  */
 export type TSkill = {
   _id: string;
+  /** Server digest of the loaded prime definition and version; excludes bundled file bytes. */
+  selectionRevision?: string;
   name: string;
   displayTitle?: string;
   description: string;
