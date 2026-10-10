@@ -1,0 +1,205 @@
+import { assertManagedDraftUpstream, validateManagedDraftProvenance } from './provenance';
+
+const digest = (n: number) => n.toString(16).padStart(40, '0');
+const id = '123456789012345678901234';
+const failure = /Keep your edits/;
+
+function fixture() {
+  const identity = {
+    provider: 'github',
+    sourceId: 'source',
+    owner: 'owner',
+    repo: 'repo',
+    ref: 'main',
+    skillPath: 'skills/writer',
+  };
+  const draft: Record<string, unknown> = {
+    ...identity,
+    lifecycle: 'draft',
+    draftOfSkillId: id,
+    baseVersion: 1,
+    baseCommitSha: digest(1),
+    baseSkillBlobSha: digest(7),
+  };
+  const published = {
+    _id: id,
+    source: 'github',
+    version: 1,
+    sourceMetadata: { ...identity, commitSha: digest(1), skillBlobSha: digest(7) },
+  };
+  const responses = new Map<string, unknown>([
+    [`/git/commits/${digest(1)}`, { sha: digest(1), tree: { sha: digest(2) } }],
+    [
+      `/git/trees/${digest(2)}`,
+      {
+        sha: digest(2),
+        truncated: false,
+        tree: [{ path: 'skills', type: 'tree', mode: '040000', sha: digest(3) }],
+      },
+    ],
+    [
+      `/git/trees/${digest(3)}`,
+      {
+        sha: digest(3),
+        truncated: false,
+        tree: [{ path: 'writer', type: 'tree', mode: '040000', sha: digest(4) }],
+      },
+    ],
+    [
+      `/git/trees/${digest(4)}`,
+      {
+        sha: digest(4),
+        truncated: false,
+        tree: [
+          { path: 'SKILL.md', type: 'blob', mode: '100644', sha: digest(7) },
+          { path: 'reference.txt', type: 'blob', mode: '100644', sha: digest(8) },
+        ],
+      },
+    ],
+  ]);
+  const getJson = jest.fn(async (path: string): Promise<unknown> => {
+    if (!responses.has(path)) throw new Error('missing');
+    return responses.get(path);
+  });
+  const target = { commitSha: digest(1), treeSha: digest(2) };
+  const check = () =>
+    assertManagedDraftUpstream(validateManagedDraftProvenance(draft, published), target, getJson);
+  return { draft, published, responses, getJson, target, check };
+}
+
+describe('managed draft source provenance', () => {
+  it.each(['draft', 'trial', 'publish_pending'])(
+    'accepts intact %s provenance',
+    async (lifecycle) => {
+      const f = fixture();
+      f.draft.lifecycle = lifecycle;
+      await expect(f.check()).resolves.toBeUndefined();
+    },
+  );
+
+  it.each([
+    'baseVersion',
+    'baseCommitSha',
+    'baseSkillBlobSha',
+    'sourceId',
+    'owner',
+    'repo',
+    'ref',
+    'skillPath',
+  ])('rejects missing %s without reading upstream', async (key) => {
+    const f = fixture();
+    delete f.draft[key];
+    expect(() => f.check()).toThrow(failure);
+    expect(f.getJson).not.toHaveBeenCalled();
+  });
+
+  it.each(['sourceId', 'owner', 'repo', 'ref', 'skillPath'])(
+    'rejects changed source identity %s',
+    (key) => {
+      const f = fixture();
+      f.draft[key] = 'different';
+      expect(() => f.check()).toThrow(failure);
+    },
+  );
+
+  it.each(['../writer', 'skills//writer', '/skills/writer', 'skills/./writer', 'skills\\writer'])(
+    'rejects noncanonical path %s',
+    (skillPath) => {
+      const f = fixture();
+      f.draft.skillPath = skillPath;
+      f.published.sourceMetadata.skillPath = skillPath;
+      expect(() => f.check()).toThrow(failure);
+    },
+  );
+
+  it('rejects invalid version and coercible revision values', () => {
+    const f = fixture();
+    f.draft.baseVersion = '1';
+    expect(() => f.check()).toThrow(failure);
+    f.draft.baseVersion = 1;
+    f.draft.baseCommitSha = [digest(1)];
+    expect(() => f.check()).toThrow(failure);
+  });
+
+  it('rejects a changed synced SKILL.md before upstream reads', () => {
+    const f = fixture();
+    f.published.sourceMetadata.skillBlobSha = digest(9);
+    expect(() => f.check()).toThrow(failure);
+    expect(f.getJson).not.toHaveBeenCalled();
+  });
+
+  it('allows unrelated upstream changes and sync version advancement with the same subtree', async () => {
+    const f = fixture();
+    f.target.commitSha = digest(10);
+    f.target.treeSha = digest(11);
+    f.published.version = 3;
+    f.published.sourceMetadata.commitSha = digest(10);
+    f.responses.set(`/git/trees/${digest(11)}`, {
+      sha: digest(11),
+      truncated: false,
+      tree: [
+        { path: 'skills', type: 'tree', mode: '040000', sha: digest(3) },
+        { path: 'unrelated.txt', type: 'blob', mode: '100644', sha: digest(99) },
+      ],
+    });
+    await expect(f.check()).resolves.toBeUndefined();
+  });
+
+  it.each(['definition', 'file modification', 'file addition', 'file deletion', 'mode change'])(
+    'rejects a changed subtree (%s) even when synced SKILL.md is unchanged',
+    async () => {
+      const f = fixture();
+      f.target.commitSha = digest(10);
+      f.target.treeSha = digest(11);
+      f.responses.set(`/git/trees/${digest(11)}`, {
+        sha: digest(11),
+        truncated: false,
+        tree: [{ path: 'skills', type: 'tree', mode: '040000', sha: digest(12) }],
+      });
+      f.responses.set(`/git/trees/${digest(12)}`, {
+        sha: digest(12),
+        truncated: false,
+        tree: [{ path: 'writer', type: 'tree', mode: '040000', sha: digest(13) }],
+      });
+      await expect(f.check()).rejects.toThrow(failure);
+    },
+  );
+
+  it.each(['truncated', 'missing', 'symlink', 'wrong response identity', 'duplicate'])(
+    'fails closed for a %s tree response',
+    async (kind) => {
+      const f = fixture();
+      const entry = { path: 'writer', type: 'tree', mode: '040000', sha: digest(4) };
+      f.responses.set(`/git/trees/${digest(3)}`, {
+        sha: kind === 'wrong response identity' ? digest(99) : digest(3),
+        truncated: kind === 'truncated',
+        tree:
+          kind === 'missing'
+            ? []
+            : kind === 'duplicate'
+              ? [entry, entry]
+              : [{ ...entry, mode: kind === 'symlink' ? '120000' : '040000' }],
+      });
+      await expect(f.check()).rejects.toThrow(failure);
+    },
+  );
+
+  it('rejects a historical definition blob that does not match recorded provenance', async () => {
+    const f = fixture();
+    f.responses.set(`/git/trees/${digest(4)}`, {
+      sha: digest(4),
+      truncated: false,
+      tree: [{ path: 'SKILL.md', type: 'blob', mode: '100644', sha: digest(99) }],
+    });
+    await expect(f.check()).rejects.toThrow(failure);
+  });
+
+  it('uses pinned commit/tree IDs if a branch moves during validation', async () => {
+    const f = fixture();
+    await expect(f.check()).resolves.toBeUndefined();
+    expect(
+      f.getJson.mock.calls.every(([path]) => /^\/git\/(trees|commits)\/[a-f0-9]{40}$/.test(path)),
+    ).toBe(true);
+    // No ref reread or atomicity claim: later upstream movement remains a publication race.
+  });
+});
