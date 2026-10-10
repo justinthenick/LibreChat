@@ -64,6 +64,10 @@ def script(scenario, mode):
     flow = [create, ("read_file", {**task, "path": "calculator.py"}),
         ("run_check", {**task, "command": COMMAND}), ("apply_patch", {**task, "patch": PATCH}),
         ("run_check", {**task, "command": COMMAND}), ("git_diff", task), ("task_status", task), finish]
+    if scenario == "readonly":
+        flow = [create, ("read_file", {**task, "path": "calculator.py"}),
+                ("run_check", {**task, "command": COMMAND}), ("git_diff", task),
+                ("task_status", task), finish]
     if scenario == "limit":
         flow[2:2] = [("list_files", task), ("search_text", {**task, "query": "add"}),
                      ("search_text", {**task, "query": "return"})]

@@ -45,30 +45,35 @@ function run(script, args, env = process.env) {
     throw new Error(`Preview fixture command failed (${result.status ?? result.signal}).`);
 }
 try {
-  run(path.join(tools, 'typescript/bin/tsc'), [
-    '--strict',
-    '--noEmitOnError',
-    '--target',
-    target,
-    '--lib',
-    lib.join(','),
-    '--module',
-    'commonjs',
-    '--moduleResolution',
-    'node',
-    '--esModuleInterop',
-    '--skipLibCheck',
-    '--typeRoots',
-    path.join(tools, '@types'),
-    '--types',
-    'node,express',
-    '--rootDir',
-    source,
-    '--outDir',
-    build,
-    path.join(source, 'controller.ts'),
-    path.join(source, 'types.ts'),
-  ]);
+  const config = path.join(temporary, 'tsconfig.json');
+  fs.writeFileSync(
+    config,
+    JSON.stringify({
+      compilerOptions: {
+        strict: true,
+        noEmitOnError: true,
+        target,
+        lib,
+        module: 'commonjs',
+        moduleResolution: 'node',
+        esModuleInterop: true,
+        skipLibCheck: true,
+        typeRoots: [path.join(tools, '@types')],
+        types: ['node', 'express'],
+        rootDir: root,
+        outDir: build,
+        paths: {
+          'librechat-data-provider': [
+            path.join(root, 'packages/data-provider/src/types/preview.ts'),
+          ],
+        },
+      },
+      files: ['controller.ts', 'types.ts', 'pipe.ts', 'https.ts'].map((file) =>
+        path.join(source, file),
+      ),
+    }),
+  );
+  run(path.join(tools, 'typescript/bin/tsc'), ['--project', config]);
   run(
     path.join(tools, 'jest/bin/jest.js'),
     [
@@ -78,16 +83,19 @@ try {
       JSON.stringify({
         rootDir: root,
         testEnvironment: 'node',
-        testMatch: [path.join(__dirname, 'route.test.cjs')],
+        testMatch: [path.join(__dirname, '*.test.cjs')],
         transform: {},
         modulePaths: [tools],
         cacheDirectory: path.join(temporary, 'jest-cache'),
         moduleNameMapper: {
-          '^@librechat/api/coding$': path.join(build, 'controller.js'),
+          '^@librechat/api/coding$': path.join(
+            build,
+            'packages/api/src/coding/preview/controller.js',
+          ),
         },
       }),
     ],
-    { ...process.env, PREVIEW_TEST_BUILD: build },
+    { ...process.env, PREVIEW_TEST_BUILD: path.join(build, 'packages/api/src/coding/preview') },
   );
 } finally {
   fs.rmSync(temporary, { recursive: true, force: true });
