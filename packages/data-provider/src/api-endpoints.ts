@@ -41,6 +41,8 @@ const buildQuery = (params: Record<string, unknown>): string => {
 };
 
 export const health = () => `${BASE_URL}/health`;
+export const previewJobs = () => `${BASE_URL}/api/agents/preview/jobs`;
+export const previewJob = (jobId: string) => `${previewJobs()}/${encodeURIComponent(jobId)}`;
 export const user = () => `${BASE_URL}/api/user`;
 export const userPreferences = () => `${user()}/preferences`;
 

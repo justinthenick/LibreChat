@@ -1,4 +1,5 @@
 export * from './binary';
+export * from './bundles';
 export * from './handlers';
 export * from './import';
 export * from './path';
@@ -8,3 +9,4 @@ export * from './parse';
 export * from './skillStates';
 export * from './deployment';
 export * from './sync';
+export * from './provenance';
