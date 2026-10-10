@@ -68,7 +68,7 @@ try {
           ],
         },
       },
-      files: [path.join(source, 'controller.ts'), path.join(source, 'types.ts')],
+      files: ['controller.ts', 'types.ts', 'pipe.ts'].map((file) => path.join(source, file)),
     }),
   );
   run(path.join(tools, 'typescript/bin/tsc'), ['--project', config]);
@@ -81,7 +81,7 @@ try {
       JSON.stringify({
         rootDir: root,
         testEnvironment: 'node',
-        testMatch: [path.join(__dirname, 'route.test.cjs')],
+        testMatch: [path.join(__dirname, '*.test.cjs')],
         transform: {},
         modulePaths: [tools],
         cacheDirectory: path.join(temporary, 'jest-cache'),
