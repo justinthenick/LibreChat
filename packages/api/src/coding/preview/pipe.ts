@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { decodePreviewReply } from './frame';
 import type { Readable, Writable } from 'node:stream';
 import type { PreviewOptions, PreviewPrincipal, PreviewStartRequest } from './types';
+import { decodePreviewReply } from './frame';
 
 type Grant = { principal: PreviewPrincipal; repositories: readonly string[] };
 type PipeOptions = {
