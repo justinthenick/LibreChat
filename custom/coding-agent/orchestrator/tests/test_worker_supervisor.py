@@ -13,7 +13,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "executor" / "src"))
 from coding_executor.executions import Observation
-from coding_orchestrator.job_store import JobStore, StoreBusy
+from coding_orchestrator.job_store import ExecutionIdentity as JobIdentity, JobStore, StoreBusy
 from coding_orchestrator.jobs import JobError, JobRequest, JobService, Principal, RunScope
 from coding_orchestrator.job_worker import ProcessWorker, RunContext
 from coding_orchestrator.openhands_profile import create_openhands_profile
@@ -278,6 +278,15 @@ class WorkerSupervisorTests(unittest.TestCase):
                 self.assertEqual(replacement.ledger.status(fixture.claim.identity).state, "unknown")
             finally:
                 replacement.close()
+
+    def test_missing_execution_cannot_manufacture_empty_tombstone_proof(self):
+        with self.job() as (service, fixture, owner, adapter):
+            identity = JobIdentity("missing", "missing", owner.user_id, owner.tenant_id,
+                                   "generation", 1, "synthetic-supervised", "fixture", "modification")
+            self.assertIsNone(adapter.confirm_stopped(identity))
+            from coding_executor.executions import ExecutionIdentity
+            from dataclasses import asdict
+            self.assertEqual(adapter.ledger.status(ExecutionIdentity(**asdict(identity))).state, "unknown")
 
     def test_cancel_remains_local_while_external_stop_is_stalled(self):
         gate = threading.Event()

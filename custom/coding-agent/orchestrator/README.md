@@ -306,9 +306,7 @@ The offline regressions cover this migration, restart, races and persistence
 failures with real SQLite and synthetic workers/remote ledgers. Authentication,
 the live remote reconciler and UI remain unimplemented and disabled.
 
-## Dormant executor stop adapter
-
-### Trusted worker supervisor composition
+## Dormant worker supervisor composition
 
 `worker_supervisor.LedgerWorkerSupervisor` is an optional Linux embedding module
 requiring both the orchestrator and executor packages to be installed. It is not
@@ -334,6 +332,8 @@ it cannot terminate a stuck callback. No live authority, authentication grant,
 credential resolution or network permission is installed. Synthetic tests use
 the real SDK, process worker and SQLite ledgers with a fixture authority whose
 loopback MCP endpoint checks the attempt token and rejects requests after seal.
+
+## Dormant executor stop adapter
 
 `ExecutorStopAdapter` in `coding_orchestrator.executor_adapter` can be explicitly
 supplied as a profile's `confirm_stopped` hook. It is not registered or instantiated
