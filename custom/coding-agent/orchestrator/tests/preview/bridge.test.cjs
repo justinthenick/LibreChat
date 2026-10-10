@@ -31,6 +31,8 @@ async function host(directory, mode = 'normal', settings = {}) {
         LANG: 'C.UTF-8',
         PYTHONDONTWRITEBYTECODE: '1',
         PYTHON_DOTENV_DISABLED: '1',
+        LITELLM_LOCAL_MODEL_COST_MAP: 'True',
+        OTEL_SDK_DISABLED: 'true',
         PYTHONPATH: [path.resolve(__dirname, '../../src'), __dirname].join(path.delimiter),
       },
     },
@@ -135,8 +137,8 @@ function body(prompt = 'wait', changes = {}) {
     ...changes,
   };
 }
-async function terminal(fixture, id) {
-  const deadline = Date.now() + 5000;
+async function terminal(fixture, id, timeout = 5000) {
+  const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
     const response = await fixture.request('get', '/jobs/' + id);
     expect(response.status).toBe(200);
@@ -274,3 +276,60 @@ test('confirmed terminal result survives restart without duplicate execution', a
     (await fs.readFile(path.join(root, 'launches.jsonl'), 'utf8')).trim().split('\n'),
   ).toHaveLength(1);
 });
+
+test('HTTP preview reaches the actual SDK and fenced read-only executor with matched evidence', async () => {
+  const root = await directory();
+  const f = await host(root, 'sdk-readonly', { timeoutMs: 10000 });
+  const request = body('inspect synthetic fixture');
+  const started = await f.request('post').send(request);
+  expect(started.status).toBe(200);
+  const job = await terminal(f, started.body.job.job_id, 20000);
+  expect(job.state).toBe('completed');
+  expect(job.request_count).toBe(6);
+  expect(job.result.evidence.evidence_complete).toBe(true);
+  expect(job.result.evidence.checks.map((check) => check.exit_code)).toEqual([1]);
+  expect(job.result.evidence.task.task_mode).toBe('read_only');
+  expect((await f.request('post').send(request)).body.job.job_id).toBe(job.job_id);
+  await f.close();
+  const evidence = JSON.parse(await fs.readFile(path.join(root, 'sdk-proof.json'), 'utf8'));
+  expect(evidence.calls).toEqual([
+    'create_task',
+    'read_file',
+    'run_check',
+    'git_diff',
+    'task_status',
+  ]);
+  expect(evidence.sourceUnchanged).toBe(true);
+  expect(evidence.taskUnchanged).toBe(true);
+  expect(evidence.stopped).toBe(true);
+  expect(evidence.lateRequestStatus).toBe(403);
+});
+
+test.each([
+  ['sdk-limit', { max_requests: 2 }, 'worker_limit'],
+  ['sdk-timeout', { timeout_seconds: 8 }, 'deadline_exceeded'],
+  ['sdk-unknown', {}, 'execution_stop_unconfirmed'],
+])(
+  'HTTP %s preserves bounded failure and never equates local exit with stop proof',
+  async (mode, limits, error) => {
+    const root = await directory();
+    const f = await host(root, mode, { timeoutMs: 10000 });
+    const started = await f.request('post').send(body('inspect synthetic fixture', limits));
+    expect(started.status).toBe(200);
+    const job = await terminal(f, started.body.job.job_id, 20000);
+    expect(job.error_code).toBe(error);
+    expect(job.request_count).toBeLessThanOrEqual(limits.max_requests ?? 10);
+    if (mode === 'sdk-unknown') {
+      expect(
+        (await f.request('post').send(body('next', { idempotency_key: 'next' }))).body.error,
+      ).toBe('job_busy');
+    }
+    await f.close();
+    const evidence = JSON.parse(await fs.readFile(path.join(root, 'sdk-proof.json'), 'utf8'));
+    expect(evidence.sourceUnchanged).toBe(true);
+    expect(evidence.taskUnchanged).toBe(true);
+    expect(evidence.calls).not.toContain('apply_patch');
+    expect(evidence.stopped).toBe(mode !== 'sdk-unknown');
+    expect(evidence.lateRequestStatus).toBe(403);
+  },
+);

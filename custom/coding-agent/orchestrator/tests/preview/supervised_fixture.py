@@ -51,6 +51,9 @@ class Authority:
 
 def main():
     directory, mode = Path(sys.argv[1]), sys.argv[2]
+    if mode.startswith("sdk-"):
+        from sdk_fixture import serve
+        return serve(directory, mode)
     with JobStore(directory / "jobs.sqlite") as store:
         authority = Authority(directory, mode)
         supervisor = LedgerWorkerSupervisor(directory / "executor", authority=authority,
