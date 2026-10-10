@@ -63,7 +63,7 @@ try {
     '--types',
     'node,express',
     '--rootDir',
-    source,
+    root,
     '--outDir',
     build,
     path.join(source, 'controller.ts'),
@@ -83,11 +83,14 @@ try {
         modulePaths: [tools],
         cacheDirectory: path.join(temporary, 'jest-cache'),
         moduleNameMapper: {
-          '^@librechat/api/coding$': path.join(build, 'controller.js'),
+          '^@librechat/api/coding$': path.join(
+            build,
+            'packages/api/src/coding/preview/controller.js',
+          ),
         },
       }),
     ],
-    { ...process.env, PREVIEW_TEST_BUILD: build },
+    { ...process.env, PREVIEW_TEST_BUILD: path.join(build, 'packages/api/src/coding/preview') },
   );
 } finally {
   fs.rmSync(temporary, { recursive: true, force: true });
