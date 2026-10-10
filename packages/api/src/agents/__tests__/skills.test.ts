@@ -33,6 +33,8 @@ jest.mock('@librechat/agents', () => ({
 }));
 
 import { Types } from 'mongoose';
+import { encodeSkillSelection } from 'librechat-data-provider';
+import { getSkillSelectionRevision } from '../../skills/selection';
 import { logger } from '@librechat/data-schemas';
 import { HumanMessage, AIMessage } from '@librechat/agents/langchain/messages';
 import {
@@ -1325,7 +1327,13 @@ describe('resolveManualSkills', () => {
     const getSkillByName = jest.fn(buildGetSkillByName({}));
 
     const result = await resolveManualSkills({
-      names: [`published@@${draft._id.toString()}`],
+      names: [
+        encodeSkillSelection({
+          _id: draft._id.toString(),
+          name: 'published',
+          selectionRevision: getSkillSelectionRevision(draft),
+        }),
+      ],
       getSkillByName,
       getSkillById,
       accessibleSkillIds: [draft._id],
@@ -1339,25 +1347,49 @@ describe('resolveManualSkills', () => {
     expect(getSkillByName).not.toHaveBeenCalled();
   });
 
-  it('does not use an exact revision id outside the ACL-accessible set', async () => {
-    const inaccessible = mkSkill('private-draft', userOid, 'PRIVATE');
+  it.each([
+    'revoked',
+    'deleted',
+    'inactive',
+    'agent-scope',
+    'missing-lookup',
+    'stale-body',
+    'stale-version',
+    'model-only',
+    'wrong-id',
+    'legacy-id',
+  ])('rejects %s without falling back to the same-name published skill', async (scenario) => {
+    const draft = { ...mkSkill('published-draft', userOid, 'PRIVATE'), version: 3 };
     const published = mkSkill('published', userOid, 'PUBLISHED');
-    const getSkillById = jest.fn(async () => inaccessible);
+    const revision = getSkillSelectionRevision(draft);
+    const token = encodeSkillSelection({
+      _id: draft._id.toString(),
+      name: 'published',
+      selectionRevision: revision,
+    });
+    const current = { ...draft };
+    if (scenario === 'stale-body') current.body = 'UNREVIEWED';
+    if (scenario === 'stale-version') current.version = 4;
+    if (scenario === 'model-only') current.userInvocable = false;
+    if (scenario === 'wrong-id') current._id = published._id;
+    const getSkillById = jest.fn(async () => (scenario === 'deleted' ? null : current));
     const getSkillByName = jest.fn(buildGetSkillByName({ published }));
-
-    const result = await resolveManualSkills({
-      names: [`published@@${inaccessible._id.toString()}`],
-      getSkillByName,
-      getSkillById,
-      accessibleSkillIds: [published._id],
-      userId,
-    });
-
-    expect(result).toEqual([{ _id: published._id, name: 'published', body: 'PUBLISHED' }]);
-    expect(getSkillById).not.toHaveBeenCalled();
-    expect(getSkillByName).toHaveBeenCalledWith('published', [published._id], {
-      preferUserInvocable: true,
-    });
+    let accessibleSkillIds = [draft._id, published._id];
+    if (scenario === 'revoked') accessibleSkillIds = [];
+    if (scenario === 'agent-scope') accessibleSkillIds = [published._id];
+    await expect(
+      resolveManualSkills({
+        names: [scenario === 'legacy-id' ? `published@@${draft._id}` : token],
+        getSkillByName,
+        getSkillById: scenario === 'missing-lookup' ? undefined : getSkillById,
+        accessibleSkillIds,
+        skillStates: scenario === 'inactive' ? { [draft._id.toString()]: false } : undefined,
+        userId,
+      }),
+    ).rejects.toThrow('invalid_skill_selection');
+    expect(getSkillByName).not.toHaveBeenCalled();
+    if (scenario === 'revoked' || scenario === 'agent-scope')
+      expect(getSkillById).not.toHaveBeenCalled();
   });
 
   it('passes allowedTools through when the skill doc carries the field', async () => {
@@ -1767,6 +1799,12 @@ describe('injectManualSkillPrimes', () => {
 });
 
 describe('extractManualSkills', () => {
+  it('rejects an oversized explicit token instead of silently dropping the selection', () => {
+    expect(() => extractManualSkills({ manualSkills: [`example@@${'a'.repeat(201)}`] })).toThrow(
+      'invalid_skill_selection',
+    );
+    expect(extractManualSkills({ manualSkills: ['a'.repeat(201)] })).toBeUndefined();
+  });
   it('returns undefined for null / non-object bodies', () => {
     expect(extractManualSkills(null)).toBeUndefined();
     expect(extractManualSkills(undefined)).toBeUndefined();

@@ -2984,6 +2984,7 @@ export enum ErrorTypes {
    * Invalid Agent Provider (excluded by Admin)
    */
   INVALID_AGENT_PROVIDER = 'invalid_agent_provider',
+  INVALID_SKILL_SELECTION = 'invalid_skill_selection',
   /**
    * Missing model selection
    */
