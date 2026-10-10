@@ -292,7 +292,7 @@ class ProcessWorker:
     """
 
     def __init__(self, runner: Callable, context: RunContext, *, max_requests=10,
-                 timeout_seconds=300, on_progress=None):
+                 timeout_seconds=300, on_progress=None, deadline_monotonic=None):
         if not callable(runner) or not isinstance(context, RunContext):
             raise ValueError("Invalid worker runner or context")
         if any(not isinstance(getattr(context, name), str)
@@ -307,10 +307,14 @@ class ProcessWorker:
             raise ValueError("Invalid worker timeout")
         if on_progress is not None and not callable(on_progress):
             raise ValueError("Invalid progress callback")
+        if (deadline_monotonic is not None and (type(deadline_monotonic) not in (int, float)
+                or not math.isfinite(deadline_monotonic))):
+            raise ValueError("Invalid absolute deadline")
         self._runner = runner
         self._context = context
         self._maximum = max_requests
         self._timeout = timeout_seconds
+        self._absolute_deadline = deadline_monotonic
         self._callback = on_progress
         self._temp_root = _validate_scratch_root(tempfile.gettempdir())
         self._state_file = tempfile.TemporaryFile(dir=self._temp_root)
@@ -370,6 +374,11 @@ class ProcessWorker:
                 child_output = os.fdopen(write_fd, "wb", buffering=0)
                 os.set_blocking(read_fd, False)
                 self._deadline = time.monotonic() + self._timeout
+                if self._absolute_deadline is not None:
+                    self._deadline = min(self._deadline, self._absolute_deadline)
+                if time.monotonic() >= self._deadline:
+                    self._outcome = WorkerOutcome("timed_out", None, "deadline_exceeded", 0)
+                    return
                 self._process = _OwnedProcess(
                     [sys.executable, "-B", "-c",
                      "from coding_orchestrator.job_worker import _bootstrap; _bootstrap()",

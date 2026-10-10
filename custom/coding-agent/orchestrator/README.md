@@ -304,7 +304,34 @@ until a future trusted adapter can establish authoritative evidence for them.
 There is no force-clear, expiry-based release or automatic deletion escape hatch.
 The offline regressions cover this migration, restart, races and persistence
 failures with real SQLite and synthetic workers/remote ledgers. Authentication,
-the live remote reconciler and UI remain unimplemented and disabled.
+the live remote reconciler and activation remain unimplemented. The preview UI is default-off.
+
+## Dormant worker supervisor composition
+
+`worker_supervisor.LedgerWorkerSupervisor` is an optional Linux embedding module
+requiring both the orchestrator and executor packages to be installed. It is not
+imported by the default server or registered as a profile. Supply an authenticated
+identity resolver, an external executor `Supervisor` authority and a trusted
+`bind_runner(runner, claim)` factory. The binder must return picklable child
+configuration that binds every external request to the exact durable attempt;
+neither bearer-token presence nor an idle socket establishes that contract.
+
+Pass its `worker_factory` and `confirm_stopped` hooks explicitly to the existing
+job/profile interfaces. Claims commit before one authority launch and child
+dispatch. A matching running acknowledgement is required before the child starts.
+Binding and serialization consume the original monotonic deadline; existing
+request caps remain enforced by `ProcessWorker`. Local cancellation does not
+call the external authority. Terminal publication requires local quiescence and
+exact external quiescence with delayed-request fencing. Unknown launch or stop
+replies retain quarantine, and restart never infers local stop from a missing
+handle. Close the JobService before closing this ledger owner.
+
+Launch/binding callbacks are trusted, synchronous and must be bounded by the
+embedding application. Stop confirmation uses the bounded stop adapter below;
+it cannot terminate a stuck callback. No live authority, authentication grant,
+credential resolution or network permission is installed. Synthetic tests use
+the real SDK, process worker and SQLite ledgers with a fixture authority whose
+loopback MCP endpoint checks the attempt token and rejects requests after seal.
 
 ## Dormant executor stop adapter
 
@@ -443,7 +470,154 @@ and supervised worker. Existing JWT verification is stubbed only to establish
 test principals; these tests do not validate the application's login system.
 No real repository, provider credential, or model call is used.
 
-Before live activation, implement and review the authenticated transport and
-bounded execution profile, supply the full admission policy, add the preview UI,
-and verify deployment-specific cancellation/restart reconciliation. Integration
+Before live activation, review the embedding authentication and execution profile,
+supply the full admission policy, and verify deployment-specific cancellation/restart reconciliation. Integration
 with the normal resumable chat lifecycle is a separate change.
+
+### Dormant private-pipe integration
+
+`createPreviewPipe` from `@librechat/api/coding` supplies the existing
+`PreviewOptions.transport` and `authorize` interfaces over dedicated Node
+Readable/Writable pipes. `coding_orchestrator.preview_pipe.PreviewPipe` serves
+the existing `dispatch_job` interface over the other ends. Neither implementation
+spawns a process, opens a listener, loads credentials, registers a profile, or
+changes the default router. Both default to disabled and require explicit
+injection. Setting environment flags alone still cannot configure execution.
+
+The embedding process must exclusively own the pipes and authenticate HTTP
+callers using the existing LibreChat middleware. A principal in a frame is an
+assertion of that trusted owner, not network authentication. Never expose this
+protocol as a public socket or let request data select streams/processes.
+Supply an exact principal-to-repository allowlist and a bounded start text/rate
+policy to both ends, and use the same repository policy in `ExecutionProfile`.
+Only `read_only` tasks are accepted. Start admission does not throttle status or
+cancellation. All allowlists are snapshotted at construction; changes require
+new explicit configuration, not caller-supplied fields.
+
+Each exchange has a fresh request ID and an exact principal echo. There is one
+in-flight exchange, no queue, and no automatic retry. Input frames are limited
+to 48 KiB and output frames to 264 KiB including envelope/newline. Node bounds
+the entire exchange, including a stalled write. Invalid UTF-8, duplicate keys,
+oversized/malformed frames, wrong identity/correlation, EOF and timeout poison
+the channel. The owning process must create a new adapter to reconnect. It must
+retain the original start idempotency key and job ID; a disconnected pipe says
+nothing about execution completion or stop.
+
+The Python adapter receives an already-composed `JobService`. Use the existing
+`LedgerWorkerSupervisor.worker_factory` and `confirm_stopped` hook; no parallel
+job lifecycle or reconciliation API is introduced. The trusted owner closes the
+service before its supervisor/store. Restart preserves unresolved reservations;
+missing local handles, lost replies or a mismatched attempt cannot clear them.
+
+`tests/preview/bridge.test.cjs` crosses authenticated synthetic HTTP, the real
+controller, both pipe adapters, dispatcher, SQLite job/execution ledgers and
+supervised child. Only the external authority and runner workload are fixtures.
+Tests cover status/evidence/cancel, idempotency, owner/repository denial, lost
+cancel replies, wrong attempt acknowledgements, and restart without replay.
+The stream tests also cover framing, correlation, concurrent admission and
+stalled writes. Linux CI runs the process/ledger tests; Windows can run the
+stream tests and compile/build the adapter. No live login or provider is tested.
+
+Deployment-specific values still required before activation:
+
+- Trusted process owner, reviewed executable/environment, exclusive pipe
+  ownership and shutdown/restart supervision; this code supplies none of them.
+- Private durable job and executor-ledger directories with compatible ownership,
+  persistence and backup/recovery policy.
+- Exact tenant/user-to-repository aliases, repository paths and read-only access
+  policy; bounded text/rate admission that does not block get/cancel recovery.
+- External supervisor authority ID, authenticated control transport and exact
+  attempt-fenced child configuration using the existing binder. Verify stop and
+  reconciliation against the actual deployment, including unknown outcomes.
+- Reviewed provider authentication/request transport and cost approval, then
+  explicit frontend/backend activation in an approved environment. No default
+  credential, endpoint, authority or production policy is provided here.
+
+
+### Offline HTTP-to-SDK composition and live transport decision
+
+The preview HTTP fixture can now compose `createPreviewJobHandlers` through both
+private-pipe adapters, `dispatch_job`, `JobService`, `LedgerWorkerSupervisor`, the
+real SDK profile and the existing attempt-fenced loopback MCP fixture. Only HTTP
+principals, provider responses and executor authority are synthetic. The read-only
+fixture deliberately reports a failing check with complete evidence: job completion
+must not be confused with a passing check. Limits, deadline and unknown stop proof
+remain enforced across this composition. The UI itself is covered separately by
+its component/HTTP tests; this is not full browser or live-login acceptance.
+
+The installed executor MCP interface exposes repository/task tools under
+`coding:execute`; maintenance uses a different token and `coding:maintain` scope.
+Neither server exports preview jobs or attempt launch/stop/observation. Static
+bearer authentication identifies the LibreChat client, not an end-user/tenant or
+an execution attempt. The existing ACP stdio adapter owns a different workload
+and does not implement this job protocol. Reusing those tokens would expand their
+authority and cannot be inferred from existing connectivity.
+
+A concrete proposal requiring an operator decision is one separate, private Clare
+preview broker, with NAS-only mutual TLS and a dedicated client identity. It would
+own the job service and durable ledgers and accept principal assertions only from
+the authenticated NAS adapter. Reuse the closed dispatch schema, admission grants
+and supervisor interfaces; implement an executor-side attempt fence and exact
+stop observation before live use. Keep the executor/maintenance credentials and
+privileges separate. This adds a process and certificate lifecycle but avoids
+extending maintenance authority. It is a proposal, not an installed service or an
+authentication implementation. Address/port, service account, certificate source,
+ledger locations and grants remain unspecified pending that decision.
+
+The subscription CLI's `OpenHandsProviderConfig` can load/refresh SDK-managed
+authentication, but is not a compatible factory for `BoundedResponses`: discovery,
+refresh and account-header validation may dispatch outside its request gate.
+Existing offline provider tests cover that SDK contract; the preview continues to
+reject subscription LLM objects. A reviewed bounded authentication integration is
+still required; no operator auth files or credential caches are touched here.
+
+
+### Dormant certificate-authenticated preview broker
+
+`PreviewBroker.handle(accepted_socket)` processes one HTTPS `POST /preview/v1`
+using the existing finite frame exchange. It binds no port, registers no route or
+service, opens no certificate file and defaults off. The trusted host injects an
+SSLContext requiring client certificates, an exact NAS certificate SHA-256 pin,
+a client realm ID, immutable principal/repository grants, bounded start admission,
+and an already composed JobService. Use one NAS identity realm per store for its
+entire lifetime; certificate rotation within that realm is explicit host policy.
+Do not share the store across independent NAS identity namespaces.
+
+`createPreviewHttps` implements the existing TypeScript transport interface with
+an injected client SecureContext, fixed HTTPS endpoint and exact server certificate
+pin. It validates the server chain and hostname, performs one bounded exchange,
+and never follows redirects or retries. API principal values still originate in
+authenticated `req.user`; mTLS authenticates the NAS, not individual users. The
+broker accepts assertions only within its configured grants. Forwarded identity
+headers and request-selected endpoints, commands, paths or attempt proofs grant
+no authority. Keep supplied TLS contexts exclusively owned and immutable.
+
+There is one active broker exchange and no queue. Header bytes, frame bytes and
+absolute TLS/read/write time are bounded; host acceptance/concurrency must also be
+bounded. Supplied admission and JobService callbacks remain trusted bounded code.
+An expired connection cannot undo admitted work and never proves stop. Correlation
+IDs match replies; they are not durable execution identities. Repeated starts use
+the original idempotency key and immutable job ID. Cancel derives generation from
+owned durable state; callers cannot supply generation/attempt bindings. Existing
+supervisor claims and its child binder retain attempt enforcement. This broker
+adds no executor authority and does not implement the missing live executor fence
+or bounded subscription authentication.
+
+Synthetic tests create temporary CA/client/server certificates, use real loopback
+TLS and the actual HTTP/controller/job/supervisor path. They cover trusted-but-wrong
+and untrusted/missing clients, server identity, owner/tenant denial, replay, stale
+attempt fields, unknown stop, lost replies/restart and malformed/slow input. The
+broker fixtures do not authenticate a real NAS or load any operator auth files.
+
+Setup checklist (not applied):
+
+| Value | Required source |
+| --- | --- |
+| NAS runtime source/image, current executor endpoint/version, existing supervisor capabilities | Local read-only inspection through an approved route; WSL access is not established here |
+| Existing private addressing, certificate-management availability, service accounts and durable storage capacity | Local inspection; do not read or copy private keys/auth files |
+| Dedicated broker process placement/account, listener address/port and NAS-only network policy | User security/deployment decision |
+| Dedicated client/server certificate issuer, exact pins, names, expiry/rotation and revocation procedure | User authentication decision; no reuse of executor/maintenance tokens |
+| Job/attempt ledger paths, ownership, persistence and recovery policy | User storage/access decision after inspection |
+| NAS realm ID, exact user/tenant grants, synthetic repository alias/path and start policy | User access decision; synthetic read-only repository first |
+| Live executor attempt-fence authority/binder and bounded subscription-auth integration | Further implementation and reviewed acceptance; broker configuration alone is insufficient |
+| Explicit default-off switches, rollout/rollback source and image digest, restart window | Deployment decision after acceptance; no NAS restart merely to deliver dormant code |
