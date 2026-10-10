@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from contextlib import ExitStack
 
 from coding_orchestrator.job_store import JobStore
 from coding_orchestrator.jobs import ExecutionProfile, JobService, Principal
@@ -22,7 +23,7 @@ def exchange(pipe, principal, payload):
 
 class PreviewPipeTests(unittest.TestCase):
     def test_python_rechecks_repository_and_owner_for_get_and_cancel(self):
-        with tempfile.TemporaryDirectory() as root, JobStore(Path(root) / "jobs.sqlite") as store:
+        with tempfile.TemporaryDirectory() as root, JobStore(Path(root) / "jobs.sqlite") as store, ExitStack() as cleanup:
             owner, other = Principal("owner", "tenant"), Principal("other", "tenant")
             workers = []
             def factory(*args, **kwargs):
@@ -32,7 +33,7 @@ class PreviewPipeTests(unittest.TestCase):
             profile = ExecutionProfile("pipe-test", frozenset({"fixture"}), lambda *_: None,
                                        lambda *_: True, lambda *_: None)
             service = JobService(store, profile=profile, enabled=True, worker_factory=factory)
-            self.addCleanup(service.close)
+            cleanup.callback(service.close)
             allowed = PreviewPipe(service, grants={owner: {"fixture"}}, admit_start=lambda *_: True, enabled=True)
             started = exchange(allowed, owner, start_message())
             denied = PreviewPipe(service, grants={owner: {"foreign"}, other: {"fixture"}},
@@ -51,9 +52,9 @@ class PreviewPipeTests(unittest.TestCase):
             def flush(self):
                 raise AssertionError("short reply was flushed")
 
-        with tempfile.TemporaryDirectory() as root, JobStore(Path(root) / "jobs.sqlite") as store:
+        with tempfile.TemporaryDirectory() as root, JobStore(Path(root) / "jobs.sqlite") as store, ExitStack() as cleanup:
             service = JobService(store)
-            self.addCleanup(service.close)
+            cleanup.callback(service.close)
             pipe = PreviewPipe(service, grants={}, admit_start=lambda *_: True)
             frame = {"version": 1, "request_id": "a" * 36,
                      "principal": {"user_id": "owner", "tenant_id": "tenant"}, "payload": {}}
@@ -64,9 +65,9 @@ class PreviewPipeTests(unittest.TestCase):
             self.assertEqual(incoming.tell(), len(line))
 
     def test_disabled_pipe_never_calls_admission_or_enables_service(self):
-        with tempfile.TemporaryDirectory() as root, JobStore(Path(root) / "jobs.sqlite") as store:
+        with tempfile.TemporaryDirectory() as root, JobStore(Path(root) / "jobs.sqlite") as store, ExitStack() as cleanup:
             service = JobService(store)
-            self.addCleanup(service.close)
+            cleanup.callback(service.close)
             owner = Principal("owner", "tenant")
             pipe = PreviewPipe(service, grants={owner: {"fixture"}},
                                admit_start=lambda *_: self.fail("unexpected admission"))
@@ -78,9 +79,9 @@ class PreviewPipeTests(unittest.TestCase):
             self.assertFalse(service.enabled)
 
     def test_invalid_wire_frames_close_without_dispatch(self):
-        with tempfile.TemporaryDirectory() as root, JobStore(Path(root) / "jobs.sqlite") as store:
+        with tempfile.TemporaryDirectory() as root, JobStore(Path(root) / "jobs.sqlite") as store, ExitStack() as cleanup:
             service = JobService(store)
-            self.addCleanup(service.close)
+            cleanup.callback(service.close)
             pipe = PreviewPipe(service, grants={}, admit_start=lambda *_: self.fail("unexpected admission"))
             for value in (b'{"version":1,"version":1}\n', b'\xff\n', b'{}',
                           b' ' * MAX_INPUT_BYTES + b'\n', b'{"__proto__":{}}\n',
@@ -89,9 +90,9 @@ class PreviewPipeTests(unittest.TestCase):
                     pipe.serve(io.BytesIO(value), io.BytesIO())
 
     def test_allowlist_snapshot_and_unknown_principal(self):
-        with tempfile.TemporaryDirectory() as root, JobStore(Path(root) / "jobs.sqlite") as store:
+        with tempfile.TemporaryDirectory() as root, JobStore(Path(root) / "jobs.sqlite") as store, ExitStack() as cleanup:
             service = JobService(store)
-            self.addCleanup(service.close)
+            cleanup.callback(service.close)
             owner = Principal("owner", "tenant")
             aliases = {"fixture"}
             grants = {owner: aliases}
