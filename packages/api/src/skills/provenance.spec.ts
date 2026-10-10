@@ -182,15 +182,13 @@ describe('managed draft source provenance', () => {
     async (kind) => {
       const f = fixture();
       const entry = { path: 'writer', type: 'tree', mode: '040000', sha: digest(4) };
+      let tree = [{ ...entry, mode: kind === 'symlink' ? '120000' : '040000' }];
+      if (kind === 'missing') tree = [];
+      if (kind === 'duplicate') tree = [entry, entry];
       f.responses.set(`/git/trees/${digest(3)}`, {
         sha: kind === 'wrong response identity' ? digest(99) : digest(3),
         truncated: kind === 'truncated',
-        tree:
-          kind === 'missing'
-            ? []
-            : kind === 'duplicate'
-              ? [entry, entry]
-              : [{ ...entry, mode: kind === 'symlink' ? '120000' : '040000' }],
+        tree,
       });
       await expect(f.check()).rejects.toThrow(failure);
     },

@@ -25,7 +25,7 @@ function text(value: unknown): string {
     !value ||
     value.length > 1024 ||
     value.trim() !== value ||
-    /[\x00-\x1f\x7f]/.test(value)
+    [...value].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)
   )
     fail();
   return value;
