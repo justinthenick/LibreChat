@@ -201,19 +201,17 @@ describe('Managed draft capture: datastore characterization, not coherence accep
         entered = resolve;
       });
       const actual = Skill.findByIdAndUpdate.bind(Skill);
-      const bump = jest
-        .spyOn(Skill, 'findByIdAndUpdate')
-        .mockImplementationOnce((id, update, options) => {
-          const query = actual(id, update, options);
-          const execute = query.exec.bind(query);
-          jest.spyOn(query, 'exec').mockImplementationOnce(async () => {
-            entered();
-            await gate;
-            return execute();
-          });
-          return query;
+      const bump = jest.spyOn(Skill, 'findByIdAndUpdate').mockImplementationOnce((id, update) => {
+        const query = actual(id, update);
+        const execute = query.exec.bind(query);
+        jest.spyOn(query, 'exec').mockImplementationOnce(async () => {
+          entered();
+          await gate;
+          return execute();
         });
-      const mutation =
+        return query;
+      });
+      const mutation = (
         change === 'delete'
           ? methods.deleteSkillFile(skill._id, original.relativePath)
           : methods.upsertSkillFile({
@@ -221,7 +219,8 @@ describe('Managed draft capture: datastore characterization, not coherence accep
               relativePath: change === 'add' ? 'references/new.md' : original.relativePath,
               file_id: 'file-B',
               filepath: '/synthetic/B',
-            });
+            })
+      ).then(() => undefined);
       try {
         await bounded(
           Promise.race([
