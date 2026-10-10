@@ -1,6 +1,7 @@
 """Trusted, test-only ProcessWorker callable. Never contacts a provider."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 import time
 
 from coding_orchestrator.evidence import EvidenceCollector
@@ -52,3 +53,18 @@ def run(context, control):
         raise ValueError("Unknown synthetic fixture command")
     return {"execution_status": "finished", "final_response": "Synthetic fixture finished.",
             "evidence": collected_evidence(context) if context.prompt == "finish-evidence" else fixture_evidence()}
+
+
+@dataclass(frozen=True)
+class BoundRunner:
+    runner: object
+    claim: object
+
+    def __call__(self, context, control):
+        identity = self.claim.identity
+        if (identity.execution_id != context.execution_id or identity.job_id != context.job_id
+                or identity.repository_alias != context.repository_alias
+                or identity.task_mode != context.task_mode or identity.user_id != "owner"
+                or identity.tenant_id != "tenant"):
+            raise ValueError("synthetic dispatch identity mismatch")
+        return self.runner(context, control)
