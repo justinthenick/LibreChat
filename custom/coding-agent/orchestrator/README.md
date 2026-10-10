@@ -532,3 +532,41 @@ Deployment-specific values still required before activation:
 - Reviewed provider authentication/request transport and cost approval, then
   explicit frontend/backend activation in an approved environment. No default
   credential, endpoint, authority or production policy is provided here.
+
+
+### Offline HTTP-to-SDK composition and live transport decision
+
+The preview HTTP fixture can now compose `createPreviewJobHandlers` through both
+private-pipe adapters, `dispatch_job`, `JobService`, `LedgerWorkerSupervisor`, the
+real SDK profile and the existing attempt-fenced loopback MCP fixture. Only HTTP
+principals, provider responses and executor authority are synthetic. The read-only
+fixture deliberately reports a failing check with complete evidence: job completion
+must not be confused with a passing check. Limits, deadline and unknown stop proof
+remain enforced across this composition. The UI itself is covered separately by
+its component/HTTP tests; this is not full browser or live-login acceptance.
+
+The installed executor MCP interface exposes repository/task tools under
+`coding:execute`; maintenance uses a different token and `coding:maintain` scope.
+Neither server exports preview jobs or attempt launch/stop/observation. Static
+bearer authentication identifies the LibreChat client, not an end-user/tenant or
+an execution attempt. The existing ACP stdio adapter owns a different workload
+and does not implement this job protocol. Reusing those tokens would expand their
+authority and cannot be inferred from existing connectivity.
+
+A concrete proposal requiring an operator decision is one separate, private Clare
+preview broker, with NAS-only mutual TLS and a dedicated client identity. It would
+own the job service and durable ledgers and accept principal assertions only from
+the authenticated NAS adapter. Reuse the closed dispatch schema, admission grants
+and supervisor interfaces; implement an executor-side attempt fence and exact
+stop observation before live use. Keep the executor/maintenance credentials and
+privileges separate. This adds a process and certificate lifecycle but avoids
+extending maintenance authority. It is a proposal, not an installed service or an
+authentication implementation. Address/port, service account, certificate source,
+ledger locations and grants remain unspecified pending that decision.
+
+The subscription CLI's `OpenHandsProviderConfig` can load/refresh SDK-managed
+authentication, but is not a compatible factory for `BoundedResponses`: discovery,
+refresh and account-header validation may dispatch outside its request gate.
+Existing offline provider tests cover that SDK contract; the preview continues to
+reject subscription LLM objects. A reviewed bounded authentication integration is
+still required; no operator auth files or credential caches are touched here.
