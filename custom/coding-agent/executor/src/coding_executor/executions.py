@@ -181,6 +181,10 @@ class ExecutionService:
 
     @contextmanager
     def _access(self, *, mutate=False):
+        # A fork can inherit an RLock held by a vanished thread. Reject before
+        # touching that lock, not just after acquiring it.
+        if os.getpid() != self._pid:
+            raise RuntimeError("ledger inherited across fork")
         with self._lock:
             if self._closed or os.getpid() != self._pid:
                 raise RuntimeError("ledger closed or inherited across fork")
@@ -189,6 +193,8 @@ class ExecutionService:
             yield
 
     def close(self) -> None:
+        if os.getpid() != self._pid:
+            raise RuntimeError("ledger inherited across fork")
         with self._lock:
             if self._closed:
                 return
