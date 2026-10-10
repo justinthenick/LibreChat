@@ -1,5 +1,6 @@
 """Real job/execution ledgers, synthetic supervisor; no network or providers."""
 from dataclasses import asdict, replace
+from concurrent.futures import ThreadPoolExecutor
 import importlib
 from pathlib import Path
 import sys
@@ -16,12 +17,12 @@ from test_jobs import FakeWorker, result
 
 
 class AdapterTests(unittest.TestCase):
-    def adapter(self, control, **options):
+    def adapter(self, control, *, timeout_seconds=.2):
         try:
             module = importlib.import_module("coding_orchestrator.executor_adapter")
         except ModuleNotFoundError:
             self.fail("bounded executor stop adapter is missing")
-        return module.ExecutorStopAdapter(control, authority_id="fixture", timeout_seconds=.02, **options)
+        return module.ExecutorStopAdapter(control, authority_id="fixture", timeout_seconds=timeout_seconds)
 
     def identity(self):
         return ExecutionIdentity("job", "execution", "user", "", "generation", 1,
@@ -42,7 +43,7 @@ class AdapterTests(unittest.TestCase):
             return self.proof(identity)
         adapter = self.adapter(control)
         self.assertTrue(adapter.confirm_stopped(identity).confirms(identity))
-        self.assertEqual(calls, [(asdict(identity), .02)])
+        self.assertEqual(calls, [(asdict(identity), .2)])
 
     def test_timeout_is_unknown_and_never_queues_more_callbacks(self):
         identity = self.identity()
@@ -53,7 +54,7 @@ class AdapterTests(unittest.TestCase):
             entered.set()
             release.wait(5)
             return self.proof(identity)
-        adapter = self.adapter(control)
+        adapter = self.adapter(control, timeout_seconds=.02)
         try:
             start = time.monotonic()
             self.assertIsNone(adapter.confirm_stopped(identity))
@@ -64,6 +65,7 @@ class AdapterTests(unittest.TestCase):
                 self.assertIsNone(adapter.confirm_stopped(replace(identity, execution_id="other")))
             self.assertEqual(len(calls), 1)
             release.set()
+            self.assertIsNone(adapter.confirm_stopped(replace(identity, execution_id="other")))
             end = time.monotonic() + 2
             evidence = None
             while evidence is None and time.monotonic() < end:
@@ -110,6 +112,47 @@ class AdapterTests(unittest.TestCase):
         def control(*args, **kwargs):
             raise RuntimeError("private transport details")
         self.assertIsNone(self.adapter(control).confirm_stopped(self.identity()))
+
+    def test_concurrent_calls_never_queue_or_consume_another_identity(self):
+        identity = self.identity()
+        release, entered = threading.Event(), threading.Event()
+        calls = []
+        def control(value, **kwargs):
+            calls.append(value)
+            entered.set()
+            release.wait(5)
+            return self.proof(identity)
+        adapter = self.adapter(control, timeout_seconds=.02)
+        try:
+            self.assertIsNone(adapter.confirm_stopped(identity))
+            self.assertTrue(entered.is_set())
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                replies = list(pool.map(adapter.confirm_stopped,
+                                       [identity, replace(identity, execution_id="other")] * 8))
+            self.assertEqual(replies, [None] * 16)
+            self.assertEqual(len(calls), 1)
+        finally:
+            release.set()
+
+    def test_control_cannot_mutate_the_expected_identity(self):
+        identity = self.identity()
+        def control(value, **kwargs):
+            value["user_id"] = "other"
+            return self.proof(ExecutionIdentity(**value))
+        self.assertIsNone(self.adapter(control).confirm_stopped(identity))
+
+    def test_empty_sealed_tombstone_is_valid_but_oversized_evidence_is_unknown(self):
+        identity = self.identity()
+        proof = self.proof(identity)
+        proof["status"]["operations"] *= 65
+        self.assertIsNone(self.adapter(lambda *a, **k: proof).confirm_stopped(identity))
+        proof["status"]["operations"] = ()
+        self.assertTrue(self.adapter(lambda *a, **k: proof).confirm_stopped(identity).confirms(identity))
+
+    def test_invalid_budgets_are_rejected(self):
+        for budget in (True, 0, -1, float("nan"), float("inf"), 1.1):
+            with self.assertRaises(ValueError):
+                self.adapter(lambda *a, **k: None, timeout_seconds=budget)
 
     def test_job_cancel_retains_quarantine_until_real_executor_fence(self):
         adapter_type = self.adapter  # Assert missing implementation before fixture setup.
@@ -163,7 +206,11 @@ class AdapterTests(unittest.TestCase):
                     service.start_run(owner, replace(request, idempotency_key="next"))
                 self.assertFalse(service.reconcile_run(owner, job["job_id"]))
                 supervisor.stopped = True
-                self.assertTrue(service.reconcile_run(owner, job["job_id"]))
+                deadline = time.monotonic() + 3
+                reconciled = False
+                while not reconciled and time.monotonic() < deadline:
+                    reconciled = service.reconcile_run(owner, job["job_id"])
+                self.assertTrue(reconciled)
                 self.assertEqual(service.get_run(owner, job["job_id"]), terminal)
                 self.assertEqual(service.start_run(owner, request), terminal)
                 self.assertEqual(len(supervisor.claims), 1)
