@@ -8,7 +8,7 @@ import threading
 import unittest
 
 from coding_orchestrator.job_store import (
-    IdempotencyConflict, JobNotFound, JobStore, MAX_JSON_BYTES, StoreBusy, StoreError,
+    IdempotencyConflict, JobNotFound, JobStore, MAX_JSON_BYTES, StopEvidence, StoreBusy, StoreError,
 )
 
 
@@ -33,6 +33,11 @@ class JobStoreTests(unittest.TestCase):
 
     def get(self, record):
         return self.store.get(record["user_id"], record["tenant_id"], record["job_id"])
+
+    def confirm_stop(self, record):
+        owner = (record["user_id"], record["tenant_id"], record["job_id"])
+        identity = self.store.execution_identity(*owner)
+        self.assertTrue(self.store.resolve_execution(*owner, StopEvidence(identity, True)))
 
     def test_admission_is_durable_and_idempotent_even_after_completion(self):
         record, created = self.admit()
@@ -68,9 +73,11 @@ class JobStoreTests(unittest.TestCase):
                 with self.assertRaisesRegex(JobNotFound, "^Job not found$"):
                     operation()
         self.assertTrue(self.transition(first, {"queued"}, "cancelled"))
+        self.confirm_stop(first)
         second, created = self.admit(user_id="bob")
         self.assertTrue(created)
         self.assertTrue(self.transition(second, {"queued"}, "cancelled"))
+        self.confirm_stop(second)
         third, created = self.admit(tenant_id="tenant-b")
         self.assertTrue(created)
         self.assertEqual(len({first["job_id"], second["job_id"], third["job_id"]}), 3)
@@ -86,6 +93,7 @@ class JobStoreTests(unittest.TestCase):
             elif state == "running":
                 self.transition(record, {state}, "cancelling")
         self.transition(record, {"cancelling"}, "cancelled")
+        self.confirm_stop(record)
         self.assertTrue(self.admit(user_id="bob")[1])
 
     def test_concurrent_admissions_create_exactly_one_job(self):
@@ -152,6 +160,7 @@ class JobStoreTests(unittest.TestCase):
                 repeated, created = self.admit(idempotency_key=state)
                 self.assertFalse(created)
                 self.assertEqual(repeated, recovered)
+                self.confirm_stop(record)
 
     def test_second_instance_is_blocked_without_interrupting_first(self):
         record, _ = self.admit()
@@ -216,6 +225,7 @@ class JobStoreTests(unittest.TestCase):
             self.assertTrue(created)
             self.assertEqual(record["metadata"], {"max_requests": 10, "timeout_seconds": timeout})
             self.transition(record, {"queued"}, "cancelled")
+            self.confirm_stop(record)
 
     def test_private_paths_reject_symlinks_and_shared_permissions(self):
         self.store.close()

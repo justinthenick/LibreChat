@@ -16,7 +16,7 @@ import time
 from dataclasses import dataclass
 from typing import Callable
 
-from .job_store import JobStore
+from .job_store import ExecutionIdentity, JobStore, StopEvidence
 from .job_worker import ProcessWorker, RunContext
 
 
@@ -89,7 +89,8 @@ class ExecutionProfile:
     every physical provider request, disable retry/fallback, enforce the selected
     repository/task scope and emit only bounded evidence. authorize and
     confirm_stopped are trusted, nonblocking policy/lease checks. The latter
-    must confirm external execution has stopped, not merely the local process.
+    must return identity-bound evidence that external execution is quiescent
+    and fenced against delayed dispatch, not merely that a local process exited.
     No production profile is registered and no ambient credentials are discovered.
     """
 
@@ -97,7 +98,7 @@ class ExecutionProfile:
     repository_aliases: frozenset[str]
     runner: Callable
     authorize: Callable[[Principal, RunScope], bool]
-    confirm_stopped: Callable[[RunContext], bool]
+    confirm_stopped: Callable[[ExecutionIdentity], StopEvidence | None]
     model: str = "gpt-5.6-sol"
 
     def __post_init__(self) -> None:
@@ -188,7 +189,9 @@ class JobService:
                           "max_requests": request.max_requests, "timeout_seconds": request.timeout_seconds})
             if not created:
                 return self._public(record)
-            context = RunContext(record["job_id"], request.prompt, request.scope.repository_alias, request.scope.task_mode)
+            identity = self.store.execution_identity(user, tenant, record["job_id"])
+            context = RunContext(record["job_id"], request.prompt, request.scope.repository_alias,
+                                 request.scope.task_mode, identity.execution_id)
             def progress(value):
                 result = _result(value, request.scope, partial=True)
                 self.store.update_progress(user, tenant, record["job_id"], result=result)
@@ -218,6 +221,45 @@ class JobService:
     def get_run(self, principal: Principal, job_id: str) -> dict:
         user, tenant = self._owner(principal)
         return self._public(self.store.get(user, tenant, job_id))
+
+    @staticmethod
+    def _stop_evidence(profile, identity):
+        try:
+            evidence = profile.confirm_stopped(identity)
+            if type(evidence) is StopEvidence and evidence.confirms(identity):
+                return evidence
+        except Exception:
+            pass
+        return None
+
+    def reconcile_run(self, principal: Principal, job_id: str) -> bool:
+        """Trusted embedding hook; no dispatcher route or caller-supplied proof.
+
+        Reconciliation never replays work or rewrites terminal outcomes. A
+        missing, stale or unavailable observation leaves admission quarantined.
+        """
+        user, tenant = self._owner(principal)
+        with self._lock:
+            _require(not self._closed and self.enabled and isinstance(self.profile, ExecutionProfile),
+                     "preview_jobs_disabled")
+            record = self.store.get(user, tenant, job_id)
+            identity = self.store.execution_identity(user, tenant, job_id)
+            profile = self.profile
+            _require(identity.profile_id == profile.profile_id
+                     and identity.repository_alias in profile.repository_aliases, "scope_not_authorized")
+            scope = RunScope(identity.repository_alias, identity.task_mode)
+            try:
+                authorized = profile.authorize(principal, scope) is True
+            except Exception:
+                authorized = False
+            _require(authorized, "scope_not_authorized")
+            if record["state"] not in _TERMINAL:
+                return False
+        evidence = self._stop_evidence(profile, identity)
+        with self._lock:
+            _require(not self._closed and self.enabled and self.profile is profile,
+                     "preview_jobs_disabled")
+            return self.store.resolve_execution(user, tenant, job_id, evidence)
 
     def cancel_run(self, principal: Principal, job_id: str, *, generation_id: str,
                    generation_epoch: int) -> dict:
@@ -259,20 +301,19 @@ class JobService:
                     result = _result(outcome.result, request.scope, partial=state != "completed")
                 except (JobError, TypeError, ValueError):
                     state, code = "failed", "invalid_profile_result"
-            try:
-                stopped = profile.confirm_stopped(context) is True
-            except Exception:
-                stopped = False
+            identity = self.store.execution_identity(user, tenant, context.job_id)
+            evidence = self._stop_evidence(profile, identity)
             # Cancellation and terminal publication share one service lock. A
             # cancel accepted during the lease check must win over completion.
             with self._lock:
                 current = self.store.get(user, tenant, context.job_id)
                 if current["state"] == "cancelling":
                     state, code = "cancelled", "cancel_requested"
-                if not stopped:
+                if evidence is None:
                     state, code = "interrupted", "execution_stop_unconfirmed"
                 _require(self.store.transition(user, tenant, context.job_id, {"running", "cancelling"}, state,
-                    result=result, error_code=code, request_count=outcome.request_count), "terminal_state_conflict")
+                    result=result, error_code=code, request_count=outcome.request_count,
+                    stop_evidence=evidence), "terminal_state_conflict")
         except BaseException:
             self.store.transition(user, tenant, context.job_id, {"running", "cancelling"}, "interrupted",
                                   error_code="job_monitor_interrupted")

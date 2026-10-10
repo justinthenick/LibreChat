@@ -36,6 +36,7 @@ class RunContext:
     prompt: str
     repository_alias: str
     task_mode: str
+    execution_id: str = ""
 
 
 @dataclass(frozen=True)

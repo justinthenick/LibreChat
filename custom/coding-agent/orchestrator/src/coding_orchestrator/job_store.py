@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from dataclasses import dataclass
 import fcntl
 import json
 import math
@@ -42,6 +43,47 @@ class IdempotencyConflict(StoreError):
 
 class JobNotFound(StoreError):
     """A job is absent or not owned by the caller."""
+
+
+@dataclass(frozen=True)
+class ExecutionIdentity:
+    """Private durable identity used by a trusted execution reconciler."""
+
+    job_id: str
+    execution_id: str
+    user_id: str
+    tenant_id: str
+    generation_id: str
+    generation_epoch: int
+    profile_id: str
+    repository_alias: str
+    task_mode: str
+
+    def __post_init__(self):
+        for name in ("job_id", "execution_id", "user_id", "generation_id"):
+            _identifier(getattr(self, name), name)
+        for name in ("tenant_id", "profile_id", "repository_alias", "task_mode"):
+            _identifier(getattr(self, name), name, empty=True)
+        _counter(self.generation_epoch, "generation_epoch", (1 << 63) - 1)
+
+
+@dataclass(frozen=True)
+class StopEvidence:
+    """A trusted observation of quiescence, never accepted from request JSON.
+
+    stopped means no owned remote execution remains AND no delayed dispatch
+    for this identity can start later. A local process exit is not this proof.
+    """
+
+    identity: ExecutionIdentity
+    stopped: bool
+
+    def __post_init__(self):
+        if type(self.identity) is not ExecutionIdentity or type(self.stopped) is not bool:
+            raise ValueError("Invalid execution stop evidence")
+
+    def confirms(self, identity):
+        return self.stopped is True and self.identity == identity
 
 
 def _identifier(value, name, *, empty=False):
@@ -163,6 +205,14 @@ class JobStore:
                     UNIQUE (user_id, tenant_id, idempotency_key))""")
                 database.execute("""CREATE UNIQUE INDEX IF NOT EXISTS one_active_job
                     ON jobs ((1)) WHERE state IN ('queued','running','cancelling')""")
+                database.execute("""CREATE TABLE IF NOT EXISTS reservations (
+                    job_id TEXT PRIMARY KEY, execution_id TEXT NOT NULL UNIQUE,
+                    resolved_at REAL)""")
+                # Legacy history has no durable stop proof. Keep resolved rows
+                # as tombstones so reopening cannot resurrect their quarantine.
+                database.execute("""INSERT INTO reservations (job_id, execution_id)
+                    SELECT job_id, lower(hex(randomblob(16))) FROM jobs
+                    WHERE job_id NOT IN (SELECT job_id FROM reservations)""")
                 database.execute("""UPDATE jobs SET state='interrupted',
                     error_code='restart_interrupted', updated_at=?
                     WHERE state IN ('queued','running','cancelling')""", (self._now(),))
@@ -246,6 +296,8 @@ class JobStore:
             if database.execute("""SELECT 1 FROM jobs
                     WHERE state IN ('queued','running','cancelling')""").fetchone():
                 raise StoreBusy("An active job already exists")
+            if database.execute("SELECT 1 FROM reservations WHERE resolved_at IS NULL").fetchone():
+                raise StoreBusy("Execution stop remains unconfirmed")
             now = self._now()
             job_id = uuid4().hex
             database.execute("""INSERT INTO jobs (job_id, user_id, tenant_id,
@@ -254,12 +306,44 @@ class JobStore:
                 VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?)""",
                 (job_id, *owner, idempotency_key, fingerprint, generation_id,
                  generation_epoch, now, now, deadline_at, metadata_json))
+            database.execute("INSERT INTO reservations (job_id, execution_id) VALUES (?, ?)",
+                             (job_id, uuid4().hex))
             record = self._decode(self._find(database, *owner, job_id))
         return record, True
 
     def get(self, user_id, tenant_id, job_id):
         with self._transaction() as database:
             return self._decode(self._find(database, user_id, tenant_id, job_id))
+
+    @staticmethod
+    def _identity(database, row):
+        reservation = database.execute("SELECT execution_id FROM reservations WHERE job_id=?",
+                                       (row["job_id"],)).fetchone()
+        if reservation is None:
+            raise StoreError("Execution reservation is missing")
+        metadata = json.loads(row["metadata"])
+        return ExecutionIdentity(row["job_id"], reservation["execution_id"],
+            row["user_id"], row["tenant_id"], row["generation_id"], row["generation_epoch"],
+            metadata.get("profile_id", ""), metadata.get("repository_alias", ""),
+            metadata.get("task_mode", ""))
+
+    def execution_identity(self, user_id, tenant_id, job_id):
+        with self._transaction() as database:
+            return self._identity(database, self._find(database, user_id, tenant_id, job_id))
+
+    def _resolve(self, database, row, evidence):
+        if (row["state"] not in TERMINAL_STATES or type(evidence) is not StopEvidence
+                or not evidence.confirms(self._identity(database, row))):
+            return False
+        database.execute("""UPDATE reservations SET resolved_at=?
+            WHERE job_id=? AND execution_id=? AND resolved_at IS NULL""",
+            (self._now(), row["job_id"], evidence.identity.execution_id))
+        return True
+
+    def resolve_execution(self, user_id, tenant_id, job_id, evidence):
+        """Release only this terminal reservation; preserve its public history."""
+        with self._transaction() as database:
+            return self._resolve(database, self._find(database, user_id, tenant_id, job_id), evidence)
 
     @staticmethod
     def _progress(result, request_count):
@@ -269,7 +353,7 @@ class JobStore:
         return result_json
 
     def transition(self, user_id, tenant_id, job_id, expected_states, new_state, *,
-                   error_code=None, result=None, request_count=None):
+                   error_code=None, result=None, request_count=None, stop_evidence=None):
         if isinstance(expected_states, str):
             raise ValueError("Expected states must be a collection")
         expected_states = frozenset(expected_states)
@@ -289,6 +373,8 @@ class JobStore:
                 WHERE job_id=? AND state=?""",
                 (new_state, self._now(), error_code, result_json, request_count,
                  job_id, row["state"]))
+            if stop_evidence is not None:
+                self._resolve(database, self._find(database, user_id, tenant_id, job_id), stop_evidence)
         return True
 
     def update_progress(self, user_id, tenant_id, job_id, *, result=None, request_count=None):

@@ -12,7 +12,7 @@ from unittest.mock import patch
 from uuid import UUID
 
 from coding_orchestrator.dispatch import MAX_INPUT_BYTES, MAX_OUTPUT_BYTES, dispatch_job
-from coding_orchestrator.job_store import JobStore
+from coding_orchestrator.job_store import JobStore, StopEvidence
 from coding_orchestrator.jobs import ExecutionProfile, JobError, JobService, Principal
 
 
@@ -78,7 +78,7 @@ class DispatchTests(unittest.TestCase):
             return worker
 
         profile = ExecutionProfile("test-profile", frozenset({"fixture"}), lambda *_: completed_result(),
-                                   lambda *_: self.allowed, lambda *_: self.stopped)
+                                   lambda *_: self.allowed, lambda identity: StopEvidence(identity, self.stopped))
         self.service = JobService(self.store, enabled=True, profile=profile, worker_factory=factory)
         self.addCleanup(self.service.close)
 

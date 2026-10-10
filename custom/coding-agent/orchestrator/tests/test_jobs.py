@@ -8,7 +8,7 @@ import time
 from types import SimpleNamespace
 import unittest
 
-from coding_orchestrator.job_store import IdempotencyConflict, JobNotFound, JobStore, StoreBusy
+from coding_orchestrator.job_store import IdempotencyConflict, JobNotFound, JobStore, StopEvidence, StoreBusy
 from coding_orchestrator.jobs import ExecutionProfile, JobError, JobRequest, JobService, Principal, RunScope
 
 
@@ -61,7 +61,7 @@ class JobServiceTests(unittest.TestCase):
             self.workers.append(worker)
             return worker
         profile = ExecutionProfile("test-profile", frozenset({"fixture"}), lambda *_: result(),
-            lambda *_: self.allowed, lambda *_: self.stopped)
+            lambda *_: self.allowed, lambda identity: StopEvidence(identity, self.stopped))
         self.service = JobService(self.store, profile=profile, enabled=True, worker_factory=factory)
         self.addCleanup(self.service.close)
         self.owner = Principal("owner", "tenant")
@@ -156,9 +156,9 @@ class JobServiceTests(unittest.TestCase):
 
     def test_cancel_during_stop_confirmation_wins_over_completion(self):
         entered, release = threading.Event(), threading.Event()
-        def confirmation(_context):
+        def confirmation(identity):
             entered.set()
-            return release.wait(2)
+            return StopEvidence(identity, release.wait(2))
         self.service.profile = replace(self.service.profile, confirm_stopped=confirmation)
         job = self.service.start_run(self.owner, self.request)
         self.workers[0].outcome = SimpleNamespace(state="completed", result=result(), error_code=None, request_count=0)

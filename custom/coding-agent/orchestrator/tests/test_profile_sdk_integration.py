@@ -16,7 +16,7 @@ import unittest
 from unittest.mock import patch
 from urllib.parse import urlsplit
 
-from coding_orchestrator.job_store import JobStore
+from coding_orchestrator.job_store import JobStore, StopEvidence
 from coding_orchestrator.jobs import JobRequest, JobService, Principal, RunScope
 from coding_orchestrator.openhands_profile import create_openhands_profile
 
@@ -157,9 +157,9 @@ class ExecutorFixture:
             with self.lock:
                 self.in_flight -= 1
 
-    def stopped(self, _context):
+    def stopped(self, identity):
         with self.lock:
-            return self.in_flight == 0
+            return StopEvidence(identity, self.in_flight == 0)
 
     def require_task(self, task_id):
         if task_id != TASK or not self.task.exists():

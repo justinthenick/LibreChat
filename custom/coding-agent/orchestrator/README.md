@@ -250,14 +250,51 @@ unchanged source. Only fixed synthetic code executes in this fixture; it is not
 a sandbox for arbitrary model-written code. Negative cases cover scope/batch
 denials before MCP dispatch, partial evidence, limits and uncertain stops.
 
-Live activation remains blocked on admission quarantine and remote execution
-lease/restart reconciliation. The default stop confirmer always returns false;
-local worker exit does not establish remote executor stop. The synthetic fixture
-can confirm its own synchronous ledger, but that proof does not transfer to a
-live executor. The current job service releases its active slot after recording
-an interrupted run, so a live embedding must first reconcile outstanding work
-before admitting another job. This development profile does not implement that
-activation prerequisite or change the default preview API behavior.
+Live activation remains blocked on an authoritative remote execution identity,
+fencing/status/stop transport and its integration with the dormant reconciler.
+The default stop confirmer returns no evidence; local worker exit does not
+establish remote executor stop. The synthetic fixture can confirm its own
+synchronous ledger, but that proof does not transfer to a live executor.
+
+### Durable admission quarantine
+
+Admission commits a private execution reservation in the same SQLite transaction
+as the job, before constructing or starting a worker. Its unique `execution_id`
+is supplied in `RunContext` for eventual executor correlation. All unresolved
+reservations block new jobs globally, including after cancellation, timeout,
+worker-start/monitor failure or service restart. An identical owner-scoped
+idempotency request still returns its existing job without dispatching again.
+Terminal job outcomes and partial evidence keep their existing meanings; an
+`interrupted` outcome does not clear admission quarantine.
+
+The trusted `ExecutionProfile.confirm_stopped` hook now receives a private
+`ExecutionIdentity` rather than a prompt-bearing `RunContext`, and returns
+`StopEvidence(identity, stopped=True)` or no confirming evidence. Raw booleans
+fail closed. The identity binds execution/job IDs, owner/tenant, generation,
+profile and repository/task scope. A positive observation must prove both that
+owned execution has stopped and that delayed requests cannot start it later;
+process exit, an expired local deadline, a missing executor record or an HTTP
+timeout alone cannot prove that. No credentials, prompts or endpoints are
+stored in this identity or exposed in public job snapshots.
+
+Normal terminal publication and confirmed reservation release are atomic.
+For uncertain terminal jobs, an embedding supervisor may explicitly call
+`JobService.reconcile_run(principal, job_id)`. It rechecks ownership, configured
+profile and repository authorization, queries that trusted hook, and compares
+the complete identity again inside the release transaction. It accepts no
+caller-provided evidence and has no preview protocol/HTTP route. False, missing,
+mismatched or unavailable evidence retains quarantine. Repeated reconciliation
+is safe; it neither rewrites terminal history nor replays work. Resolved rows
+remain durable so restart cannot resurrect their quarantine.
+
+Opening a legacy store conservatively reserves every historical job that lacks
+a reservation, because legacy terminal status is not durable remote-stop proof.
+Such jobs may lack a remotely registered execution identity; they remain blocked
+until a future trusted adapter can establish authoritative evidence for them.
+There is no force-clear, expiry-based release or automatic deletion escape hatch.
+The offline regressions cover this migration, restart, races and persistence
+failures with real SQLite and synthetic workers/remote ledgers. Authentication,
+the live remote reconciler and UI remain unimplemented and disabled.
 
 ## Proxy safety
 
