@@ -304,7 +304,7 @@ until a future trusted adapter can establish authoritative evidence for them.
 There is no force-clear, expiry-based release or automatic deletion escape hatch.
 The offline regressions cover this migration, restart, races and persistence
 failures with real SQLite and synthetic workers/remote ledgers. Authentication,
-the live remote reconciler and UI remain unimplemented and disabled.
+the live remote reconciler and activation remain unimplemented. The preview UI is default-off.
 
 ## Dormant worker supervisor composition
 
@@ -470,7 +470,65 @@ and supervised worker. Existing JWT verification is stubbed only to establish
 test principals; these tests do not validate the application's login system.
 No real repository, provider credential, or model call is used.
 
-Before live activation, implement and review the authenticated transport and
-bounded execution profile, supply the full admission policy, add the preview UI,
-and verify deployment-specific cancellation/restart reconciliation. Integration
+Before live activation, review the embedding authentication and execution profile,
+supply the full admission policy, and verify deployment-specific cancellation/restart reconciliation. Integration
 with the normal resumable chat lifecycle is a separate change.
+
+### Dormant private-pipe integration
+
+`createPreviewPipe` from `@librechat/api/coding` supplies the existing
+`PreviewOptions.transport` and `authorize` interfaces over dedicated Node
+Readable/Writable pipes. `coding_orchestrator.preview_pipe.PreviewPipe` serves
+the existing `dispatch_job` interface over the other ends. Neither implementation
+spawns a process, opens a listener, loads credentials, registers a profile, or
+changes the default router. Both default to disabled and require explicit
+injection. Setting environment flags alone still cannot configure execution.
+
+The embedding process must exclusively own the pipes and authenticate HTTP
+callers using the existing LibreChat middleware. A principal in a frame is an
+assertion of that trusted owner, not network authentication. Never expose this
+protocol as a public socket or let request data select streams/processes.
+Supply an exact principal-to-repository allowlist and a bounded start text/rate
+policy to both ends, and use the same repository policy in `ExecutionProfile`.
+Only `read_only` tasks are accepted. Start admission does not throttle status or
+cancellation. All allowlists are snapshotted at construction; changes require
+new explicit configuration, not caller-supplied fields.
+
+Each exchange has a fresh request ID and an exact principal echo. There is one
+in-flight exchange, no queue, and no automatic retry. Input frames are limited
+to 48 KiB and output frames to 264 KiB including envelope/newline. Node bounds
+the entire exchange, including a stalled write. Invalid UTF-8, duplicate keys,
+oversized/malformed frames, wrong identity/correlation, EOF and timeout poison
+the channel. The owning process must create a new adapter to reconnect. It must
+retain the original start idempotency key and job ID; a disconnected pipe says
+nothing about execution completion or stop.
+
+The Python adapter receives an already-composed `JobService`. Use the existing
+`LedgerWorkerSupervisor.worker_factory` and `confirm_stopped` hook; no parallel
+job lifecycle or reconciliation API is introduced. The trusted owner closes the
+service before its supervisor/store. Restart preserves unresolved reservations;
+missing local handles, lost replies or a mismatched attempt cannot clear them.
+
+`tests/preview/bridge.test.cjs` crosses authenticated synthetic HTTP, the real
+controller, both pipe adapters, dispatcher, SQLite job/execution ledgers and
+supervised child. Only the external authority and runner workload are fixtures.
+Tests cover status/evidence/cancel, idempotency, owner/repository denial, lost
+cancel replies, wrong attempt acknowledgements, and restart without replay.
+The stream tests also cover framing, correlation, concurrent admission and
+stalled writes. Linux CI runs the process/ledger tests; Windows can run the
+stream tests and compile/build the adapter. No live login or provider is tested.
+
+Deployment-specific values still required before activation:
+
+- Trusted process owner, reviewed executable/environment, exclusive pipe
+  ownership and shutdown/restart supervision; this code supplies none of them.
+- Private durable job and executor-ledger directories with compatible ownership,
+  persistence and backup/recovery policy.
+- Exact tenant/user-to-repository aliases, repository paths and read-only access
+  policy; bounded text/rate admission that does not block get/cancel recovery.
+- External supervisor authority ID, authenticated control transport and exact
+  attempt-fenced child configuration using the existing binder. Verify stop and
+  reconciliation against the actual deployment, including unknown outcomes.
+- Reviewed provider authentication/request transport and cost approval, then
+  explicit frontend/backend activation in an approved environment. No default
+  credential, endpoint, authority or production policy is provided here.
