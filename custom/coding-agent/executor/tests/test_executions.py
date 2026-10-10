@@ -292,6 +292,68 @@ class LedgerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.c.ExecutionService(link, self.supervisor)
 
+    def test_orchestrator_identity_vocabulary_roundtrips_without_translation(self):
+        from dataclasses import asdict
+        fixture = {"job_id": "job:123", "execution_id": "execution:123", "user_id": "user@example.com",
+                   "tenant_id": "", "generation_id": "preview:abc", "generation_epoch": 1,
+                   "profile_id": "profile", "repository_alias": "repo", "task_mode": "modification"}
+        identity = self.c.ExecutionIdentity(**fixture)
+        self.assertEqual(asdict(self.service.stop(identity).identity), fixture)
+        readonly = replace(identity, execution_id="readonly", generation_id="readonly", task_mode="read_only")
+        self.assertEqual(self.service.stop(readonly).state, "stopped")
+
+    def test_commit_failure_prevents_dispatch(self):
+        self.service.advance(self.identity)
+        self.service._db.set_authorizer(lambda action, value, *unused:
+                                        sqlite3.SQLITE_DENY if action == sqlite3.SQLITE_TRANSACTION and value == "COMMIT"
+                                        else sqlite3.SQLITE_OK)
+        try:
+            with self.assertRaises(sqlite3.DatabaseError):
+                self.service.start(self.identity, "op", "a" * 64)
+        finally:
+            self.service._db.set_authorizer(None)
+        self.assertEqual(self.service.status(self.identity).operations, ())
+        self.assertEqual(self.supervisor.launches, [])
+
+    def test_supervisor_fence_rejects_delivery_after_lost_launch_reply(self):
+        queued, fenced, executed = [], set(), []
+        def queue(claim):
+            queued.append(claim)
+            raise TimeoutError("queued but reply lost")
+        def fence(claim):
+            fenced.add(claim.attempt_id)
+            self.supervisor.proof = self.c.Observation(claim, "quiescent", True)
+        self.supervisor.on_launch, self.supervisor.on_stop = queue, fence
+        self.assertEqual(self.start().state, "unknown")
+        self.assertEqual(self.service.stop(self.identity).state, "stopped")
+        for claim in queued:
+            if claim.attempt_id not in fenced:
+                executed.append(claim)
+        self.assertEqual(executed, [])
+        self.assertEqual(self.service.status(self.identity).state, "stopped")
+
+    def test_callback_mutation_reentry_is_rejected(self):
+        rejected = []
+        def reenter(claim):
+            for call in (lambda: self.service.stop(self.identity), self.service.close):
+                try:
+                    call()
+                except RuntimeError:
+                    rejected.append(True)
+        self.supervisor.on_launch = reenter
+        self.assertEqual(self.start().state, "running")
+        self.assertEqual(rejected, [True, True])
+        self.assertFalse(self.service.status(self.identity).sealed)
+
+    def test_planted_sqlite_sidecar_symlink_is_rejected(self):
+        self.service.close()
+        sentinel = Path(self.root.name) / "sentinel"
+        sentinel.write_text("preserve")
+        (self.path / "executions.sqlite3-journal").symlink_to(sentinel)
+        with self.assertRaises((ValueError, OSError)):
+            self.c.ExecutionService(self.path, self.supervisor)
+        self.assertEqual(sentinel.read_text(), "preserve")
+
 
 if __name__ == "__main__":
     unittest.main()
