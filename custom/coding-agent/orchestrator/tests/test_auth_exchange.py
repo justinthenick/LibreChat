@@ -251,6 +251,120 @@ class AuthExchangeTests(unittest.TestCase):
             exchange.signing_keys()
         self.assertEqual(len(self.requests), 1)
 
+    def assert_live_failure(self, operation, expected=BackendContractError):
+        # assertRaises clears traceback frames on exit and would hide this bug.
+        try:
+            operation()
+        except Exception as error:
+            self.assertIs(type(error), expected)
+            self.assertIsNone(error.__context__)
+            self.assertIsNone(error.__cause__)
+            self.assertNotIn("retention-canary", str(error))
+            frames = []
+            trace = error.__traceback__
+            while trace is not None:
+                frame = trace.tb_frame
+                if frame.f_globals.get("__name__") == "coding_orchestrator.auth_exchange":
+                    frames.append(frame.f_code.co_name)
+                    # No secret-handling frames, owner/transport, payload, request,
+                    # response or original exception may survive in our traceback.
+                    for name, value in frame.f_locals.items():
+                        if name in {"failure", "category"}:
+                            self.assertIn(value, (BackendContractError, WorkerCancelled,
+                                                  WorkerDeadline, WorkerLimit))
+                        elif name == "failed":
+                            self.assertIs(value, True)
+                        else:
+                            self.assertIn(name, {"self", "refresh_token", "reply"})
+                            self.assertIsNone(value)
+                trace = trace.tb_next
+            self.assertTrue(frames)
+            self.assertNotIn("_exchange", frames)
+            self.assertNotIn("_check", frames)
+        else:
+            self.fail("Expected a live auth failure")
+
+    def test_request_exception_drops_original_chain_and_wrapper_sensitive_frames(self):
+        def secret_failure(request):
+            try:
+                raise ValueError("retention-canary-cause")
+            except ValueError as cause:
+                raise httpx.ReadError("retention-canary-error", request=request) from cause
+        exchange = self.bind(secret_failure)
+        for _ in range(2):
+            self.assert_live_failure(lambda: exchange.refresh("retention-canary-token"))
+        self.assertEqual(len(self.requests), 1)
+
+    def test_stream_and_response_close_failures_drop_collected_body_frames(self):
+        for stage in ("read", "close"):
+            self.counter.value = 0
+            self.requests.clear()
+            class Stream(httpx.SyncByteStream):
+                def __iter__(self):
+                    yield b'{"retention-canary-body":'
+                    if stage == "read":
+                        raise RuntimeError("retention-canary-read")
+                    yield b'"secret"}'
+                def close(self):
+                    if stage == "close":
+                        raise RuntimeError("retention-canary-close")
+            exchange = self.bind(lambda _: httpx.Response(200,
+                headers={"content-type": "application/json"}, stream=Stream()))
+            self.assert_live_failure(lambda: exchange.refresh("retention-canary-token"))
+
+    def test_transport_close_failure_drops_owner_and_context(self):
+        class Transport(httpx.BaseTransport):
+            secret = "retention-canary-cached-by-transport"
+            def close(self):
+                raise RuntimeError(self.secret)
+        exchange = BoundedAuthExchange(self.control, transport=Transport(), enabled=True)
+        self.assert_live_failure(exchange.close)
+
+    def test_pre_dispatch_failures_drop_supplied_token_and_keep_control_category(self):
+        exchange = self.bind()
+        self.assert_live_failure(lambda: exchange.refresh("retention-canary invalid"))
+        disabled = BoundedAuthExchange(self.control)
+        self.assert_live_failure(lambda: disabled.refresh("retention-canary-token"))
+        for category in (WorkerCancelled, WorkerDeadline, WorkerLimit):
+            exchange = self.bind()
+            if category is WorkerCancelled:
+                self.cancelled.set()
+            elif category is WorkerDeadline:
+                self.control._deadline = time.monotonic() - 1
+            else:
+                self.control._maximum = 0
+            self.assert_live_failure(lambda: exchange.refresh("retention-canary-token"), category)
+            self.cancelled.clear()
+            self.control._deadline = time.monotonic() + 10
+            self.control._maximum = 3
+            self.assert_live_failure(exchange.signing_keys, category)
+        self.assertEqual(self.requests, [])
+
+    def test_concurrent_refresh_rejection_drops_both_tokens_from_live_errors(self):
+        entered, release = threading.Event(), threading.Event()
+        failures = []
+        def delayed(_):
+            entered.set()
+            release.wait(3)
+            return httpx.Response(200, headers={"content-type": "application/json"}, content=b"{}")
+        exchange = self.bind(delayed)
+        def run():
+            try:
+                self.assert_live_failure(lambda: exchange.refresh("retention-canary-first"))
+            except Exception as error:
+                failures.append(error)
+        thread = threading.Thread(target=run)
+        thread.start()
+        try:
+            self.assertTrue(entered.wait(2))
+            self.assert_live_failure(lambda: exchange.refresh("retention-canary-second"))
+        finally:
+            release.set()
+            thread.join(3)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(failures, [])
+        self.assertEqual(len(self.requests), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
