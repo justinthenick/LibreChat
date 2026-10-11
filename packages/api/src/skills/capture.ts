@@ -111,6 +111,11 @@ function immutableDraft(draft: SkillDraftCapture): SkillDraftCapture {
   return Object.freeze({ ...draft, source, snapshot });
 }
 
+/** Validate and detach a persisted capture without proposing a state transition. */
+export function validateSkillDraftCapture(draft: SkillDraftCapture): SkillDraftCapture {
+  return immutableDraft(draft);
+}
+
 /** A ready draft is reused unchanged; an incomplete draft must never be returned as usable. */
 export function beginSkillDraft(
   source: CommittedSkillSource,
