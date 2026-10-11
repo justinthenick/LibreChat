@@ -255,6 +255,26 @@ describe('explicit Git generation handoff', () => {
     expect((await api.readSource(actor, sourceId))!.record.generation).toBe(2);
   });
 
+  test('preparation reads the selected retained generation only once', async () => {
+    const original = mongoose.mongo.Collection.prototype.findOne;
+    let generationReads = 0;
+    const spy = jest
+      .spyOn(mongoose.mongo.Collection.prototype, 'findOne')
+      .mockImplementation(async function (
+        this: mongo.Collection,
+        ...args: Parameters<typeof original>
+      ) {
+        if (this.collectionName === 'capture_generations') generationReads++;
+        return original.apply(this, args);
+      });
+    try {
+      await api.prepareDraft('single-generation-read', actor, reservation(selected));
+      expect(generationReads).toBe(1);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   test('sync during the actual retained-generation read cannot change the selection', async () => {
     let entered!: () => void;
     let release!: () => void;

@@ -157,7 +157,10 @@ function validatedCapture(store: CapturePersistence): IsolatedValidatedCapture {
     return snapshotCopy(JSON.parse(json) as SkillBundleSnapshot);
   }
 
-  async function sourceRecord(record: CaptureSource): Promise<StoredSkillSource> {
+  async function sourceRecord(
+    record: CaptureSource,
+    retained?: CaptureSource,
+  ): Promise<StoredSkillSource> {
     validId(record._id);
     if (
       !Number.isSafeInteger(record.generation) ||
@@ -167,7 +170,7 @@ function validatedCapture(store: CapturePersistence): IsolatedValidatedCapture {
       fail();
     const [snapshot, history] = await Promise.all([
       loadSnapshot(record.digest),
-      store.readGeneration(record._id, record.tenantId, record.generation),
+      retained ?? store.readGeneration(record._id, record.tenantId, record.generation),
     ]);
     const manifest = validateSkillBundle(snapshot);
     if (
@@ -350,7 +353,7 @@ function validatedCapture(store: CapturePersistence): IsolatedValidatedCapture {
       readDraft(actor, request.draftId),
     ]);
     if (!record || record.digest !== request.sourceDigest) fail();
-    const source = await sourceRecord(record);
+    const source = await sourceRecord(record, record);
     beginSkillDraft(source.capture, existing?.capture ?? null, {
       draftId: request.draftId,
       name: request.name,
