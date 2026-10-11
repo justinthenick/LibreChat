@@ -17,7 +17,7 @@ RESPONSES_URL = "https://chatgpt.com/backend-api/codex/responses"
 
 
 class BoundedResponses:
-    def __init__(self, llm, control, *, transport=None):
+    def __init__(self, llm, control, *, transport=None, synthetic_dispatch=None):
         # The SDK extra stays optional until an explicitly configured run.
         import httpx
         import litellm
@@ -37,6 +37,13 @@ class BoundedResponses:
 
         self.llm = llm
         self._control = control
+        if synthetic_dispatch is not None:
+            from .credential_dispatch import SyntheticCredentialDispatch
+            if (type(synthetic_dispatch) is not SyntheticCredentialDispatch
+                    or synthetic_dispatch.control is not control
+                    or type(transport) is not httpx.MockTransport):
+                raise BackendContractError("Explicit synthetic credential dispatch required")
+        self._synthetic_dispatch = synthetic_dispatch
         self._model = llm.model
         self._lock = threading.Lock()
         self._thread = None
@@ -115,6 +122,8 @@ class BoundedResponses:
             self._deny("Responses request model changed")
         self._sent = True
         try:
+            if self._synthetic_dispatch is not None:
+                return self._synthetic_dispatch(request, inner)
             self._control.before_provider_request()
         except Exception as error:
             self._failure = error

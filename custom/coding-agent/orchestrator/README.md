@@ -794,3 +794,40 @@ OS isolation, key provenance, account authorization or authoritative remote stop
 Production custodial identity, ACLs, authenticated child delivery, revocation/model
 dispatch fencing, import/cutover and live acceptance still require separate design
 and approval. No real credentials or machine security settings are touched.
+### Synthetic credential use at model dispatch
+
+`SyntheticCredentialDispatch` is a default-off, in-process test connection between
+the existing custody fixture, execution ledger and `BoundedResponses`. It requires
+an explicitly enabled disposable custodian, an admitted exact execution claim and
+an injected `httpx.MockTransport`. The optional `OpenHandsJobRunner` factory is
+unset by default; no route/profile registration or real subscription support is
+enabled. `BoundedResponses` continues rejecting SDK subscription objects and
+ambient SDK credential discovery/refresh.
+
+Each logical model request consumes a durable `model-N` action in the existing
+ledger before its physical request. Recreating the dispatch object restarts at
+the consumed ordinal and cannot replay it. The final fixture call holds custody's
+existing operation lock and the ledger's synthetic dispatch fence: a seal that
+wins first blocks delivery; a call that wins first finishes before a concurrent
+seal can acknowledge. Credential revision/epoch, owner/tenant, ready state,
+expiry, exact live claim and original worker controls are checked. A failed or
+ambiguous call leaves the existing action unknown and execution sealed. No token
+is placed in the action digest/receipt, runner, LLM configuration or original SDK
+request; only a separate fixture wire request receives it, and its auth headers
+are removed on exit. Responses are bounded raw bytes with compression rejected;
+literal token reflection is rejected before SDK parsing. This is not a general
+secret-redaction guarantee for transformed or encoded model output.
+
+The offline tests run real SQLite, bounded token rotation, pinned SDK parsing and
+a finish-only SDK conversation through the actual runner. Only the executor tool
+catalog is substituted to avoid MCP networking. They cover stale/wrong-owner and
+revoked claims, credential revocation, expiry, cancellation, delayed dispatch,
+two concurrent callers, single-use reconstruction, cleanup and error sanitization.
+
+Proof limits: fixture callbacks are trusted and cooperative. Holding the ledger
+lock means a blocked handler also delays seal/timeout acknowledgment; this is not
+a hard caller-wait bound, private credential-delivery channel, OS sandbox or proof
+that remote work stopped. Uncontained workers can bypass Python wrappers. No live
+auth files, service identity/ACLs, provider compatibility or network behavior are
+established. Actual authenticated worker delivery, trusted provider key provenance
+and reviewed containment remain prerequisites for any future activation.

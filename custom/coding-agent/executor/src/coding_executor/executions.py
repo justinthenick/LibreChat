@@ -479,6 +479,28 @@ class ExecutionService:
             self._db.execute("UPDATE dispatch_limits SET task_id=? WHERE attempt_id=?",
                              (task_id, claim.attempt_id))
 
+    @contextmanager
+    def synthetic_dispatch_fence(self, claim: Claim, action_id: str, *, enabled=False):
+        """Order a trusted synchronous fixture dispatch with claim sealing.
+
+        Only the admitted action may enter. Hold through the injected fixture
+        call; a concurrent seal cannot acknowledge until it leaves. This is not
+        containment or a bounded network transport and must never wrap live I/O.
+        """
+        if enabled is not True:
+            raise ExecutionConflict("synthetic dispatch disabled")
+        with self._access():
+            record, operation = self._claim_record(claim)
+            action = self._db.execute(
+                "SELECT state FROM dispatch_actions WHERE attempt_id=? AND action_id=?",
+                (claim.attempt_id, action_id)).fetchone()
+            if (record["sealed"] or operation["state"] != "running"
+                    or claim.attempt_id not in self._active_actions
+                    or action is None or action['state'] != 'unknown'
+                    or time.monotonic() >= self._dispatch_deadlines.get(claim.attempt_id, 0)):
+                raise ExecutionConflict("synthetic dispatch fenced")
+            yield self._dispatch_deadlines[claim.attempt_id]
+
     def dispatch(self, claim: Claim, action_id: str, digest: str, action):
         """Consume one durable action before bounded caller wait; never replay side effects.
 

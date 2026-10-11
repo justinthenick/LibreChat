@@ -291,6 +291,25 @@ class SyntheticCredentialCustodian:
                     pass
             return None, category
 
+    def revoke_fixture(self, claim, revision, epoch):
+        """Fence future synthetic credential use; does not prove remote stop."""
+        result = error = None
+        row = db = None
+        try:
+            with self._guard(), self._transaction() as db:
+                row, _ = self._bound(db, claim, revision, epoch)
+                _require(row['revision'] == revision)
+                db.execute("UPDATE credential SET state='revoked', revision=?, epoch=?, "
+                           'access_token=NULL, expires_at=NULL WHERE id=1',
+                           (revision + 1, epoch + 1))
+                result = RotationOutcome('revoked', revision + 1, epoch + 1)
+        except Exception:
+            error = CustodyError
+        self = claim = revision = epoch = row = db = None
+        if error:
+            _raise(error)
+        return result
+
     def reauthenticate_fixture(self, claim, revision, epoch, refresh_token):
         """Explicit fake enrollment only; no login, discovery or provider call."""
         result = error = None
