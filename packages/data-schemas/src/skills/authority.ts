@@ -13,6 +13,23 @@ export interface SyntheticCaptureGrant extends CaptureAuthorization {
   operations: readonly CaptureOperation[];
 }
 
+export interface IsolatedCaptureAuthority {
+  replace: (
+    actor: CaptureIdentity,
+    sourceId: string,
+    expectedEpoch: number,
+    operations: readonly CaptureOperation[],
+  ) => Promise<SyntheticCaptureGrant>;
+  read: (actor: CaptureIdentity, sourceId: string) => Promise<SyntheticCaptureGrant | null>;
+  fence: (
+    session: mongo.ClientSession,
+    authorization: CaptureAuthorization,
+    actor: CaptureIdentity,
+    sourceId: string,
+    operation: CaptureOperation,
+  ) => Promise<void>;
+}
+
 interface AuthorityRecord extends SyntheticCaptureGrant {
   _id: string;
   uses: number;
@@ -49,7 +66,9 @@ export function captureAuthorizationCopy(input: CaptureAuthorization): CaptureAu
 }
 
 /** Isolated proof only: this grants synthetic actors, never application users or ACL entries. */
-export async function createIsolatedCaptureAuthority(connection: Connection) {
+export async function createIsolatedCaptureAuthority(
+  connection: Connection,
+): Promise<IsolatedCaptureAuthority> {
   const db = connection.db;
   if (!db || !/^test_skill_capture_[a-z0-9_]+$/.test(db.databaseName))
     throw new Error('skill_capture_isolation_required');
