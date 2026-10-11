@@ -513,6 +513,19 @@ export default function useStepHandler({
       'tool_call' in contentPart &&
       isOAuthToolCallName(contentPart.tool_call?.name);
 
+    // Stream indices follow arrival order, which may differ from the seeded
+    // column order. Keep pending agent identities before a server slot replaces
+    // a placeholder; real content must retain its server-assigned index.
+    const pendingColumns = (message.content ?? [])
+      .filter((part): boolean => {
+        if (part == null) {
+          return false;
+        }
+        const { agentId, groupId } = part;
+        return !part.type && !!agentId && groupId != null;
+      })
+      .map((part) => ({ ...part }));
+
     let updatedContent = [...(message.content || [])] as Array<
       Partial<TMessageContentParts> | undefined
     >;
@@ -677,6 +690,34 @@ export default function useStepHandler({
       }
       if (metadata.groupId != null) {
         part.groupId = metadata.groupId;
+      }
+    }
+
+    // A rescued placeholder may occupy a later slot when its agent's real
+    // content arrives. Retire it without shifting any server content indices
+    // or leaving an empty tail that would consume the streaming cursor.
+    updatedContent = updatedContent.map((part) => {
+      if (part == null) {
+        return part;
+      }
+      const { agentId, groupId } = part;
+      if (part.type || !agentId || groupId == null) {
+        return part;
+      }
+      return updatedContent.some(
+        (candidate) =>
+          candidate?.type && candidate.agentId === agentId && candidate.groupId === groupId,
+      )
+        ? undefined
+        : part;
+    });
+
+    for (const placeholder of pendingColumns) {
+      const represented = updatedContent.some(
+        (part) => part?.agentId === placeholder.agentId && part?.groupId === placeholder.groupId,
+      );
+      if (!represented) {
+        updatedContent.push(placeholder);
       }
     }
 

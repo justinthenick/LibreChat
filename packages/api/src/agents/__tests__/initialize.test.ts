@@ -1623,6 +1623,32 @@ describe('initializeAgent — manual skill priming (Phase 3)', () => {
     after: null,
   });
 
+  it.each([false, true])(
+    'rejects explicit selections with empty scope before loading tools (missing lookup: %s)',
+    async (missingLookup) => {
+      const { agent, req, res, loadTools, db } = createMocks();
+      const getSkillByName = jest.fn();
+      await expect(
+        initializeAgent(
+          {
+            req,
+            res,
+            agent,
+            loadTools,
+            endpointOption: { endpoint: EModelEndpoint.agents },
+            allowedProviders: new Set([Providers.OPENAI]),
+            isInitialAgent: true,
+            accessibleSkillIds: [],
+            manualSkills: [`example@@000000000000000000000001@@${'a'.repeat(64)}`],
+          },
+          { ...db, getSkillByName: missingLookup ? undefined : getSkillByName },
+        ),
+      ).rejects.toThrow('invalid_skill_selection');
+      expect(getSkillByName).not.toHaveBeenCalled();
+      expect(loadTools).not.toHaveBeenCalled();
+    },
+  );
+
   it('attaches resolved manual skill primes to the initialized agent', async () => {
     const { agent, req, res, loadTools, db } = createMocks();
     const { Types } = await import('mongoose');

@@ -141,6 +141,222 @@ stores. Network refresh/login and CLI execution boundaries are mocked where
 needed; unit tests do not consume subscription usage. The real executor smoke
 and real-model acceptance are separate, explicit operator commands.
 
+## Optional execution-job boundary (not activated)
+
+`coding_orchestrator.jobs` adds transport-neutral `start_run`, `get_run` and
+`cancel_run` operations. They are disabled by default. There is no listener,
+CLI activation command or registered production execution profile. The Google
+Pilot, LibreChat agent selection and Synology startup remain unchanged.
+
+An embedding application must supply a private SQLite state path, a trusted
+authenticated user/tenant `Principal`, and an explicitly enabled
+`ExecutionProfile`. A principal object is not authentication: the future
+LibreChat adapter must derive it from existing auth/ACL middleware, never from
+request JSON. The profile supplies repository authorization, a static trusted
+runner and a nonblocking check that its owned execution has stopped. Requests
+cannot choose credentials, endpoints, filesystem paths, modules or commands.
+Keep profile code/import paths and state outside model-editable worktrees.
+
+`JobRequest` supplies the prompt, repository alias/task mode, owner-scoped
+idempotency key, generation ID/epoch and lowerable limits. Maximum limits are ten
+physical provider requests and 300 seconds from admission. Reviewed runners must
+call `WorkerControl.before_provider_request()` immediately before each physical
+dispatch, disable retries/fallback, and enforce repository/task scope. The job
+layer does not automatically instrument arbitrary callables. No live profile,
+ambient credential discovery or login is installed here. These bounds are not
+token or spending caps.
+
+SQLite admission/transitions are atomic, with an exclusive service-instance lock
+and one active slot. Repeating an identical owner/key/request returns its existing
+job; changing the payload conflicts. Prompt text is not persisted in the job
+database. Public status excludes owner identities and internal fingerprints.
+Explicit cancellation records cancelling before stopping dispatch. It becomes
+cancelled only after local and profile-owned execution are confirmed stopped;
+otherwise it is interrupted with `execution_stop_unconfirmed`. Generation epochs
+fence stale aborts, and cancellation cannot be overwritten by late completion.
+
+Workers isolate environment/HOME/state, enforce a parent deadline plus a kernel
+alarm, and stop their owned process group before reaping the leader. This is
+process supervision, not a repository/network sandbox. Remote execution and
+processes escaping the session require separate profile lease reconciliation.
+After restart, active records become interrupted and are never replayed; this
+does not prove remote work stopped. Before activation, the embedding supervisor
+must reconcile old leases before admitting new work. No automatic record or
+artifact deletion is performed.
+
+`EvidenceCollector` accepts matched SDK action/observation identities and keeps
+task/source metadata, bounded diff/status and check exit/truncation details plus
+output hashes. Exploratory contents and finish prose are not retained. A passing
+rerun may supersede its baseline failure, but an overlapping or pre-patch check
+cannot verify a later mutation. `observed_checks_status`, `evidence_complete` and
+job completion are distinct; finish alone never proves tests passed. Partial
+evidence survives failure/cancellation, with consistent UTF-8 JSON limits through
+collection, IPC and storage.
+
+`OpenHandsBackend.run(..., on_event=callback)` exposes real SDK events without
+changing default CLI behavior or the exact nine-executor-tools-plus-finish map.
+The offline tests cover races/recovery, worker deadlines/descendants, matched
+evidence and a real pinned SDK job using `TestLLM` and loopback MCP. They use no
+Docker, provider credentials or live model calls.
+
+A later LibreChat client adapter must reuse GenerationJobManager for chat/SSE
+replay and durable message publication, propagate authenticated ownership and
+explicit aborts, fence late events by generation epoch, and await the existing
+persistence barrier before FINAL. SSE disconnect is not automatically cancel.
+Chat resume, steering, approvals, maintenance tools and skill parity are not
+implemented by this job boundary.
+
+### Dormant SDK execution profile
+
+`openhands_profile.create_openhands_profile` assembles a reusable SDK runner for
+the job boundary. It is not registered with the preview API, enabled by an
+environment flag, or exposed through a new CLI command. Tests are its only
+checked-in caller. Trusted server code must supply repository authorization,
+the endpoint, and fresh child-side token/LLM factories. Factories must not capture
+credentials: the worker serializes its runner before starting. This module does
+not discover credentials, log in, reuse an operator's auth cache or provision an
+executor. It accepts only the existing `openai/gpt-5.6-sol` Codex route.
+SDK subscription LLM objects are rejected: their separate credential discovery,
+refresh and account-header validation can make requests before the guarded
+inference transport. Integrating a reviewed authentication boundary remains a
+prerequisite for live subscription use. The injected LLM in the offline fixture
+contains only synthetic credentials and never invokes that path.
+
+`BoundedResponses` binds one synchronous SDK LLM instance to an owned HTTP client.
+It checks the exact destination/model and calls the worker's request gate
+immediately before each physical dispatch. SDK/LiteLLM retries, prompt caching,
+fallback and auth-refresh callbacks are disabled; async/chat inference and a
+second dispatch within one logical call fail closed. Provider/parser failures
+are sticky, including errors the SDK would otherwise catch and retry on another
+turn. The existing SDK parses
+responses. The parent worker deadline still bounds the whole job; these controls
+are not token or subscription-usage caps. The adapter relies on the pinned SDK
+and LiteLLM's synchronous `HTTPHandler` interface, which the real-path regression
+tests exercise. Dependency updates must retain those tests.
+
+Before tool dispatch, the profile checks the selected repository and explicit
+task mode, permits only the observed task ID, and rejects patches in read-only
+mode. Repository inventory and multi-action responses are rejected. Under the
+pinned SDK the entire action batch is emitted before execution, so a denied
+action prevents even earlier actions in that batch from reaching MCP. Evidence
+continues to use matched action/observation IDs; errors, limits and cancellation
+retain partial evidence and never make finish prose count as successful checks.
+
+The offline integration test runs JobService, its child worker, the actual SDK,
+a fake physical provider transport and a loopback MCP fixture. It creates a
+synthetic worktree, observes a failing check, applies one exact trusted patch,
+reruns the same check successfully, and verifies diff/status evidence plus the
+unchanged source. Only fixed synthetic code executes in this fixture; it is not
+a sandbox for arbitrary model-written code. Negative cases cover scope/batch
+denials before MCP dispatch, partial evidence, limits and uncertain stops.
+
+Live activation remains blocked on an authoritative remote execution identity,
+fencing/status/stop transport and its integration with the dormant reconciler.
+The default stop confirmer returns no evidence; local worker exit does not
+establish remote executor stop. The synthetic fixture can confirm its own
+synchronous ledger, but that proof does not transfer to a live executor.
+
+### Durable admission quarantine
+
+Admission commits a private execution reservation in the same SQLite transaction
+as the job, before constructing or starting a worker. Its unique `execution_id`
+is supplied in `RunContext` for eventual executor correlation. All unresolved
+reservations block new jobs globally, including after cancellation, timeout,
+worker-start/monitor failure or service restart. An identical owner-scoped
+idempotency request still returns its existing job without dispatching again.
+Terminal job outcomes and partial evidence keep their existing meanings; an
+`interrupted` outcome does not clear admission quarantine.
+
+There is one synchronous no-dispatch case: a freshly admitted job can fail before
+the worker factory is invoked, for example when a tiny deadline expires during
+admission. The service then atomically records failure and resolves that exact
+reservation from its own control-flow proof that dispatch never became possible.
+Once factory invocation begins, even an exception without a returned worker is
+ambiguous and retains quarantine. Queued state, zero requests, an expired deadline
+or restart alone never establish this proof; failed persistence retains the
+reservation. Idempotent retries preserve the failed job without replay.
+
+The trusted `ExecutionProfile.confirm_stopped` hook now receives a private
+`ExecutionIdentity` rather than a prompt-bearing `RunContext`, and returns
+`StopEvidence(identity, stopped=True)` or no confirming evidence. Raw booleans
+fail closed. The identity binds execution/job IDs, owner/tenant, generation,
+profile and repository/task scope. A positive observation must prove both that
+owned execution has stopped and that delayed requests cannot start it later;
+process exit, an expired local deadline, a missing executor record or an HTTP
+timeout alone cannot prove that. No credentials, prompts or endpoints are
+stored in this identity or exposed in public job snapshots.
+
+Normal terminal publication and confirmed reservation release are atomic.
+For uncertain terminal jobs, an embedding supervisor may explicitly call
+`JobService.reconcile_run(principal, job_id)`. It rechecks ownership, configured
+profile and repository authorization, queries that trusted hook, and compares
+the complete identity again inside the release transaction. It accepts no
+caller-provided evidence and has no preview protocol/HTTP route. False, missing,
+mismatched or unavailable evidence retains quarantine. Repeated reconciliation
+also waits for any currently owned local worker to finish cleanup. It
+is safe; it neither rewrites terminal history nor replays work. Resolved rows
+remain durable so restart cannot resurrect their quarantine.
+
+Opening a legacy store conservatively reserves every historical job that lacks
+a reservation, because legacy terminal status is not durable remote-stop proof.
+Such jobs may lack a remotely registered execution identity; they remain blocked
+until a future trusted adapter can establish authoritative evidence for them.
+There is no force-clear, expiry-based release or automatic deletion escape hatch.
+The offline regressions cover this migration, restart, races and persistence
+failures with real SQLite and synthetic workers/remote ledgers. Authentication,
+the live remote reconciler and activation remain unimplemented. The preview UI is default-off.
+
+## Dormant worker supervisor composition
+
+`worker_supervisor.LedgerWorkerSupervisor` is an optional Linux embedding module
+requiring both the orchestrator and executor packages to be installed. It is not
+imported by the default server or registered as a profile. Supply an authenticated
+identity resolver, an external executor `Supervisor` authority and a trusted
+`bind_runner(runner, claim)` factory. The binder must return picklable child
+configuration that binds every external request to the exact durable attempt;
+neither bearer-token presence nor an idle socket establishes that contract.
+
+Pass its `worker_factory` and `confirm_stopped` hooks explicitly to the existing
+job/profile interfaces. Claims commit before one authority launch and child
+dispatch. A matching running acknowledgement is required before the child starts.
+Binding and serialization consume the original monotonic deadline; existing
+request caps remain enforced by `ProcessWorker`. Local cancellation does not
+call the external authority. Terminal publication requires local quiescence and
+exact external quiescence with delayed-request fencing. Unknown launch or stop
+replies retain quarantine, and restart never infers local stop from a missing
+handle. Close the JobService before closing this ledger owner.
+
+Launch/binding callbacks are trusted, synchronous and must be bounded by the
+embedding application. Stop confirmation uses the bounded stop adapter below;
+it cannot terminate a stuck callback. No live authority, authentication grant,
+credential resolution or network permission is installed. Synthetic tests use
+the real SDK, process worker and SQLite ledgers with a fixture authority whose
+loopback MCP endpoint checks the attempt token and rejects requests after seal.
+
+## Dormant executor stop adapter
+
+`ExecutorStopAdapter` in `coding_orchestrator.executor_adapter` can be explicitly
+supplied as a profile's `confirm_stopped` hook. It is not registered or instantiated
+by production code. Its trusted control callback must idempotently seal and stop
+the exact executor identity and return `{authority_id, status}` with the complete
+`ExecutionService.stop` snapshot. Authentication and remote transport remain
+unimplemented; the adapter cannot establish trust in an arbitrary response.
+
+Confirmation waits at most its configured positive budget (maximum one second).
+One timed-out daemon callback remains pending, with no queue or automatic retries;
+another identity cannot consume its result. A later explicit call for the same
+identity may consume late evidence. A permanently hung callback retains quarantine
+and occupies the adapter; timeout does not kill or cancel remote work. The real
+transport must enforce its own resource and deadline limits before activation.
+
+Only the configured authority, exact full identity, durable sealed/stopped state
+and at most 64 distinct stopped operation claims produce `StopEvidence`. Missing,
+malformed, mismatched or uncertain evidence returns no confirmation. Synthetic
+tests connect the real job and executor SQLite ledgers to a fake supervisor and
+check bounded cancellation, admission quarantine, explicit reconciliation and
+idempotent retry without replay. No HTTP/MCP routes, credentials or live profiles
+are added.
+
 ## Proxy safety
 
 Plaintext HTTP is limited to literal loopback addresses and is rejected whenever
@@ -204,3 +420,234 @@ pushes to `server/synology`. It uses read-only repository permissions, no saved
 checkout credentials, immutable action revisions, and no secrets. Top-level
 SDK/test dependencies are pinned; transitive dependencies are not fully locked.
 A passing local suite does not mean GitHub Actions has run for an unpublished patch.
+# Disabled preview job-control API
+
+The optional `/api/agents/preview` routes expose the job boundary to a future
+preview interface. They are a separate API with immutable preview job IDs;
+they do not create chat turns, publish chat SSE events, or persist chat history.
+The existing Google Pilot and normal chat routes keep their current behavior.
+
+The routes run after LibreChat's existing JWT authentication and ban checks.
+With the default configuration they return `404 preview_jobs_disabled`.
+`CODING_OPENHANDS_PREVIEW=true` alone returns `503 job_service_unavailable`:
+no live transport, credentials, or execution profile are installed by this code.
+The server-only `createPreviewRouter` factory accepts an explicitly supplied
+transport and admission policy for integration; request JSON cannot supply them.
+
+- `POST /jobs`: accepts `prompt`, `idempotency_key`, `scope` (repository alias
+  and `read_only` or `modification` task mode), plus optional `max_requests`
+  and `timeout_seconds` (defaults 10 and 300).
+- `GET /jobs/:jobId`: returns an owner- and tenant-scoped snapshot.
+- `POST /jobs/:jobId/cancel`: accepts an empty body and requests cancellation
+  using the stored preview generation identity. A request is not proof that
+  remote execution has stopped; the returned job state remains authoritative.
+- Resume and steering routes reject the operation. Disconnecting HTTP does not
+  cancel execution. There is no automatic transport retry or provider fallback.
+
+Identity comes only from authenticated `req.user.id` and `req.user.tenantId`.
+The Python dispatcher takes a trusted `Principal` separately from command JSON.
+An eventual transport must authenticate its caller and preserve that identity;
+the stdin/stdout fixture is test-only and is not a deployable auth service.
+The required server admission policy must enforce repository access and, for
+start, text/rate policy before dispatch. Mounting this API does not inherit the
+normal chat router's moderation, conversation ACL, or message-limiter chain.
+Repository authorization is checked again before returning status or cancelling.
+
+Commands use a versioned, closed schema with a 40 KiB serialized JSON budget;
+snapshots use a 256 KiB budget. The controller also checks Content-Length when
+present. These are parsed-payload limits, not a replacement for the application's
+global raw-body parser limit. Errors use fixed codes and responses use no-store.
+An unavailable/timeout response does not establish whether remote work started
+or stopped. Retain the idempotency key and job ID when reconciling that outcome.
+Completion, observed check results, and complete evidence remain separate fields.
+
+The focused test toolchain lives in `tests/preview` with an exact lockfile.
+`run.cjs` uses existing Node 24 and Python interpreters plus an explicitly supplied
+installed toolchain (`PREVIEW_TEST_TOOLS` and `PREVIEW_TEST_PYTHON`); it installs
+nothing itself. Tests compile the real TypeScript controller, load the actual
+Express routes, and exchange synthetic jobs with the real Python store/service
+and supervised worker. Existing JWT verification is stubbed only to establish
+test principals; these tests do not validate the application's login system.
+No real repository, provider credential, or model call is used.
+
+Before live activation, review the embedding authentication and execution profile,
+supply the full admission policy, and verify deployment-specific cancellation/restart reconciliation. Integration
+with the normal resumable chat lifecycle is a separate change.
+
+### Dormant private-pipe integration
+
+`createPreviewPipe` from `@librechat/api/coding` supplies the existing
+`PreviewOptions.transport` and `authorize` interfaces over dedicated Node
+Readable/Writable pipes. `coding_orchestrator.preview_pipe.PreviewPipe` serves
+the existing `dispatch_job` interface over the other ends. Neither implementation
+spawns a process, opens a listener, loads credentials, registers a profile, or
+changes the default router. Both default to disabled and require explicit
+injection. Setting environment flags alone still cannot configure execution.
+
+The embedding process must exclusively own the pipes and authenticate HTTP
+callers using the existing LibreChat middleware. A principal in a frame is an
+assertion of that trusted owner, not network authentication. Never expose this
+protocol as a public socket or let request data select streams/processes.
+Supply an exact principal-to-repository allowlist and a bounded start text/rate
+policy to both ends, and use the same repository policy in `ExecutionProfile`.
+Only `read_only` tasks are accepted. Start admission does not throttle status or
+cancellation. All allowlists are snapshotted at construction; changes require
+new explicit configuration, not caller-supplied fields.
+
+Each exchange has a fresh request ID and an exact principal echo. There is one
+in-flight exchange, no queue, and no automatic retry. Input frames are limited
+to 48 KiB and output frames to 264 KiB including envelope/newline. Node bounds
+the entire exchange, including a stalled write. Invalid UTF-8, duplicate keys,
+oversized/malformed frames, wrong identity/correlation, EOF and timeout poison
+the channel. The owning process must create a new adapter to reconnect. It must
+retain the original start idempotency key and job ID; a disconnected pipe says
+nothing about execution completion or stop.
+
+The Python adapter receives an already-composed `JobService`. Use the existing
+`LedgerWorkerSupervisor.worker_factory` and `confirm_stopped` hook; no parallel
+job lifecycle or reconciliation API is introduced. The trusted owner closes the
+service before its supervisor/store. Restart preserves unresolved reservations;
+missing local handles, lost replies or a mismatched attempt cannot clear them.
+
+`tests/preview/bridge.test.cjs` crosses authenticated synthetic HTTP, the real
+controller, both pipe adapters, dispatcher, SQLite job/execution ledgers and
+supervised child. Only the external authority and runner workload are fixtures.
+Tests cover status/evidence/cancel, idempotency, owner/repository denial, lost
+cancel replies, wrong attempt acknowledgements, and restart without replay.
+The stream tests also cover framing, correlation, concurrent admission and
+stalled writes. Linux CI runs the process/ledger tests; Windows can run the
+stream tests and compile/build the adapter. No live login or provider is tested.
+
+Deployment-specific values still required before activation:
+
+- Trusted process owner, reviewed executable/environment, exclusive pipe
+  ownership and shutdown/restart supervision; this code supplies none of them.
+- Private durable job and executor-ledger directories with compatible ownership,
+  persistence and backup/recovery policy.
+- Exact tenant/user-to-repository aliases, repository paths and read-only access
+  policy; bounded text/rate admission that does not block get/cancel recovery.
+- External supervisor authority ID, authenticated control transport and exact
+  attempt-fenced child configuration using the existing binder. Verify stop and
+  reconciliation against the actual deployment, including unknown outcomes.
+- Reviewed provider authentication/request transport and cost approval, then
+  explicit frontend/backend activation in an approved environment. No default
+  credential, endpoint, authority or production policy is provided here.
+
+
+### Offline HTTP-to-SDK composition and live transport decision
+
+The preview HTTP fixture can now compose `createPreviewJobHandlers` through both
+private-pipe adapters, `dispatch_job`, `JobService`, `LedgerWorkerSupervisor`, the
+real SDK profile and the existing attempt-fenced loopback MCP fixture. Only HTTP
+principals, provider responses and executor authority are synthetic. The read-only
+fixture deliberately reports a failing check with complete evidence: job completion
+must not be confused with a passing check. Limits, deadline and unknown stop proof
+remain enforced across this composition. The UI itself is covered separately by
+its component/HTTP tests; this is not full browser or live-login acceptance.
+
+The installed executor MCP interface exposes repository/task tools under
+`coding:execute`; maintenance uses a different token and `coding:maintain` scope.
+Neither server exports preview jobs or attempt launch/stop/observation. Static
+bearer authentication identifies the LibreChat client, not an end-user/tenant or
+an execution attempt. The existing ACP stdio adapter owns a different workload
+and does not implement this job protocol. Reusing those tokens would expand their
+authority and cannot be inferred from existing connectivity.
+
+A concrete proposal requiring an operator decision is one separate, private Clare
+preview broker, with NAS-only mutual TLS and a dedicated client identity. It would
+own the job service and durable ledgers and accept principal assertions only from
+the authenticated NAS adapter. Reuse the closed dispatch schema, admission grants
+and supervisor interfaces; implement an executor-side attempt fence and exact
+stop observation before live use. Keep the executor/maintenance credentials and
+privileges separate. This adds a process and certificate lifecycle but avoids
+extending maintenance authority. It is a proposal, not an installed service or an
+authentication implementation. Address/port, service account, certificate source,
+ledger locations and grants remain unspecified pending that decision.
+
+The subscription CLI's `OpenHandsProviderConfig` can load/refresh SDK-managed
+authentication, but is not a compatible factory for `BoundedResponses`: discovery,
+refresh and account-header validation may dispatch outside its request gate.
+Existing offline provider tests cover that SDK contract; the preview continues to
+reject subscription LLM objects. A reviewed bounded authentication integration is
+still required; no operator auth files or credential caches are touched here.
+
+
+### Dormant certificate-authenticated preview broker
+
+`PreviewBroker.handle(accepted_socket)` processes one HTTPS `POST /preview/v1`
+using the existing finite frame exchange. It binds no port, registers no route or
+service, opens no certificate file and defaults off. The trusted host injects an
+SSLContext requiring client certificates, an exact NAS certificate SHA-256 pin,
+a client realm ID, immutable principal/repository grants, bounded start admission,
+and an already composed JobService. Use one NAS identity realm per store for its
+entire lifetime; certificate rotation within that realm is explicit host policy.
+Do not share the store across independent NAS identity namespaces.
+
+`createPreviewHttps` implements the existing TypeScript transport interface with
+an injected client SecureContext, fixed HTTPS endpoint and exact server certificate
+pin. It validates the server chain and hostname, performs one bounded exchange,
+and never follows redirects or retries. API principal values still originate in
+authenticated `req.user`; mTLS authenticates the NAS, not individual users. The
+broker accepts assertions only within its configured grants. Forwarded identity
+headers and request-selected endpoints, commands, paths or attempt proofs grant
+no authority. Keep supplied TLS contexts exclusively owned and immutable.
+
+There is one active broker exchange and no queue. Header bytes, frame bytes and
+absolute TLS/read/write time are bounded; host acceptance/concurrency must also be
+bounded. Supplied admission and JobService callbacks remain trusted bounded code.
+An expired connection cannot undo admitted work and never proves stop. Correlation
+IDs match replies; they are not durable execution identities. Repeated starts use
+the original idempotency key and immutable job ID. Cancel derives generation from
+owned durable state; callers cannot supply generation/attempt bindings. Existing
+supervisor claims and its child binder retain attempt enforcement. This broker
+adds no executor authority and does not implement the missing live executor fence
+or bounded subscription authentication.
+
+Synthetic tests create temporary CA/client/server certificates, use real loopback
+TLS and the actual HTTP/controller/job/supervisor path. They cover trusted-but-wrong
+and untrusted/missing clients, server identity, owner/tenant denial, replay, stale
+attempt fields, unknown stop, lost replies/restart and malformed/slow input. The
+broker fixtures do not authenticate a real NAS or load any operator auth files.
+
+Setup checklist (not applied):
+
+| Value | Required source |
+| --- | --- |
+| NAS runtime source/image, current executor endpoint/version, existing supervisor capabilities | Local read-only inspection through an approved route; WSL access is not established here |
+| Existing private addressing, certificate-management availability, service accounts and durable storage capacity | Local inspection; do not read or copy private keys/auth files |
+| Dedicated broker process placement/account, listener address/port and NAS-only network policy | User security/deployment decision |
+| Dedicated client/server certificate issuer, exact pins, names, expiry/rotation and revocation procedure | User authentication decision; no reuse of executor/maintenance tokens |
+| Job/attempt ledger paths, ownership, persistence and recovery policy | User storage/access decision after inspection |
+| NAS realm ID, exact user/tenant grants, synthetic repository alias/path and start policy | User access decision; synthetic read-only repository first |
+| Live executor attempt-fence authority/binder and bounded subscription-auth integration | Further implementation and reviewed acceptance; broker configuration alone is insufficient |
+| Explicit default-off switches, rollout/rollback source and image digest, restart window | Deployment decision after acceptance; no NAS restart merely to deliver dormant code |
+
+
+### Dormant SDK workspace binding
+
+`bind_sdk_runner` supplies a trusted child-side factory for a claim-bound dispatch
+capability. After normal MCP discovery and exact tool-contract verification,
+`BoundActions` replaces the pinned SDK tool executors. Each execution must match
+the pending SDK action name and canonical arguments; its stable tool-call ID is
+hashed into the existing ledger receipt ID. A mismatch or uncertain reply latches
+failure. The binder never retries and never forwards a tool call through the
+legacy MCP executor. Finish remains local. The ordinary runner remains unchanged
+unless a host explicitly supplies this binding.
+
+The host capability authenticates the exact persisted Claim and delivers to
+`coding_executor.sdk.SDKWorkspace`. Model arguments cannot select claims,
+receipts or budgets. Repository/mode and durable task ownership are checked before
+translation; create uses the host-derived task name at HEAD, and check commands
+must match fixed host aliases. Only the existing closed read-only dispatch is
+supported. Admission is outside the supervisor launch callback, after the exact
+running acknowledgement; it uses the original worker monotonic deadline. A pending
+preparation is never local stop proof. Relative admission time and repeated
+configuration cannot renew that deadline.
+
+Factories must be picklable trusted configuration with no captured credentials or
+ledger objects. Production delivery/authentication is deliberately not supplied;
+the HTTP route exists only in the synthetic fixture. This binding does not solve
+external containment or bounded subscription authentication, register a profile,
+or enable a listener. Process-group cleanup does not prove escaped descendants
+stopped; exact external fenced quiescence remains required after timeout, lost
+reply and restart. Restart rejects old action delivery without replaying it.

@@ -10,6 +10,7 @@ import {
 
 type Target = {
   name: string;
+  content?: string;
   point: Point;
 };
 
@@ -118,13 +119,19 @@ function conversationTargets(state: State): Target[] {
       if (element.querySelector('[aria-current="page"]')) {
         return [];
       }
+      const conversationId = element.getAttribute('data-conversation-id');
+      if (!conversationId || conversationId === 'new') {
+        return [];
+      }
       const point = visiblePoint(state, element);
-      return point ? [{ name: `Open conversation ${index + 1}`, point }] : [];
+      return point
+        ? [{ name: `Open conversation ${index + 1}`, content: conversationId, point }]
+        : [];
     },
   );
 }
 
-function clickedConversationIndex(lastAction: unknown): number | null {
+function clickedConversationId(lastAction: unknown): string | null {
   if (typeof lastAction !== 'object' || lastAction === null || !('Click' in lastAction)) {
     return null;
   }
@@ -132,8 +139,28 @@ function clickedConversationIndex(lastAction: unknown): number | null {
   if (typeof click !== 'object' || click === null || !('name' in click)) {
     return null;
   }
-  const match = String(click.name).match(/^Open conversation (\d+)$/);
-  return match ? Number(match[1]) : null;
+  if (!/^Open conversation \d+$/.test(String(click.name)) || !('content' in click)) {
+    return null;
+  }
+  return typeof click.content === 'string' && click.content !== '' && click.content !== 'new'
+    ? click.content
+    : null;
+}
+
+function navigationWasSuperseded(lastAction: unknown, expectedId: string): boolean {
+  const clickedId = clickedConversationId(lastAction);
+  if (clickedId !== null) {
+    return clickedId !== expectedId;
+  }
+  return (
+    typeof lastAction === 'object' &&
+    lastAction !== null &&
+    'Click' in lastAction &&
+    typeof lastAction.Click === 'object' &&
+    lastAction.Click !== null &&
+    'name' in lastAction.Click &&
+    lastAction.Click.name === 'New conversation'
+  );
 }
 
 function isPersistedConversation(pathname: string): boolean {
@@ -200,6 +227,10 @@ const ui = extract((state: State) => {
   const activeConversationIndexes = conversationElements.flatMap((element, index) =>
     element.querySelector('[aria-current="page"]') ? [index + 1] : [],
   );
+  const activeConversationIds = conversationElements.flatMap((element) => {
+    const conversationId = element.getAttribute('data-conversation-id');
+    return element.querySelector('[aria-current="page"]') && conversationId ? [conversationId] : [];
+  });
   const activeConversation = conversationElements.find((element) =>
     element.querySelector('[aria-current="page"]'),
   );
@@ -221,6 +252,7 @@ const ui = extract((state: State) => {
     passwordFocused: isFocused(state, '#password'),
     modelLabel: modelTrigger?.textContent?.trim() ?? '',
     activeConversationIndexes,
+    activeConversationIds,
     activeConversationTitle: activeConversation?.textContent?.trim() ?? '',
     modelOptionsOpen: state.document.querySelector('[role="option"]') !== null,
     hasAddedConversation:
@@ -436,15 +468,20 @@ export const multiConversationAlwaysRendersTwoColumns = always(() =>
 );
 
 export const sidebarNavigationEventuallySelectsTarget = always(() => {
-  const expectedIndex = clickedConversationIndex(ui.current.lastAction);
-  return now(() => expectedIndex !== null).implies(
+  const expectedId = clickedConversationId(ui.current.lastAction);
+  return now(() => expectedId !== null).implies(
     eventually(
       () =>
-        expectedIndex !== null &&
-        isPersistedConversation(ui.current.path) &&
-        ui.current.activeConversationIndexes.length === 1 &&
-        ui.current.activeConversationIndexes[0] === expectedIndex &&
-        ui.current.messageIds.length > 0,
+        expectedId !== null &&
+        // A later explicit navigation replaces this request. Same-target clicks,
+        // reloads and unrelated actions keep the original ten-second deadline.
+        (navigationWasSuperseded(ui.current.lastAction, expectedId) ||
+          (isPersistedConversation(ui.current.path) &&
+            ui.current.path === `/c/${expectedId}` &&
+            ui.current.activeConversationIndexes.length === 1 &&
+            ui.current.activeConversationIds.length === 1 &&
+            ui.current.activeConversationIds[0] === expectedId &&
+            ui.current.messageIds.length > 0)),
     ).within(10, 'seconds'),
   );
 });

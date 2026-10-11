@@ -6,6 +6,7 @@ on:
       - 'api/**'
       - 'client/**'
       - 'config/**'
+      - 'e2e/bombadil/**'
       - 'packages/**'
       - 'scripts/**'
       - 'package.json'
@@ -101,6 +102,13 @@ jobs:
         id: install_dependencies
         continue-on-error: true
         run: npm ci
+
+      # Keep deterministic regressions on PRs while browser exploration runs daily.
+      - name: Check Bombadil regression cases
+        id: bombadil_regressions
+        if: always()
+        continue-on-error: true
+        run: node --test e2e/bombadil/sidebar-navigation.test.cjs e2e/bombadil/parallel-placeholders.test.cjs
 
       # Run ESLint on changed files within the api/, client/, and packages/ directories.
       - name: Run ESLint on changed files
@@ -666,6 +674,7 @@ jobs:
         if: always()
         env:
           INSTALL_DEPENDENCIES_OUTCOME: ${{ steps.install_dependencies.outcome }}
+          BOMBADIL_REGRESSIONS_OUTCOME: ${{ steps.bombadil_regressions.outcome }}
           ESLINT_OUTCOME: ${{ steps.eslint.outcome }}
           ESLINT_CONFIG_OUTCOME: ${{ steps.eslint_config.outcome }}
           PRETTIER_OUTCOME: ${{ steps.prettier.outcome }}
@@ -703,6 +712,7 @@ jobs:
           }
 
           record_failure "Dependency installation" "$INSTALL_DEPENDENCIES_OUTCOME"
+          record_failure "Bombadil regression cases" "$BOMBADIL_REGRESSIONS_OUTCOME"
           record_failure "ESLint" "$ESLINT_OUTCOME"
           record_failure "ESLint config validation" "$ESLINT_CONFIG_OUTCOME"
           record_failure "Prettier" "$PRETTIER_OUTCOME"

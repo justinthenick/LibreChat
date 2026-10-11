@@ -116,3 +116,87 @@ cleanup and controlled restart without changing this server's coding tool surfac
 Production activation requires staging validation, an immutable lock mount, pinned
 image and a separate maintenance token. Task modes and exploration counters now
 survive restarts; legacy tasks without saved state default to read-only/exhausted.
+
+## Dormant execution records (offline development)
+
+`coding_executor.executions.ExecutionService` is a library only. It is not
+imported by the MCP server or registered as a tool. The dormant orchestrator
+supervisor and explicit FencedWorkspace adapter compose it; live tools and
+configuration are unchanged.
+
+A trusted embedding supervisor supplies an authority ID and bounded launch,
+observe and stop callbacks. The caller must first authenticate/authorize the full
+ExecutionIdentity (job/execution, user/tenant, generation/epoch, profile,
+repository and task mode). This library is not authentication or a sandbox.
+
+- `advance(identity)` durably registers a generation and seals older executions
+  within the exact user/tenant/generation/profile/repository/mode lineage. It does
+  not dispatch or stop anything. Epochs from unrelated lineages are incomparable.
+- `start(identity, operation_id, request_sha256)` persists an operation claim,
+  random attempt ID and configured authority before invoking launch once. The
+  digest must bind the canonical authorized request; the future adapter must
+  validate that binding before executing. The ledger stores no prompt, command,
+  credential or result payload. Identical replay returns status even after seal;
+  conflicting replay fails. Any unresolved operation globally blocks new claims.
+- `stop(identity)` commits a seal before contacting the supervisor. An unknown
+  identity gets a durable stop-before-start tombstone. New operations cannot be
+  claimed after sealing. `reconcile(identity)` explicitly queries observations.
+- `status(identity)` reads durable state without callbacks. Missing records are
+  unknown. An execution is stopped only when sealed and all claimed operations
+  have exact authoritative quiescent-and-fenced observations. Completed operations
+  alone leave an execution open for another action, up to 64 operations.
+
+The supervisor must durably fence delayed delivery of each attempt before it
+reports quiescent-and-fenced; absence, local worker exit and request timeout are
+insufficient. Observations must match all identity, operation, digest, attempt and
+supervisor authority fields. Changing supervisor authority cannot resolve earlier
+claims. A future process/transport adapter must establish this contract; the
+synthetic supervisor tests do not prove any live executor has stopped.
+
+A private owned directory (0700) holds SQLite and the exclusive owner lock (0600).
+Use a trusted local filesystem with working SQLite durability and POSIX flock;
+retain the directory and all tombstones across restarts. Do not share it with
+untrusted repository code. One process owns the ledger. Restart seals all existing
+executions and marks unresolved operations unknown without callbacks or replay.
+There is no expiry, force-clear or automatic cleanup. A lock protects local
+launch/stop ordering; supervisor callbacks run outside transactions, may read
+status, and must not reenter mutations or block indefinitely.
+
+Acceptance uses real SQLite and synthetic callbacks for lost replies, restart,
+replay conflicts, generation fences, exact proof matching, persistence failures,
+exclusive ownership and concurrent launch/stop. The existing Coding Agent Executor
+Linux CI runs these tests. No live transport, credentials, provider calls or service
+activation are required. Authentication, request/result transport, a durable
+process supervisor and orchestrator integration remain separate work.
+
+### Dormant claim-bound workspace dispatch
+
+`FencedWorkspace` defaults off and is never registered by `server.py`. A trusted
+host supplies an authenticated full Claim, exact authorization policy, the existing
+ExecutionService and WorkspaceManager. `admit` fixes a maximum of 64 actions and
+an absolute monotonic deadline of at most 300 seconds; reconfiguration cannot
+renew it. Tool frames cannot select identity, task ID, commands or repository.
+Only read-only task creation, bounded inspection and operator-named checks are
+available. Existing path validation, exploration budgets and maintenance locking
+remain in the actual WorkspaceManager path.
+
+Action IDs/digests and the created task binding live in the existing execution
+database, beneath the existing job-worker claim. They are not another attempt
+ledger. Each action commits an unknown receipt before dispatch; replay never
+executes again, even if a response was lost. A single owned action thread allows
+stop to seal immediately without waiting on workspace work. No database or
+admission lock spans that work. Caller wait is deadline-bounded; late work remains
+tracked and blocks further admission. Deadlines do not kill work or prove stop.
+
+Exact external supervisor evidence is still required for quiescence, including
+after successful workspace return. In-flight action threads suppress stop proof.
+Restart seals all executions, retains action receipts/task bindings and cannot
+replay delayed requests. Unknown outcomes are resolved only by exact authority
+evidence; absence of a thread, a PID exit or WorkspaceManager process-group cleanup
+does not establish containment of escaped descendants. A production supervisor
+and authenticated transport must enforce this contract before activation.
+
+Synthetic tests use real SQLite, real disposable Git worktrees and an injected
+authority. They cover commit-before-dispatch, request/deadline limits, replay,
+identity mismatch, stop races, late completion, restart, task binding and traversal.
+No service, network setting, credential file or provider is configured by this code.

@@ -1,4 +1,5 @@
 export enum QueryKeys {
+  previewJob = 'previewJob',
   messages = 'messages',
   sharedMessages = 'sharedMessages',
   sharedStartupConfig = 'sharedStartupConfig',
@@ -103,6 +104,8 @@ export const DynamicQueryKeys = {
 } as const;
 
 export enum MutationKeys {
+  previewStart = 'previewStart',
+  previewCancel = 'previewCancel',
   subagentControl = 'subagentControl',
   updateLangfuseConnection = 'updateLangfuseConnection',
   testLangfuseConnection = 'testLangfuseConnection',

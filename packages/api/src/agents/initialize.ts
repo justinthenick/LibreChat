@@ -4,6 +4,7 @@ import {
   Tools,
   Constants,
   ErrorTypes,
+  parseSkillSelection,
   EModelEndpoint,
   EToolResources,
   paramEndpoints,
@@ -96,6 +97,7 @@ import { assertModelBoundContent } from '../middleware/modelBoundContent';
 import { registerMemoryTools, memoryToolUsageGuard } from './memory';
 import { applyIntentLabels, sanitizeIntentLabels } from './intent';
 import { ContentFilterError } from '../middleware/contentFilter';
+import { SkillSelectionError } from '../skills/selection';
 import { PARTIAL_RESOLVED_CONVERSATION } from './guard';
 import { applyBackgroundToolCalls } from './background';
 import { filterFilesByEndpointConfig } from '~/files';
@@ -875,20 +877,26 @@ export async function initializeAgent(
   let extraAllowedToolNames: string[] = [];
   let perSkillExtras: Map<string, string[]> = new Map();
   let resolvedSkillCatalog: ResolvedSkillCatalog | undefined;
-  if (hasSkillAccess) {
+  const hasExplicitManualSelection = params.manualSkills?.some(
+    (selection) => parseSkillSelection(selection).explicit,
+  );
+  if (hasExplicitManualSelection && !db.getSkillByName) {
+    throw new SkillSelectionError();
+  }
+  if (hasSkillAccess || hasExplicitManualSelection) {
     const [manualPrimesResult, alwaysApplyPrimesResult, catalogResult] = await Promise.all([
       params.manualSkills?.length && db.getSkillByName
         ? resolveManualSkills({
             names: params.manualSkills,
             getSkillByName: db.getSkillByName,
             getSkillById: db.getSkillById,
-            accessibleSkillIds: params.accessibleSkillIds!,
+            accessibleSkillIds: params.accessibleSkillIds ?? [],
             userId: req.user?.id,
             skillStates: params.skillStates,
             defaultActiveOnShare: effectiveDefaultActiveOnShare,
           })
         : Promise.resolve<ResolvedManualSkill[] | undefined>(undefined),
-      db.listAlwaysApplySkills
+      hasSkillAccess && db.listAlwaysApplySkills
         ? resolveAlwaysApplySkills({
             listAlwaysApplySkills: db.listAlwaysApplySkills,
             accessibleSkillIds: params.accessibleSkillIds!,
@@ -897,6 +905,7 @@ export async function initializeAgent(
             defaultActiveOnShare: effectiveDefaultActiveOnShare,
           })
         : Promise.resolve<ResolvedAlwaysApplySkill[] | undefined>(undefined),
+      hasSkillAccess &&
       hasActivePiiFields(req.config?.filters?.skills?.pii, ['name', 'description'])
         ? resolveSkillCatalog({
             accessibleSkillIds: params.accessibleSkillIds!,
