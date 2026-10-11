@@ -1,7 +1,8 @@
 """Real custody/ledger/SDK/runner with fixture-only transport, no network."""
-from contextlib import contextmanager
+from contextlib import contextmanager, redirect_stderr
 from dataclasses import replace
 import io
+import gc
 import json
 from pathlib import Path
 import pickle
@@ -401,6 +402,31 @@ class CredentialDispatchTests(unittest.TestCase):
             response = httpx.Response(200, stream=Stream())
             with self.assertRaises(category):
                 self.adapter()(self.request(), self.transport(lambda _: response))
+
+    def test_generator_finalization_is_owned_sanitized_and_preserves_control(self):
+        from coding_orchestrator.credential_dispatch import MAX_FIXTURE_RESPONSE
+        for cancelled in (False, True):
+            self.new_execution()
+            closed, unraisable = [], []
+            stderr = io.StringIO()
+            class Stream(httpx.SyncByteStream):
+                def __iter__(stream):
+                    try:
+                        if cancelled:
+                            self.control._cancelled.set()
+                        yield b'x' * (MAX_FIXTURE_RESPONSE + 1)
+                    finally:
+                        closed.append(True)
+                        raise RuntimeError('Bearer ' + self.access)
+            response = httpx.Response(200, stream=Stream())
+            with patch('sys.unraisablehook', lambda event: unraisable.append(event)), redirect_stderr(stderr):
+                with self.assertRaises(WorkerCancelled if cancelled else CustodyError):
+                    self.adapter()(self.request(), self.transport(lambda _: response))
+                gc.collect()
+            self.control._cancelled.clear()
+            self.assertEqual(closed, [True])
+            self.assertEqual(unraisable, [])
+            self.assertNotIn(self.access, stderr.getvalue())
 
     def test_reflected_credential_is_rejected_before_sdk_consumes_response(self):
         with self.assertRaises(CustodyError):

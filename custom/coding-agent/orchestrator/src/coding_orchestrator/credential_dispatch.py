@@ -86,7 +86,7 @@ class SyntheticCredentialDispatch:
 
     def _send_locked(self, request, transport, deadline):
         import httpx
-        result = category = response = wire = None
+        result = category = response = wire = iterator = None
         try:
             with self.custody._transaction() as db:
                 row, _ = self.custody._bound(db, self.claim, self.revision, self.epoch)
@@ -106,7 +106,8 @@ class SyntheticCredentialDispatch:
             response = transport.handle_request(wire)
             _require(response.headers.get('content-encoding', 'identity') == 'identity')
             content = bytearray()
-            for chunk in response.stream:
+            iterator = iter(response.stream)
+            for chunk in iterator:
                 self.control.remaining_seconds()
                 _require(type(chunk) is bytes and len(content) + len(chunk) <= MAX_FIXTURE_RESPONSE)
                 content.extend(chunk)
@@ -119,6 +120,13 @@ class SyntheticCredentialDispatch:
         except Exception as error:
             category = _failure(self.control, error)
         finally:
+            if iterator is not None:
+                try:
+                    close = getattr(iterator, 'close', None)
+                    if close is not None:
+                        close()
+                except Exception as error:
+                    category = _failure(self.control, error, category)
             if wire is not None:
                 wire.headers.pop('authorization', None)
                 wire.headers.pop('chatgpt-account-id', None)
