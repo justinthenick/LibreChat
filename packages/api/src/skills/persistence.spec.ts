@@ -146,14 +146,14 @@ test('persists and reads a complete validated source and draft', async () => {
 test.each(['identity', 'tenant', 'provenance', 'name'])(
   'rejects a self-consistent source bundle with wrong %s before persistence',
   async (kind) => {
-    const changes: Partial<SkillBundleManifest> =
-      kind === 'identity'
-        ? { skillId: 'd'.repeat(24) }
-        : kind === 'tenant'
-          ? { tenantId: 'other' }
-          : kind === 'provenance'
-            ? { sourceRevision: 'd'.repeat(40) }
-            : { logicalName: 'other' };
+    let changes: Partial<SkillBundleManifest> = { logicalName: 'other' };
+    if (kind === 'identity') {
+      changes = { skillId: 'd'.repeat(24) };
+    } else if (kind === 'tenant') {
+      changes = { tenantId: 'other' };
+    } else if (kind === 'provenance') {
+      changes = { sourceRevision: 'd'.repeat(40) };
+    }
     await expect(source(await bundle('original', 'original bytes', changes))).rejects.toThrow(
       'invalid_skill_selection',
     );
@@ -167,15 +167,15 @@ test.each(['missing', 'changed', 'noncanonical'])(
   async (kind) => {
     await source();
     const valid = await bundle('new');
-    const invalid =
-      kind === 'missing'
-        ? { ...valid, files: [] }
-        : kind === 'changed'
-          ? {
-              ...valid,
-              files: [{ path: 'a.txt', base64: Buffer.from('other').toString('base64') }],
-            }
-          : { ...valid, manifestJson: `${valid.manifestJson} ` };
+    let invalid = { ...valid, manifestJson: `${valid.manifestJson} ` };
+    if (kind === 'missing') {
+      invalid = { ...valid, files: [] };
+    } else if (kind === 'changed') {
+      invalid = {
+        ...valid,
+        files: [{ path: 'a.txt', base64: Buffer.from('other').toString('base64') }],
+      };
+    }
     await expect(
       api.prepareSource('bad', actor, {
         sourceId,

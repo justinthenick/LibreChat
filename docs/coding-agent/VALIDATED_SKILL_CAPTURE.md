@@ -29,8 +29,10 @@ transaction-capable MongoDB; tests use disposable replica sets only.
   different body, file set, bytes, identity, tenant or provenance is rejected.
 - Failure and recovery use the existing capture transitions. Edits require ready
   state and validate the full edited bundle while preserving identity, name and
-  base provenance. Renaming is not implemented. All writes retain the loaded
-  attempt and revision as CAS expectations; preparation never silently rebases.
+  base provenance. Renaming is not implemented. Draft state transitions retain
+  the loaded attempt and revision as CAS expectations; preparation never silently
+  rebases them. Ready-draft reuse may return newer ready edits at commit without
+  overwriting them.
 - Every loaded draft, including a receipt result, is validated against its retained
   source generation and digest. Ready snapshot provenance must identify that
   original source generation and bundle revision.
