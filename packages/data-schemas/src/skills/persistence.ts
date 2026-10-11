@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto';
 import type { Connection, mongo } from 'mongoose';
+import type { CaptureAuthorization, CaptureOperation } from './authority';
+import { captureAuthorizationCopy, createIsolatedCaptureAuthority } from './authority';
+
+export { createIsolatedCaptureAuthority } from './authority';
+export type { CaptureAuthorization, CaptureOperation, SyntheticCaptureGrant } from './authority';
 
 export interface CaptureIdentity {
   tenantId: string | null;
@@ -77,6 +82,7 @@ interface Receipt {
   _id: string;
   requestDigest: string;
   result: CaptureSource | CaptureDraft;
+  authorization?: CaptureAuthorization;
 }
 
 export interface CapturePersistence {
@@ -210,6 +216,22 @@ export function activateSkillCapturePersistence(): never {
 export async function createIsolatedCapturePersistence(
   connection: Connection,
 ): Promise<CapturePersistence> {
+  return createCapturePersistence(connection);
+}
+
+/** Synthetic grant proof, not a production ACL adapter. Reads remain storage-only. */
+export async function createIsolatedFencedCapturePersistence(
+  connection: Connection,
+  authorization: CaptureAuthorization,
+): Promise<CapturePersistence> {
+  const ticket = captureAuthorizationCopy(authorization);
+  return createCapturePersistence(connection, ticket);
+}
+
+async function createCapturePersistence(
+  connection: Connection,
+  authorization?: CaptureAuthorization,
+): Promise<CapturePersistence> {
   const db = connection.db;
   if (!db || !/^test_skill_capture_[a-z0-9_]+$/.test(db.databaseName)) reject('isolation_required');
   const hello = await db.admin().command({ hello: 1 });
@@ -225,6 +247,7 @@ export async function createIsolatedCapturePersistence(
   await blobs.createIndex({ _id: 1 });
   await generations.createIndex({ sourceId: 1, generation: 1 }, { unique: true });
   await receipts.createIndex({ _id: 1 });
+  const authority = authorization ? await createIsolatedCaptureAuthority(connection) : null;
 
   async function persistPayload(
     payload: CapturePayload,
@@ -242,6 +265,7 @@ export async function createIsolatedCapturePersistence(
     operationId: string,
     requestDigest: string,
     write: (session: mongo.ClientSession) => Promise<T>,
+    access: { actor: CaptureIdentity; sourceId: string; operation: CaptureOperation },
   ): Promise<T> {
     if (typeof operationId !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(operationId))
       reject('operation_id');
@@ -253,8 +277,19 @@ export async function createIsolatedCapturePersistence(
         readPreference: 'primary',
       });
       if (await receipts.findOne({ _id: operationId }, { session })) reject('operation_exists');
+      if (authority && authorization)
+        await authority.fence(
+          session,
+          authorization,
+          access.actor,
+          access.sourceId,
+          access.operation,
+        );
       const result = await write(session);
-      await receipts.insertOne({ _id: operationId, requestDigest, result }, { session });
+      await receipts.insertOne(
+        { _id: operationId, requestDigest, result, ...(authorization ? { authorization } : {}) },
+        { session },
+      );
       await session.commitTransaction();
       return result;
     } catch (error) {
@@ -285,23 +320,28 @@ export async function createIsolatedCapturePersistence(
       reject('source');
     const result = { ...source, generation: next(source.generation) };
     const requestDigest = captureRequestDigest('source', actor, source, payload);
-    return transact(operationId, requestDigest, async (session) => {
-      await persistPayload(payload, session);
-      if (source.generation === 0) await sources.insertOne(result, { session });
-      else {
-        const changed = await sources.replaceOne(
-          { _id: source._id, tenantId: actor.tenantId, generation: source.generation },
-          result,
+    return transact(
+      operationId,
+      requestDigest,
+      async (session) => {
+        await persistPayload(payload, session);
+        if (source.generation === 0) await sources.insertOne(result, { session });
+        else {
+          const changed = await sources.replaceOne(
+            { _id: source._id, tenantId: actor.tenantId, generation: source.generation },
+            result,
+            { session },
+          );
+          if (changed.modifiedCount !== 1) reject('conflict');
+        }
+        await generations.insertOne(
+          { ...result, sourceId: source._id, _id: `${source._id}:${result.generation}` },
           { session },
         );
-        if (changed.modifiedCount !== 1) reject('conflict');
-      }
-      await generations.insertOne(
-        { ...result, sourceId: source._id, _id: `${source._id}:${result.generation}` },
-        { session },
-      );
-      return result;
-    });
+        return result;
+      },
+      { actor, sourceId: source._id, operation: 'source' },
+    );
   }
 
   async function reserve(
@@ -362,6 +402,7 @@ export async function createIsolatedCapturePersistence(
         await drafts.insertOne(result, { session });
         return result;
       },
+      { actor, sourceId: request.sourceId, operation: 'reserve' },
     );
   }
 
@@ -424,6 +465,7 @@ export async function createIsolatedCapturePersistence(
         if (changed.modifiedCount !== 1) reject('conflict');
         return result;
       },
+      { actor, sourceId: expected.sourceId, operation: action },
     );
   }
 

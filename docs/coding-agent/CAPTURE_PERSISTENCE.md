@@ -63,6 +63,11 @@ commit after revocation. The real-database counterexample test demonstrates this
 The positive test demonstrates a shared write conflict in an isolated authority
 model; it does **not** wire or certify the application's ACL writers.
 
+The [synthetic authorization prerequisite](./CAPTURE_AUTHORITY.md) now connects a
+retained-epoch shared write to isolated capture transactions. It remains separate
+from production ACLs and from the unfenced validator bridge; activation is still
+unconditionally disabled.
+
 A live adapter needs an authoritative current user/tenant/source/owner check plus
 a shared write/conflict fence observed by every relevant revocation and mutation
 path. Group removal, role change, account suspension, tenant reassignment, public
