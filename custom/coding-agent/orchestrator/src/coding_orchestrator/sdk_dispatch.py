@@ -70,16 +70,29 @@ class BoundActions:
         self.pending = (action_id, event.tool_name, _encoded(event.action.data))
 
     def install(self, conversation):
+        conversation.agent.bind_workspace_dispatch(self)
+
+    def bind_tools(self, tools):
         from openhands.sdk.mcp.tool import MCPToolDefinition
-        for name, tool in conversation.agent.tools_map.items():
+        from openhands.sdk.tool.builtins import FinishTool
+        from .openhands_backend import EXPECTED_OPENHANDS_RUNTIME_TOOLS
+        if set(tools) != EXPECTED_OPENHANDS_RUNTIME_TOOLS:
+            raise OpenHandsProfileError("sdk_dispatch_tool_contract")
+        bound = {}
+        for name, tool in tools.items():
             if name == "finish":
+                if type(tool) is not FinishTool:
+                    raise OpenHandsProfileError("sdk_dispatch_finish_contract")
+                bound[name] = tool
                 continue
             if not isinstance(tool, MCPToolDefinition):
                 raise OpenHandsProfileError("sdk_dispatch_tool_contract")
-            tool.executor = _Executor(self, name)
+            bound[name] = tool.set_executor(_Executor(self, name))
+        return bound
 
     def execute(self, name, action, conversation=None):
         from openhands.sdk.mcp.definition import MCPToolObservation
+        from mcp.types import CallToolResult, TextContent
         try:
             self.control._check()
             if (self.failed or self.pending is None
@@ -91,7 +104,8 @@ class BoundActions:
                                    timeout_seconds=self.control.remaining_seconds())
             self.control._check()
             text = _encoded(result)
-            return MCPToolObservation.from_text(text=text, tool_name=name, is_error=False)
+            return MCPToolObservation.from_call_tool_result(tool_name=name,
+                result=CallToolResult(content=[TextContent(type="text", text=text)], isError=False))
         except Exception:
             self.failed = True
             raise OpenHandsProfileError("sdk_dispatch_unconfirmed") from None

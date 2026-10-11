@@ -7,7 +7,6 @@ import hashlib
 import json
 from pathlib import Path
 import re
-import sqlite3
 import tempfile
 import threading
 import time
@@ -65,26 +64,6 @@ class WorkspaceTransport:
         return httpx.MockTransport(respond)
 
 
-@dataclass(frozen=True)
-class DiagnosticRunner:
-    runner: object
-    path: str
-
-    def __call__(self, context, control):
-        import sys
-        errors = []
-        def trace(frame, event, arg):
-            if event == 'exception' and '/coding_orchestrator/' in frame.f_code.co_filename:
-                errors.append([frame.f_code.co_name, type(arg[1]).__name__, str(arg[1])])
-            return trace
-        sys.settrace(trace)
-        try:
-            return self.runner(context, control)
-        finally:
-            sys.settrace(None)
-            Path(self.path).write_text(json.dumps(errors[-20:]))
-
-
 class DispatchFixture(FencedFixture):
     lost_reply = False
     delay = 0
@@ -117,9 +96,9 @@ class SDKDispatchTests(unittest.TestCase):
             owner = Principal('owner', 'tenant')
             adapter = LedgerWorkerSupervisor(Path(root) / 'ledger', authority=fixture,
                 identity_for=lambda context: store.execution_identity(owner.user_id, owner.tenant_id, context.job_id),
-                bind_runner=lambda runner, claim: DiagnosticRunner(GuardedFixtureRunner(
+                bind_runner=lambda runner, claim: GuardedFixtureRunner(
                     bind_sdk_runner(replace(runner, token_factory=partial(attempt_token, claim)),
-                                    claim, DispatchFactory(fixture.endpoint)), fixture.endpoint), str(Path(root) / "diagnostic.json")),
+                                    claim, DispatchFactory(fixture.endpoint)), fixture.endpoint),
                 prepare_dispatch=lambda claim, **limits: (prepare(claim) if prepare else None,
                                                          fixture.workspace.admit(claim, **limits)))
             fixture.inspect = adapter.ledger.status
@@ -161,7 +140,7 @@ class SDKDispatchTests(unittest.TestCase):
     def test_real_sdk_actions_use_durable_receipts_and_host_owned_task(self):
         with self.job() as (service, fixture, owner, adapter):
             run = self.wait(service, owner, service.start_run(owner, self.request()))
-            self.assertEqual(run['state'], 'completed', (run, (fixture.source.parent.parent / 'diagnostic.json').read_text()))
+            self.assertEqual(run['state'], 'completed', run)
             self.assertTrue(run['result']['evidence']['evidence_complete'])
             self.assertEqual([c['exit_code'] for c in run['result']['evidence']['checks']], [0])
             self.assertEqual(fixture.calls, [])  # None of the legacy MCP methods executed.
@@ -333,3 +312,32 @@ class BoundActionTests(unittest.TestCase):
             with self.assertRaises(OpenHandsProfileError):
                 actions.execute('read_file', event.action)
             self.assertEqual(calls, [])
+
+    def test_runtime_tool_refresh_cannot_restore_legacy_executor(self):
+        from mcp.types import Tool
+        from openhands.sdk.mcp.tool import MCPToolDefinition
+        from openhands.sdk.tool.builtins import FinishTool
+        from coding_orchestrator.openhands_backend import EXPECTED_CODING_EXECUTOR_TOOLS
+        from coding_orchestrator.restricted_agent import RestrictedOpenHandsAgent
+        from coding_orchestrator.openhands_profile import OpenHandsProfileError
+        def definition(name):
+            return MCPToolDefinition.create(Tool(name=name, inputSchema={'type': 'object',
+                'properties': {'task_id': {'type': 'string'}, 'path': {'type': 'string'}}}), None)[0]
+        agent = RestrictedOpenHandsAgent(llm=fixture_llm(), tools=[], include_default_tools=['FinishTool'])
+        agent._initialized = True
+        agent._tools = {name: definition(name) for name in EXPECTED_CODING_EXECUTOR_TOOLS}
+        agent._tools['finish'] = FinishTool.create()[0]
+        with self.binding() as (actions, calls):
+            agent.bind_workspace_dispatch(actions)
+            with self.assertRaises(Exception):
+                agent.bind_workspace_dispatch(actions)
+            agent.add_runtime_tools([definition('read_file')])
+            event = self.event()
+            actions.capture(event)
+            result = agent.tools_map['read_file'](event.action)
+            self.assertFalse(result.is_error)
+            self.assertEqual(result.content[0].text, "[Tool 'read_file' executed.]")
+            self.assertEqual(len(calls), 1)
+            agent._tools['finish'] = definition('finish')
+            with self.assertRaises(OpenHandsProfileError):
+                agent.tools_map
