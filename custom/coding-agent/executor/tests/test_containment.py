@@ -54,6 +54,7 @@ class SyntheticPlatform:
 class Authority:
     authority_id = "fixture-authority"
     launcher = None
+    whole_proof = False
 
     def launch(self, claim):
         return Observation(claim, "running", False)
@@ -63,6 +64,8 @@ class Authority:
             self.launcher.stop(claim)
 
     def observe(self, claim):
+        if self.whole_proof:
+            return Observation(claim, "quiescent", True)
         # Executor-only evidence must not accidentally resolve the whole job.
         return self.launcher.observe(claim) if self.launcher else None
 
@@ -107,6 +110,9 @@ class ContainmentTests(unittest.TestCase):
         return self.workspace.dispatch(self.claim, "create", "create_task", {})
 
     def test_default_and_unconfigured_never_prepare_or_spawn(self):
+        unconfigured = FencedWorkspace(self.ledger, self.manager, enabled=True, authorize=lambda _: True)
+        with self.assertRaises(ExecutionConflict):
+            unconfigured.admit(self.claim, max_requests=1, timeout_seconds=1)
         for launcher in (GatedExecutor(self.ledger), GatedExecutor(self.ledger, enabled=True),
                          GatedExecutor(self.ledger, platform=self.platform)):
             with self.subTest(launcher=launcher), self.assertRaises(ExecutionConflict):
@@ -202,6 +208,41 @@ class ContainmentTests(unittest.TestCase):
             self.create()
         self.assertEqual(list(self.manager.task_root.glob("preview-*")), [])
         self.assertTrue(self.ledger.status(self.identity).sealed)
+
+    def test_lost_attachment_ack_never_releases_or_replays_helper(self):
+        self.admit()
+        attach = self.platform.attach
+        def lost(claim, resource, pid):
+            attach(claim, resource, pid)
+            raise RuntimeError("attachment succeeded but acknowledgement was lost")
+        self.platform.attach = lost
+        with self.assertRaises(ExecutionConflict):
+            self.create()
+        self.assertEqual(list(self.manager.task_root.glob("preview-*")), [])
+        self.assertTrue(self.ledger.status(self.identity).sealed)
+        self.assertIsNone(self.launcher.observe(self.claim))
+        with self.assertRaises(ExecutionConflict):
+            self.create()
+        self.assertEqual(len(self.platform.pids), 1)
+
+    def test_physical_resource_cannot_be_reused_by_another_claim_or_policy(self):
+        self.admit()
+        original = self.platform.resource
+        self.authority.whole_proof = True
+        self.assertEqual(self.ledger.stop(self.identity).state, "stopped")
+        self.authority.whole_proof = False
+        next_identity = replace(self.identity, job_id="next-job", execution_id="next-execution",
+                                user_id="other-owner", generation_id="next-generation")
+        self.ledger.advance(next_identity)
+        next_claim = self.ledger.start(next_identity, "job-worker", "b" * 64).operations[0].claim
+        self.platform.resource = replace(original, policy_id="different-policy")
+        with self.assertRaises(ExecutionConflict):
+            self.launcher.admit(next_claim)
+        self.assertEqual(self.ledger.executor_resource(self.claim), original)
+        self.assertIsNone(self.ledger.executor_resource(next_claim))
+        self.assertTrue(self.ledger.status(next_identity).sealed)
+        self.assertEqual(self.platform.prepared, 2)
+        self.assertEqual(self.platform.pids, [])
 
     def test_contained_checks_preserve_the_shorter_host_command_timeout(self):
         self.admit()

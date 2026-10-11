@@ -15,7 +15,8 @@ import unittest
 from test_worker_supervisor import FencedFixture, attempt_token
 from test_profile_sdk_integration import FixtureTransport, GuardedFixtureRunner, fixture_llm, fixture_token, COMMAND as ORIGINAL_COMMAND, BEFORE
 from coding_executor.dispatch import FencedWorkspace
-from coding_executor.executions import ExecutionConflict, ExecutionService
+from coding_executor.containment import GatedExecutor, ExecutorSnapshot
+from coding_executor.executions import ExecutionConflict, ExecutionService, ExecutorResource
 from coding_executor.sdk import SDKWorkspace
 from coding_executor.workspaces import WorkspaceManager
 from coding_orchestrator.job_store import JobStore
@@ -69,9 +70,45 @@ class WorkspaceTransport:
         return httpx.MockTransport(respond)
 
 
+class SyntheticExecutorPlatform:
+    """Synthetic observations only; actual helper execution is still exercised."""
+
+    def __init__(self):
+        self.pids = []
+        self.closed = False
+        self.empty = True
+
+    def prepare(self, claim):
+        return ExecutorResource("synthetic", "boot", "fixture-root", claim.attempt_id, "gated-v1")
+
+    def attach(self, claim, resource, pid):
+        self.pids.append(pid)
+        return None if self.closed else resource
+
+    def seal(self, claim, resource):
+        self.closed = True
+
+    def stop(self, claim, resource):
+        pass
+
+    def inspect(self, claim, resource):
+        return ExecutorSnapshot(claim, resource, self.closed, self.empty)
+
+
 class DispatchFixture(FencedFixture):
     lost_reply = False
     delay = 0
+    launcher = None
+
+    def stop(self, claim):
+        super().stop(claim)
+        if self.launcher is not None:
+            self.launcher.stop(claim)
+
+    def observe(self, claim):
+        if self.launcher is not None and self.launcher.observe(claim) is None:
+            return None
+        return super().observe(claim)
 
     def application(self, app):
         async def combined(scope, receive, send):
@@ -95,7 +132,7 @@ class DispatchFixture(FencedFixture):
 
 class SDKDispatchTests(unittest.TestCase):
     @contextmanager
-    def job(self, *, lost=False, prepare=None, control_failure=None):
+    def job(self, *, lost=False, prepare=None, control_failure=None, contained=False):
         with tempfile.TemporaryDirectory() as root, DispatchFixture(root) as fixture, \
                 JobStore(Path(root) / 'jobs.sqlite') as store:
             owner = Principal('owner', 'tenant')
@@ -113,10 +150,12 @@ class SDKDispatchTests(unittest.TestCase):
             fixture.source = repositories / 'fixture'
             tasks = Path(root) / 'tasks'
             tasks.mkdir()
+            fixture.platform = SyntheticExecutorPlatform()
+            fixture.launcher = GatedExecutor(adapter.ledger, platform=fixture.platform, enabled=True) if contained else None
             fixture.workspace = FencedWorkspace(adapter.ledger, WorkspaceManager(repositories, tasks),
                 enabled=True, authorize=lambda identity: identity.user_id == owner.user_id
                     and identity.tenant_id == owner.tenant_id and identity.repository_alias == 'fixture',
-                checks={'fixture': COMMAND})
+                checks={'fixture': COMMAND}, launcher=fixture.launcher, testing_uncontained=not contained)
             fixture.sdk = SDKWorkspace(fixture.workspace)
             fixture.frames, fixture.lost_reply = [], lost
             profile = create_openhands_profile(profile_id='fixture-sdk-dispatch', repository_aliases=frozenset({'fixture'}),
@@ -169,6 +208,21 @@ class SDKDispatchTests(unittest.TestCase):
                 self.assertEqual(fixture.frames, [])
                 self.assertEqual(fixture.calls, [])
 
+    def test_actual_sdk_workspace_dispatch_uses_gated_executor_and_independent_proof(self):
+        for proof_available in (True, False):
+            with self.subTest(proof_available=proof_available), self.job(contained=True) as (service, fixture, owner, adapter):
+                fixture.platform.empty = proof_available
+                run = self.wait(service, owner, service.start_run(owner, self.request()))
+                self.assertEqual(run['state'], 'completed' if proof_available else 'interrupted', run)
+                self.assertTrue(run['result']['evidence']['evidence_complete'])
+                self.assertEqual(len(fixture.platform.pids), 5)
+                self.assertEqual(len(fixture.frames), 5)
+                self.assertEqual(fixture.calls, [])
+                self.assertIsNotNone(adapter.ledger.executor_resource(fixture.claim))
+                if not proof_available:
+                    self.assertEqual(run['error_code'], 'execution_stop_unconfirmed')
+                    self.assertNotEqual(adapter.ledger.status(fixture.claim.identity).state, 'stopped')
+
     def test_sdk_cancellation_without_stop_proof_remains_interrupted(self):
         with self.job(control_failure="cancelled") as (service, fixture, owner, adapter):
             fixture.proof_available = False
@@ -196,7 +250,7 @@ class SDKDispatchTests(unittest.TestCase):
             with_ledger = ExecutionService(fixture.source.parent.parent / 'ledger', fixture)
             try:
                 workspace = FencedWorkspace(with_ledger, fixture.workspace.manager, enabled=True,
-                                            authorize=lambda _: True)
+                                            authorize=lambda _: True, testing_uncontained=True)
                 with self.assertRaises(ExecutionConflict):
                     SDKWorkspace(workspace).dispatch(fixture.claim, **frame)
                 self.assertNotEqual(with_ledger.status(fixture.claim.identity).state, 'stopped')
@@ -265,7 +319,8 @@ class SDKDispatchTests(unittest.TestCase):
                 tasks = Path(root) / 'tasks'
                 tasks.mkdir()
                 workspace = FencedWorkspace(ledger, WorkspaceManager(Path(root), tasks),
-                                            enabled=True, authorize=lambda value: value == identity)
+                                            enabled=True, authorize=lambda value: value == identity,
+                                            testing_uncontained=True)
                 workspace.admit(claim, max_requests=4, timeout_seconds=10,
                                 deadline_monotonic=time.monotonic() + .1)
                 fixture.sdk, fixture.frames, fixture.delay = SDKWorkspace(workspace), [], .2

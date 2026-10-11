@@ -19,20 +19,22 @@ class FencedWorkspace:
     """
 
     def __init__(self, ledger: ExecutionService, manager: WorkspaceManager, *, authorize,
-                 checks=None, enabled=False, launcher=None):
-        if type(enabled) is not bool or not callable(authorize):
+                 checks=None, enabled=False, launcher=None, testing_uncontained=False):
+        if type(enabled) is not bool or type(testing_uncontained) is not bool or not callable(authorize):
             raise ValueError("explicit dispatch policy required")
         self.ledger, self.manager, self.authorize = ledger, manager, authorize
         self.enabled = enabled
         if launcher is not None and (type(launcher) is not GatedExecutor or launcher.ledger is not ledger):
             raise ValueError("claim-bound executor launcher required")
         self.launcher = launcher
+        self.testing_uncontained = testing_uncontained
         self.checks = dict(checks or {})
         if any(type(k) is not str or type(v) is not str for k, v in self.checks.items()):
             raise ValueError("fixed check aliases required")
 
     def _authorized(self, claim):
         if (not self.enabled or type(claim) is not Claim or claim.identity.task_mode != "read_only"
+                or self.launcher is None and not self.testing_uncontained
                 or self.authorize(claim.identity) is not True):
             raise ExecutionConflict("workspace dispatch disabled or unauthorized")
 

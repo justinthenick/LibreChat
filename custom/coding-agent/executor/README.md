@@ -204,6 +204,10 @@ No service, network setting, credential file or provider is configured by this c
 ### Dormant gated executor containment
 
 `GatedExecutor` is disabled by default and has no default platform implementation.
+An enabled `FencedWorkspace` without a launcher rejects admission. Its legacy
+direct path requires the explicit `testing_uncontained=True` test-only opt-in;
+no live factory or configuration may select that path. Future activation must
+require a validated platform launcher and independent whole-job stop authority.
 Supplying it to `FencedWorkspace` routes every workspace operation through a fixed
 helper, including task creation, inspection, Git and checks. The helper waits on a
 private one-byte pipe before importing workspace code. Only the read end is
@@ -245,3 +249,5 @@ and deadline during attachment, no delayed release/replay, resource drift,
 restart, failed stop and descendants reported as still present. These tests prove
 the protocol and helper execution path, not actual OS containment. No real
 platform containment test or production activation is claimed.
+The orchestrator's actual SDK-to-SDKWorkspace fixture also exercises gated
+workspace operations with both available and missing synthetic executor proof.
