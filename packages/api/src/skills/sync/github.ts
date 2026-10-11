@@ -36,9 +36,9 @@ import {
   GITHUB_FINE_GRAINED_TOKEN_RECOMMENDATION,
   createGitHubRepoAdapter,
 } from './adapters/github';
+import { normalizeRepoPath, isSkillRootWithinDiscoveryDepth } from './path';
 import { DEFAULT_SKILL_IMPORT_LIMITS } from '../limits';
 import { parseSkillMarkdown } from '../parse';
-import { normalizeRepoPath } from './path';
 import { SkillSyncError } from './errors';
 
 const SYSTEM_AUTHOR_NAME = 'GitHub Sync';
@@ -274,7 +274,7 @@ function isSafeRelativePath(value: string): boolean {
 
 function makeUpstreamId(source: SkillSyncGitHubSourceConfig, rootPath: string): string {
   // Identity is keyed on the stable, admin-controlled source id and the skill's
-  // root path only — never owner/repo/ref. Repointing a source to a renamed or
+  // root path only â€” never owner/repo/ref. Repointing a source to a renamed or
   // replacement repository (or rotating its ref) keeps the same upstream id, so
   // existing mirrors are updated in place instead of being treated as new and
   // colliding on the (name, author, tenantId) uniqueness constraint.
@@ -497,7 +497,7 @@ function sanitizeDiagnosticText(value: string): string {
 }
 
 function truncateText(value: string, maxLength: number): string {
-  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
+  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}â€¦` : value;
 }
 
 function summarizeValidationIssues(issues: unknown): string | undefined {
@@ -597,13 +597,13 @@ function isSourceFatalError(error: unknown): boolean {
 function truncateSkipMessage(message: string): string {
   const sanitized = escapeDiagnosticControlCharacters(message);
   return sanitized.length > SKIP_MESSAGE_MAX
-    ? `${sanitized.slice(0, SKIP_MESSAGE_MAX - 1)}…`
+    ? `${sanitized.slice(0, SKIP_MESSAGE_MAX - 1)}â€¦`
     : sanitized;
 }
 
 function truncateSkipPath(path: string): string {
   const sanitized = escapeDiagnosticControlCharacters(path);
-  return sanitized.length > SKIP_PATH_MAX ? `${sanitized.slice(0, SKIP_PATH_MAX - 1)}…` : sanitized;
+  return sanitized.length > SKIP_PATH_MAX ? `${sanitized.slice(0, SKIP_PATH_MAX - 1)}â€¦` : sanitized;
 }
 
 function truncateSkipName(name: string | undefined): string | undefined {
@@ -611,7 +611,7 @@ function truncateSkipName(name: string | undefined): string | undefined {
     return name;
   }
   const sanitized = escapeDiagnosticControlCharacters(name);
-  return sanitized.length > SKIP_NAME_MAX ? `${sanitized.slice(0, SKIP_NAME_MAX - 1)}…` : sanitized;
+  return sanitized.length > SKIP_NAME_MAX ? `${sanitized.slice(0, SKIP_NAME_MAX - 1)}â€¦` : sanitized;
 }
 
 /**
@@ -637,24 +637,6 @@ async function fetchConfiguredTreeEntries(params: {
     }
   }
   return [...entriesByPath.values()];
-}
-
-function isSkillRootWithinDiscoveryDepth(
-  rootPath: string,
-  basePath: string,
-  maxDepth: number,
-): boolean {
-  if (rootPath === basePath) {
-    return true;
-  }
-  if (basePath && !rootPath.startsWith(`${basePath}/`)) {
-    return false;
-  }
-  const relative = basePath ? rootPath.slice(basePath.length).replace(/^\/+/, '') : rootPath;
-  if (!relative) {
-    return true;
-  }
-  return relative.split('/').length <= maxDepth;
 }
 
 function discoverSkills(

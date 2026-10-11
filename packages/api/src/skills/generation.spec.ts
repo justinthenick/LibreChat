@@ -222,3 +222,35 @@ test.each([401, 403, 404, 429, 500])('cancels an unread HTTP %s error stream', a
   await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toThrow(/GitHub/);
   expect(cancelled).toBe(true);
 });
+
+test('uses the selected skill name when its description is omitted', async () => {
+  fixture.close();
+  fixture = createGenerationFixture({ 'SKILL.md': '---\nname: writer\n---\nBody' });
+  const manifest = validateSkillBundle(await captureGitHubSkillGeneration(fixture.input));
+  expect(manifest.definition.description).toBe('writer');
+});
+
+test('excludes independently discovered nested skill files before download and size accounting', async () => {
+  fixture.close();
+  fixture = createGenerationFixture({
+    'SKILL.md': '---\nname: writer\ndescription: Writes\n---\nParent',
+    'notes.txt': 'parent notes',
+    'child/SkIlL.md': '---\nname: child\ndescription: Child\n---\nChild',
+    'child/large.txt': 'x'.repeat(5 * 1024 * 1024),
+  });
+  const snapshot = await captureGitHubSkillGeneration(fixture.input);
+  expect(snapshot.files.map((file) => file.path)).toEqual(['notes.txt']);
+  expect(fixture.requests.filter((url) => url.includes('/blobs/'))).toHaveLength(2);
+});
+
+test('keeps files beneath a nested definition outside configured discovery depth', async () => {
+  fixture.close();
+  fixture = createGenerationFixture({
+    'SKILL.md': '---\nname: writer\ndescription: Writes\n---\nParent',
+    'child/SKILL.md': '---\nname: child\ndescription: Child\n---\nChild',
+    'child/notes.txt': 'child notes',
+  });
+  fixture.input.source.skillDiscoveryDepth = 1;
+  const snapshot = await captureGitHubSkillGeneration(fixture.input);
+  expect(snapshot.files.map((file) => file.path)).toEqual(['child/SKILL.md', 'child/notes.txt']);
+});

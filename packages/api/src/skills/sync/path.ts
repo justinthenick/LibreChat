@@ -8,3 +8,21 @@ export function normalizeRepoPath(value: string): string {
   const trimmed = value.trim().replace(/^\/+|\/+$/g, '');
   return trimmed === '.' ? '' : trimmed;
 }
+
+export function isSkillRootWithinDiscoveryDepth(
+  rootPath: string,
+  basePath: string,
+  maxDepth: number,
+): boolean {
+  if (rootPath === basePath) {
+    return true;
+  }
+  if (basePath && !rootPath.startsWith(`${basePath}/`)) {
+    return false;
+  }
+  const relative = basePath ? rootPath.slice(basePath.length).replace(/^\/+/, '') : rootPath;
+  if (!relative) {
+    return true;
+  }
+  return relative.split('/').length <= maxDepth;
+}

@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
-import { skillSyncGitHubSourceSchema } from 'librechat-data-provider';
+import {
+  SKILL_SYNC_DEFAULT_DISCOVERY_DEPTH,
+  skillSyncGitHubSourceSchema,
+} from 'librechat-data-provider';
 import {
   validateRelativePath,
   validateSkillFrontmatter,
@@ -20,9 +23,9 @@ import type {
 import type { SkillBundleFile, SkillBundleSnapshot } from './bundles';
 import type { GitHubRepoAdapterConfig } from './sync/adapters/github';
 import type { RepoTreeEntry } from './sync/adapters/types';
+import { normalizeRepoPath, isSkillRootWithinDiscoveryDepth } from './sync/path';
 import { createGitHubRepoAdapter } from './sync/adapters/github';
 import { SkillSelectionError } from './selection';
-import { normalizeRepoPath } from './sync/path';
 import { captureSkillBundle } from './bundles';
 import { parseSkillMarkdown } from './parse';
 
@@ -140,10 +143,31 @@ export async function captureGitHubSkillGeneration(
     assertNotCancelled,
   });
   const prefix = selection.skillPath ? `${selection.skillPath}/` : '';
+  const childRoots = entries.flatMap((entry) => {
+    const split = entry.path.lastIndexOf('/');
+    const root = entry.path.slice(0, split);
+    if (
+      entry.type !== 'blob' ||
+      entry.path.slice(split + 1).toLowerCase() !== 'skill.md' ||
+      split < 0 ||
+      root === selection.skillPath ||
+      !entry.path.startsWith(prefix) ||
+      !source.paths.some((basePath) =>
+        isSkillRootWithinDiscoveryDepth(
+          root,
+          basePath,
+          source.skillDiscoveryDepth ?? SKILL_SYNC_DEFAULT_DISCOVERY_DEPTH,
+        ),
+      )
+    )
+      return [];
+    return [`${root}/`];
+  });
   const paths = new Set<string>();
   const files: Array<RepoTreeEntry & { relative: string }> = [];
   let total = 0;
   for (const entry of entries) {
+    if (childRoots.some((root) => entry.path.startsWith(root))) continue;
     const relative = entry.path.slice(prefix.length);
     if (
       !entry.path.startsWith(prefix) ||
@@ -201,7 +225,7 @@ export async function captureGitHubSkillGeneration(
       sourceRevision: commit.id,
       definition: {
         name: parsed.name,
-        description: parsed.description,
+        description: parsed.description || parsed.name,
         body: markdown,
         version: 1,
         frontmatter,

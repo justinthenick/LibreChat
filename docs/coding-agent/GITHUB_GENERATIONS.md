@@ -22,6 +22,9 @@ signature verification. Hashes establish content integrity, not application
 authorization or permission to execute the content.
 
 The selected package must contain exactly one direct case-insensitive SKILL.md.
+Independently discovered child skills are excluded using the configured source
+paths and discovery depth, matching legacy sync package boundaries. A missing
+description falls back to the selected skill name, as it does during sync.
 Unsupported paths, case collisions, symlinks, submodules, truncated trees and
 incomplete or mismatched blobs reject the entire generation. The reader bounds
 tree depth/entries, streamed response size, file count and total package bytes
