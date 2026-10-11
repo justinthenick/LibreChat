@@ -248,12 +248,13 @@ class ContainmentTests(unittest.TestCase):
                     communicate = subprocess.Popen.communicate
                     def lost_result(process, *args, **kwargs):
                         communicate(process, *args, **kwargs)
-                        # Real helper passed the gate and created a workspace.
-                        self.assertEqual(len(list(fixture.manager.task_root.glob("preview-*"))), 1)
                         raise RuntimeError("post-release result lost")
                     with mock.patch.object(subprocess.Popen, "communicate", lost_result):
                         with self.assertRaises(ExecutionConflict):
                             fixture.create()
+                    # Assert outside the swallowed failure path: real work passed
+                    # the gate before its result was lost.
+                    self.assertEqual(len(list(fixture.manager.task_root.glob("preview-*"))), 1)
                     self.assertEqual(calls, ["seal", "stop"])
                     self.assertIsNone(fixture.launcher.observe(fixture.claim))
                     self.assertNotEqual(fixture.ledger.status(fixture.identity).state, "stopped")
