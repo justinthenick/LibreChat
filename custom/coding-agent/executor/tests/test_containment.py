@@ -9,6 +9,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 
 from coding_executor.containment import GatedExecutor, ExecutorSnapshot, ExecutorQuiescence
 from coding_executor.dispatch import FencedWorkspace
@@ -217,6 +218,52 @@ class ContainmentTests(unittest.TestCase):
         self.assertEqual(self.platform.pids, [])
         self.assertIsNone(self.launcher.observe(self.claim))
 
+    def test_released_helper_failure_attempts_cleanup_despite_seal_commit_failure(self):
+        for platform_seal_fails in (False, True):
+            with self.subTest(platform_seal_fails=platform_seal_fails):
+                fixture = ContainmentTests("runTest")
+                fixture.setUp()
+                try:
+                    fixture.admit()
+                    calls = []
+                    seal = fixture.ledger.seal_executor
+                    def failed_commit(claim):
+                        fixture.ledger._db.set_authorizer(lambda code, value, *rest:
+                            sqlite3.SQLITE_DENY if code == sqlite3.SQLITE_TRANSACTION
+                            and value == "COMMIT" else sqlite3.SQLITE_OK)
+                        try:
+                            seal(claim)
+                        finally:
+                            fixture.ledger._db.set_authorizer(None)
+                    fixture.ledger.seal_executor = failed_commit
+                    def cleanup(kind, claim, resource):
+                        self.assertEqual((claim, resource), (fixture.claim, fixture.platform.resource))
+                        self.assertFalse(fixture.ledger.status(fixture.identity).sealed)
+                        self.assertIsNone(fixture.launcher.observe(claim))
+                        calls.append(kind)
+                        if kind == "seal" and platform_seal_fails:
+                            raise RuntimeError("synthetic platform seal failed")
+                    fixture.platform.seal = lambda claim, resource: cleanup("seal", claim, resource)
+                    fixture.platform.stop = lambda claim, resource: cleanup("stop", claim, resource)
+                    communicate = subprocess.Popen.communicate
+                    def lost_result(process, *args, **kwargs):
+                        communicate(process, *args, **kwargs)
+                        # Real helper passed the gate and created a workspace.
+                        self.assertEqual(len(list(fixture.manager.task_root.glob("preview-*"))), 1)
+                        raise RuntimeError("post-release result lost")
+                    with mock.patch.object(subprocess.Popen, "communicate", lost_result):
+                        with self.assertRaises(ExecutionConflict):
+                            fixture.create()
+                    self.assertEqual(calls, ["seal", "stop"])
+                    self.assertIsNone(fixture.launcher.observe(fixture.claim))
+                    self.assertNotEqual(fixture.ledger.status(fixture.identity).state, "stopped")
+                    for action_id in ("create", "new-action"):
+                        with self.assertRaises(ExecutionConflict):
+                            fixture.workspace.dispatch(fixture.claim, action_id, "create_task", {})
+                    self.assertEqual(len(fixture.platform.pids), 1)
+                finally:
+                    fixture.doCleanups()
+
     def test_unavailable_allocation_abort_never_becomes_stop_proof(self):
         allocate = self.platform.prepare
         def stopped(claim):
@@ -394,6 +441,23 @@ class ContainmentTests(unittest.TestCase):
         self.assertIsNone(self.launcher.observe(self.claim))
         self.platform.empty = True
         self.assertIsInstance(self.launcher.observe(self.claim), ExecutorQuiescence)
+
+    def test_normal_stop_attempts_kill_even_when_platform_seal_fails(self):
+        self.admit()
+        self.create()
+        calls = []
+        def failed_seal(claim, resource):
+            self.assertEqual((claim, resource), (self.claim, self.platform.resource))
+            raise RuntimeError("synthetic seal unavailable")
+        self.platform.seal = failed_seal
+        self.platform.stop = lambda claim, resource: calls.append((claim, resource))
+        self.assertNotEqual(self.ledger.stop(self.identity).state, "stopped")
+        self.assertEqual(calls, [(self.claim, self.platform.resource)])
+        self.platform.empty = True
+        self.assertIsNone(self.launcher.observe(self.claim))
+        with self.assertRaises(ExecutionConflict):
+            self.workspace.dispatch(self.claim, "late", "create_task", {})
+        self.assertEqual(len(self.platform.pids), 1)
 
 
 if __name__ == "__main__":

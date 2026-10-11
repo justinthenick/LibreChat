@@ -126,8 +126,19 @@ class GatedExecutor:
                     raise ExecutionConflict("executor result unconfirmed")
                 return json.loads(output)
         except Exception:
-            self.ledger.seal_executor(claim)
-            self.stop(claim)
+            try:
+                self.ledger.seal_executor(claim)
+            except Exception:
+                pass
+            # This exact binding was read before launch. Cleanup must not depend
+            # on another database read/commit, nor may a failed platform seal
+            # suppress the independent stop attempt. Neither acknowledgement is
+            # proof; the durable unknown action still prevents replay.
+            for cleanup in (self.platform.seal, self.platform.stop):
+                try:
+                    cleanup(claim, resource)
+                except Exception:
+                    pass
             raise ExecutionConflict("executor outcome unknown") from None
         finally:
             for descriptor in (read_fd, write_fd):
@@ -149,8 +160,10 @@ class GatedExecutor:
         resource = self.ledger.executor_resource(claim)
         if resource is None or not self.ledger.status(claim.identity).sealed:
             return
-        self.platform.seal(claim, resource)
-        self.platform.stop(claim, resource)
+        try:
+            self.platform.seal(claim, resource)
+        finally:
+            self.platform.stop(claim, resource)
 
     def observe(self, claim):
         """No local exit/thread state can substitute for independent evidence."""
