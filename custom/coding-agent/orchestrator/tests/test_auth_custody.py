@@ -363,6 +363,41 @@ class CustodyTests(unittest.TestCase):
         self.assertEqual(self.store.recover(claim(), 0, 0, 'rotation').state,
                          'reauthentication_required')
 
+    def test_control_after_commit_or_cleanup_preserves_recoverable_commit(self):
+        for stage in ('commit', 'cleanup'):
+            for category in (WorkerCancelled, WorkerDeadline):
+                self.store = self.create(Path(self.temp.name) / f'post-{stage}-{category.__name__}.sqlite')
+                self.control = control()
+                self.calls.clear()
+                original_commit, original_guard = self.store._commit, self.store._guard
+                def stop():
+                    if category is WorkerCancelled:
+                        self.control._cancelled.set()
+                    else:
+                        self.control._deadline = time.monotonic() - 1
+                def commit(*args):
+                    result = original_commit(*args)
+                    if stage == 'commit':
+                        stop()
+                    return result
+                @contextmanager
+                def guard():
+                    with original_guard():
+                        yield
+                    if stage == 'cleanup':
+                        stop()
+                with patch.object(self.store, '_commit', commit), patch.object(self.store, '_guard', guard):
+                    with self.assertRaises(category):
+                        self.rotate()
+                result = self.store.recover(claim(), 0, 0, 'rotation')
+                self.assertEqual((result.state, result.revision), ('committed', 1))
+                self.assertEqual(self.rotate(control=control()), result)
+                self.assertEqual(len(self.calls), 1)
+                row, receipts = read_state(self.store.path)
+                self.assertEqual(row['refresh_token'], 'synthetic-replacement')
+                self.assertTrue(row['access_token'])
+                self.assertEqual(receipts[0]['state'], 'committed')
+
     def test_real_process_crash_intervals_preserve_atomicity_and_never_replay(self):
         context = multiprocessing.get_context('fork')
         for stage in ('reserved', 'response', 'before_commit', 'after_commit'):

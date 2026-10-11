@@ -229,6 +229,8 @@ class SyntheticCredentialCustodian:
         try:
             with self._guard():
                 outcome, category = self._rotate_locked(control, claim, revision, epoch, attempt, transport, jwks)
+            if category is None:
+                control.remaining_seconds()
         except Exception as error:
             outcome, category = None, _failure(control, error, category)
         return outcome, category
