@@ -235,10 +235,22 @@ perform exactly one physical request, with no internal retries, redirects,
 proxy authentication or credential discovery, and honor timeout extensions.
 The wrapper cannot inspect arbitrary transport internals: its tests establish
 dispatch accounting using a synthetic one-request transport, not unconditional
-physical accounting for any injected transport. A future production transport
-factory must enforce this contract; `HTTPTransport(retries>0)` is unsuitable.
-The existing worker
-process watchdog remains the hard deadline for blocked I/O.
+physical accounting for any injected transport. `HTTPTransport(retries>0)` is
+unsuitable. The optional `auth_transport.create_auth_exchange(control, enabled=True)`
+factory supplies a fixed-origin transport using pinned httpcore 1.0.9 and httpx
+0.28.1. It defaults off, creates no SDK auth hooks, and is not called by any profile.
+It owns verified TLS (certifi trust, hostname checking, TLS 1.2 minimum), one TCP
+attempt per dispatch, no address fallback, retries, proxies or connection reuse.
+Socket connect, TLS handshake, partial writes and reads each use the shrinking
+worker deadline. Raw response headers reject compression before HTTPX can decode
+a body; payload is capped at 64 KiB and decrypted HTTP response bytes (including
+HTTP framing) at 128 KiB. This does not cap encrypted TLS records, padding or
+network traffic; socket timeouts and the worker watchdog bound elapsed time.
+Tests use the real HTTP parser with synthetic DNS, socket and TLS I/O; they do not
+claim a live certificate handshake or provider compatibility test. Synchronous
+OS DNS is not independently interruptible; the existing worker process watchdog
+remains the hard deadline for blocked I/O. Cancellation or close during connection
+setup discards the result before HTTP writes.
 
 Any rejected, cancelled, late, oversized, concurrent or uncertain exchange makes
 the instance terminal. A lost refresh response may mean the provider rotated a
@@ -246,7 +258,9 @@ token; no retry or success is inferred. Replies are at most 64 KiB of unvalidate
 raw JSON-media-type bytes, not verified credentials or identity. The reply hides
 its body from repr and rejects pickling; trusted code can explicitly read the
 body, so this is not memory erasure or a general serialization security boundary.
-Only synthetic transports call this module in the repository.
+Only offline tests call the factory in the repository. Credential discovery,
+validated JWT identity, rotation persistence, worker handoff and reviewed SDK
+subscription wiring remain prerequisites; subscription LLMs are still rejected.
 
 Failure handling returns only a safe error category from the secret-handling
 frame. Public methods drop their token and transport-owner locals before raising
