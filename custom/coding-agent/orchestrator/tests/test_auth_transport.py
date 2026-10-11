@@ -10,7 +10,7 @@ from unittest.mock import patch
 import httpx
 
 from coding_orchestrator.auth_exchange import KEYS_URL, MAX_REPLY
-from coding_orchestrator.auth_transport import MAX_WIRE, create_auth_exchange
+from coding_orchestrator.auth_transport import MAX_HTTP_RESPONSE_BYTES, create_auth_exchange
 from coding_orchestrator.backend import BackendContractError
 from coding_orchestrator.job_worker import WorkerControl, WorkerCancelled, WorkerDeadline, WorkerLimit
 from test_bounded_llm import Counter
@@ -213,12 +213,12 @@ class AuthTransportTests(unittest.TestCase):
         self.assertFalse(exchange._transport.lock.locked())
         self.assertIsNone(exchange._transport.stream)
 
-    def test_chunked_body_is_parsed_and_framing_overhead_is_bounded(self):
+    def test_chunked_body_and_plaintext_http_framing_are_bounded(self):
         head = b'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\n\r\n'
         self.payload = head + b'1\r\n{\r\n1\r\n}\r\n0\r\n\r\n'
         self.assertEqual(self.bind().signing_keys().body, b'{}')
-        # Large valid chunk extensions consume wire budget, not payload budget.
-        self.payload = head + (b'1;' + b'x' * 1000 + b'\r\na\r\n') * (MAX_WIRE // 1000 + 1) + b'0\r\n\r\n'
+        # Large valid chunk extensions consume plaintext HTTP budget, not payload budget.
+        self.payload = head + (b'1;' + b'x' * 1000 + b'\r\na\r\n') * (MAX_HTTP_RESPONSE_BYTES // 1000 + 1) + b'0\r\n\r\n'
         with self.assertRaises(WorkerLimit):
             self.bind().signing_keys()
 

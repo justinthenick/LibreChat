@@ -14,7 +14,9 @@ from .backend import BackendContractError
 from .job_worker import WorkerLimit
 
 HOST = "auth.openai.com"
-MAX_WIRE = 128 * 1024
+# SSLSocket.recv returns plaintext HTTP, including HTTP framing. This does not
+# count encrypted TLS records, padding or other network-level overhead.
+MAX_HTTP_RESPONSE_BYTES = 128 * 1024
 
 
 def create_auth_exchange(control, *, enabled=False):
@@ -33,10 +35,10 @@ class _SocketStream:
 
     def read(self, max_bytes, timeout=None):
         self.sock.settimeout(self.owner.remaining())
-        data = self.sock.recv(min(max_bytes, MAX_WIRE - self.received + 1))
+        data = self.sock.recv(min(max_bytes, MAX_HTTP_RESPONSE_BYTES - self.received + 1))
         self.owner.remaining()
         self.received += len(data)
-        if self.received > MAX_WIRE:
+        if self.received > MAX_HTTP_RESPONSE_BYTES:
             raise WorkerLimit()
         return data
 

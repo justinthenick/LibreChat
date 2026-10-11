@@ -243,7 +243,9 @@ It owns verified TLS (certifi trust, hostname checking, TLS 1.2 minimum), one TC
 attempt per dispatch, no address fallback, retries, proxies or connection reuse.
 Socket connect, TLS handshake, partial writes and reads each use the shrinking
 worker deadline. Raw response headers reject compression before HTTPX can decode
-a body; decoded payload is capped at 64 KiB and received wire bytes at 128 KiB.
+a body; payload is capped at 64 KiB and decrypted HTTP response bytes (including
+HTTP framing) at 128 KiB. This does not cap encrypted TLS records, padding or
+network traffic; socket timeouts and the worker watchdog bound elapsed time.
 Tests use the real HTTP parser with synthetic DNS, socket and TLS I/O; they do not
 claim a live certificate handshake or provider compatibility test. Synchronous
 OS DNS is not independently interruptible; the existing worker process watchdog
