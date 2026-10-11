@@ -72,7 +72,8 @@ export interface IsolatedValidatedCapture {
   prepareDraft: (
     operationId: string,
     actor: CaptureIdentity,
-    request: Pick<SkillDraftCaptureRequest, 'draftId' | 'name'> & { sourceId: string },
+    request: Pick<SkillDraftCaptureRequest, 'draftId' | 'name'> &
+      Pick<CaptureDraft, 'sourceId' | 'sourceGeneration' | 'sourceDigest'>,
   ) => Promise<PreparedSkillCapture<StoredSkillDraft>>;
   prepareComplete: (
     operationId: string,
@@ -334,12 +335,22 @@ function validatedCapture(store: CapturePersistence): IsolatedValidatedCapture {
       draftId: validId(input.draftId),
       name: input.name,
       sourceId: validId(input.sourceId),
+      sourceGeneration: input.sourceGeneration,
+      sourceDigest: input.sourceDigest,
     };
-    const [source, existing] = await Promise.all([
-      readSource(actor, request.sourceId),
+    if (
+      !Number.isSafeInteger(request.sourceGeneration) ||
+      request.sourceGeneration < 1 ||
+      typeof request.sourceDigest !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(request.sourceDigest)
+    )
+      fail();
+    const [record, existing] = await Promise.all([
+      store.readGeneration(request.sourceId, actor.tenantId, request.sourceGeneration),
       readDraft(actor, request.draftId),
     ]);
-    if (!source) fail();
+    if (!record || record.digest !== request.sourceDigest) fail();
+    const source = await sourceRecord(record);
     beginSkillDraft(source.capture, existing?.capture ?? null, {
       draftId: request.draftId,
       name: request.name,
@@ -349,8 +360,8 @@ function validatedCapture(store: CapturePersistence): IsolatedValidatedCapture {
       _id: request.draftId,
       name: request.name,
       sourceId: request.sourceId,
-      sourceGeneration: source.record.generation,
-      sourceDigest: source.record.digest,
+      sourceGeneration: request.sourceGeneration,
+      sourceDigest: request.sourceDigest,
     };
     return prepared(
       operationId,

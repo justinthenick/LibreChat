@@ -7,6 +7,19 @@ generation transaction. It does not assemble a generation from mutable Skill
 and SkillFile rows. The caller retains the existing CAS and receipt-resolution
 protocol; an unknown commit outcome never authorizes blind replay.
 
+After `commit()` succeeds (or its exact receipt resolves), pass the returned
+record's `_id`, `generation` and `digest` as `sourceId`, `sourceGeneration` and
+`sourceDigest` to `prepareDraft`, with the desired draft ID and name. Preparation
+loads and validates that retained generation rather than the latest source.
+Sync before or during preparation cannot silently select replacement bytes.
+The reference is identity and integrity data, never authorization. Reservation
+still checks the existing synthetic fence in its Mongo transaction. Ready draft
+reuse preserves user edits and the original base even when the requested source
+generation is newer; failed drafts require explicit attempt-fenced recovery.
+Store operation IDs and request digests before committing. Resolve uncertain
+outcomes from historical receipts without replay; a missing receipt remains
+unresolved. Activation and production authorization remain unchanged and disabled.
+
 The selected host mapping must match configured tenant, source ID, repository
 and permitted path. The commit must be a full GitHub SHA-1 commit ID. This
 mapping is internal data, not a request capability: the future production
