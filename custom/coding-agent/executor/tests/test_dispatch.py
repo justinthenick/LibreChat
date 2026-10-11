@@ -103,6 +103,17 @@ class DispatchTests(unittest.TestCase):
             with self.assertRaises(ExecutionConflict):
                 self.call()
 
+    def test_absolute_deadline_includes_time_before_admission_and_never_renews(self):
+        with patch("coding_executor.executions.time.monotonic", return_value=100):
+            self.ledger.configure_dispatch(self.claim, max_requests=4, timeout_seconds=30,
+                                           deadline_monotonic=110)
+        with patch("coding_executor.executions.time.monotonic", return_value=105):
+            self.ledger.configure_dispatch(self.claim, max_requests=4, timeout_seconds=30,
+                                           deadline_monotonic=135)
+        with patch("coding_executor.executions.time.monotonic", return_value=111):
+            with self.assertRaises(ExecutionConflict):
+                self.call()
+
     def test_stop_seals_without_waiting_for_action_and_needs_exact_proof(self):
         self.admit()
         entered, release = threading.Event(), threading.Event()

@@ -38,6 +38,7 @@ class _Worker:
         self.local = None
         self.outcome = None
         self.started = False
+        self.preparing = False
         self.closed = False
         self.cancelled = threading.Event()
         self.lock = threading.RLock()
@@ -52,10 +53,39 @@ class _Worker:
             if self.started or self.closed:
                 raise RuntimeError("worker already consumed")
             self.started = True
-        self.owner.ledger.advance(self.identity)
-        self.owner.ledger.start(self.identity, "job-worker", self.digest)
-        if self.local is None and self.outcome is None:
-            self.outcome = WorkerOutcome("interrupted", None, "executor_start_unconfirmed", 0)
+        self.preparing = True
+        try:
+            self.owner.ledger.advance(self.identity)
+            status = self.owner.ledger.start(self.identity, "job-worker", self.digest)
+        except Exception:
+            self.preparing = False
+            raise
+        try:
+            if (status.sealed or status.state != "running" or self.claim is None
+                    or len(status.operations) != 1 or status.operations[0].claim != self.claim):
+                self.outcome = WorkerOutcome("interrupted", None, "executor_start_unconfirmed", 0)
+                return
+            if self.owner._prepare is not None:
+                self.owner._prepare(self.claim, max_requests=self.maximum,
+                    timeout_seconds=self.timeout, deadline_monotonic=self.deadline)
+            runner = self.owner._bind(self.runner, self.claim)
+            with self.lock:
+                if self.closed or self.cancelled.is_set():
+                    self.outcome = WorkerOutcome("cancelled", None, "cancelled", 0)
+                    return
+                if time.monotonic() >= self.deadline:
+                    self.outcome = WorkerOutcome("timed_out", None, "deadline_exceeded", 0)
+                    return
+                self.local = ProcessWorker(runner, self.context, max_requests=self.maximum,
+                    timeout_seconds=self.timeout, deadline_monotonic=self.deadline, on_progress=self.progress)
+                self.local.start()
+        except Exception:
+            with self.lock:
+                if self.local is not None:
+                    self.local.close()
+                self.outcome = WorkerOutcome("failed", None, "worker_start_failed", self.request_count)
+        finally:
+            self.preparing = False
 
     def poll(self):
         self.owner._check()
@@ -101,10 +131,13 @@ class LedgerWorkerSupervisor:
     Close JobService before this resource owner; never close during a callback.
     """
 
-    def __init__(self, directory, *, authority, identity_for, bind_runner):
+    def __init__(self, directory, *, authority, identity_for, bind_runner, prepare_dispatch=None):
         if not callable(identity_for) or not callable(bind_runner) or not all(
                 callable(getattr(authority, name, None)) for name in ("launch", "stop", "observe")):
             raise ValueError("trusted supervisor capabilities required")
+        if prepare_dispatch is not None and not callable(prepare_dispatch):
+            raise ValueError("trusted dispatch admission required")
+        self._prepare = prepare_dispatch
         self.authority_id = authority.authority_id
         self._authority, self._identity_for, self._bind = authority, identity_for, bind_runner
         self._pid = os.getpid()
@@ -163,18 +196,6 @@ class LedgerWorkerSupervisor:
         acknowledgement = self._authority.launch(claim)
         if not _matches(acknowledgement, claim) or acknowledgement.state != "running":
             return None
-        try:
-            runner = self._bind(worker.runner, claim)
-            worker.local = ProcessWorker(runner, worker.context, max_requests=worker.maximum,
-                timeout_seconds=worker.timeout, deadline_monotonic=worker.deadline, on_progress=worker.progress)
-            if worker.cancelled.is_set():
-                worker.local.cancel()
-            worker.local.start()
-        except Exception:
-            if worker.local is not None:
-                worker.local.close()
-            worker.outcome = WorkerOutcome("failed", None, "worker_start_failed", worker.request_count)
-            return None
         return Observation(claim, "running", False)
 
     def stop(self, claim):
@@ -188,7 +209,7 @@ class LedgerWorkerSupervisor:
         if worker is None:
             return None
         with worker.lock:
-            local_stopped = worker.local is None or worker.outcome is not None
+            local_stopped = not worker.preparing and (worker.local is None or worker.outcome is not None)
         if not local_stopped:
             return None
         observation = self._authority.observe(claim)
