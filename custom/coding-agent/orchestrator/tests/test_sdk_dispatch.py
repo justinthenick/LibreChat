@@ -169,6 +169,17 @@ class SDKDispatchTests(unittest.TestCase):
                 self.assertEqual(fixture.frames, [])
                 self.assertEqual(fixture.calls, [])
 
+    def test_sdk_cancellation_without_stop_proof_remains_interrupted(self):
+        with self.job(control_failure="cancelled") as (service, fixture, owner, adapter):
+            fixture.proof_available = False
+            run = self.wait(service, owner, service.start_run(owner, self.request()))
+            self.assertEqual((run['state'], run['error_code']),
+                             ('interrupted', 'execution_stop_unconfirmed'))
+            self.assertEqual(run['request_count'], 1)
+            self.assertEqual(fixture.frames, [])
+            self.assertEqual(fixture.calls, [])
+            self.assertNotEqual(adapter.ledger.status(fixture.claim.identity).state, 'stopped')
+
     def test_lost_dispatch_reply_never_replays_and_restart_rejects_old_claim(self):
         with self.job(lost=True) as (service, fixture, owner, adapter):
             fixture.proof_available = False

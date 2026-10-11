@@ -319,6 +319,9 @@ class JobService:
                     state, code = "cancelled", "cancel_requested"
                 if evidence is None:
                     state, code = "interrupted", "execution_stop_unconfirmed"
+                elif state == "cancelled" and current["state"] == "running":
+                    _require(self.store.transition(user, tenant, context.job_id, {"running"}, "cancelling",
+                        error_code=code), "cancellation_state_conflict")
                 _require(self.store.transition(user, tenant, context.job_id, {"running", "cancelling"}, state,
                     result=result, error_code=code, request_count=outcome.request_count,
                     stop_evidence=evidence), "terminal_state_conflict")
