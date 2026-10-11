@@ -13,7 +13,7 @@ not a version double-read over independently changing Skill and SkillFile rows.
 The physical storage schema and activation remain separate work.
 
 1. Sync stages the entire definition and file manifest and captures all bytes through
-   `captureSkillBundle`. A partial or corrupt payload cannot become a committed source.
+   `captureSkillBundle`. Bytes incomplete or corrupt relative to that manifest are rejected.
    `commitSkillSource` validates and detaches the complete snapshot and advances a
    monotonically increasing generation. A source identity or tenant cannot change.
 2. Draft reservation pins one committed source snapshot and its generation. A newer
@@ -39,6 +39,9 @@ The physical storage schema and activation remain separate work.
 The functions return proposed immutable records; they do not persist or authorize them.
 Passing a stale record into a pure function is not a database lock. A real adapter must:
 
+- Assemble each candidate from one pinned immutable upstream revision or complete writer
+  generation. Hashing independently sampled live rows can still certify a mixed bundle;
+  these functions cannot authenticate how a caller assembled a self-consistent manifest.
 - Authenticate and reauthorize the actor, current tenant, source visibility and draft
   ownership at each operation's atomic commit, including recovery and reuse.
 - Apply source transitions with an atomic generation compare-and-set; durable snapshot
