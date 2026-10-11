@@ -27,7 +27,7 @@ export function createGenerationFixture(
     'SKILL.md': '---\nname: writer\ndescription: Writes\n---\nOriginal instructions',
     'notes/readme.txt': 'original bytes',
   },
-  special?: 'symlink' | 'submodule' | 'duplicate-definition',
+  special?: 'symlink' | 'submodule' | 'duplicate-definition' | 'case-colliding-children',
   skillPath = 'skills/writer',
 ): GenerationFixture {
   const root = mkdtempSync(path.join(os.tmpdir(), 'skill-generation-'));
@@ -41,7 +41,25 @@ export function createGenerationFixture(
       writeFileSync(file, content);
     }
     git('add', '--', '.');
-    if (special) {
+    if (special === 'case-colliding-children') {
+      for (const [directory, name] of [
+        ['child', 'first-child'],
+        ['CHILD', 'second-child'],
+      ]) {
+        const blob = execFileSync('git', ['hash-object', '-w', '--stdin'], {
+          cwd: root,
+          input: `---\nname: ${name}\n---\nChild`,
+        })
+          .toString()
+          .trim();
+        git(
+          'update-index',
+          '--add',
+          '--cacheinfo',
+          `100644,${blob},${path.posix.join(skillPath, directory, 'SKILL.md')}`,
+        );
+      }
+    } else if (special) {
       const blob = git('rev-parse', `:${path.posix.join(skillPath, 'SKILL.md')}`)
         .toString()
         .trim();

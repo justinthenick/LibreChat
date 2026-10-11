@@ -298,3 +298,29 @@ test.each(['skills/writer', ''])('separates child packages at selected root %s',
   expect(child.files.map((file) => file.path)).toEqual(['notes.txt']);
   expect(validateSkillBundle(child).definition.description).toBe('child');
 });
+
+test('excludes the discovered child directory itself before parent path validation', async () => {
+  fixture.close();
+  fixture = createGenerationFixture({
+    'SKILL.md': '---\nname: writer\n---\nParent',
+    'notes.txt': 'parent notes',
+    'bad child/SKILL.md': '---\nname: child\n---\nChild',
+  });
+  const snapshot = await captureGitHubSkillGeneration(fixture.input);
+  expect(snapshot.files.map((file) => file.path)).toEqual(['notes.txt']);
+  expect(fixture.requests.filter((url) => url.includes('/blobs/'))).toHaveLength(2);
+});
+
+test('excludes independently discovered child directory case collisions from the parent', async () => {
+  fixture.close();
+  fixture = createGenerationFixture(
+    {
+      'SKILL.md': '---\nname: writer\n---\nParent',
+      'notes.txt': 'parent notes',
+    },
+    'case-colliding-children',
+  );
+  const snapshot = await captureGitHubSkillGeneration(fixture.input);
+  expect(snapshot.files.map((file) => file.path)).toEqual(['notes.txt']);
+  expect(fixture.requests.filter((url) => url.includes('/blobs/'))).toHaveLength(2);
+});

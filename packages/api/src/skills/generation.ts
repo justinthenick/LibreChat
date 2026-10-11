@@ -161,13 +161,14 @@ export async function captureGitHubSkillGeneration(
       )
     )
       return [];
-    return [`${root}/`];
+    return [root];
   });
   const paths = new Set<string>();
   const files: Array<RepoTreeEntry & { relative: string }> = [];
   let total = 0;
   for (const entry of entries) {
-    if (childRoots.some((root) => entry.path.startsWith(root))) continue;
+    if (childRoots.some((root) => entry.path === root || entry.path.startsWith(`${root}/`)))
+      continue;
     const relative = entry.path.slice(prefix.length);
     if (
       !entry.path.startsWith(prefix) ||
