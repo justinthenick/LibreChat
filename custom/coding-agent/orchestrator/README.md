@@ -256,6 +256,9 @@ are recreated without their original exception objects. This limits retention in
 the module's own failure traceback frames. It does not erase caller variables,
 transport caches, global state, externally retained exceptions or memory, and it
 does not sanitize unrelated exceptions already being handled by a caller.
+This guarantee covers handled `Exception` failures in `refresh`, `signing_keys`
+and `close` only; `BaseException` interruptions and serialization-rejection
+tracebacks are outside its scope.
 
 Activation still needs a reviewed child-side credential handoff, issuer/audience/
 expiry/account and signature validation, durable credential rotation recovery,
