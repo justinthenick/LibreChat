@@ -217,7 +217,7 @@ class DispatchTests(unittest.TestCase):
         dormant = FencedWorkspace(self.ledger, manager, **kwargs)
         with self.assertRaises(ExecutionConflict):
             dormant.admit(self.claim, max_requests=4, timeout_seconds=3)
-        dispatch = FencedWorkspace(self.ledger, manager, **kwargs, enabled=True)
+        dispatch = FencedWorkspace(self.ledger, manager, **kwargs, enabled=True, testing_uncontained=True)
         dispatch.admit(self.claim, max_requests=4, timeout_seconds=3)
         created = dispatch.dispatch(self.claim, "create", "create_task", {})
         self.assertEqual(self.ledger.task_for(self.claim), created["task_id"])
