@@ -60,6 +60,21 @@ def _raise(category):
     raise CustodyError() from None
 
 
+def _failure(control, error, primary=None):
+    native = (WorkerCancelled, WorkerDeadline, WorkerLimit)
+    if primary in native:
+        return primary
+    if type(error) in native:
+        return type(error)
+    try:
+        control.remaining_seconds()
+    except native as stopped:
+        return type(stopped)
+    except Exception:
+        pass
+    return CustodyError
+
+
 class SyntheticCredentialCustodian:
     """One owner, one active rotation, no credential-returning public interface.
 
@@ -210,11 +225,13 @@ class SyntheticCredentialCustodian:
         return outcome
 
     def _rotate(self, control, claim, revision, epoch, attempt, transport, jwks):
+        outcome = category = None
         try:
             with self._guard():
-                return self._rotate_locked(control, claim, revision, epoch, attempt, transport, jwks)
-        except Exception:
-            return None, CustodyError
+                outcome, category = self._rotate_locked(control, claim, revision, epoch, attempt, transport, jwks)
+        except Exception as error:
+            outcome, category = None, _failure(control, error, category)
+        return outcome, category
 
     def _rotate_locked(self, control, claim, revision, epoch, attempt, transport, jwks):
         reserved = False
@@ -251,14 +268,7 @@ class SyntheticCredentialCustodian:
             return self._commit(claim, revision, epoch, attempt,
                                 reply['access_token'], refresh, identity), None
         except Exception as error:
-            category = type(error) if type(error) in (WorkerCancelled, WorkerDeadline, WorkerLimit) else CustodyError
-            if category is CustodyError:
-                try:
-                    control.remaining_seconds()
-                except (WorkerCancelled, WorkerDeadline, WorkerLimit) as stopped:
-                    category = type(stopped)
-                except Exception:
-                    pass
+            category = _failure(control, error)
             if reserved:
                 try:
                     self._recover(claim, revision, epoch, attempt)

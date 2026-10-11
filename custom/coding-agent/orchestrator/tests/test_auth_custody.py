@@ -1,5 +1,6 @@
 """Actual SQLite, RSA verification and bounded HTTP; credentials are synthetic."""
 from dataclasses import replace
+from contextlib import contextmanager
 import base64
 import io
 import json
@@ -308,6 +309,14 @@ class CustodyTests(unittest.TestCase):
             self.assertTrue(entered.wait(10))
             with self.assertRaises(CustodyError):
                 self.rotate(attempt='contender')
+            self.control._cancelled.set()
+            with self.assertRaises(WorkerCancelled):
+                self.rotate(attempt='cancelled-contender')
+            self.control._cancelled.clear()
+            self.control._deadline = time.monotonic() - 1
+            with self.assertRaises(WorkerDeadline):
+                self.rotate(attempt='expired-contender')
+            self.control._deadline = time.monotonic() + 30
             with self.assertRaises(CustodyError):
                 self.rotate(attempt='first')
             self.assertEqual(self.calls, [])
@@ -322,6 +331,26 @@ class CustodyTests(unittest.TestCase):
                 child.kill()
             child.join(5)
             outcome.close()
+
+    def test_lock_cleanup_preserves_primary_control_and_committed_outcome(self):
+        for index, category in enumerate((WorkerCancelled, WorkerDeadline, WorkerLimit, CustodyError)):
+            self.store = self.create(Path(self.temp.name) / f'cleanup-{index}.sqlite')
+            original = self.store._guard
+            @contextmanager
+            def broken_cleanup():
+                with original():
+                    yield
+                raise OSError('synthetic-cleanup-canary')
+            def send(_):
+                if category is not CustodyError:
+                    raise category()
+                return httpx.Response(200, headers={'content-type': 'application/json'}, json=self.payload())
+            with patch.object(self.store, '_guard', broken_cleanup):
+                with self.assertRaises(category):
+                    self.rotate(transport=self.transport(send))
+            recovered = self.store.recover(claim(), 0, 0, 'rotation')
+            self.assertEqual(recovered.state,
+                'committed' if category is CustodyError else 'reauthentication_required')
 
     def test_real_process_crash_intervals_preserve_atomicity_and_never_replay(self):
         context = multiprocessing.get_context('fork')
