@@ -21,6 +21,12 @@ CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
 MAX_REPLY = 64 * 1024
 
 
+def _raise_failure(category):
+    if category in (WorkerCancelled, WorkerDeadline, WorkerLimit):
+        raise category() from None
+    raise BackendContractError("Bounded auth exchange unavailable or outcome unknown") from None
+
+
 @dataclass(frozen=True)
 class AuthReply:
     """Unvalidated sensitive bytes; never a verified identity or stop proof."""
@@ -53,29 +59,36 @@ class BoundedAuthExchange:
     def __reduce__(self):
         raise TypeError("Auth exchanges must be constructed inside the worker")
 
-    def _raise_failure(self):
-        if self._failure in (WorkerCancelled, WorkerDeadline, WorkerLimit):
-            raise self._failure() from None
-        raise BackendContractError("Bounded auth exchange unavailable or outcome unknown") from None
-
     def _check(self):
         if (self._failure is not None or self._closed or not self._enabled
                 or self._transport is None or os.getpid() != self._pid):
-            self._raise_failure()
+            _raise_failure(self._failure)
         self._control.remaining_seconds()
 
     def refresh(self, refresh_token):
-        return self._exchange("refresh", refresh_token)
+        reply, failure = self._exchange("refresh", refresh_token)
+        # The secret-handling frame has returned. Do not retain the token or
+        # transport owner in the public traceback when raising the safe category.
+        self = refresh_token = None
+        if failure is not None:
+            _raise_failure(failure)
+        return reply
 
     def signing_keys(self):
-        return self._exchange("keys", None)
+        reply, failure = self._exchange("keys", None)
+        self = None
+        if failure is not None:
+            _raise_failure(failure)
+        return reply
 
     def _exchange(self, operation, secret):
-        if not self._lock.acquire(blocking=False):
-            self._failure = BackendContractError
-            self._raise_failure()
+        acquired = False
         response = None
         try:
+            acquired = self._lock.acquire(blocking=False)
+            if not acquired:
+                self._failure = BackendContractError
+                _raise_failure(self._failure)
             self._check()
             if operation in self._used:
                 raise BackendContractError("Auth operation already consumed")
@@ -113,24 +126,30 @@ class BoundedAuthExchange:
             response.close()
             response = None
             self._check()
-            return AuthReply(bytes(body))
+            return AuthReply(bytes(body)), None
         except Exception as error:
             # Retain only an error type: transport exceptions may retain tokens.
             if self._failure is None:
                 self._failure = type(error) if type(error) in (WorkerCancelled, WorkerDeadline, WorkerLimit) else BackendContractError
-            self._raise_failure()
         finally:
             if response is not None:
                 try:
                     response.close()
                 except Exception:
                     pass
-            self._lock.release()
+            if acquired:
+                self._lock.release()
+        # No exception object or traceback escapes the secret-handling frame.
+        return None, self._failure
 
     def close(self):
         self._closed = True
+        failed = False
         if self._transport is not None:
             try:
                 self._transport.close()
             except Exception:
-                raise BackendContractError("Auth transport close failed") from None
+                failed = True
+        self = None
+        if failed:
+            raise BackendContractError("Auth transport close failed") from None

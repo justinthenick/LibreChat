@@ -248,6 +248,15 @@ its body from repr and rejects pickling; trusted code can explicitly read the
 body, so this is not memory erasure or a general serialization security boundary.
 Only synthetic transports call this module in the repository.
 
+Failure handling returns only a safe error category from the secret-handling
+frame. Public methods drop their token and transport-owner locals before raising
+a fresh fixed-message exception outside that handler. Transport exceptions and
+their tracebacks are not chained into the returned error; typed worker failures
+are recreated without their original exception objects. This limits retention in
+the module's own failure traceback frames. It does not erase caller variables,
+transport caches, global state, externally retained exceptions or memory, and it
+does not sanitize unrelated exceptions already being handled by a caller.
+
 Activation still needs a reviewed child-side credential handoff, issuer/audience/
 expiry/account and signature validation, durable credential rotation recovery,
 and an SDK LLM binding that routes every auth and inference request through the
