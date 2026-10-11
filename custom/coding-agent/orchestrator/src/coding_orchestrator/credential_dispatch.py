@@ -102,7 +102,7 @@ class SyntheticCredentialDispatch:
             wire = httpx.Request('POST', RESPONSES_URL, headers=headers, content=request.content)
             _require(time.monotonic() < deadline)
             self.control.before_provider_request()
-            _require(row['expires_at'] > time.time())
+            _require(time.monotonic() < deadline and row['expires_at'] > time.time())
             response = transport.handle_request(wire)
             _require(response.headers.get('content-encoding', 'identity') == 'identity')
             content = bytearray()

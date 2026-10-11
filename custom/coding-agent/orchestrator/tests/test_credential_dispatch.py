@@ -9,6 +9,7 @@ import socket
 import tempfile
 import threading
 import time
+import traceback
 import unittest
 import uuid
 from unittest.mock import patch
@@ -330,6 +331,7 @@ class CredentialDispatchTests(unittest.TestCase):
             else:
                 self.fail('Expected sanitized denial')
         self.assertEqual(len(self.calls), 1)
+
         self.assertNotIn('authorization', self.calls[0].headers)
         state = self.ledger.status(self.claim.identity)
         self.assertTrue(state.sealed)
@@ -340,6 +342,37 @@ class CredentialDispatchTests(unittest.TestCase):
         with self.assertRaises(CustodyError):
             recreated(self.request(), self.transport())
         self.assertEqual(len(self.calls), 1)
+
+    def test_counter_lock_wait_cannot_outlive_the_shorter_ledger_deadline(self):
+        now = time.monotonic()
+        self.control._deadline = now + 600
+        entered = threading.Event()
+        original = self.control.before_provider_request
+        errors = []
+        def account():
+            entered.set()
+            original()
+        def run():
+            try:
+                self.adapter()(self.request(), self.transport())
+            except CustodyError:
+                errors.append(True)
+        with patch('coding_orchestrator.credential_dispatch.time.monotonic', return_value=now) as clock, \
+                patch.object(self.control, 'before_provider_request', account):
+            lock = self.control._counter.get_lock()
+            lock.acquire()
+            worker = threading.Thread(target=run)
+            worker.start()
+            try:
+                self.assertTrue(entered.wait(5))
+                clock.return_value = now + 61
+            finally:
+                lock.release()
+                worker.join(5)
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(errors, [True])
+        self.assertEqual(self.calls, [])
+        self.assertEqual(self.control._counter.value, 2)  # Reservation is conservative; no wire request.
 
     def test_compressed_or_oversized_reply_is_rejected_without_decode_or_retry(self):
         from coding_orchestrator.credential_dispatch import MAX_FIXTURE_RESPONSE
@@ -382,6 +415,7 @@ class CredentialDispatchTests(unittest.TestCase):
                 self.adapter()(self.request(), self.transport(lambda _: response))
 
     def test_runner_sdk_loop_rotation_and_progress_are_secret_free(self):
+        from test_profile_sdk_integration import fixture_llm, FixtureTransport
         from coding_orchestrator.openhands_backend import OpenHandsBackend
         from coding_orchestrator.restricted_agent import RestrictedOpenHandsAgent
         # Substitute only the executor tool catalog: this slice performs a real
@@ -389,13 +423,14 @@ class CredentialDispatchTests(unittest.TestCase):
         def agent(backend):
             return RestrictedOpenHandsAgent(llm=backend._llm, tools=[],
                 include_default_tools=['FinishTool'], mcp_config={})
-        runner = OpenHandsJobRunner('https://fixture.invalid/mcp', unused_factory, synthetic_llm,
+        runner = OpenHandsJobRunner('https://fixture.invalid/mcp', unused_factory, fixture_llm,
             synthetic_model_factory=ClaimDispatch(self.claim, unused_factory))
         encoded = pickle.dumps(runner)
         self.assertNotIn(self.access.encode(), encoded)
         self.assertNotIn(b'synthetic-original', encoded)
+        fixture = FixtureTransport('finish', 'read_only')()
         runner = replace(runner, token_factory=lambda: 'synthetic-executor',
-            transport_factory=self.transport,
+            transport_factory=lambda: self.transport(fixture.handle_request),
             synthetic_model_factory=ClaimDispatch(self.claim, lambda claim, control: self.adapter(
                 claim=claim, control=control)))
         context = RunContext(self.claim.identity.job_id, 'Finish this synthetic fixture.',
@@ -405,10 +440,15 @@ class CredentialDispatchTests(unittest.TestCase):
                 patch.object(OpenHandsBackend, '_build_agent', agent), \
                 patch('coding_orchestrator.openhands_backend.EXPECTED_OPENHANDS_RUNTIME_TOOLS', {'finish'}), \
                 patch.object(self.control, 'emit_progress', lambda value: progress.append(value)):
-            result = runner(context, self.control)
+            try:
+                result = runner(context, self.control)
+            except Exception as error:
+                source = error.__context__ or error
+                locations = [(frame.name, frame.lineno) for frame in traceback.extract_tb(source.__traceback__)]
+                self.fail(f'Runner fixture failed: {type(source).__name__} at {locations}')
         self.assertEqual(len(self.calls), 1)
         self.assertEqual(self.control._counter.value, 2)
-        self.assertIn('Done.', result['final_response'])
+        self.assertIn('Fixture complete.', result['final_response'])
         self.assertNotIn(self.access, json.dumps({'result': result, 'progress': progress}))
         self.assertNotIn('synthetic-replacement', json.dumps(result))
 
