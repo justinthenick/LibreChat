@@ -19,6 +19,8 @@ import {
   createIsolatedFencedValidatedCapture,
 } from './persistence';
 import { captureSkillBundle, validateSkillBundle } from './bundles';
+import { createGenerationFixture } from './generation.helper';
+import { prepareGitHubSkillGeneration } from './generation';
 import { copySkillDraft } from './capture';
 
 const actor = { ownerId: 'owner', tenantId: 'tenant' };
@@ -139,6 +141,63 @@ test('live activation stays hard-disabled and a non-isolated database is rejecte
     );
   } finally {
     await other.close();
+  }
+});
+
+test('pinned Git generations survive sync, draft copy and lost-reply recovery in real Mongo', async () => {
+  const first = createGenerationFixture();
+  const second = createGenerationFixture({
+    'SKILL.md': '---\nname: writer\ndescription: Writes\n---\nReplacement instructions',
+    'notes/readme.txt': 'replacement bytes',
+  });
+  try {
+    const plan = await prepareGitHubSkillGeneration(api, 'git-first', actor, 0, first.input);
+    const committed = await plan.commit();
+    const draft = await (
+      await api.prepareDraft('git-draft', actor, { sourceId, draftId, name: 'writer-draft' })
+    ).commit();
+    const stale = await prepareGitHubSkillGeneration(api, 'git-stale', actor, 1, first.input);
+    await (await prepareGitHubSkillGeneration(api, 'git-second', actor, 1, second.input)).commit();
+    await expect(stale.commit()).rejects.toThrow();
+    const finished = await (
+      await api.prepareComplete('git-complete', actor, expectation(draft), await copied(draft))
+    ).commit();
+    expect(validateSkillBundle(finished.capture.snapshot!).definition.body).toContain(
+      'Original instructions',
+    );
+    expect(finished.capture.snapshot!.files[0].base64).toBe(
+      Buffer.from('original bytes').toString('base64'),
+    );
+    expect((await api.readSource(actor, sourceId))!.record.generation).toBe(2);
+    api = await createIsolatedValidatedCapture(connection);
+    expect(await api.resolveReceipt(actor, plan.operationId, plan.requestDigest)).toEqual(
+      committed,
+    );
+    expect(await connection.db!.collection('capture_generations').countDocuments()).toBe(2);
+  } finally {
+    first.close();
+    second.close();
+  }
+});
+
+test('an incomplete Git generation leaves no source, payload or receipt', async () => {
+  const fixture = createGenerationFixture();
+  try {
+    const blob = [...fixture.responses.values()].find((value) => value.content)!;
+    blob.content = Buffer.from('corrupt').toString('base64');
+    await expect(
+      prepareGitHubSkillGeneration(api, 'git-invalid', actor, 0, fixture.input),
+    ).rejects.toThrow();
+    for (const name of [
+      'capture_sources',
+      'capture_blobs',
+      'capture_receipts',
+      'capture_generations',
+    ]) {
+      expect(await connection.db!.collection(name).countDocuments()).toBe(0);
+    }
+  } finally {
+    fixture.close();
   }
 });
 
