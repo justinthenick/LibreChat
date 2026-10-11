@@ -5,13 +5,13 @@ import {
   validateSkillFrontmatter,
   deriveStructuredFrontmatterFields,
 } from '@librechat/data-schemas';
-import type { CaptureIdentity } from '@librechat/data-schemas/isolated-capture';
 import type {
   SkillFrontmatter,
   SkillFrontmatterValue,
   SkillFrontmatterObject,
   SkillSyncGitHubSourceConfig,
 } from 'librechat-data-provider';
+import type { CaptureIdentity } from '@librechat/data-schemas/isolated-capture';
 import type {
   IsolatedValidatedCapture,
   PreparedSkillCapture,
