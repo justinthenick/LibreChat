@@ -110,15 +110,17 @@ class _Network:
 
 class _FixedTransport:
     def __init__(self, control):
-        import httpcore
+        import certifi
 
         self.control = control
         self.pid = os.getpid()
         self.closed = False
         self.stream = None
         self.lock = threading.Lock()
-        # httpcore uses certifi directly, not SSL_CERT_FILE/SSL_CERT_DIR or proxies.
-        self.context = httpcore.default_ssl_context()
+        # create_default_context also discovers system/environment roots. Load
+        # only certifi here so SSL_CERT_FILE/SSL_CERT_DIR cannot add trust.
+        self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        self.context.load_verify_locations(cafile=certifi.where())
         self.context.minimum_version = ssl.TLSVersion.TLSv1_2
 
     def remaining(self):

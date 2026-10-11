@@ -97,11 +97,24 @@ class AuthTransportTests(unittest.TestCase):
         return create_auth_exchange(self.control, enabled=True)
 
     def test_default_off_has_no_socket_or_tls_setup(self):
-        with patch('httpcore.default_ssl_context', side_effect=AssertionError('Unexpected TLS setup')):
+        with patch('ssl.SSLContext', side_effect=AssertionError('Unexpected TLS setup')):
             with self.assertRaises(BackendContractError):
                 create_auth_exchange(self.control).signing_keys()
         self.assertEqual(self.wires, [])
         self.assertEqual(self.counter.value, 0)
+
+    def test_enabled_factory_loads_only_explicit_certifi_trust(self):
+        import certifi
+        original = ssl.SSLContext.load_verify_locations
+        loaded = []
+        def load(context, cafile=None, capath=None, cadata=None):
+            loaded.append((cafile, capath, cadata))
+            return original(context, cafile=cafile, capath=capath, cadata=cadata)
+        with patch('ssl.create_default_context', side_effect=AssertionError('Ambient trust forbidden')), \
+                patch.object(ssl.SSLContext, 'load_default_certs', side_effect=AssertionError('Ambient trust forbidden')), \
+                patch.object(ssl.SSLContext, 'load_verify_locations', load):
+            self.bind().signing_keys()
+        self.assertEqual(loaded, [(certifi.where(), None, None)])
 
     def test_fixed_wire_framing_shared_accounting_and_no_environment_proxy(self):
         with patch.dict('os.environ', {'HTTPS_PROXY': 'http://invalid.test',
