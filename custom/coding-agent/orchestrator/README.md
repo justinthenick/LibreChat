@@ -755,3 +755,42 @@ Before separately authorized bounded live acceptance, the host still needs:
 - Explicit approval for a bounded live trial using an explicitly provided
   existing credential. This offline slice authorizes no credential discovery,
   login, new credentials, live endpoints, activation or deployment.
+
+### Disposable single-user credential rotation experiment
+
+`SyntheticCredentialCustodian` is default-off and has no service/profile wiring,
+credential discovery/import, production enrollment, model dispatch or private IPC.
+It creates only an explicitly supplied new fixture database and accepts only
+`httpx.MockTransport` for rotation. Fixtures use synthetic refresh markers and
+signed synthetic access tokens with independently supplied public keys. This is
+not evidence of provider refresh-response compatibility or production custody.
+
+One SQLite transaction domain contains the fixed owner/tenant/expected provider
+identity, credential revision/epoch, complete token replacement and attempt
+receipts. The existing trusted execution Claim is recorded exactly. Durable pending
+intent precedes the bounded exchange; the offline validator checks replacement
+identity before both tokens and the committed receipt are written atomically.
+The narrow fixture response requires access_token, refresh_token and Bearer
+token_type; missing refresh data never falls back to the old token.
+
+A nonblocking local process lock spans reservation, physical dispatch and commit.
+Recovery and fake reauthentication share that lock, so they cannot supersede a
+paused dispatch. Process death releases the kernel lock but leaves durable pending
+state. Recovering pending state blocks the credential until explicit fake
+reauthentication advances revision and epoch. Committed-but-unacknowledged attempts
+are recovered by exact attempt identity without another POST. A historical outcome
+is metadata, not authority to dispatch or obtain credentials. There is no lease
+expiry, automatic refresh replay or secret-returning interface.
+
+Tests use real disposable SQLite, real RSA verification, the reviewed bounded HTTP
+exchange and actual forked processes. They cover two-process contention, pause
+before dispatch, reservation/replacement commit failure, lost commit acknowledgement,
+process death after pending intent/remote response/before commit/after commit,
+owner and epoch mismatch, malformed replacement and native control failures.
+
+The fixture directory and lock inode are trusted and must not be shared, replaced
+or unlinked while active. SQLite transactions and flock do not provide encryption,
+OS isolation, key provenance, account authorization or authoritative remote stop.
+Production custodial identity, ACLs, authenticated child delivery, revocation/model
+dispatch fencing, import/cutover and live acceptance still require separate design
+and approval. No real credentials or machine security settings are touched.
