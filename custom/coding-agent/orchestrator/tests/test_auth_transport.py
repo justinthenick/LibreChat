@@ -215,6 +215,48 @@ class AuthTransportTests(unittest.TestCase):
         self.assertFalse(exchange._transport.lock.locked())
         self.assertIsNone(exchange._transport.stream)
 
+    def test_unrelated_caller_exception_cannot_hide_new_cleanup_failure(self):
+        for category in (WorkerCancelled, WorkerDeadline, WorkerLimit, GeneratorExit):
+            for refresh in (False, True):
+                with self.subTest(category=category, refresh=refresh):
+                    self.wires.clear()
+                    self.counter.value = 0
+                    exchange = self.bind()
+                    self.hook = lambda name: setattr(self.wires[0], 'close_error', True) if name == 'recv' else None
+                    try:
+                        raise category()
+                    except category:
+                        with self.assertRaises(BackendContractError):
+                            exchange.refresh('synthetic-token') if refresh else exchange.signing_keys()
+                    with self.assertRaises(BackendContractError):
+                        exchange.refresh('synthetic-token')
+                    self.assertEqual(self.counter.value, 1)
+                    self.assertEqual(len(self.wires), 1)
+                    self.assertFalse(exchange._transport.lock.locked())
+                    self.assertIsNone(exchange._transport.stream)
+
+    def test_owned_deadline_wins_over_unrelated_caller_exception(self):
+        for category in (WorkerCancelled, WorkerLimit, GeneratorExit):
+            self.wires.clear()
+            self.counter.value = 0
+            self.control._deadline = time.monotonic() + 60
+            exchange = self.bind()
+            def interrupt(name):
+                if name == 'recv':
+                    self.wires[0].close_error = True
+                    self.control._deadline = time.monotonic() - 1
+                    raise socket.timeout('synthetic-timeout-secret')
+            self.hook = interrupt
+            try:
+                raise category()
+            except category:
+                with self.assertRaises(WorkerDeadline):
+                    exchange.signing_keys()
+            self.control._deadline = time.monotonic() + 60
+            with self.assertRaises(WorkerDeadline):
+                exchange.refresh('synthetic-token')
+            self.assertEqual(self.counter.value, 1)
+
     def test_control_failures_survive_io_and_cleanup_errors_and_remain_terminal(self):
         for stage in ('dns', 'connect', 'tls', 'send', 'recv'):
             for category in (WorkerCancelled, WorkerDeadline):
