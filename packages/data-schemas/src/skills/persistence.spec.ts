@@ -382,6 +382,52 @@ test('receipt resolution ignores object key order for source, reservation and ev
   }
 });
 
+test('a lost ready-reuse reply resolves from the retained full draft without replay', async () => {
+  const draft = await initialize();
+  const ready = await store.transition('complete', actor, draft, 'complete', payload());
+  const edited = await store.transition('edit', actor, ready, 'edit', payload('retained edit'));
+  const digest = captureRequestDigest('reserve', actor, edited);
+  const loseReply = async () => {
+    await store.reserve('reuse', actor, edited);
+    throw new Error('lost_reply');
+  };
+  await expect(loseReply()).rejects.toThrow('lost_reply');
+  expect((await store.resolve('reuse', digest))?.result).toEqual(edited);
+  expect(await store.readDraft(draftId, actor)).toEqual(edited);
+});
+
+test.each(['fail', 'recover'] as const)(
+  'a lost %s reply resolves with an omitted payload',
+  async (action) => {
+    const draft = await initialize();
+    const digest = captureRequestDigest(action, actor, draft);
+    const loseReply = async () => {
+      await store.transition('uncertain', actor, draft, action);
+      throw new Error('lost_reply');
+    };
+    await expect(loseReply()).rejects.toThrow('lost_reply');
+    const receipt = await store.resolve('uncertain', digest);
+    expect(receipt?.result).toEqual(await store.readDraft(draftId, actor));
+    expect(digest).toBe(captureRequestDigest(action, actor, draft, null));
+  },
+);
+
+test('receipt normalization projects richer source, payload and transition inputs', async () => {
+  const content = { ...payload(), producerNote: 'ignored metadata' };
+  const source = { ...candidate(), producerNote: 'ignored metadata' };
+  await store.commitSource('source', actor, source, content);
+  expect(
+    await store.resolve('source', captureRequestDigest('source', actor, source, content)),
+  ).not.toBeNull();
+  const draft = await store.reserve('reserve', actor, request({ ...source, generation: 1 }));
+  const retained = { ...draft, producerNote: 'ignored metadata' };
+  const ready = await store.transition('complete', actor, retained, 'complete', content);
+  expect(
+    (await store.resolve('complete', captureRequestDigest('complete', actor, retained, content)))
+      ?.result,
+  ).toEqual(ready);
+});
+
 test('concurrent reuse of an operation ID cannot commit two unrelated mutations', async () => {
   const outcomes = await Promise.allSettled(
     ['a', 'b'].map((id) =>

@@ -31,6 +31,48 @@ export interface CapturePayload {
   json: string;
 }
 
+type Reservation = Pick<
+  CaptureDraft,
+  '_id' | 'name' | 'sourceId' | 'sourceGeneration' | 'sourceDigest'
+>;
+type Transition = 'complete' | 'fail' | 'recover' | 'edit';
+
+function sourceCopy(input: CaptureSource): CaptureSource {
+  return {
+    _id: input._id,
+    tenantId: input.tenantId,
+    generation: input.generation,
+    digest: input.digest,
+    upstreamRevision: input.upstreamRevision,
+  };
+}
+
+function reservationCopy(input: Reservation): Reservation {
+  return {
+    _id: input._id,
+    name: input.name,
+    sourceId: input.sourceId,
+    sourceGeneration: input.sourceGeneration,
+    sourceDigest: input.sourceDigest,
+  };
+}
+
+function draftCopy(input: CaptureDraft): CaptureDraft {
+  return {
+    ...reservationCopy(input),
+    tenantId: input.tenantId,
+    ownerId: input.ownerId,
+    attempt: input.attempt,
+    revision: input.revision,
+    status: input.status,
+    digest: input.digest,
+  };
+}
+
+function payloadFields(input: CapturePayload): CapturePayload {
+  return { digest: input.digest, json: input.json };
+}
+
 interface Receipt {
   _id: string;
   requestDigest: string;
@@ -47,13 +89,13 @@ export interface CapturePersistence {
   reserve: (
     operationId: string,
     actor: CaptureIdentity,
-    draft: Pick<CaptureDraft, '_id' | 'name' | 'sourceId' | 'sourceGeneration' | 'sourceDigest'>,
+    draft: Reservation,
   ) => Promise<CaptureDraft>;
   transition: (
     operationId: string,
     actor: CaptureIdentity,
     expected: CaptureDraft,
-    action: 'complete' | 'fail' | 'recover' | 'edit',
+    action: Transition,
     payload?: CapturePayload,
   ) => Promise<CaptureDraft>;
   readSource: (id: string, tenantId: string | null) => Promise<CaptureSource | null>;
@@ -84,21 +126,42 @@ function canonicalJson(value: JsonValue): string {
     .join(',')}}`;
 }
 
-/** Object key order is irrelevant; tuple order, actor and complete input values are bound. */
+/** Uses the same field projection/defaults as writes, including structurally richer inputs. */
 export function captureRequestDigest(
-  operation: string,
+  operation: 'source',
   actor: CaptureIdentity,
-  ...inputs: Array<
-    | string
-    | CaptureSource
-    | CaptureDraft
-    | CapturePayload
-    | Pick<CaptureDraft, '_id' | 'name' | 'sourceId' | 'sourceGeneration' | 'sourceDigest'>
-    | null
-  >
+  source: CaptureSource,
+  payload: CapturePayload,
+): string;
+export function captureRequestDigest(
+  operation: 'reserve',
+  actor: CaptureIdentity,
+  request: Reservation,
+): string;
+export function captureRequestDigest(
+  operation: Transition,
+  actor: CaptureIdentity,
+  draft: CaptureDraft,
+  payload?: CapturePayload | null,
+): string;
+export function captureRequestDigest(
+  operation: 'source' | 'reserve' | Transition,
+  actor: CaptureIdentity,
+  input: CaptureSource | CaptureDraft | Reservation,
+  payload?: CapturePayload | null,
 ): string {
+  const who = identity(actor);
+  let fields: Array<CaptureSource | CaptureDraft | Reservation | CapturePayload | null>;
+  if (operation === 'source') {
+    if (!payload) reject('payload');
+    fields = [sourceCopy(input as CaptureSource), payloadFields(payload)];
+  } else if (operation === 'reserve') fields = [reservationCopy(input as Reservation)];
+  else {
+    if (!['complete', 'fail', 'recover', 'edit'].includes(operation)) reject('operation');
+    fields = [draftCopy(input as CaptureDraft), payload ? payloadFields(payload) : null];
+  }
   const tuple = JSON.parse(
-    JSON.stringify([operation, actor.tenantId, actor.ownerId, ...inputs]),
+    JSON.stringify([operation, who.tenantId, who.ownerId, ...fields]),
   ) as JsonValue;
   return captureDigest(canonicalJson(tuple));
 }
@@ -130,7 +193,7 @@ function payloadCopy(payload: CapturePayload): CapturePayload {
   )
     reject('payload');
   JSON.parse(payload.json);
-  return { digest: payload.digest, json: payload.json };
+  return payloadFields(payload);
 }
 
 /** No live factory exists until all authorization writers participate in a commit-time fence. */
@@ -204,13 +267,7 @@ export async function createIsolatedCapturePersistence(
     inputPayload: CapturePayload,
   ): Promise<CaptureSource> {
     const actor = identity(inputActor);
-    const source = {
-      _id: input._id,
-      tenantId: input.tenantId,
-      generation: input.generation,
-      digest: input.digest,
-      upstreamRevision: input.upstreamRevision,
-    };
+    const source = sourceCopy(input);
     const payload = payloadCopy(inputPayload);
     if (
       typeof source._id !== 'string' ||
@@ -245,16 +302,10 @@ export async function createIsolatedCapturePersistence(
   async function reserve(
     operationId: string,
     inputActor: CaptureIdentity,
-    input: Pick<CaptureDraft, '_id' | 'name' | 'sourceId' | 'sourceGeneration' | 'sourceDigest'>,
+    input: Reservation,
   ): Promise<CaptureDraft> {
     const actor = identity(inputActor);
-    const request = {
-      _id: input._id,
-      name: input.name,
-      sourceId: input.sourceId,
-      sourceGeneration: input.sourceGeneration,
-      sourceDigest: input.sourceDigest,
-    };
+    const request = reservationCopy(input);
     if (
       typeof request._id !== 'string' ||
       typeof request.sourceId !== 'string' ||
@@ -313,23 +364,11 @@ export async function createIsolatedCapturePersistence(
     operationId: string,
     inputActor: CaptureIdentity,
     input: CaptureDraft,
-    action: 'complete' | 'fail' | 'recover' | 'edit',
+    action: Transition,
     inputPayload?: CapturePayload,
   ): Promise<CaptureDraft> {
     const actor = identity(inputActor);
-    const expected: CaptureDraft = {
-      _id: input._id,
-      tenantId: input.tenantId,
-      ownerId: input.ownerId,
-      name: input.name,
-      sourceId: input.sourceId,
-      sourceGeneration: input.sourceGeneration,
-      sourceDigest: input.sourceDigest,
-      attempt: input.attempt,
-      revision: input.revision,
-      status: input.status,
-      digest: input.digest,
-    };
+    const expected = draftCopy(input);
     const payload = inputPayload ? payloadCopy(inputPayload) : null;
     if (
       expected.tenantId !== actor.tenantId ||

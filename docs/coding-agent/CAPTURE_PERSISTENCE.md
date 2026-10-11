@@ -34,6 +34,9 @@ replica set with sessions. `activateSkillCapturePersistence` always throws
 
 The request digest uses the ordered JSON tuple with recursively sorted object
 keys built by `captureRequestDigest`; retain inputs before starting an operation.
+The helper shares the mutation methods' operation-specific field projections and
+normalizes omitted transition payloads to null. Full draft records are accepted
+as reservation inputs; extra fields do not change the reservation receipt digest.
 It is an identity check, not an authorization capability. These isolated APIs have
 no authorization boundary and must not be exposed to an untrusted caller.
 
