@@ -147,6 +147,40 @@ class CustodyTests(unittest.TestCase):
         self.assertEqual(read_state(self.path)[0]['state'], 'ready')
         self.assertEqual(self.calls, [])
 
+    def test_failed_fixture_initialization_removes_only_new_file_and_allows_retry(self):
+        connect = sqlite3.connect
+        for stage in ('CREATE TABLE', 'INSERT INTO', 'COMMIT', 'commit-ack'):
+            with self.subTest(stage=stage):
+                path = Path(self.temp.name) / f'failed-{stage}.sqlite'
+                closed = []
+
+                class FailingConnection(sqlite3.Connection):
+                    def execute(self, sql, *args, **kwargs):
+                        if sql.startswith(stage):
+                            raise sqlite3.OperationalError('synthetic initialization failure')
+                        result = super().execute(sql, *args, **kwargs)
+                        if stage == 'commit-ack' and sql == 'COMMIT':
+                            raise sqlite3.OperationalError('synthetic lost commit acknowledgment')
+                        return result
+
+                    def close(self):
+                        super().close()
+                        closed.append(True)
+
+                with patch('coding_orchestrator.auth_custody.sqlite3.connect',
+                           side_effect=lambda *a, **kw: connect(*a, factory=FailingConnection, **kw)):
+                    with self.assertRaises(CustodyError):
+                        self.create(path)
+                self.assertEqual(closed, [True])
+                self.assertFalse(path.exists())
+                self.create(path)
+                self.assertEqual(read_state(path)[0]['state'], 'ready')
+        before = self.path.read_bytes()
+        with self.assertRaises(CustodyError):
+            self.create(self.path)
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertEqual(self.calls, [])
+
     def test_owner_revision_epoch_and_exact_claim_binding(self):
         for changes in ({'claim': claim('other')}, {'revision': 1}, {'epoch': 1},
                         {'revision': True}, {'epoch': -1}):

@@ -96,6 +96,7 @@ class SyntheticCredentialCustodian:
         error = None
         result = None
         db = descriptor = None
+        created = False
         try:
             _require(enabled is True)
             for value in (owner, subject, account, audience):
@@ -104,7 +105,9 @@ class SyntheticCredentialCustodian:
             _fixture_refresh(refresh_token)
             path = Path(path).resolve()
             descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            created = True
             os.close(descriptor)
+            descriptor = None
             result = cls(path, enabled=True)
             with result._transaction() as db:
                 db.execute('CREATE TABLE credential (id INTEGER PRIMARY KEY CHECK(id=1), '
@@ -119,6 +122,15 @@ class SyntheticCredentialCustodian:
                            (owner, tenant, subject, account, audience, 'ready', refresh_token))
         except Exception:
             error = CustodyError
+            # Only this invocation's exclusive fixture may be removed. The
+            # transaction context has closed SQLite before cleanup is attempted.
+            try:
+                if descriptor is not None:
+                    os.close(descriptor)
+                if created:
+                    path.unlink()
+            except Exception:
+                pass
         cls = path = owner = tenant = subject = account = audience = refresh_token = enabled = None
         db = descriptor = None
         if error:
