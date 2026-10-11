@@ -5,7 +5,8 @@ loads SDK auth, installs hooks, logs in, persists credentials or enables a profi
 The trusted transport must perform exactly one physical request per handle_request,
 with no internal retry, redirect, proxy authentication or credential discovery,
 and honor httpx timeouts. This wrapper cannot inspect arbitrary transport internals.
-ProcessWorker bounds the whole process; no production transport factory is supplied.
+ProcessWorker bounds the whole process. The separate auth_transport factory
+supplies a fixed-origin transport only when explicitly enabled inside the worker.
 """
 from dataclasses import dataclass, field
 import os
