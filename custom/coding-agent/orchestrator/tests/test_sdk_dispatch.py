@@ -30,9 +30,14 @@ COMMAND = "git diff --check"
 @dataclass(frozen=True)
 class DispatchFactory:
     endpoint: str
+    control_failure: str | None = None
 
     def __call__(self, claim, control):
         def dispatch(action_id, operation, arguments, *, timeout_seconds):
+            from coding_orchestrator.job_worker import WorkerCancelled, WorkerDeadline, WorkerLimit
+            if self.control_failure is not None:
+                raise {"cancelled": WorkerCancelled, "timed_out": WorkerDeadline,
+                       "failed": WorkerLimit}[self.control_failure]()
             import httpx
             with httpx.Client(trust_env=False, timeout=timeout_seconds) as client:
                 response = client.post(self.endpoint.replace('/mcp', '/dispatch'),
@@ -90,7 +95,7 @@ class DispatchFixture(FencedFixture):
 
 class SDKDispatchTests(unittest.TestCase):
     @contextmanager
-    def job(self, *, lost=False, prepare=None):
+    def job(self, *, lost=False, prepare=None, control_failure=None):
         with tempfile.TemporaryDirectory() as root, DispatchFixture(root) as fixture, \
                 JobStore(Path(root) / 'jobs.sqlite') as store:
             owner = Principal('owner', 'tenant')
@@ -98,7 +103,7 @@ class SDKDispatchTests(unittest.TestCase):
                 identity_for=lambda context: store.execution_identity(owner.user_id, owner.tenant_id, context.job_id),
                 bind_runner=lambda runner, claim: GuardedFixtureRunner(
                     bind_sdk_runner(replace(runner, token_factory=partial(attempt_token, claim)),
-                                    claim, DispatchFactory(fixture.endpoint)), fixture.endpoint),
+                                    claim, DispatchFactory(fixture.endpoint, control_failure)), fixture.endpoint),
                 prepare_dispatch=lambda claim, **limits: (prepare(claim) if prepare else None,
                                                          fixture.workspace.admit(claim, **limits)))
             fixture.inspect = adapter.ledger.status
@@ -153,6 +158,16 @@ class SDKDispatchTests(unittest.TestCase):
             self.assertEqual(run['result']['evidence']['task']['task_id'], task)
             self.assertEqual((fixture.source / 'calculator.py').read_text(), BEFORE)
             self.assertEqual(service.start_run(owner, self.request()), run)
+
+    def test_sdk_dispatch_control_exceptions_keep_final_worker_outcomes(self):
+        for state, code in (("cancelled", "cancelled"), ("timed_out", "deadline_exceeded"),
+                            ("failed", "worker_limit")):
+            with self.subTest(state=state), self.job(control_failure=state) as (service, fixture, owner, adapter):
+                run = self.wait(service, owner, service.start_run(owner, self.request()))
+                self.assertEqual((run['state'], run['error_code']), (state, code), run)
+                self.assertEqual(run['request_count'], 1)
+                self.assertEqual(fixture.frames, [])
+                self.assertEqual(fixture.calls, [])
 
     def test_lost_dispatch_reply_never_replays_and_restart_rejects_old_claim(self):
         with self.job(lost=True) as (service, fixture, owner, adapter):
@@ -304,14 +319,46 @@ class BoundActionTests(unittest.TestCase):
             self.assertEqual(calls[0][0][0], hashlib.sha256(b'call_1').hexdigest())
 
     def test_expired_worker_deadline_does_not_deliver(self):
-        from coding_orchestrator.openhands_profile import OpenHandsProfileError
+        from coding_orchestrator.job_worker import WorkerDeadline
         with self.binding() as (actions, calls):
             event = self.event()
             actions.capture(event)
             actions.control._deadline = time.monotonic() - 1
-            with self.assertRaises(OpenHandsProfileError):
+            with self.assertRaises(WorkerDeadline):
                 actions.execute('read_file', event.action)
             self.assertEqual(calls, [])
+
+    def test_control_checks_before_and_after_dispatch_preserve_type_and_latch(self):
+        from coding_orchestrator.job_worker import WorkerCancelled, WorkerDeadline
+        from coding_orchestrator.openhands_profile import OpenHandsProfileError
+        for failure in (WorkerCancelled, WorkerDeadline):
+            for after in (False, True):
+                with self.subTest(failure=failure, after=after), self.binding() as (actions, calls):
+                    event = self.event()
+                    actions.capture(event)
+                    def interrupt():
+                        if failure is WorkerCancelled:
+                            actions.control._cancelled.set()
+                        else:
+                            actions.control._deadline = time.monotonic() - 1
+                    original = actions.dispatch
+                    def dispatch(*args, **kwargs):
+                        result = original(*args, **kwargs)
+                        interrupt()
+                        return result
+                    if after:
+                        actions.dispatch = dispatch
+                    else:
+                        interrupt()
+                    with self.assertRaises(failure):
+                        actions.execute('read_file', event.action)
+                    self.assertTrue(actions.failed)
+                    self.assertEqual(len(calls), int(after))
+                    actions.control._cancelled.clear()
+                    actions.control._deadline = time.monotonic() + 5
+                    with self.assertRaises(OpenHandsProfileError):
+                        actions.execute('read_file', event.action)
+                    self.assertEqual(len(calls), int(after))
 
     def test_runtime_tool_refresh_cannot_restore_legacy_executor(self):
         from mcp.types import Tool

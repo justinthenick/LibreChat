@@ -9,6 +9,7 @@ from dataclasses import dataclass, replace
 import hashlib
 import json
 
+from .job_worker import WorkerCancelled, WorkerDeadline, WorkerLimit
 from .openhands_profile import OpenHandsProfileError
 
 
@@ -106,6 +107,9 @@ class BoundActions:
             text = _encoded(result)
             return MCPToolObservation.from_call_tool_result(tool_name=name,
                 result=CallToolResult(content=[TextContent(type="text", text=text)], isError=False))
+        except (WorkerCancelled, WorkerDeadline, WorkerLimit):
+            self.failed = True
+            raise
         except Exception:
             self.failed = True
             raise OpenHandsProfileError("sdk_dispatch_unconfirmed") from None
