@@ -111,6 +111,7 @@ class OpenHandsJobRunner:
     llm_factory: Callable[[], object]
     transport_factory: Callable[[], object] | None = None
     dispatch_factory: Callable[[RunContext, WorkerControl], object] | None = None
+    synthetic_model_factory: Callable[[RunContext, WorkerControl], object] | None = None
 
     def __post_init__(self) -> None:
         _validate_endpoint(self.endpoint)
@@ -120,6 +121,8 @@ class OpenHandsJobRunner:
             raise ValueError("Invalid transport factory")
         if self.dispatch_factory is not None and not callable(self.dispatch_factory):
             raise ValueError("Invalid dispatch factory")
+        if self.synthetic_model_factory is not None and not callable(self.synthetic_model_factory):
+            raise ValueError("Invalid synthetic model factory")
 
     def __call__(self, context: RunContext, control: WorkerControl) -> dict:
         from openhands.sdk.conversation.exceptions import ConversationRunError
@@ -138,7 +141,9 @@ class OpenHandsJobRunner:
                 raise OpenHandsProfileError("openhands_profile_configuration")
             control._check()
             transport = self.transport_factory() if self.transport_factory is not None else None
-            with BoundedResponses(llm, control, transport=transport) as binding:
+            synthetic = (self.synthetic_model_factory(context, control)
+                         if self.synthetic_model_factory is not None else None)
+            with BoundedResponses(llm, control, transport=transport, synthetic_dispatch=synthetic) as binding:
                 backend = _BoundBackend(self.endpoint, token, binding=binding, actions=actions,
                                         scratch_root=tempfile.gettempdir())
                 prompt = ("Selected repository: " + context.repository_alias
