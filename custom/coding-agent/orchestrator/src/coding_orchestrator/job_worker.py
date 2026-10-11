@@ -209,6 +209,10 @@ class WorkerControl:
         if time.monotonic() >= self._deadline:
             raise WorkerDeadline()
 
+    def remaining_seconds(self):
+        self._check()
+        return max(0, self._deadline - time.monotonic())
+
     def before_provider_request(self):
         # This lock protects the check-and-increment even for threaded adapters.
         with self._counter.get_lock():
