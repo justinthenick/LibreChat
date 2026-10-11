@@ -200,3 +200,48 @@ Synthetic tests use real SQLite, real disposable Git worktrees and an injected
 authority. They cover commit-before-dispatch, request/deadline limits, replay,
 identity mismatch, stop races, late completion, restart, task binding and traversal.
 No service, network setting, credential file or provider is configured by this code.
+
+### Dormant gated executor containment
+
+`GatedExecutor` is disabled by default and has no default platform implementation.
+Supplying it to `FencedWorkspace` routes every workspace operation through a fixed
+helper, including task creation, inspection, Git and checks. The helper waits on a
+private one-byte pipe before importing workspace code. Only the read end is
+inherited; loss of the owning process closes the unreleased gate. The trusted
+platform must attach the still-gated helper to the exact resource before the
+ledger releases it. No shell, request-selected helper or credentials are passed.
+Host command/output limits and the maintenance lock remain in effect.
+
+The existing execution database stores one allocation intent and immutable
+platform/boot/root/resource/policy identity per claim. Intent commits before
+allocation, and identity commits before release. Allocation acknowledgement loss
+remains unresolved and is never retried. Physical resource identities cannot be
+reused across claims, including under a different policy ID. Release is serialized
+with the existing durable seal and absolute dispatch deadline. Failed attachment,
+timeout or uncertain helper results seal admission; delayed attachment cannot
+release workload after that seal.
+
+The injected platform is a trusted, bounded capability, not request data. It must
+durably reject delayed attachments after seal, contain all helper descendants,
+prevent migration/escape, and independently inspect the pinned resource. Resource
+identity must include boot and filesystem/object incarnation; a path or PID alone
+is insufficient. A future Linux adapter must validate those guarantees against
+the actual delegated environment before it can be enabled. This increment does
+not configure cgroups, grant privileges, install a launcher or activate a service.
+Without that platform, admission fails closed with containment unavailable.
+
+`ExecutorQuiescence` is deliberately separate from whole-job `Observation`. It
+requires a sealed ledger, no in-flight executor action, and an exact independent
+snapshot reporting both closed platform admission and no remaining owned work.
+Restart retains the resource binding and seals admission; missing, replaced or
+unobservable resources remain unknown. Helper exit, action-thread completion,
+process-group cleanup and missing handles do not produce proof. Executor evidence
+does not prove that an SDK worker elsewhere or a remote provider has stopped;
+the existing supervisor's missing-worker-handle quarantine remains intact.
+
+Linux CI runs real disposable Git/workspace operations through gated helpers and
+synthetic platform observations. Tests cover lost acknowledgements, cancellation
+and deadline during attachment, no delayed release/replay, resource drift,
+restart, failed stop and descendants reported as still present. These tests prove
+the protocol and helper execution path, not actual OS containment. No real
+platform containment test or production activation is claimed.

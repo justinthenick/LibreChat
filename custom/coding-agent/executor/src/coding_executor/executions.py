@@ -75,6 +75,21 @@ class Observation:
 
 
 @dataclass(frozen=True)
+class ExecutorResource:
+    """Platform-owned identity, never a caller-selected path or PID."""
+
+    platform_id: str
+    boot_id: str
+    root_id: str
+    resource_id: str
+    policy_id: str
+
+    def __post_init__(self):
+        for value in asdict(self).values():
+            _identifier(value)
+
+
+@dataclass(frozen=True)
 class OperationStatus:
     claim: Claim
     state: str  # unknown | running | stopped
@@ -165,6 +180,8 @@ class ExecutionService:
                 self._db.execute("CREATE TABLE IF NOT EXISTS operations (execution_id TEXT NOT NULL REFERENCES executions(execution_id), operation_id TEXT NOT NULL, request_sha256 TEXT NOT NULL, attempt_id TEXT NOT NULL UNIQUE, authority_id TEXT NOT NULL, state TEXT NOT NULL, PRIMARY KEY(execution_id, operation_id))")
                 self._db.execute("CREATE TABLE IF NOT EXISTS dispatch_limits (attempt_id TEXT PRIMARY KEY REFERENCES operations(attempt_id), maximum INTEGER NOT NULL, timeout REAL NOT NULL, task_id TEXT)")
                 self._db.execute("CREATE TABLE IF NOT EXISTS dispatch_actions (attempt_id TEXT NOT NULL REFERENCES operations(attempt_id), action_id TEXT NOT NULL, digest TEXT NOT NULL, state TEXT NOT NULL, PRIMARY KEY(attempt_id, action_id))")
+                self._db.execute("CREATE TABLE IF NOT EXISTS executor_resources (attempt_id TEXT PRIMARY KEY REFERENCES operations(attempt_id), resource TEXT UNIQUE)")
+                self._db.execute("CREATE UNIQUE INDEX IF NOT EXISTS executor_resource_identity ON executor_resources (json_extract(resource, '$.platform_id'), json_extract(resource, '$.boot_id'), json_extract(resource, '$.root_id'), json_extract(resource, '$.resource_id'))")
                 self._db.execute("UPDATE executions SET sealed=1 WHERE sealed=0")
                 self._db.execute("UPDATE operations SET state='unknown' WHERE state!='stopped'")
         except BaseException:
@@ -385,6 +402,72 @@ class ExecutionService:
             row = self._db.execute("SELECT task_id FROM dispatch_limits WHERE attempt_id=?",
                                    (claim.attempt_id,)).fetchone()
             return None if row is None else row["task_id"]
+
+    def reserve_executor(self, claim: Claim):
+        """Commit allocation intent once; a lost allocation reply is never retried."""
+        with self._access(mutate=True), self._transaction():
+            record, operation = self._claim_record(claim)
+            if record["sealed"] or operation["state"] != "running":
+                raise ExecutionConflict("executor admission is closed")
+            previous = self._db.execute("SELECT resource FROM executor_resources WHERE attempt_id=?",
+                                        (claim.attempt_id,)).fetchone()
+            if previous is not None:
+                if previous["resource"] is None:
+                    raise ExecutionConflict("executor allocation unconfirmed")
+                return ExecutorResource(**json.loads(previous["resource"]))
+            self._db.execute("INSERT INTO executor_resources VALUES (?, NULL)", (claim.attempt_id,))
+            return None
+
+    def bind_executor(self, claim: Claim, resource: ExecutorResource):
+        """Pin one immutable platform resource before releasing any executor work."""
+        if type(resource) is not ExecutorResource:
+            raise ValueError("exact executor resource required")
+        encoded = json.dumps(asdict(resource), sort_keys=True)
+        with self._access(mutate=True), self._transaction():
+            record, operation = self._claim_record(claim)
+            if record["sealed"] or operation["state"] != "running":
+                raise ExecutionConflict("executor admission is closed")
+            previous = self.executor_resource(claim)
+            if previous is not None:
+                if previous != resource:
+                    raise ExecutionConflict("executor resource changed")
+                return
+            changed = self._db.execute("UPDATE executor_resources SET resource=? WHERE attempt_id=? AND resource IS NULL",
+                                       (encoded, claim.attempt_id)).rowcount
+            if changed != 1:
+                raise ExecutionConflict("executor allocation was not reserved")
+
+    def executor_resource(self, claim: Claim):
+        with self._access():
+            self._claim_record(claim)
+            row = self._db.execute("SELECT resource FROM executor_resources WHERE attempt_id=?",
+                                   (claim.attempt_id,)).fetchone()
+            return None if row is None or row["resource"] is None else ExecutorResource(**json.loads(row["resource"]))
+
+    def release_executor(self, claim: Claim, resource: ExecutorResource, gate_fd: int):
+        """One-byte release is ordered with the durable seal, never with platform I/O."""
+        with self._access(mutate=True):
+            record, operation = self._claim_record(claim)
+            if (record["sealed"] or operation["state"] != "running"
+                    or self.executor_resource(claim) != resource
+                    or claim.attempt_id not in self._active_actions
+                    or time.monotonic() >= self._dispatch_deadlines.get(claim.attempt_id, 0)):
+                raise ExecutionConflict("executor release is fenced")
+            if os.write(gate_fd, b"1") != 1:
+                raise ExecutionConflict("executor release unknown")
+
+    def seal_executor(self, claim: Claim):
+        """Revoke future releases without inferring that any existing work stopped."""
+        with self._access(mutate=True), self._transaction():
+            self._claim_record(claim)
+            self._db.execute("UPDATE executions SET sealed=1 WHERE execution_id=?", (claim.identity.execution_id,))
+            self._db.execute("UPDATE operations SET state='unknown' WHERE attempt_id=? AND state!='stopped'", (claim.attempt_id,))
+
+    def executor_fenced(self, claim: Claim, resource: ExecutorResource):
+        with self._access():
+            record, _ = self._claim_record(claim)
+            return (bool(record["sealed"]) and self.executor_resource(claim) == resource
+                    and claim.attempt_id not in self._active_actions)
 
     def bind_task(self, claim: Claim, task_id: str):
         """Called by the owned create action after WorkspaceManager returns its task."""

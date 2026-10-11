@@ -2,7 +2,9 @@
 from dataclasses import asdict
 import hashlib
 import json
+import os
 
+from .containment import GatedExecutor
 from .coordination import maintenance_lock
 from .executions import Claim, ExecutionConflict, ExecutionService
 from .workspaces import WorkspaceManager
@@ -17,11 +19,14 @@ class FencedWorkspace:
     """
 
     def __init__(self, ledger: ExecutionService, manager: WorkspaceManager, *, authorize,
-                 checks=None, enabled=False):
+                 checks=None, enabled=False, launcher=None):
         if type(enabled) is not bool or not callable(authorize):
             raise ValueError("explicit dispatch policy required")
         self.ledger, self.manager, self.authorize = ledger, manager, authorize
         self.enabled = enabled
+        if launcher is not None and (type(launcher) is not GatedExecutor or launcher.ledger is not ledger):
+            raise ValueError("claim-bound executor launcher required")
+        self.launcher = launcher
         self.checks = dict(checks or {})
         if any(type(k) is not str or type(v) is not str for k, v in self.checks.items()):
             raise ValueError("fixed check aliases required")
@@ -35,6 +40,8 @@ class FencedWorkspace:
         self._authorized(claim)
         self.ledger.configure_dispatch(claim, max_requests=max_requests, timeout_seconds=timeout_seconds,
                                        deadline_monotonic=deadline_monotonic)
+        if self.launcher is not None:
+            self.launcher.admit(claim)
 
     def dispatch(self, claim, action_id, operation, arguments):
         self._authorized(claim)
@@ -59,6 +66,23 @@ class FencedWorkspace:
         operation, arguments = json.loads(encoded)
 
         def execute(remaining):
+            if self.launcher is not None:
+                task = self.ledger.task_for(claim)
+                if (operation == "create_task") != (task is None):
+                    raise ExecutionConflict("claim task binding conflicts with operation")
+                frame = {"repository_root": str(self.manager.repository_root),
+                         "task_root": str(self.manager.task_root),
+                         "maintenance_lock": os.environ.get("CODING_MAINTENANCE_LOCK"),
+                         "max_output_bytes": self.manager.max_output_bytes,
+                         "command_timeout_seconds": self.manager.command_timeout_seconds,
+                         "repository": claim.identity.repository_alias,
+                         "task_name": "preview-" + claim.attempt_id[:40], "task_id": task,
+                         "operation": operation, "arguments": arguments,
+                         "command": self.checks.get(arguments.get("check")), "remaining": remaining}
+                result = self.launcher.run(claim, frame, remaining)
+                if operation == "create_task":
+                    self.ledger.bind_task(claim, result["task_id"])
+                return result
             with maintenance_lock(self.manager.task_root):
                 task = self.ledger.task_for(claim)
                 if operation == "create_task":
