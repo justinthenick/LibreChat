@@ -15,6 +15,14 @@ const GITHUB_API_BASE = 'https://api.github.com';
 const MAX_GIT_COMPONENT_BYTES = 255;
 const MAX_GIT_PATH_BYTES = 4096;
 const MAX_RETAINED_GIT_PATH_BYTES = 8 * 1024 * 1024;
+const MAX_GIT_TREE_REQUESTS = 256;
+const MAX_GIT_TREE_RESPONSE_BYTES = 32 * 1024 * 1024;
+
+interface GitAcquisitionBudget {
+  remainingEntries: number;
+  remainingBytes: number;
+  remainingRequests: number;
+}
 
 export const GITHUB_FINE_GRAINED_TOKEN_RECOMMENDATION =
   'Use a GitHub fine-grained personal access token scoped to the selected repository with read-only Contents and Metadata permissions.';
@@ -190,6 +198,7 @@ async function githubJson<T>(params: {
   token: string;
   pathname: string;
   maxResponseBytes?: number;
+  onResponseBytes?: (bytes: number) => void;
 }): Promise<T> {
   let response: Response;
   try {
@@ -214,6 +223,7 @@ async function githubJson<T>(params: {
           if (done) break;
           length += value.byteLength;
           if (length > params.maxResponseBytes || chunks.length > 100000) invalidObject();
+          params.onResponseBytes?.(value.byteLength);
           chunks.push(value);
         }
         return JSON.parse(
@@ -275,7 +285,12 @@ export function createGitHubRepoAdapter(config: GitHubRepoAdapterConfig): GitRep
   const owner = encodeURIComponent(source.owner);
   const repo = encodeURIComponent(source.repo);
 
-  async function fetchTree(treeSha: string, recursive: boolean): Promise<GitHubTreeResponse> {
+  async function fetchTree(
+    treeSha: string,
+    recursive: boolean,
+    budget?: GitAcquisitionBudget,
+  ): Promise<GitHubTreeResponse> {
+    if (budget && budget.remainingRequests-- <= 0) invalidObject();
     const tree = await githubJson<GitHubTreeResponse>({
       fetchFn,
       token,
@@ -283,7 +298,17 @@ export function createGitHubRepoAdapter(config: GitHubRepoAdapterConfig): GitRep
         recursive ? '?recursive=1' : ''
       }`,
       maxResponseBytes: config.verifyGitObjects ? 8 * 1024 * 1024 : undefined,
+      onResponseBytes: budget
+        ? (bytes) => {
+            if (bytes > budget.remainingBytes) invalidObject();
+            budget.remainingBytes -= bytes;
+          }
+        : undefined,
     });
+    if (budget) {
+      if (!Array.isArray(tree.tree) || tree.tree.length > budget.remainingEntries) invalidObject();
+      budget.remainingEntries -= tree.tree.length;
+    }
     if (config.verifyGitObjects) verifyTree(tree, treeSha);
     return tree;
   }
@@ -297,11 +322,12 @@ export function createGitHubRepoAdapter(config: GitHubRepoAdapterConfig): GitRep
     rootTreeSha: string,
     normalizedPath: string,
     assertNotCancelled: AssertNotCancelled,
+    budget?: GitAcquisitionBudget,
   ): Promise<string> {
     let treeSha = rootTreeSha;
     for (const segment of normalizedPath.split('/')) {
       assertNotCancelled();
-      const tree = await fetchTree(treeSha, false);
+      const tree = await fetchTree(treeSha, false, budget);
       assertNotCancelled();
       if (tree.truncated) {
         throw new SkillSyncError('GITHUB_TREE_TRUNCATED', 'GitHub tree response was truncated');
@@ -341,26 +367,36 @@ export function createGitHubRepoAdapter(config: GitHubRepoAdapterConfig): GitRep
   ): Promise<RepoTreeEntry[]> {
     const normalizedPath = normalizeRepoPath(params.pathPrefix);
     const prefixBytes = Buffer.byteLength(normalizedPath, 'utf8');
+    const prefixDepth = normalizedPath ? normalizedPath.split('/').length : 0;
     if (
       config.verifyGitObjects &&
       (prefixBytes > MAX_GIT_PATH_BYTES ||
+        prefixDepth > 64 ||
         normalizedPath
           .split('/')
           .some((part) => Buffer.byteLength(part, 'utf8') > MAX_GIT_COMPONENT_BYTES))
     )
       invalidObject();
+    const budget = config.verifyGitObjects
+      ? {
+          remainingEntries: 10000,
+          remainingBytes: MAX_GIT_TREE_RESPONSE_BYTES,
+          remainingRequests: MAX_GIT_TREE_REQUESTS,
+        }
+      : undefined;
     const treeSha = normalizedPath
-      ? await resolveTreeShaAtPath(commit.treeId, normalizedPath, params.assertNotCancelled)
+      ? await resolveTreeShaAtPath(commit.treeId, normalizedPath, params.assertNotCancelled, budget)
       : commit.treeId;
 
     if (config.verifyGitObjects) {
       const entries: RepoTreeEntry[] = [];
-      const pending = [{ sha: treeSha, prefix: normalizedPath, prefixBytes, depth: 0 }];
+      const pending = [{ sha: treeSha, prefix: normalizedPath, prefixBytes, depth: prefixDepth }];
       let retainedPathBytes = 0;
       while (pending.length) {
         const current = pending.pop()!;
         params.assertNotCancelled();
-        const tree = await fetchTree(current.sha, false);
+        if (current.depth > 64) invalidObject();
+        const tree = await fetchTree(current.sha, false, budget);
         params.assertNotCancelled();
         for (const entry of tree.tree) {
           params.assertNotCancelled();

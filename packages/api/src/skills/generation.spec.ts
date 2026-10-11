@@ -380,6 +380,57 @@ test('keeps acquisition path budgets distinct from package-relative path limits'
   );
 });
 
+test('rejects excessive selected-path depth before any ancestor request', async () => {
+  fixture.input.selection.skillPath = Array.from({ length: 65 }, () => 'a').join('/');
+  fixture.input.source.paths = [fixture.input.selection.skillPath];
+  await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toMatchObject({
+    code: 'GITHUB_OBJECT_INVALID',
+  });
+  expect(fixture.requests.filter((url) => url.includes('/trees/'))).toHaveLength(0);
+});
+
+test.each(['wide-prefix', 'request-budget'] as const)(
+  'bounds total Git tree acquisition for %s',
+  async (special) => {
+    fixture.close();
+    fixture = createGenerationFixture(undefined, special, '');
+    fixture.input.source.paths = [fixture.input.selection.skillPath || '.'];
+    await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toMatchObject({
+      code: 'GITHUB_OBJECT_INVALID',
+    });
+    expect(fixture.requests.filter((url) => url.includes('/trees/'))).toHaveLength(
+      special === 'wide-prefix' ? 2 : 256,
+    );
+    expect(fixture.requests.some((url) => url.includes('/blobs/'))).toBe(false);
+  },
+);
+
+test('charges streamed ancestor response bytes to one acquisition budget', async () => {
+  fixture.close();
+  fixture = createGenerationFixture(undefined, 'byte-budget', '');
+  const original = fixture.input.fetchFn;
+  fixture.input.fetchFn = async (url, init) => {
+    const response = await original(url, init);
+    if (!String(url).includes('/trees/')) return response;
+    return new Response(
+      JSON.stringify({
+        ...fixture.responses.get(String(url)),
+        padding: 'x'.repeat(5 * 1024 * 1024),
+      }),
+    );
+  };
+  await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toMatchObject({
+    code: 'GITHUB_OBJECT_INVALID',
+  });
+  expect(fixture.requests.filter((url) => url.includes('/trees/'))).toHaveLength(7);
+  expect(fixture.requests.some((url) => url.includes('/blobs/'))).toBe(false);
+});
+
+test('starts a fresh acquisition budget for each capture', async () => {
+  const first = await captureGitHubSkillGeneration(fixture.input);
+  expect(await captureGitHubSkillGeneration(fixture.input)).toEqual(first);
+});
+
 test.each([
   'always-apply:',
   'always-apply: # TODO',

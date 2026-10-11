@@ -36,12 +36,23 @@ export function createGenerationFixture(
     | 'multibyte-component'
     | 'deep-path'
     | 'cumulative-paths'
-    | 'long-valid-paths',
+    | 'long-valid-paths'
+    | 'wide-prefix'
+    | 'request-budget'
+    | 'byte-budget',
   skillPath = 'skills/writer',
 ): GenerationFixture {
   const root = mkdtempSync(path.join(os.tmpdir(), 'skill-generation-'));
   const git = (...args: string[]) =>
     execFileSync('git', args, { cwd: root, maxBuffer: 8 * 1024 * 1024 });
+  const writeTree = (entries: string[]) =>
+    execFileSync('git', ['mktree', '-z'], {
+      cwd: root,
+      input: entries.join('\0') + '\0',
+      maxBuffer: 8 * 1024 * 1024,
+    })
+      .toString()
+      .trim();
   try {
     git('init', '--quiet');
     git('config', 'core.autocrlf', 'false');
@@ -82,6 +93,32 @@ export function createGenerationFixture(
       git('update-index', '--add', '--cacheinfo', `${indexMode},${blob},${indexPath}`);
     }
     let tree = git('write-tree').toString().trim();
+    if (special && ['wide-prefix', 'request-budget', 'byte-budget'].includes(special)) {
+      const blob = git('rev-parse', `:${path.posix.join(skillPath, 'SKILL.md')}`)
+        .toString()
+        .trim();
+      const definition = `100644 blob ${blob}\tSKILL.md`;
+      tree = writeTree([definition]);
+      if (special === 'wide-prefix') {
+        const siblings = Array.from(
+          { length: 6000 },
+          (_, i) => `100644 blob ${blob}\tfile-${i}.txt`,
+        );
+        tree = writeTree([...siblings, `040000 tree ${tree}\tb`]);
+        tree = writeTree([...siblings, `040000 tree ${tree}\ta`]);
+        skillPath = 'a/b';
+      } else if (special === 'request-budget') {
+        tree = writeTree([
+          definition,
+          ...Array.from({ length: 256 }, (_, i) => `040000 tree ${tree}\tchild-${i}`),
+        ]);
+      } else {
+        for (const segment of ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']) {
+          tree = writeTree([`040000 tree ${tree}\t${segment}`]);
+        }
+        skillPath = 'a/b/c/d/e/f/g/h';
+      }
+    }
     if (
       special &&
       [
@@ -95,14 +132,6 @@ export function createGenerationFixture(
       const blob = git('rev-parse', `:${path.posix.join(skillPath, 'SKILL.md')}`)
         .toString()
         .trim();
-      const writeTree = (entries: string[]) =>
-        execFileSync('git', ['mktree', '-z'], {
-          cwd: root,
-          input: entries.join('\0') + '\0',
-          maxBuffer: 8 * 1024 * 1024,
-        })
-          .toString()
-          .trim();
       const definition = `100644 blob ${blob}\tSKILL.md`;
       const wide = special === 'oversized-component' || special === 'cumulative-paths';
       tree = writeTree(
@@ -141,6 +170,7 @@ export function createGenerationFixture(
     const responses = new Map<string, GitResponse>();
     responses.set(`${base}/commits/${commit}`, { sha: commit, commit: { tree: { sha: tree } } });
     const addTree = (sha: string) => {
+      if (responses.has(`${base}/git/trees/${sha}`)) return;
       const entries = git('ls-tree', '-z', sha)
         .toString()
         .split('\0')
@@ -194,7 +224,10 @@ export function createGenerationFixture(
           owner: 'example',
           repo: 'skills',
           ref: 'main',
-          paths: special === 'long-valid-paths' ? [skillPath] : ['skills'],
+          paths:
+            special && ['long-valid-paths', 'wide-prefix', 'byte-budget'].includes(special)
+              ? [skillPath]
+              : ['skills'],
           tenantId: 'tenant',
           credentialKey: 'offline',
         },

@@ -34,8 +34,12 @@ and 8 MiB of cumulative retained path text, checked before concatenation and
 retention. These acquisition budgets also cover excluded child packages and are
 separate from package-relative validation. Child exclusion uses ancestor-set
 lookups rather than scanning all child roots, with cancellation checks between
-entries in both discovery and filtering. It retains validated
-frontmatter and derived invocation/tool declarations. Before recursive validation
+entries in both discovery and filtering. One acquisition budget covers selected
+prefix resolution and subtree traversal: at most 256 tree requests, 10,000
+inspected entries and 32 MiB of streamed tree-response bytes. Selected paths over
+64 components reject before ancestor requests; traversal depth includes the
+selected prefix. Budgets reset for each acquisition. The generation retains
+validated frontmatter and derived invocation/tool declarations. Before recursive validation
 or manifest serialization, frontmatter is projected with at most 4,096 expanded
 values, depth 5, and a 128 KiB string/key budget; cycles reject. Canonical
 repository-root source paths are accepted after schema normalization. Strict
