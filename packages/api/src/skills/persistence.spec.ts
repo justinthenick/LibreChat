@@ -675,11 +675,17 @@ describe('validated capture with the synthetic transactional fence', () => {
       expect(await connection.db!.collection('capture_blobs').countDocuments()).toBe(1);
       expect(await connection.db!.collection('capture_receipts').countDocuments()).toBe(2);
     } finally {
-      if (session.inTransaction()) await session.abortTransaction();
-      await session.endSession();
-      if (completion) await bounded(completion);
+      try {
+        if (session.inTransaction()) await bounded(session.abortTransaction());
+      } finally {
+        try {
+          await bounded(session.endSession());
+        } finally {
+          if (completion) await bounded(completion);
+        }
+      }
     }
-  });
+  }, 30000);
 
   test('ready reuse returns newer edits while retaining its base and still requires the grant', async () => {
     const original = await ready();
