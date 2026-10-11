@@ -621,3 +621,33 @@ Setup checklist (not applied):
 | NAS realm ID, exact user/tenant grants, synthetic repository alias/path and start policy | User access decision; synthetic read-only repository first |
 | Live executor attempt-fence authority/binder and bounded subscription-auth integration | Further implementation and reviewed acceptance; broker configuration alone is insufficient |
 | Explicit default-off switches, rollout/rollback source and image digest, restart window | Deployment decision after acceptance; no NAS restart merely to deliver dormant code |
+
+
+### Dormant SDK workspace binding
+
+`bind_sdk_runner` supplies a trusted child-side factory for a claim-bound dispatch
+capability. After normal MCP discovery and exact tool-contract verification,
+`BoundActions` replaces the pinned SDK tool executors. Each execution must match
+the pending SDK action name and canonical arguments; its stable tool-call ID is
+hashed into the existing ledger receipt ID. A mismatch or uncertain reply latches
+failure. The binder never retries and never forwards a tool call through the
+legacy MCP executor. Finish remains local. The ordinary runner remains unchanged
+unless a host explicitly supplies this binding.
+
+The host capability authenticates the exact persisted Claim and delivers to
+`coding_executor.sdk.SDKWorkspace`. Model arguments cannot select claims,
+receipts or budgets. Repository/mode and durable task ownership are checked before
+translation; create uses the host-derived task name at HEAD, and check commands
+must match fixed host aliases. Only the existing closed read-only dispatch is
+supported. Admission is outside the supervisor launch callback, after the exact
+running acknowledgement; it uses the original worker monotonic deadline. A pending
+preparation is never local stop proof. Relative admission time and repeated
+configuration cannot renew that deadline.
+
+Factories must be picklable trusted configuration with no captured credentials or
+ledger objects. Production delivery/authentication is deliberately not supplied;
+the HTTP route exists only in the synthetic fixture. This binding does not solve
+external containment or bounded subscription authentication, register a profile,
+or enable a listener. Process-group cleanup does not prove escaped descendants
+stopped; exact external fenced quiescence remains required after timeout, lost
+reply and restart. Restart rejects old action delivery without replaying it.
