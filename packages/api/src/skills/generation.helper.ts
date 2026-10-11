@@ -27,7 +27,16 @@ export function createGenerationFixture(
     'SKILL.md': '---\nname: writer\ndescription: Writes\n---\nOriginal instructions',
     'notes/readme.txt': 'original bytes',
   },
-  special?: 'symlink' | 'submodule' | 'duplicate-definition' | 'case-colliding-children',
+  special?:
+    | 'symlink'
+    | 'submodule'
+    | 'duplicate-definition'
+    | 'case-colliding-children'
+    | 'oversized-component'
+    | 'multibyte-component'
+    | 'deep-path'
+    | 'cumulative-paths'
+    | 'long-valid-paths',
   skillPath = 'skills/writer',
 ): GenerationFixture {
   const root = mkdtempSync(path.join(os.tmpdir(), 'skill-generation-'));
@@ -60,7 +69,7 @@ export function createGenerationFixture(
           `100644,${blob},${path.posix.join(skillPath, directory, 'SKILL.md')}`,
         );
       }
-    } else if (special) {
+    } else if (special && ['symlink', 'submodule', 'duplicate-definition'].includes(special)) {
       const blob = git('rev-parse', `:${path.posix.join(skillPath, 'SKILL.md')}`)
         .toString()
         .trim();
@@ -72,7 +81,48 @@ export function createGenerationFixture(
       );
       git('update-index', '--add', '--cacheinfo', `${indexMode},${blob},${indexPath}`);
     }
-    const tree = git('write-tree').toString().trim();
+    let tree = git('write-tree').toString().trim();
+    if (
+      special &&
+      [
+        'oversized-component',
+        'multibyte-component',
+        'deep-path',
+        'cumulative-paths',
+        'long-valid-paths',
+      ].includes(special)
+    ) {
+      const blob = git('rev-parse', `:${path.posix.join(skillPath, 'SKILL.md')}`)
+        .toString()
+        .trim();
+      const writeTree = (entries: string[]) =>
+        execFileSync('git', ['mktree', '-z'], {
+          cwd: root,
+          input: entries.join('\0') + '\0',
+          maxBuffer: 8 * 1024 * 1024,
+        })
+          .toString()
+          .trim();
+      const definition = `100644 blob ${blob}\tSKILL.md`;
+      const wide = special === 'oversized-component' || special === 'cumulative-paths';
+      tree = writeTree(
+        Array.from({ length: wide ? 9000 : 1 }, (_, i) => `100644 blob ${blob}\tfile-${i}.txt`),
+      );
+      if (special === 'oversized-component' || special === 'multibyte-component') {
+        const name = special === 'oversized-component' ? 'x'.repeat(1024 * 1024) : 'é'.repeat(128);
+        tree = writeTree([definition, `040000 tree ${tree}\t${name}`]);
+      } else if (special === 'long-valid-paths') {
+        tree = writeTree([definition, `100644 blob ${blob}\t${'f'.repeat(200)}.txt`]);
+        const component = 'p'.repeat(200);
+        for (let i = 0; i < 2; i++) tree = writeTree([`040000 tree ${tree}\t${component}`]);
+        skillPath = `${component}/${component}`;
+      } else {
+        for (let i = 0; i < (special === 'deep-path' ? 17 : 4); i++) {
+          tree = writeTree([`040000 tree ${tree}\t${'d'.repeat(255)}`]);
+        }
+        tree = writeTree([definition, `040000 tree ${tree}\tchildren`]);
+      }
+    }
     const commit = git(
       '-c',
       'user.name=Fixture',
@@ -103,6 +153,8 @@ export function createGenerationFixture(
             return { path: filePath, mode, type, sha: object };
           }
           if (type === 'commit') return { path: filePath, mode, type, sha: object };
+          const cached = responses.get(`${base}/git/blobs/${object}`);
+          if (cached) return { path: filePath, mode, type, sha: object, size: cached.size };
           const bytes = git('cat-file', 'blob', object);
           responses.set(`${base}/git/blobs/${object}`, {
             sha: object,
@@ -142,7 +194,7 @@ export function createGenerationFixture(
           owner: 'example',
           repo: 'skills',
           ref: 'main',
-          paths: ['skills'],
+          paths: special === 'long-valid-paths' ? [skillPath] : ['skills'],
           tenantId: 'tenant',
           credentialKey: 'offline',
         },

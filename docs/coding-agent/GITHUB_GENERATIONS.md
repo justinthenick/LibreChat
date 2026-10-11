@@ -28,7 +28,13 @@ description falls back to the selected skill name, as it does during sync.
 Unsupported paths, case collisions, symlinks, submodules, truncated trees and
 incomplete or mismatched blobs reject the entire generation. The reader bounds
 tree depth/entries, streamed response size, file count and total package bytes
-(5 MiB including SKILL.md, at most 64 auxiliary files). It retains validated
+(5 MiB including SKILL.md, at most 64 auxiliary files). Acquisition paths are
+bounded to 255 UTF-8 bytes per component, 4,096 bytes per full path,
+and 8 MiB of cumulative retained path text, checked before concatenation and
+retention. These acquisition budgets also cover excluded child packages and are
+separate from package-relative validation. Child exclusion uses ancestor-set
+lookups rather than scanning all child roots, with cancellation checks between
+entries in both discovery and filtering. It retains validated
 frontmatter and derived invocation/tool declarations. Before recursive validation
 or manifest serialization, frontmatter is projected with at most 4,096 expanded
 values, depth 5, and a 128 KiB string/key budget; cycles reject. Canonical

@@ -25,7 +25,7 @@ import type {
 import type { SkillBundleFile, SkillBundleSnapshot } from './bundles';
 import type { GitHubRepoAdapterConfig } from './sync/adapters/github';
 import type { RepoTreeEntry } from './sync/adapters/types';
-import { normalizeRepoPath, isSkillRootWithinDiscoveryDepth } from './sync/path';
+import { normalizeRepoPath, isPathWithinRoots, isSkillRootWithinDiscoveryDepth } from './sync/path';
 import { createGitHubRepoAdapter } from './sync/adapters/github';
 import { parseSkillMarkdown, toCleanFrontmatter } from './parse';
 import { SkillSelectionError } from './selection';
@@ -145,7 +145,9 @@ export async function captureGitHubSkillGeneration(
     assertNotCancelled,
   });
   const prefix = selection.skillPath ? `${selection.skillPath}/` : '';
-  const childRoots = entries.flatMap((entry) => {
+  const childRoots = new Set<string>();
+  for (const entry of entries) {
+    assertNotCancelled();
     const split = entry.path.lastIndexOf('/');
     const root = entry.path.slice(0, split);
     if (
@@ -162,15 +164,15 @@ export async function captureGitHubSkillGeneration(
         ),
       )
     )
-      return [];
-    return [root];
-  });
+      continue;
+    childRoots.add(root);
+  }
   const paths = new Set<string>();
   const files: Array<RepoTreeEntry & { relative: string }> = [];
   let total = 0;
   for (const entry of entries) {
-    if (childRoots.some((root) => entry.path === root || entry.path.startsWith(`${root}/`)))
-      continue;
+    assertNotCancelled();
+    if (isPathWithinRoots(entry.path, childRoots)) continue;
     const relative = entry.path.slice(prefix.length);
     if (
       !entry.path.startsWith(prefix) ||

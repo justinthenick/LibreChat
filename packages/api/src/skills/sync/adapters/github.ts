@@ -12,6 +12,9 @@ import { normalizeRepoPath } from '../path';
 import { SkillSyncError } from '../errors';
 
 const GITHUB_API_BASE = 'https://api.github.com';
+const MAX_GIT_COMPONENT_BYTES = 255;
+const MAX_GIT_PATH_BYTES = 4096;
+const MAX_RETAINED_GIT_PATH_BYTES = 8 * 1024 * 1024;
 
 export const GITHUB_FINE_GRAINED_TOKEN_RECOMMENDATION =
   'Use a GitHub fine-grained personal access token scoped to the selected repository with read-only Contents and Metadata permissions.';
@@ -74,6 +77,7 @@ function verifyTree(tree: GitHubTreeResponse, sha: string): void {
       if (
         typeof entry.path !== 'string' ||
         !entry.path ||
+        Buffer.byteLength(entry.path, 'utf8') > MAX_GIT_COMPONENT_BYTES ||
         /[\0/\\]/.test(entry.path) ||
         entry.path === '.' ||
         entry.path === '..' ||
@@ -336,24 +340,49 @@ export function createGitHubRepoAdapter(config: GitHubRepoAdapterConfig): GitRep
     params: FetchTreeEntriesParams,
   ): Promise<RepoTreeEntry[]> {
     const normalizedPath = normalizeRepoPath(params.pathPrefix);
+    const prefixBytes = Buffer.byteLength(normalizedPath, 'utf8');
+    if (
+      config.verifyGitObjects &&
+      (prefixBytes > MAX_GIT_PATH_BYTES ||
+        normalizedPath
+          .split('/')
+          .some((part) => Buffer.byteLength(part, 'utf8') > MAX_GIT_COMPONENT_BYTES))
+    )
+      invalidObject();
     const treeSha = normalizedPath
       ? await resolveTreeShaAtPath(commit.treeId, normalizedPath, params.assertNotCancelled)
       : commit.treeId;
 
     if (config.verifyGitObjects) {
       const entries: RepoTreeEntry[] = [];
-      const pending = [{ sha: treeSha, prefix: normalizedPath, depth: 0 }];
+      const pending = [{ sha: treeSha, prefix: normalizedPath, prefixBytes, depth: 0 }];
+      let retainedPathBytes = 0;
       while (pending.length) {
         const current = pending.pop()!;
         params.assertNotCancelled();
         const tree = await fetchTree(current.sha, false);
         params.assertNotCancelled();
         for (const entry of tree.tree) {
+          params.assertNotCancelled();
+          const pathBytes =
+            current.prefixBytes + (current.prefix ? 1 : 0) + Buffer.byteLength(entry.path, 'utf8');
+          if (
+            entries.length >= 10000 ||
+            current.depth > 64 ||
+            pathBytes > MAX_GIT_PATH_BYTES ||
+            pathBytes > MAX_RETAINED_GIT_PATH_BYTES - retainedPathBytes
+          )
+            invalidObject();
+          retainedPathBytes += pathBytes;
           const path = current.prefix ? `${current.prefix}/${entry.path}` : entry.path;
           entries.push({ ...toRepoTreeEntry(entry, path), mode: entry.mode });
-          if (entries.length > 10000 || current.depth > 64) invalidObject();
           if (entry.type === 'tree')
-            pending.push({ sha: entry.sha, prefix: path, depth: current.depth + 1 });
+            pending.push({
+              sha: entry.sha,
+              prefix: path,
+              prefixBytes: pathBytes,
+              depth: current.depth + 1,
+            });
         }
       }
       return entries;

@@ -3,6 +3,7 @@ import type { GenerationFixture } from './generation.helper';
 import { createGenerationFixture } from './generation.helper';
 import { captureGitHubSkillGeneration } from './generation';
 import { validateSkillBundle } from './bundles';
+import * as repoPaths from './sync/path';
 
 let fixture: GenerationFixture;
 beforeEach(() => {
@@ -323,6 +324,60 @@ test('excludes independently discovered child directory case collisions from the
   const snapshot = await captureGitHubSkillGeneration(fixture.input);
   expect(snapshot.files.map((file) => file.path)).toEqual(['notes.txt']);
   expect(fixture.requests.filter((url) => url.includes('/blobs/'))).toHaveLength(2);
+});
+
+test.each(['discovery', 'filtering'] as const)(
+  'checks cancellation between entries during child %s',
+  async (phase) => {
+    fixture.close();
+    fixture = createGenerationFixture({
+      'SKILL.md': '---\nname: writer\n---\nParent',
+      'first/SKILL.md': '---\nname: first\n---\nChild',
+      'second/SKILL.md': '---\nname: second\n---\nChild',
+      'third/SKILL.md': '---\nname: third\n---\nChild',
+    });
+    const scan = jest.spyOn(
+      repoPaths,
+      phase === 'discovery' ? 'isSkillRootWithinDiscoveryDepth' : 'isPathWithinRoots',
+    );
+    const cancelled = new Error('cancelled during scan');
+    fixture.input.assertNotCancelled = () => {
+      if (scan.mock.calls.length) throw cancelled;
+    };
+    try {
+      await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toBe(cancelled);
+      expect(scan).toHaveBeenCalledTimes(1);
+      expect(fixture.requests.some((url) => url.includes('/blobs/'))).toBe(false);
+    } finally {
+      scan.mockRestore();
+    }
+  },
+);
+
+test.each(['oversized-component', 'multibyte-component', 'deep-path', 'cumulative-paths'] as const)(
+  'rejects Git-authenticated path amplification from %s before blob reads',
+  async (special) => {
+    fixture.close();
+    fixture = createGenerationFixture(undefined, special, '');
+    fixture.input.source.paths = ['.'];
+    await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toMatchObject({
+      code: 'GITHUB_OBJECT_INVALID',
+    });
+    expect(fixture.requests.some((url) => url.includes('/blobs/'))).toBe(false);
+    if (special === 'oversized-component' || special === 'multibyte-component') {
+      expect(fixture.requests.filter((url) => url.includes('/trees/'))).toHaveLength(1);
+    }
+  },
+);
+
+test('keeps acquisition path budgets distinct from package-relative path limits', async () => {
+  fixture.close();
+  fixture = createGenerationFixture(undefined, 'long-valid-paths', '');
+  const snapshot = await captureGitHubSkillGeneration(fixture.input);
+  expect(snapshot.files.map((file) => file.path)).toEqual([`${'f'.repeat(200)}.txt`]);
+  expect(fixture.input.selection.skillPath.length + snapshot.files[0].path.length).toBeGreaterThan(
+    500,
+  );
 });
 
 test.each([
