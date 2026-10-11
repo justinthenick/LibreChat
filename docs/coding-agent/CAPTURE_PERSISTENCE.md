@@ -42,6 +42,10 @@ no authorization boundary and must not be exposed to an untrusted caller.
 
 ## Explicitly missing before activation
 
+The [isolated validator bridge](./VALIDATED_SKILL_CAPTURE.md) now connects the
+existing validators to this store and is tested separately. The raw storage
+module remains deliberately opaque; the bridge is not connected to live routes.
+
 The payload is opaque JSON with an independent storage digest. This module does
 not replace `validateSkillBundle`, `beginSkillDraft` or `completeSkillDraft`.
 Application integration must validate complete bundle semantics, match the draft

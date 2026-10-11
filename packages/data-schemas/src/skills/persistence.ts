@@ -99,6 +99,11 @@ export interface CapturePersistence {
     payload?: CapturePayload,
   ) => Promise<CaptureDraft>;
   readSource: (id: string, tenantId: string | null) => Promise<CaptureSource | null>;
+  readGeneration: (
+    id: string,
+    tenantId: string | null,
+    generation: number,
+  ) => Promise<CaptureSource | null>;
   readDraft: (id: string, actor: CaptureIdentity) => Promise<CaptureDraft | null>;
   readPayload: (digest: string) => Promise<string>;
   resolve: (operationId: string, requestDigest: string) => Promise<Receipt | null>;
@@ -431,6 +436,13 @@ export async function createIsolatedCapturePersistence(
         { _id: id, tenantId },
         { readPreference: 'primary', readConcern: { level: 'majority' } },
       ),
+    readGeneration: async (id, tenantId, generation) => {
+      const record = await generations.findOne(
+        { sourceId: id, tenantId, generation },
+        { readPreference: 'primary', readConcern: { level: 'majority' } },
+      );
+      return record ? sourceCopy({ ...record, _id: record.sourceId }) : null;
+    },
     readDraft: (id, actor) =>
       drafts.findOne(
         { _id: id, ...identity(actor) },

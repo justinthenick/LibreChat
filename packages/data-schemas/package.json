@@ -18,6 +18,16 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./isolated-capture": {
+      "import": {
+        "types": "./dist/persistence.d.mts",
+        "default": "./dist/skills/persistence.mjs"
+      },
+      "require": {
+        "types": "./dist/persistence.d.cts",
+        "default": "./dist/skills/persistence.cjs"
+      }
+    },
     "./capabilities": {
       "import": {
         "types": "./dist/capabilities.d.mts",
