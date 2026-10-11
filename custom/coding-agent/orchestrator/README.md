@@ -222,6 +222,40 @@ inference transport. Integrating a reviewed authentication boundary remains a
 prerequisite for live subscription use. The injected LLM in the offline fixture
 contains only synthetic credentials and never invokes that path.
 
+`auth_exchange.BoundedAuthExchange` is a dormant auth transport building block,
+not an SDK subscription integration. It defaults off and has no default network
+transport. Trusted child-side code must explicitly supply its transport and a
+refresh token; the module never reads auth files, logs in, installs SDK hooks,
+persists tokens, or registers a profile. Its two operations permit one refresh
+POST and one signing-key GET to the exact pinned SDK 1.51.0 endpoints. Both use
+the same `WorkerControl` physical-request counter and absolute deadline as
+inference. There are no redirects, automatic retries, cookies or environment
+credential/proxy discovery in this module. Every injected `handle_request` must
+perform exactly one physical request, with no internal retries, redirects,
+proxy authentication or credential discovery, and honor timeout extensions.
+The wrapper cannot inspect arbitrary transport internals: its tests establish
+dispatch accounting using a synthetic one-request transport, not unconditional
+physical accounting for any injected transport. A future production transport
+factory must enforce this contract; `HTTPTransport(retries>0)` is unsuitable.
+The existing worker
+process watchdog remains the hard deadline for blocked I/O.
+
+Any rejected, cancelled, late, oversized, concurrent or uncertain exchange makes
+the instance terminal. A lost refresh response may mean the provider rotated a
+token; no retry or success is inferred. Replies are at most 64 KiB of unvalidated
+raw JSON-media-type bytes, not verified credentials or identity. The reply hides
+its body from repr and rejects pickling; trusted code can explicitly read the
+body, so this is not memory erasure or a general serialization security boundary.
+Only synthetic transports call this module in the repository.
+
+Activation still needs a reviewed child-side credential handoff, issuer/audience/
+expiry/account and signature validation, durable credential rotation recovery,
+and an SDK LLM binding that routes every auth and inference request through the
+shared budget without credential-bearing parent serialization. Existing SDK
+subscription rejection remains unchanged until those pieces are implemented and
+reviewed. This transport alone neither authenticates a user nor proves remote
+work stopped.
+
 `BoundedResponses` binds one synchronous SDK LLM instance to an owned HTTP client.
 It checks the exact destination/model and calls the worker's request gate
 immediately before each physical dispatch. SDK/LiteLLM retries, prompt caching,
