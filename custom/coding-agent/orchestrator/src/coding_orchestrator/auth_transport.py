@@ -7,7 +7,6 @@ factory. OS DNS is synchronous: ProcessWorker remains the hard deadline backstop
 import os
 import socket
 import ssl
-import sys
 import threading
 
 from .auth_exchange import BoundedAuthExchange, KEYS_URL, TOKEN_URL, MAX_REPLY
@@ -20,16 +19,30 @@ HOST = "auth.openai.com"
 MAX_HTTP_RESPONSE_BYTES = 128 * 1024
 
 
-def _close_preserving_control(resource):
-    category = type(sys.exc_info()[1])
-    try:
-        resource.close()
-    except Exception:
-        # httpcore finalizes nested iterators with GeneratorExit when a body
-        # limit interrupts consumption. Never emit an unsanitized unraisable
-        # cleanup error; explicit response/pool/socket cleanup still follows.
-        if category not in (WorkerCancelled, WorkerDeadline, WorkerLimit, GeneratorExit):
-            raise
+class _Operation:
+    """Only failures observed by this dispatch may suppress secondary cleanup."""
+
+    def __init__(self):
+        self.failure = None
+
+    def record(self, error):
+        if self.failure is None:
+            category = type(error)
+            self.failure = category if category in (WorkerCancelled, WorkerDeadline, WorkerLimit) else BackendContractError
+
+    def limit(self):
+        if self.failure is None:
+            self.failure = WorkerLimit
+        raise WorkerLimit()
+
+    def close(self, resource):
+        primary = self.failure
+        try:
+            resource.close()
+        except Exception as error:
+            self.record(error)
+            if primary is None:
+                raise
 
 
 def create_auth_exchange(control, *, enabled=False):
@@ -44,6 +57,7 @@ def create_auth_exchange(control, *, enabled=False):
 class _SocketStream:
     def __init__(self, owner, sock):
         self.owner, self.sock = owner, sock
+        self.operation = owner.operation
         self.received = 0
 
     def read(self, max_bytes, timeout=None):
@@ -52,7 +66,7 @@ class _SocketStream:
         self.owner.remaining()
         self.received += len(data)
         if self.received > MAX_HTTP_RESPONSE_BYTES:
-            raise WorkerLimit()
+            self.operation.limit()
         return data
 
     def write(self, buffer, timeout=None):
@@ -85,7 +99,7 @@ class _SocketStream:
         return None
 
     def close(self):
-        _close_preserving_control(self.sock)
+        self.operation.close(self.sock)
 
 
 class _Network:
@@ -131,6 +145,7 @@ class _FixedTransport:
         self.pid = os.getpid()
         self.closed = False
         self.stream = None
+        self.operation = None
         self.lock = threading.Lock()
         # create_default_context also discovers system/environment roots. Load
         # only certifi here so SSL_CERT_FILE/SSL_CERT_DIR cannot add trust.
@@ -139,17 +154,23 @@ class _FixedTransport:
         self.context.minimum_version = ssl.TLSVersion.TLSv1_2
 
     def remaining(self):
-        if self.closed or os.getpid() != self.pid:
-            raise BackendContractError("Auth transport unavailable")
-        return self.control.remaining_seconds()
+        try:
+            if self.closed or os.getpid() != self.pid:
+                raise BackendContractError("Auth transport unavailable")
+            return self.control.remaining_seconds()
+        except Exception as error:
+            if self.operation is not None:
+                self.operation.record(error)
+            raise
 
     def attempt(self, operation, *args, **kwargs):
         try:
             return operation(*args, **kwargs)
-        except Exception:
+        except Exception as error:
             # A timeout/error may coincide with an authoritative worker stop.
             # Preserve that category instead of latching a generic I/O failure.
             self.remaining()
+            self.operation.record(error)
             raise
 
     def handle_request(self, request):
@@ -159,6 +180,7 @@ class _FixedTransport:
         if not self.lock.acquire(blocking=False):
             self.close()
             raise BackendContractError("Concurrent auth transport rejected")
+        operation = self.operation = _Operation()
         try:
             self.remaining()
             url = str(request.url)
@@ -201,22 +223,35 @@ class _FixedTransport:
                         for chunk in chunks:
                             self.remaining()
                             if len(payload) + len(chunk) > MAX_REPLY:
-                                raise WorkerLimit()
+                                operation.limit()
                             payload.extend(chunk)
+                    except Exception as error:
+                        operation.record(error)
+                        raise
                     finally:
-                        _close_preserving_control(chunks)
+                        operation.close(chunks)
                     self.remaining()
                     return httpx.Response(response.status, headers=response.headers, content=bytes(payload))
+                except Exception as error:
+                    operation.record(error)
+                    raise
                 finally:
-                    _close_preserving_control(response)
+                    operation.close(response)
+            except Exception as error:
+                operation.record(error)
+                raise
             finally:
-                _close_preserving_control(pool)
+                operation.close(pool)
+        except Exception as error:
+            operation.record(error)
+            raise
         finally:
             try:
                 if self.stream is not None:
-                    _close_preserving_control(self.stream)
+                    operation.close(self.stream)
             finally:
                 self.stream = None
+                self.operation = None
                 self.lock.release()
 
     def close(self):
