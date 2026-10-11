@@ -63,9 +63,10 @@ any of these paths or claim that a production epoch exists.
   untrusted caller. Resolving a lost-reply receipt after revocation reports a
   historical commit; it does not renew permission or replay a write. Missing
   receipts are still unresolved outcomes, never permission to retry blindly.
-- Full bundle validation remains the separate isolated validator bridge. This
-  prerequisite fences opaque storage transactions; it does not connect that
-  bridge to a live policy, prove upstream provenance, or authorize publishing.
+- The [validated fenced factory](./CAPTURE_INTEGRATION.md) now composes this store
+  with full bundle validation. The raw store remains opaque, and the original
+  validator factory remains unfenced. Neither path connects to a live policy,
+  proves upstream provenance, or authorizes publishing.
 
 ## Evidence
 
