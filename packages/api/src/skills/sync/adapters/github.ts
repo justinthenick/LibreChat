@@ -132,6 +132,42 @@ async function readGitHubErrorMessage(response: Response): Promise<string | unde
   }
 }
 
+/** Inspect only a small error prefix, with a deadline for nonclosing bodies. */
+async function readBoundedGitHubErrorMessage(response: Response): Promise<string | undefined> {
+  const reader = response.body?.getReader();
+  if (!reader) return undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), 500);
+  });
+  const read = async (): Promise<string | undefined> => {
+    const chunks: Uint8Array[] = [];
+    let length = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        length += value.byteLength;
+        if (length > 16 * 1024 || chunks.length >= 256) return undefined;
+        chunks.push(value);
+      }
+      const body = JSON.parse(
+        new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)),
+      ) as { message?: unknown };
+      return typeof body?.message === 'string' ? body.message : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  try {
+    return await Promise.race([read(), timeout]);
+  } finally {
+    clearTimeout(timer);
+    void reader.cancel().catch(() => undefined);
+    reader.releaseLock();
+  }
+}
+
 function isGitHubRateLimitResponse(params: {
   status: number;
   remaining: string | null;
@@ -186,13 +222,16 @@ async function githubJson<T>(params: {
     }
     return (await response.json()) as T;
   }
-  if (params.maxResponseBytes !== undefined) {
-    await response.body?.cancel().catch(() => undefined);
-  }
   const remaining = response.headers.get('x-ratelimit-remaining');
   const retryAfter = response.headers.get('retry-after');
-  const message =
-    params.maxResponseBytes === undefined ? await readGitHubErrorMessage(response) : undefined;
+  let message: string | undefined;
+  if (params.maxResponseBytes === undefined) {
+    message = await readGitHubErrorMessage(response);
+  } else if (response.status === 403 && remaining !== '0' && !retryAfter) {
+    message = await readBoundedGitHubErrorMessage(response);
+  } else {
+    void response.body?.cancel().catch(() => undefined);
+  }
   if (response.status === 401 || response.status === 403 || response.status === 429) {
     const code = isGitHubRateLimitResponse({
       status: response.status,

@@ -393,3 +393,95 @@ test('preserves UTF-8 BOM and CRLF bytes in the raw definition', async () => {
   const manifest = validateSkillBundle(await captureGitHubSkillGeneration(fixture.input));
   expect(Buffer.from(manifest.definition.body, 'utf8')).toEqual(Buffer.from(markdown, 'utf8'));
 });
+
+test.each([
+  ['You have exceeded a secondary rate limit', 'GITHUB_RATE_LIMITED'],
+  ['Abuse detection mechanism triggered', 'GITHUB_RATE_LIMITED'],
+  ['Resource not accessible by token', 'GITHUB_AUTH_FAILED'],
+])('classifies bounded headerless 403 message %s', async (message, code) => {
+  fixture.input.fetchFn = async () => new Response(JSON.stringify({ message }), { status: 403 });
+  await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toMatchObject({ code });
+});
+
+test('bounds and cancels an oversized 403 error without exposing its body', async () => {
+  let cancelled = false;
+  fixture.input.fetchFn = async () =>
+    new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array(16 * 1024 + 1));
+        },
+        cancel() {
+          cancelled = true;
+        },
+      }),
+      { status: 403 },
+    );
+  await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toMatchObject({
+    code: 'GITHUB_AUTH_FAILED',
+    message: 'GitHub request failed with HTTP 403',
+  });
+  expect(cancelled).toBe(true);
+});
+
+test.each(['invalid-json', 'read-error', 'empty-chunks'])(
+  'releases bounded 403 reader after %s',
+  async (failure) => {
+    let pulls = 0;
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulls++;
+        if (failure === 'read-error') controller.error(new Error('untrusted provider details'));
+        else if (failure === 'invalid-json') {
+          controller.enqueue(new TextEncoder().encode('not JSON'));
+          controller.close();
+        } else controller.enqueue(new Uint8Array());
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    fixture.input.fetchFn = async () => new Response(body, { status: 403 });
+    await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toMatchObject({
+      code: 'GITHUB_AUTH_FAILED',
+      message: 'GitHub request failed with HTTP 403',
+    });
+    expect(body.locked).toBe(false);
+    expect(pulls).toBeLessThanOrEqual(258);
+    if (failure === 'empty-chunks') expect(cancelled).toBe(true);
+  },
+);
+
+test('settles a nonclosing 403 by deadline even when cancellation never settles', async () => {
+  let cancelled = false;
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new Uint8Array([1]));
+    },
+    cancel() {
+      cancelled = true;
+      return new Promise<void>(() => {});
+    },
+  });
+  fixture.input.fetchFn = async () => new Response(body, { status: 403 });
+  jest.useFakeTimers();
+  try {
+    const result = captureGitHubSkillGeneration(fixture.input).then(
+      () => {
+        throw new Error('Expected rejected capture');
+      },
+      (error: Error) => error,
+    );
+    await jest.advanceTimersByTimeAsync(500);
+    expect(await result).toMatchObject({
+      code: 'GITHUB_AUTH_FAILED',
+      message: 'GitHub request failed with HTTP 403',
+    });
+    expect(cancelled).toBe(true);
+    expect(body.locked).toBe(false);
+    expect(jest.getTimerCount()).toBe(0);
+  } finally {
+    jest.useRealTimers();
+  }
+});
