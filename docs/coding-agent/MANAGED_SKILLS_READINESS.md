@@ -1,9 +1,9 @@
 # Managed skills readiness and capture evidence
 
-Evidence checkpoint: 2026-10-10 08:52 UTC. This is a source/test assessment, not live production acceptance.
+Evidence checkpoint: 2026-10-11 03:40 UTC. This is a source/test assessment, not live production acceptance.
 The production branch `server/synology` was read at
 `20e8dff1d23130fb1360a8596fa4132eb9fc94b9`; the preview source assessed here is
-`5bebc29e65da4c8fa40f8ff8608cb3c92e3d61e3`. A branch SHA does not prove the running
+`0ebbbb25b9c741275f2b1190a18c3497d45eeccd`. A branch SHA does not prove the running
 deployment, configured credentials, enabled picker state, or successful provider execution.
 No live datastore, storage, model/provider, permissions or deployment changes were made.
 
@@ -14,15 +14,14 @@ No live datastore, storage, model/provider, permissions or deployment changes we
 | Managed Draft, lifecycle/Trial, Publish | Existing [route handlers](../../api/server/routes/skills.js) create/reuse drafts, change lifecycle and publish GitHub changes.                                                                         | Separate metadata/file reads do not bind Trial or Publish to a coherent captured bundle. Lifecycle labels alone are not acceptance evidence.                                                             |
 | Manual selection with definition only   | [PR191](https://github.com/justinthenick/LibreChat/pull/191) merged into preview; selection rejects disallowed manual invocation and binds the selected definition; bundled file bytes are not pinned. | Preview source delivery does not prove current production picker/runtime behavior.                                                                                                                       |
 | Immutable bundle capture/read boundary  | [PR195](https://github.com/justinthenick/LibreChat/pull/195), merged into development preview at `5bebc29e` after refreshed review and CI against `cde1271`.                                           | Dormant host-only boundary; no live capture/storage/Trial integration. Does not make existing draft creation atomic.                                                                                     |
-| Publication coordinator                 | [PR197](https://github.com/justinthenick/LibreChat/pull/197), head `0cc0409`, reviewed/tested draft; refreshing after PR195 integration.                                                               | Dormant compare-and-swap adapter contract; real persistence and activation remain absent.                                                                                                                |
-| Publish source-provenance guard         | [PR199](https://github.com/justinthenick/LibreChat/pull/199), head `bc6bec4`, reviewed/tested draft based on preview.                                                                                  | Rejects invalid/stale provenance before remote writes; allows unrelated changes when the exact skill subtree is unchanged. Does not establish coherent draft capture or prevent later upstream movement. |
-| Deterministic backend cache tests       | [PR198](https://github.com/justinthenick/LibreChat/pull/198), head `af96af9`, reviewed/tested, open and unmerged.                                                                                      | Test reliability improvement, not a managed-skills runtime feature.                                                                                                                                      |
+| Publication coordinator                 | [PR197](https://github.com/justinthenick/LibreChat/pull/197), merged into development preview at `9fd0e55` after refreshed review and CI.                                                              | Dormant compare-and-swap adapter contract; real persistence and activation remain absent.                                                                                                                |
+| Publish source-provenance guard         | [PR199](https://github.com/justinthenick/LibreChat/pull/199), head `4bb04df`, reviewed draft with casing/mode preservation; fresh combined-tree CI pending.                                            | Rejects invalid/stale provenance before remote writes; allows unrelated changes when the exact skill subtree is unchanged. Does not establish coherent draft capture or prevent later upstream movement. |
+| Deterministic backend cache tests       | [PR198](https://github.com/justinthenick/LibreChat/pull/198), merged into development preview at `aaa5f07`; runtime unchanged.                                                                         | Test reliability improvement, not a managed-skills runtime feature.                                                                                                                                      |
 | Coherent draft capture                  | Current branch adds characterization tests and this assessment only.                                                                                                                                   | Not delivered. Passing characterization tests reproduce unsafe interleavings; they do not approve those behaviors.                                                                                       |
 
-PR197, PR198, PR199 and PR201 remain unmerged at this checkpoint. Fresh explicit
-development approval allowed the same-tool PR195 retry, which succeeded. Remaining
-integration requires refreshed review and exact-tree CI; see the linked PRs for later
-status. Existing historical tests and provider accounts do not authorize fresh calls and
+PR195, PR197 and PR198 are merged into development preview. PR199 and PR201 remain
+unmerged at this checkpoint. Their remaining integration requires refreshed review and
+exact-tree CI; see the linked PRs for later status. Existing historical tests and provider accounts do not authorize fresh calls and
 are not evidence of current end-to-end readiness.
 
 ## What the capture tests establish

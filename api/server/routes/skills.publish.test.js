@@ -219,3 +219,89 @@ it('keeps the selected commit pinned when the upstream ref moves during tree val
   ).toHaveLength(1);
   // This intentionally does not claim that a later upstream change is rejected atomically.
 });
+
+it.each([
+  ['SKILL.md', '100644'],
+  ['skill.md', '100644'],
+  ['Skill.md', '100755'],
+  ['SKILL.MD', '100644'],
+])('publishes the verified exact filename %s and mode %s', async (name, mode) => {
+  responses.set(`/git/trees/${sha(4)}`, {
+    sha: sha(4),
+    truncated: false,
+    tree: [{ path: name, type: 'blob', mode, sha: sha(7) }],
+  });
+  await run();
+  expect(res.status).toHaveBeenCalledWith(201);
+  const treeWrite = writes().find(([url]) => String(url).endsWith('/git/trees'));
+  expect(JSON.parse(treeWrite[1].body).tree).toEqual([
+    { path: `skills/writer/${name}`, mode, type: 'blob', sha: sha(50) },
+  ]);
+});
+
+it.each(['ambiguous', 'nested', 'wrong blob', 'symlink'])(
+  'rejects a %s definition before all writes',
+  async (kind) => {
+    const entry = {
+      path: kind === 'nested' ? 'nested/skill.md' : 'skill.md',
+      type: 'blob',
+      mode: kind === 'symlink' ? '120000' : '100644',
+      sha: kind === 'wrong blob' ? sha(99) : sha(7),
+    };
+    responses.set(`/git/trees/${sha(4)}`, {
+      sha: sha(4),
+      truncated: false,
+      tree: kind === 'ambiguous' ? [entry, { ...entry, path: 'SKILL.md' }] : [entry],
+    });
+    await run();
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ error: 'managed_draft_provenance_conflict' }),
+    );
+    expect(writes()).toEqual([]);
+    expect(models.updateSkill).not.toHaveBeenCalled();
+  },
+);
+
+it.each(['draft', 'published'])(
+  'rejects a root definition-file collision in %s files before writes',
+  async (which) => {
+    models.listSkillFiles.mockImplementation(async (id) =>
+      id === (which === 'draft' ? draft._id : published._id) ? [{ relativePath: 'Skill.md' }] : [],
+    );
+    await run();
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ error: 'managed_draft_provenance_conflict' }),
+    );
+    expect(writes()).toEqual([]);
+    expect(models.updateSkill).not.toHaveBeenCalled();
+  },
+);
+
+it('allows deletion of a published-only nested definition-named bundled file', async () => {
+  responses.set(`/git/trees/${sha(4)}`, {
+    sha: sha(4),
+    truncated: false,
+    tree: [
+      { path: 'SKILL.md', type: 'blob', mode: '100644', sha: sha(7) },
+      { path: 'references', type: 'tree', mode: '040000', sha: sha(15) },
+    ],
+  });
+  responses.set(`/git/trees/${sha(15)}`, {
+    sha: sha(15),
+    truncated: false,
+    tree: [{ path: 'SKILL.md', type: 'blob', mode: '100644', sha: sha(8) }],
+  });
+  models.listSkillFiles.mockImplementation(async (id) =>
+    id === published._id ? [{ relativePath: 'references/SKILL.md' }] : [],
+  );
+  await run();
+  expect(res.status).toHaveBeenCalledWith(201);
+  const treeWrite = writes().find(([url]) => String(url).endsWith('/git/trees'));
+  expect(JSON.parse(treeWrite[1].body).tree).toEqual([
+    { path: 'skills/writer/SKILL.md', mode: '100644', type: 'blob', sha: sha(50) },
+    { path: 'skills/writer/references/SKILL.md', mode: '100644', type: 'blob', sha: null },
+  ]);
+  expect(models.updateSkill).toHaveBeenCalledTimes(1);
+});

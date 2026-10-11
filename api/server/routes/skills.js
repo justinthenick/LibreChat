@@ -469,7 +469,7 @@ async function publishManagedDraftHandler(req, res) {
       throw new ManagedDraftProvenanceError();
     }
 
-    await assertManagedDraftUpstream(
+    const definition = await assertManagedDraftUpstream(
       provenance,
       { commitSha: baseCommitSha, treeSha: baseTreeSha },
       (apiPath) => githubJson(token, 'GET', `${baseApi}${apiPath}`),
@@ -477,6 +477,14 @@ async function publishManagedDraftHandler(req, res) {
 
     const draftFiles = await listSkillFiles(draft._id);
     const publishedFiles = await listSkillFiles(published._id);
+    if (
+      [...draftFiles, ...publishedFiles].some(
+        (file) =>
+          typeof file.relativePath !== 'string' || file.relativePath.toUpperCase() === 'SKILL.MD',
+      )
+    ) {
+      throw new ManagedDraftProvenanceError();
+    }
     const tree = [];
 
     const skillBlob = await githubJson(token, 'POST', `${baseApi}/git/blobs`, {
@@ -484,8 +492,8 @@ async function publishManagedDraftHandler(req, res) {
       encoding: 'base64',
     });
     tree.push({
-      path: `${skillPath}/SKILL.md`,
-      mode: '100644',
+      path: `${skillPath}/${definition.path}`,
+      mode: definition.mode,
       type: 'blob',
       sha: skillBlob.sha,
     });

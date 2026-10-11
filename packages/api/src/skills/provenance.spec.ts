@@ -68,6 +68,99 @@ function fixture() {
 }
 
 describe('managed draft source provenance', () => {
+  it.each(['SKILL.md', 'skill.md', 'Skill.md', 'SKILL.MD'])(
+    'returns the exact direct definition filename %s',
+    async (name) => {
+      const f = fixture();
+      f.responses.set(`/git/trees/${digest(4)}`, {
+        sha: digest(4),
+        truncated: false,
+        tree: [{ path: name, type: 'blob', mode: '100644', sha: digest(7) }],
+      });
+      const result = await f.check();
+      expect(result).toEqual({ path: name, mode: '100644' });
+      expect(Object.isFrozen(result)).toBe(true);
+    },
+  );
+
+  it('preserves an executable definition mode', async () => {
+    const f = fixture();
+    f.responses.set(`/git/trees/${digest(4)}`, {
+      sha: digest(4),
+      truncated: false,
+      tree: [{ path: 'Skill.md', type: 'blob', mode: '100755', sha: digest(7) }],
+    });
+    await expect(f.check()).resolves.toEqual({ path: 'Skill.md', mode: '100755' });
+  });
+
+  it.each(['blob', 'tree'])(
+    'rejects ambiguous case variants even when one is a %s',
+    async (type) => {
+      const f = fixture();
+      f.responses.set(`/git/trees/${digest(4)}`, {
+        sha: digest(4),
+        truncated: false,
+        tree: [
+          { path: 'SKILL.md', type: 'blob', mode: '100644', sha: digest(7) },
+          { path: 'skill.md', type, mode: type === 'tree' ? '040000' : '100644', sha: digest(99) },
+        ],
+      });
+      await expect(f.check()).rejects.toThrow(failure);
+    },
+  );
+
+  it.each([false, true])(
+    'does not inspect a child skill tree (direct definition present: %s)',
+    async (hasDirectDefinition) => {
+      const f = fixture();
+      const childTree = `/git/trees/${digest(15)}`;
+      f.responses.set(`/git/trees/${digest(4)}`, {
+        sha: digest(4),
+        truncated: false,
+        tree: [
+          { path: 'nested', type: 'tree', mode: '040000', sha: digest(15) },
+          ...(hasDirectDefinition
+            ? [{ path: 'Skill.md', type: 'blob', mode: '100644', sha: digest(7) }]
+            : []),
+        ],
+      });
+      f.responses.set(childTree, {
+        sha: digest(15),
+        truncated: false,
+        tree: [{ path: 'SKILL.md', type: 'blob', mode: '100644', sha: digest(7) }],
+      });
+      if (hasDirectDefinition) {
+        await expect(f.check()).resolves.toEqual({ path: 'Skill.md', mode: '100644' });
+      } else {
+        await expect(f.check()).rejects.toThrow(failure);
+      }
+      expect(f.getJson).not.toHaveBeenCalledWith(childTree);
+      expect(f.getJson.mock.calls.every(([path]) => !path.includes('?recursive'))).toBe(true);
+    },
+  );
+
+  it.each(['nested', 'coercible path', 'symlink', 'wrong blob'])(
+    'rejects %s without falling back to another definition',
+    async (kind) => {
+      const f = fixture();
+      const definitionPath = kind === 'nested' ? 'nested/skill.md' : 'skill.md';
+      f.responses.set(`/git/trees/${digest(4)}`, {
+        sha: digest(4),
+        truncated: false,
+        tree: [
+          {
+            path: kind === 'coercible path' ? ['skill.md'] : definitionPath,
+            type: 'blob',
+            mode: kind === 'symlink' ? '120000' : '100644',
+            sha: kind === 'wrong blob' ? digest(99) : digest(7),
+          },
+        ],
+      });
+      await expect(f.check()).rejects.toThrow(failure);
+      expect(f.getJson.mock.calls.every(([path]) => !path.includes('?recursive'))).toBe(true);
+    },
+  );
+
   it('rejects lifecycle and Git mode values that would pass string coercion', async () => {
     const f = fixture();
     f.draft.lifecycle = ['draft'];
@@ -85,7 +178,7 @@ describe('managed draft source provenance', () => {
     async (lifecycle) => {
       const f = fixture();
       f.draft.lifecycle = lifecycle;
-      await expect(f.check()).resolves.toBeUndefined();
+      await expect(f.check()).resolves.toEqual({ path: 'SKILL.md', mode: '100644' });
     },
   );
 
@@ -154,7 +247,7 @@ describe('managed draft source provenance', () => {
         { path: 'unrelated.txt', type: 'blob', mode: '100644', sha: digest(99) },
       ],
     });
-    await expect(f.check()).resolves.toBeUndefined();
+    await expect(f.check()).resolves.toEqual({ path: 'SKILL.md', mode: '100644' });
   });
 
   it.each(['definition', 'file modification', 'file addition', 'file deletion', 'mode change'])(
@@ -206,7 +299,7 @@ describe('managed draft source provenance', () => {
 
   it('uses pinned commit/tree IDs if a branch moves during validation', async () => {
     const f = fixture();
-    await expect(f.check()).resolves.toBeUndefined();
+    await expect(f.check()).resolves.toEqual({ path: 'SKILL.md', mode: '100644' });
     expect(
       f.getJson.mock.calls.every(([path]) => /^\/git\/(trees|commits)\/[a-f0-9]{40}$/.test(path)),
     ).toBe(true);
