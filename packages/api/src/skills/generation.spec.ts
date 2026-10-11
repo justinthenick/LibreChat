@@ -1,3 +1,4 @@
+import { skillSyncGitHubSourceSchema } from 'librechat-data-provider';
 import type { GenerationFixture } from './generation.helper';
 import { createGenerationFixture } from './generation.helper';
 import { captureGitHubSkillGeneration } from './generation';
@@ -159,4 +160,65 @@ test('retains source selection and configuration before asynchronous reads', asy
   const manifest = validateSkillBundle(await captureGitHubSkillGeneration(fixture.input));
   expect(manifest.sourceRevision).toBe(commit);
   expect(manifest.tenantId).toBe('tenant');
+});
+
+test('rejects invalid frontmatter before constructing a committed bundle', async () => {
+  fixture.close();
+  fixture = createGenerationFixture({
+    'SKILL.md': '---\nname: writer\ndescription: Writes\ncompatibility: [invalid]\n---\nBody',
+  });
+  await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toThrow(
+    'invalid_skill_selection',
+  );
+});
+
+test.each(['.', '/'])('accepts a normalized repository-root source from %s', async (root) => {
+  fixture.close();
+  fixture = createGenerationFixture(undefined, undefined, '');
+  fixture.input.source = skillSyncGitHubSourceSchema.parse({
+    ...fixture.input.source,
+    paths: [root],
+  });
+  expect(fixture.input.source.paths).toEqual(['']);
+  const manifest = validateSkillBundle(await captureGitHubSkillGeneration(fixture.input));
+  expect(manifest.definition.name).toBe('writer');
+});
+
+test('bounds YAML alias expansion before bundle serialization', async () => {
+  fixture.close();
+  const aliases = Array.from({ length: 100 }, () => '*a').join(', ');
+  fixture = createGenerationFixture({
+    'SKILL.md': `---\nname: writer\ndescription: Writes\na: &a [one, two]\nb: &b [${aliases}]\nc: [${Array.from({ length: 100 }, () => '*b').join(', ')}]\n---\nBody`,
+  });
+  await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toThrow(
+    'invalid_skill_selection',
+  );
+});
+
+test('rejects cyclic YAML aliases before bundle serialization', async () => {
+  fixture.close();
+  fixture = createGenerationFixture({
+    'SKILL.md': '---\nname: writer\ndescription: Writes\nmetadata: &self [*self]\n---\nBody',
+  });
+  await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toThrow(
+    'invalid_skill_selection',
+  );
+});
+
+test.each([401, 403, 404, 429, 500])('cancels an unread HTTP %s error stream', async (status) => {
+  let cancelled = false;
+  fixture.input.fetchFn = async () =>
+    new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array([1]));
+        },
+        cancel() {
+          cancelled = true;
+        },
+      }),
+      { status },
+    );
+  await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toThrow(/GitHub/);
+  expect(cancelled).toBe(true);
 });

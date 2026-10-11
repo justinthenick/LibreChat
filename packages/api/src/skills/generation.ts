@@ -1,14 +1,24 @@
 import { createHash } from 'node:crypto';
 import { skillSyncGitHubSourceSchema } from 'librechat-data-provider';
-import { validateRelativePath, deriveStructuredFrontmatterFields } from '@librechat/data-schemas';
+import {
+  validateRelativePath,
+  validateSkillFrontmatter,
+  deriveStructuredFrontmatterFields,
+} from '@librechat/data-schemas';
 import type { CaptureIdentity } from '@librechat/data-schemas/isolated-capture';
-import type { SkillSyncGitHubSourceConfig } from 'librechat-data-provider';
+import type {
+  SkillFrontmatter,
+  SkillFrontmatterValue,
+  SkillFrontmatterObject,
+  SkillSyncGitHubSourceConfig,
+} from 'librechat-data-provider';
 import type {
   IsolatedValidatedCapture,
   PreparedSkillCapture,
   StoredSkillSource,
 } from './persistence';
 import type { SkillBundleFile, SkillBundleSnapshot } from './bundles';
+import type { GitHubRepoAdapterConfig } from './sync/adapters/github';
 import type { RepoTreeEntry } from './sync/adapters/types';
 import { createGitHubRepoAdapter } from './sync/adapters/github';
 import { SkillSelectionError } from './selection';
@@ -32,7 +42,7 @@ export interface GitHubGenerationInput {
   selection: GitHubGenerationSelection;
   source: SkillSyncGitHubSourceConfig;
   token: string;
-  fetchFn: typeof fetch;
+  fetchFn: GitHubRepoAdapterConfig['fetchFn'];
   assertNotCancelled: () => void;
 }
 
@@ -40,12 +50,65 @@ function fail(): never {
   throw new SkillSelectionError();
 }
 
+/** Bounds expansion before validators or manifest serialization traverse YAML aliases. */
+function projectFrontmatter(
+  input: Record<string, unknown> | undefined,
+): SkillFrontmatter | undefined {
+  if (input === undefined) return undefined;
+  let nodes = 0;
+  let bytes = 0;
+  const active = new Set<object>();
+  function charge(value: string): void {
+    if (value.length > 128 * 1024) fail();
+    bytes += Buffer.byteLength(JSON.stringify(value), 'utf8');
+    if (bytes > 128 * 1024) fail();
+  }
+  function visit(value: unknown, depth: number): SkillFrontmatterValue {
+    if (++nodes > 4096 || depth > 5) fail();
+    bytes += 2;
+    if (bytes > 128 * 1024) fail();
+    if (value === null || typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      charge(value);
+      return value;
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value !== 'object' || value === null || active.has(value)) fail();
+    const prototype = Object.getPrototypeOf(value);
+    if (!Array.isArray(value) && prototype !== Object.prototype && prototype !== null) fail();
+    active.add(value);
+    try {
+      if (Array.isArray(value)) {
+        if (value.length > 4096 - nodes) fail();
+        return value.map((entry) => visit(entry, depth + 1));
+      }
+      const projected: SkillFrontmatterObject = {};
+      const entries = Object.entries(value);
+      if (entries.length > 4096 - nodes) fail();
+      for (const [key, entry] of entries) {
+        if (['__proto__', 'constructor', 'prototype'].includes(key)) fail();
+        charge(key);
+        projected[key] = visit(entry, depth + 1);
+      }
+      return projected;
+    } finally {
+      active.delete(value);
+    }
+  }
+  const projected = visit(input, 0);
+  if (validateSkillFrontmatter(projected).some((issue) => issue.severity !== 'warning')) fail();
+  return projected as SkillFrontmatter;
+}
+
 /** Produces all bytes from one pinned Git tree; never reads mutable mirror rows. */
 export async function captureGitHubSkillGeneration(
   input: GitHubGenerationInput,
 ): Promise<SkillBundleSnapshot> {
   const selection = { ...input.selection };
-  const source = skillSyncGitHubSourceSchema.parse(input.source);
+  const source = skillSyncGitHubSourceSchema.parse({
+    ...input.source,
+    paths: input.source.paths.map((path) => (path === '' ? '.' : path)),
+  });
   const { assertNotCancelled } = input;
   if (
     !selection.tenantId ||
@@ -116,7 +179,8 @@ export async function captureGitHubSkillGeneration(
     buffers.get(definitionEntry.relative),
   );
   const parsed = parseSkillMarkdown(markdown);
-  const structured = deriveStructuredFrontmatterFields(parsed.frontmatter);
+  const frontmatter = projectFrontmatter(parsed.frontmatter);
+  const structured = deriveStructuredFrontmatterFields(frontmatter);
   if (parsed.parseError || parsed.invalidBooleans.length || parsed.name !== selection.name) fail();
   const manifestFiles: SkillBundleFile[] = files
     .filter((entry) => entry !== definitionEntry)
@@ -140,7 +204,7 @@ export async function captureGitHubSkillGeneration(
         description: parsed.description,
         body: markdown,
         version: 1,
-        frontmatter: parsed.frontmatter,
+        frontmatter,
         userInvocable: structured.userInvocable,
         allowedTools: structured.allowedTools,
       },

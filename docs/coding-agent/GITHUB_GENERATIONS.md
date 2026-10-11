@@ -26,7 +26,11 @@ Unsupported paths, case collisions, symlinks, submodules, truncated trees and
 incomplete or mismatched blobs reject the entire generation. The reader bounds
 tree depth/entries, streamed response size, file count and total package bytes
 (5 MiB including SKILL.md, at most 64 auxiliary files). It retains validated
-frontmatter and derived invocation/tool declarations. Auxiliary bytes use an
+frontmatter and derived invocation/tool declarations. Before recursive validation
+or manifest serialization, frontmatter is projected with at most 4,096 expanded
+values, depth 5, and a 128 KiB string/key budget; cycles reject. Canonical
+repository-root source paths are accepted after schema normalization. Strict
+HTTP error responses cancel their unread bodies. Auxiliary bytes use an
 opaque MIME type; this path neither renders nor executes them. Version 1 is the
 immutable upstream definition baseline; the existing generation counter tracks
 successive publications.

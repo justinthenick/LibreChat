@@ -16,7 +16,7 @@ const GITHUB_API_BASE = 'https://api.github.com';
 export const GITHUB_FINE_GRAINED_TOKEN_RECOMMENDATION =
   'Use a GitHub fine-grained personal access token scoped to the selected repository with read-only Contents and Metadata permissions.';
 
-type FetchFn = typeof fetch;
+type FetchFn = (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch>;
 
 type GitHubTreeEntry = {
   path: string;
@@ -185,6 +185,9 @@ async function githubJson<T>(params: {
       }
     }
     return (await response.json()) as T;
+  }
+  if (params.maxResponseBytes !== undefined) {
+    await response.body?.cancel().catch(() => undefined);
   }
   const remaining = response.headers.get('x-ratelimit-remaining');
   const retryAfter = response.headers.get('retry-after');

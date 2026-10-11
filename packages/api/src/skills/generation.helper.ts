@@ -28,6 +28,7 @@ export function createGenerationFixture(
     'notes/readme.txt': 'original bytes',
   },
   special?: 'symlink' | 'submodule' | 'duplicate-definition',
+  skillPath = 'skills/writer',
 ): GenerationFixture {
   const root = mkdtempSync(path.join(os.tmpdir(), 'skill-generation-'));
   const git = (...args: string[]) =>
@@ -35,17 +36,21 @@ export function createGenerationFixture(
   try {
     git('init', '--quiet');
     for (const [name, content] of Object.entries(files)) {
-      const file = path.join(root, 'skills/writer', name);
+      const file = path.join(root, skillPath, name);
       mkdirSync(path.dirname(file), { recursive: true });
       writeFileSync(file, content);
     }
-    git('add', '--', 'skills');
+    git('add', '--', '.');
     if (special) {
-      const blob = git('rev-parse', ':skills/writer/SKILL.md').toString().trim();
+      const blob = git('rev-parse', `:${path.posix.join(skillPath, 'SKILL.md')}`)
+        .toString()
+        .trim();
       const mode = special === 'symlink' ? '120000' : '160000';
       const indexMode = special === 'duplicate-definition' ? '100644' : mode;
-      const indexPath =
-        special === 'duplicate-definition' ? 'skills/writer/skill.md' : 'skills/writer/unsupported';
+      const indexPath = path.posix.join(
+        skillPath,
+        special === 'duplicate-definition' ? 'skill.md' : 'unsupported',
+      );
       git('update-index', '--add', '--cacheinfo', `${indexMode},${blob},${indexPath}`);
     }
     const tree = git('write-tree').toString().trim();
@@ -92,7 +97,7 @@ export function createGenerationFixture(
     };
     addTree(tree);
     const requests: string[] = [];
-    const fetchFn: typeof fetch = async (url) => {
+    const fetchFn: GitHubGenerationInput['fetchFn'] = async (url) => {
       const key = String(url);
       requests.push(key);
       const response = responses.get(key);
@@ -110,7 +115,7 @@ export function createGenerationFixture(
           owner: 'example',
           repo: 'skills',
           commitSha: commit,
-          skillPath: 'skills/writer',
+          skillPath,
           name: 'writer',
         },
         source: {
