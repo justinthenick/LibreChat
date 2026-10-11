@@ -485,3 +485,92 @@ test('settles a nonclosing 403 by deadline even when cancellation never settles'
     jest.useRealTimers();
   }
 });
+
+test.each(
+  ['oversized', 'chunks', 'invalid-utf8', 'invalid-json', 'read-error'].flatMap((failure) =>
+    ['pending', 'rejecting'].map((cancelMode) => ({ failure, cancelMode })),
+  ),
+)(
+  'settles strict response $failure with $cancelMode cancellation',
+  async ({ failure, cancelMode }) => {
+    let cancelled = false;
+    let pulls = 0;
+    const readError = new Error('read failed');
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        if (failure === 'chunks') return;
+        if (failure === 'read-error') {
+          controller.error(readError);
+          return;
+        }
+        let bytes = new TextEncoder().encode('not JSON');
+        if (failure === 'oversized') bytes = new Uint8Array(8 * 1024 * 1024 + 1);
+        if (failure === 'invalid-utf8') bytes = new Uint8Array([255]);
+        controller.enqueue(bytes);
+        if (failure !== 'oversized') controller.close();
+      },
+      pull(controller) {
+        pulls++;
+        if (failure === 'chunks') controller.enqueue(new Uint8Array());
+      },
+    });
+    const getReader = body.getReader.bind(body);
+    jest.spyOn(body, 'getReader').mockImplementation(() => {
+      const reader = getReader();
+      const cancel = reader.cancel.bind(reader);
+      jest.spyOn(reader, 'cancel').mockImplementation((reason) => {
+        cancelled = true;
+        void cancel(reason).catch(() => undefined);
+        return cancelMode === 'pending'
+          ? new Promise<void>(() => {})
+          : Promise.reject(new Error('cancel failed'));
+      });
+      return reader;
+    });
+    fixture.input.fetchFn = async () => new Response(body, { status: 200 });
+    const result = captureGitHubSkillGeneration(fixture.input);
+    if (failure === 'oversized' || failure === 'chunks') {
+      await expect(result).rejects.toMatchObject({ code: 'GITHUB_OBJECT_INVALID' });
+    } else if (failure === 'read-error') {
+      await expect(result).rejects.toBe(readError);
+    } else {
+      await expect(result).rejects.toMatchObject({
+        name: failure === 'invalid-utf8' ? 'TypeError' : 'SyntaxError',
+      });
+    }
+    expect(cancelled).toBe(true);
+    expect(body.locked).toBe(false);
+    expect(pulls).toBeLessThanOrEqual(100003);
+  },
+  5000,
+);
+
+test.each(['pending', 'rejecting'])(
+  'retains successful capture with %s cancellation',
+  async (cancelMode) => {
+    const original = fixture.input.fetchFn;
+    const bodies: ReadableStream<Uint8Array>[] = [];
+    fixture.input.fetchFn = async (url, init) => {
+      const response = await original(url, init);
+      const body = response.body!;
+      bodies.push(body);
+      const getReader = body.getReader.bind(body);
+      jest.spyOn(body, 'getReader').mockImplementation(() => {
+        const reader = getReader();
+        const cancel = reader.cancel.bind(reader);
+        jest.spyOn(reader, 'cancel').mockImplementation((reason) => {
+          void cancel(reason).catch(() => undefined);
+          return cancelMode === 'pending'
+            ? new Promise<void>(() => {})
+            : Promise.reject(new Error('cancel failed'));
+        });
+        return reader;
+      });
+      return response;
+    };
+    const snapshot = await captureGitHubSkillGeneration(fixture.input);
+    expect(validateSkillBundle(snapshot).definition.name).toBe('writer');
+    expect(bodies.length).toBeGreaterThan(0);
+    expect(bodies.every((body) => !body.locked)).toBe(true);
+  },
+);

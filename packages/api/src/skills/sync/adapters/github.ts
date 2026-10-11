@@ -216,7 +216,7 @@ async function githubJson<T>(params: {
           new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)),
         ) as T;
       } finally {
-        await reader.cancel().catch(() => undefined);
+        void reader.cancel().catch(() => undefined);
         reader.releaseLock();
       }
     }
