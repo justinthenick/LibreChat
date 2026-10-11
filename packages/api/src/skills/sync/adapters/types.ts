@@ -24,6 +24,8 @@ export type RepoTreeEntry = {
   type: RepoTreeEntryType;
   id: string;
   size?: number;
+  /** Available when the adapter verifies Git objects for complete managed capture. */
+  mode?: string;
 };
 
 /** The commit a single sync run is pinned to. */
