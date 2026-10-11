@@ -3,12 +3,15 @@ import {
   captureDigest,
   captureRequestDigest,
   createIsolatedCapturePersistence,
+  createIsolatedFencedCapturePersistence,
 } from '@librechat/data-schemas/isolated-capture';
 import type {
   CaptureDraft,
   CaptureIdentity,
   CapturePayload,
   CaptureSource,
+  CapturePersistence,
+  CaptureAuthorization,
 } from '@librechat/data-schemas/isolated-capture';
 import type { Connection } from 'mongoose';
 import type { CommittedSkillSource, SkillDraftCapture, SkillDraftCaptureRequest } from './capture';
@@ -135,7 +138,19 @@ export async function createIsolatedValidatedCapture(
   connection: Connection,
 ): Promise<IsolatedValidatedCapture> {
   const store = await createIsolatedCapturePersistence(connection);
+  return validatedCapture(store);
+}
 
+/** Full bundle validation with synthetic commit fencing; still no live application authority. */
+export async function createIsolatedFencedValidatedCapture(
+  connection: Connection,
+  authorization: CaptureAuthorization,
+): Promise<IsolatedValidatedCapture> {
+  const store = await createIsolatedFencedCapturePersistence(connection, authorization);
+  return validatedCapture(store);
+}
+
+function validatedCapture(store: CapturePersistence): IsolatedValidatedCapture {
   async function loadSnapshot(digest: string): Promise<SkillBundleSnapshot> {
     const json = await store.readPayload(digest);
     return snapshotCopy(JSON.parse(json) as SkillBundleSnapshot);

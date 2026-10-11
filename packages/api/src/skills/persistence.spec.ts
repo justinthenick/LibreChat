@@ -4,11 +4,20 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import {
   captureDigest,
   createIsolatedCapturePersistence,
+  createIsolatedCaptureAuthority,
 } from '@librechat/data-schemas/isolated-capture';
-import type { Connection } from 'mongoose';
+import type {
+  CaptureAuthorization,
+  CaptureOperation,
+} from '@librechat/data-schemas/isolated-capture';
+import type { Connection, mongo } from 'mongoose';
 import type { IsolatedValidatedCapture, StoredSkillDraft } from './persistence';
 import type { SkillBundleManifest, SkillBundleSnapshot } from './bundles';
-import { activateValidatedSkillCapture, createIsolatedValidatedCapture } from './persistence';
+import {
+  activateValidatedSkillCapture,
+  createIsolatedValidatedCapture,
+  createIsolatedFencedValidatedCapture,
+} from './persistence';
 import { captureSkillBundle, validateSkillBundle } from './bundles';
 import { copySkillDraft } from './capture';
 
@@ -108,8 +117,10 @@ beforeEach(async () => {
     'capture_blobs',
     'capture_generations',
     'capture_receipts',
+    'capture_authority',
   ])
     await connection.db!.collection(name).deleteMany({});
+  api = await createIsolatedValidatedCapture(connection);
 });
 
 afterAll(async () => {
@@ -506,4 +517,295 @@ test('historical receipts also reject corrupted or semantically replaced payload
     .db!.collection<{ _id: string; json: string }>('capture_blobs')
     .updateOne({ _id: committed.record.digest }, { $set: { json: '{}' } });
   await expect(plan.resolve()).rejects.toThrow('skill_capture_payload_corrupt');
+});
+
+describe('validated capture with the synthetic transactional fence', () => {
+  let authority: Awaited<ReturnType<typeof createIsolatedCaptureAuthority>>;
+  let grant: CaptureAuthorization;
+  const operations: CaptureOperation[] = [
+    'source',
+    'reserve',
+    'complete',
+    'fail',
+    'recover',
+    'edit',
+  ];
+
+  async function bounded<T>(operation: Promise<T>): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<T>((_resolve, reject) => {
+          timer = setTimeout(() => reject(new Error('synthetic_fixture_timeout')), 4000);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function useCount() {
+    const row = await connection.db!.collection<{ uses: number }>('capture_authority').findOne({});
+    return row?.uses;
+  }
+
+  async function edit(draft: StoredSkillDraft, body: string, operationId = 'edit') {
+    const manifest = validateSkillBundle(draft.capture.snapshot!);
+    const snapshot = await bundle('unused', 'original bytes', {
+      ...manifest,
+      definition: { ...manifest.definition, body },
+    });
+    return (await api.prepareEdit(operationId, actor, expectation(draft), snapshot)).commit();
+  }
+
+  beforeEach(async () => {
+    authority = await createIsolatedCaptureAuthority(connection);
+    grant = await authority.replace(actor, sourceId, 0, operations);
+    api = await createIsolatedFencedValidatedCapture(connection, grant);
+  });
+
+  test('validates and commits source, copied draft and authority receipts together', async () => {
+    const draft = await ready();
+    expect(validateSkillBundle(draft.capture.snapshot!).definition.body).toBe('original');
+    expect(await useCount()).toBe(3);
+    const receipts = await connection.db!.collection('capture_receipts').find({}).toArray();
+    expect(receipts).toHaveLength(3);
+    for (const receipt of receipts)
+      expect(receipt.authorization).toEqual({ ...actor, sourceId, epoch: 1 });
+    expect(await api.readDraft(actor, draftId)).toEqual(draft);
+    expect(activateValidatedSkillCapture).toThrow('skill_capture_authorization_unavailable');
+  });
+
+  test('rejects a malformed source and a valid but mismatched completion before any write', async () => {
+    const wrong = await bundle('original', 'original bytes', { skillId: 'd'.repeat(24) });
+    await expect(source(wrong)).rejects.toThrow('invalid_skill_selection');
+    expect(await useCount()).toBe(0);
+    const draft = await initializing();
+    const exact = await copied(draft);
+    const manifest = validateSkillBundle(exact);
+    const mismatch = await bundle('unused', 'original bytes', {
+      ...manifest,
+      definition: { ...manifest.definition, body: 'substituted' },
+    });
+    await expect(api.prepareComplete('bad', actor, expectation(draft), mismatch)).rejects.toThrow(
+      'invalid_skill_selection',
+    );
+    expect(await useCount()).toBe(2);
+    expect(await connection.db!.collection('capture_receipts').countDocuments()).toBe(2);
+    expect((await api.readDraft(actor, draftId))?.capture.status).toBe('initializing');
+  });
+
+  test('revocation during asynchronous copying prevents completion of the validated bundle', async () => {
+    const draft = await initializing();
+    let entered!: () => void;
+    let release!: () => void;
+    const started = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const released = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const copying = copySkillDraft(draft.capture, draft.record.attempt, async (file) => {
+      entered();
+      await released;
+      return reader(draft.capture.source.snapshot)(file);
+    });
+    try {
+      await bounded(
+        Promise.race([
+          started,
+          copying.then(() => {
+            throw new Error('copy_finished_before_barrier');
+          }),
+        ]),
+      );
+      await authority.replace(actor, sourceId, grant.epoch, []);
+    } finally {
+      release();
+      await bounded(
+        copying.then(
+          () => undefined,
+          () => undefined,
+        ),
+      );
+    }
+    const snapshot = await copying;
+    const plan = await api.prepareComplete('revoked-copy', actor, expectation(draft), snapshot);
+    await expect(plan.commit()).rejects.toThrow('authorization_denied');
+    expect(await plan.resolve()).toBeNull();
+    expect(await useCount()).toBe(2);
+    expect(await api.readDraft(actor, draftId)).toEqual(draft);
+    expect(await connection.db!.collection('capture_receipts').countDocuments()).toBe(2);
+  });
+
+  test('a concurrent revocation transaction blocks the actual validated completion transaction', async () => {
+    const draft = await initializing();
+    const plan = await api.prepareComplete(
+      'contended',
+      actor,
+      expectation(draft),
+      await copied(draft),
+    );
+    const session = await connection.startSession();
+    let completion: Promise<PromiseSettledResult<StoredSkillDraft>[]> | undefined;
+    try {
+      session.startTransaction({
+        readConcern: { level: 'snapshot' },
+        writeConcern: { w: 'majority' },
+      });
+      const changed = await connection
+        .db!.collection('capture_authority')
+        .updateOne(
+          { ...actor, sourceId, epoch: 1 },
+          { $set: { operations: [] }, $inc: { epoch: 1 } },
+          { session },
+        );
+      expect(changed.modifiedCount).toBe(1);
+      completion = Promise.allSettled([plan.commit()]);
+      const outcome = await bounded(completion);
+      expect(outcome[0].status).toBe('rejected');
+      if (outcome[0].status !== 'rejected') throw new Error('unexpected_capture_commit');
+      expect([24, 112]).toContain((outcome[0].reason as mongo.MongoServerError).code);
+      await session.commitTransaction();
+      expect((await authority.read(actor, sourceId))?.epoch).toBe(2);
+      expect(await api.readDraft(actor, draftId)).toEqual(draft);
+      expect(await plan.resolve()).toBeNull();
+      expect(await useCount()).toBe(2);
+      expect(await connection.db!.collection('capture_blobs').countDocuments()).toBe(1);
+      expect(await connection.db!.collection('capture_receipts').countDocuments()).toBe(2);
+    } finally {
+      try {
+        if (session.inTransaction()) await bounded(session.abortTransaction());
+      } finally {
+        try {
+          await bounded(session.endSession());
+        } finally {
+          if (completion) await bounded(completion);
+        }
+      }
+    }
+  }, 30000);
+
+  test('ready reuse returns newer edits while retaining its base and still requires the grant', async () => {
+    const original = await ready();
+    const reuse = await api.prepareDraft('reuse', actor, {
+      sourceId,
+      draftId,
+      name: 'writer-draft',
+    });
+    const edited = await edit(original, 'user edit');
+    await (
+      await api.prepareSource('sync', actor, {
+        sourceId,
+        expectedGeneration: 1,
+        upstreamRevision,
+        snapshot: await bundle('new source'),
+      })
+    ).commit();
+    expect(await reuse.commit()).toEqual(edited);
+    expect(edited.record.sourceGeneration).toBe(1);
+    const blocked = await api.prepareDraft('blocked-reuse', actor, {
+      sourceId,
+      draftId,
+      name: 'writer-draft',
+    });
+    await authority.replace(actor, sourceId, 1, []);
+    await expect(blocked.commit()).rejects.toThrow('authorization_denied');
+    expect(await blocked.resolve()).toBeNull();
+    expect(await api.readDraft(actor, draftId)).toEqual(edited);
+    expect(await useCount()).toBe(6);
+  });
+
+  test('lost completion replies resolve exact historical bundles after edit, sync and revocation', async () => {
+    const draft = await initializing();
+    const plan = await api.prepareComplete(
+      'lost-reply',
+      actor,
+      expectation(draft),
+      await copied(draft),
+    );
+    const completed = await plan.commit();
+    await edit(completed, 'later edit');
+    await (
+      await api.prepareSource('sync', actor, {
+        sourceId,
+        expectedGeneration: 1,
+        upstreamRevision,
+        snapshot: await bundle('later source'),
+      })
+    ).commit();
+    await authority.replace(actor, sourceId, 1, []);
+    const restarted = await createIsolatedFencedValidatedCapture(connection, grant);
+    expect(await plan.resolve()).toEqual(completed);
+    expect(await restarted.resolveReceipt(actor, plan.operationId, plan.requestDigest)).toEqual(
+      completed,
+    );
+    await expect(plan.commit()).rejects.toThrow('operation_exists');
+    expect(await useCount()).toBe(5);
+    await expect(
+      restarted.resolveReceipt(
+        { ...actor, ownerId: 'other' },
+        plan.operationId,
+        plan.requestDigest,
+      ),
+    ).rejects.toThrow('invalid_skill_selection');
+    await connection
+      .db!.collection<{ _id: string; json: string }>('capture_blobs')
+      .updateOne({ _id: completed.record.digest! }, { $set: { json: '{}' } });
+    await expect(plan.resolve()).rejects.toThrow('payload_corrupt');
+  });
+
+  test('a fresh epoch can recover a failed capture without reviving its old completion', async () => {
+    const draft = await initializing();
+    const old = await api.prepareComplete('old', actor, expectation(draft), await copied(draft));
+    const failed = await (await api.prepareFail('fail', actor, expectation(draft))).commit();
+    const recovery = await api.prepareRecover('stale-recovery', actor, expectation(failed));
+    await authority.replace(actor, sourceId, 1, []);
+    await expect(recovery.commit()).rejects.toThrow('authorization_denied');
+    await expect(old.commit()).rejects.toThrow('authorization_denied');
+    grant = await authority.replace(actor, sourceId, 2, operations);
+    api = await createIsolatedFencedValidatedCapture(connection, grant);
+    const recovered = await (
+      await api.prepareRecover('recovery', actor, expectation(failed))
+    ).commit();
+    await expect(
+      api.prepareComplete('stale-attempt', actor, expectation(draft), await copied(draft)),
+    ).rejects.toThrow('invalid_skill_selection');
+    const finished = await (
+      await api.prepareComplete('finished', actor, expectation(recovered), await copied(recovered))
+    ).commit();
+    expect(finished.record.attempt).toBe(2);
+    expect(finished.capture.status).toBe('ready');
+    expect(await useCount()).toBe(5);
+  });
+
+  test.each(['owner', 'tenant', 'source', 'epoch', 'operation'])(
+    'valid bundle semantics cannot bypass the bound %s',
+    async (boundary) => {
+      const ticket = { ...grant };
+      if (boundary === 'owner') ticket.ownerId = 'other';
+      if (boundary === 'tenant') ticket.tenantId = 'other';
+      if (boundary === 'source') ticket.sourceId = 'd'.repeat(24);
+      if (boundary === 'epoch') ticket.epoch = 999;
+      if (boundary === 'operation') {
+        const restricted = await authority.replace(actor, sourceId, 1, ['reserve']);
+        ticket.epoch = restricted.epoch;
+      }
+      api = await createIsolatedFencedValidatedCapture(connection, ticket);
+      await expect(source()).rejects.toThrow('authorization_denied');
+      expect(await useCount()).toBe(0);
+      expect(await connection.db!.collection('capture_sources').countDocuments()).toBe(0);
+    },
+  );
+
+  test('detaches the authority ticket before the factory awaits database setup', async () => {
+    const ticket = { ...grant };
+    const pending = createIsolatedFencedValidatedCapture(connection, ticket);
+    ticket.epoch = 999;
+    ticket.ownerId = 'other';
+    api = await pending;
+    await expect(source()).resolves.toMatchObject({ record: { generation: 1 } });
+    expect(await useCount()).toBe(1);
+  });
 });

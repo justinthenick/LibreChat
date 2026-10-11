@@ -12,6 +12,13 @@ does not register models, connect to a database or change its configuration.
 The factory still requires an existing connection to `test_skill_capture_*` and
 transaction-capable MongoDB; tests use disposable replica sets only.
 
+`createIsolatedFencedValidatedCapture` uses the same validators and prepared
+operations with the existing synthetic fenced store. Its grant write, capture
+state and receipt share one transaction. The original factory remains unfenced.
+Neither factory authenticates application users or authorizes diagnostic reads.
+See the [remaining integration checklist](./CAPTURE_INTEGRATION.md) for production
+writer dependencies and approval boundaries. Activation stays disabled.
+
 ## Validation and concurrency
 
 - Source preparation detaches and validates the complete snapshot before its
