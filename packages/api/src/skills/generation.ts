@@ -4,7 +4,9 @@ import {
   skillSyncGitHubSourceSchema,
 } from 'librechat-data-provider';
 import {
+  validateSkillName,
   validateRelativePath,
+  validateSkillDescription,
   validateSkillFrontmatter,
   deriveStructuredFrontmatterFields,
 } from '@librechat/data-schemas';
@@ -25,9 +27,9 @@ import type { GitHubRepoAdapterConfig } from './sync/adapters/github';
 import type { RepoTreeEntry } from './sync/adapters/types';
 import { normalizeRepoPath, isSkillRootWithinDiscoveryDepth } from './sync/path';
 import { createGitHubRepoAdapter } from './sync/adapters/github';
+import { parseSkillMarkdown, toCleanFrontmatter } from './parse';
 import { SkillSelectionError } from './selection';
 import { captureSkillBundle } from './bundles';
-import { parseSkillMarkdown } from './parse';
 
 /** Trusted source mapping loaded by the host, never accepted as request authorization. */
 export interface GitHubGenerationSelection {
@@ -200,13 +202,20 @@ export async function captureGitHubSkillGeneration(
     assertNotCancelled();
     buffers.set(entry.relative, bytes);
   }
-  const markdown = new TextDecoder('utf-8', { fatal: true }).decode(
+  const markdown = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(
     buffers.get(definitionEntry.relative),
   );
   const parsed = parseSkillMarkdown(markdown);
-  const frontmatter = projectFrontmatter(parsed.frontmatter);
-  const structured = deriveStructuredFrontmatterFields(frontmatter);
   if (parsed.parseError || parsed.invalidBooleans.length || parsed.name !== selection.name) fail();
+  const description = parsed.description || parsed.name;
+  if (
+    [...validateSkillName(parsed.name), ...validateSkillDescription(description)].some(
+      (issue) => issue.severity !== 'warning',
+    )
+  )
+    fail();
+  const frontmatter = projectFrontmatter(toCleanFrontmatter(parsed.frontmatter));
+  const structured = deriveStructuredFrontmatterFields(frontmatter);
   const manifestFiles: SkillBundleFile[] = files
     .filter((entry) => entry !== definitionEntry)
     .map((entry) => {
@@ -226,7 +235,7 @@ export async function captureGitHubSkillGeneration(
       sourceRevision: commit.id,
       definition: {
         name: parsed.name,
-        description: parsed.description || parsed.name,
+        description,
         body: markdown,
         version: 1,
         frontmatter,

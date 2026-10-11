@@ -35,6 +35,7 @@ export function createGenerationFixture(
     execFileSync('git', args, { cwd: root, maxBuffer: 8 * 1024 * 1024 });
   try {
     git('init', '--quiet');
+    git('config', 'core.autocrlf', 'false');
     for (const [name, content] of Object.entries(files)) {
       const file = path.join(root, skillPath, name);
       mkdirSync(path.dirname(file), { recursive: true });

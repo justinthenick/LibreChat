@@ -324,3 +324,72 @@ test('excludes independently discovered child directory case collisions from the
   expect(snapshot.files.map((file) => file.path)).toEqual(['notes.txt']);
   expect(fixture.requests.filter((url) => url.includes('/blobs/'))).toHaveLength(2);
 });
+
+test.each([
+  'always-apply:',
+  'always-apply: # TODO',
+  'alwaysApply:',
+  'always-apply: true\nalwaysApply: not-a-boolean',
+])('cleans accepted boolean placeholders from %s while retaining raw Markdown', async (fields) => {
+  fixture.close();
+  const markdown = `---\nname: writer\ndescription: Writes\n${fields}\n---\nBody`;
+  fixture = createGenerationFixture({ 'SKILL.md': markdown });
+  const manifest = validateSkillBundle(await captureGitHubSkillGeneration(fixture.input));
+  expect(manifest.definition.body).toBe(markdown);
+  expect(manifest.definition.frontmatter).toEqual(
+    fields.includes('true') ? { 'always-apply': true } : {},
+  );
+});
+
+test.each(['always-apply: invalid', 'alwaysApply: invalid'])(
+  'still rejects invalid effective boolean %s',
+  async (field) => {
+    fixture.close();
+    fixture = createGenerationFixture({
+      'SKILL.md': `---\nname: writer\ndescription: Writes\n${field}\n---\nBody`,
+    });
+    await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toThrow(
+      'invalid_skill_selection',
+    );
+  },
+);
+
+test.each([
+  ['123', '456', '123', '456'],
+  ['true', 'false', 'true', 'false'],
+])(
+  'retains scalar name %s and description %s normalization',
+  async (name, description, expectedName, expectedDescription) => {
+    fixture.close();
+    const markdown = `---\nname: ${name}\ndescription: ${description}\n---\nBody`;
+    fixture = createGenerationFixture({ 'SKILL.md': markdown });
+    fixture.input.selection.name = expectedName;
+    const manifest = validateSkillBundle(await captureGitHubSkillGeneration(fixture.input));
+    expect(manifest.definition.name).toBe(expectedName);
+    expect(manifest.definition.description).toBe(expectedDescription);
+    expect(manifest.definition.frontmatter).toEqual({});
+    expect(manifest.definition.body).toBe(markdown);
+  },
+);
+
+test.each([
+  ['writer', '"   "'],
+  ['claude-reserved', 'Writes'],
+])('rejects nonpersistable normalized name %s or description %s', async (name, description) => {
+  fixture.close();
+  fixture = createGenerationFixture({
+    'SKILL.md': `---\nname: ${name}\ndescription: ${description}\n---\nBody`,
+  });
+  fixture.input.selection.name = name;
+  await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toThrow(
+    'invalid_skill_selection',
+  );
+});
+
+test('preserves UTF-8 BOM and CRLF bytes in the raw definition', async () => {
+  fixture.close();
+  const markdown = '\uFEFF---\r\nname: writer\r\ndescription: Writes\r\n---\r\nBody\r\n';
+  fixture = createGenerationFixture({ 'SKILL.md': markdown });
+  const manifest = validateSkillBundle(await captureGitHubSkillGeneration(fixture.input));
+  expect(Buffer.from(manifest.definition.body, 'utf8')).toEqual(Buffer.from(markdown, 'utf8'));
+});
