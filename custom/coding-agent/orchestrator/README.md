@@ -711,3 +711,47 @@ external containment or bounded subscription authentication, register a profile,
 or enable a listener. Process-group cleanup does not prove escaped descendants
 stopped; exact external fenced quiescence remains required after timeout, lost
 reply and restart. Restart rejects old action delivery without replaying it.
+
+### Dormant offline identity validation
+
+`validate_identity` accepts an explicitly supplied token, public JWKS bytes and
+independently trusted expected subject, account and audience. It is disabled by
+default, has no runner/profile wiring, and performs no discovery, network,
+refresh, login or persistence. Its result proves signature/claim consistency
+against those supplied keys only; it does not grant LibreChat owner authority.
+The result omits token/key material and rejects pickling. Errors expose only a
+fixed message or the native worker control category.
+
+The synthetic profile is deliberately narrow: RS256, explicit key ID, RSA
+2048–4096 bits with exponent 65537, compact canonical base64url, bounded strict
+JSON, issuer `https://auth.openai.com`, required subject/audience/issued-at/expiry
+and the expected nested account ID. Times are integral, future issued-at and
+not-before are rejected, and expiry equality is expired. The whole JWKS must
+contain only the accepted public RSA fields; mixed algorithms, certificate-chain
+fields and duplicate key IDs are rejected. This is not a claim of compatibility
+with current provider tokens or key rotation. Signature and claim primitives
+reuse `joserfc==1.7.5`, the pinned SDK's supported dependency. The SDK's networked
+key-cache/account-extraction helper is not invoked: it does not supply this
+explicit issuer/audience/required-expiry policy.
+
+Before separately authorized bounded live acceptance, the host still needs:
+
+- Authoritative confirmation of the access-token issuer, resource audience,
+  algorithms, timestamp and account semantics, and real JWKS rotation shape.
+  Do not infer access-token audience from an OAuth client ID.
+- Independently trusted key provenance/freshness and expected identity, bound to
+  the authenticated owner and credential revision. Supplied-key validation alone
+  establishes neither key trust nor owner permission.
+- Integration with bounded child-side JWKS/refresh transport, unknown-key policy,
+  the original deadline and budget, and authoritative stop evidence. The worker
+  supervisor must contain synchronous cryptographic work; deadline checks do not
+  preempt it or prove process stop.
+- Atomic single-writer refresh rotation, persistence and recovery. A lost refresh
+  outcome is unknown and must not trigger blind replay.
+- Child-only credential handoff and revision/epoch checks, sanitized evidence,
+  and SDK integration without ambient discovery or unbounded authentication.
+- Synthetic end-to-end tests of rotation, concurrency, recovery, expiry, owner
+  isolation and cancellation on the final combined tree.
+- Explicit approval for a bounded live trial using an explicitly provided
+  existing credential. This offline slice authorizes no credential discovery,
+  login, new credentials, live endpoints, activation or deployment.
