@@ -28,10 +28,21 @@ class SyntheticPlatform:
         self.snapshot = None
         self.kill_failed = False
         self.missing = False
+        self.allocations = {}
+        self.aborted = []
 
     def prepare(self, claim):
         self.prepared += 1
+        key = (self.resource.platform_id, self.resource.boot_id, self.resource.root_id, self.resource.resource_id)
+        self.allocations.setdefault(key, claim)
         return self.resource
+
+    def abort(self, claim, resource):
+        key = (resource.platform_id, resource.boot_id, resource.root_id, resource.resource_id)
+        if self.allocations.get(key) != claim:
+            raise RuntimeError("resource belongs to another claim")
+        self.aborted.append((claim, resource))
+        self.closed = True
 
     def attach(self, claim, resource, pid):
         self.pids.append(pid)
@@ -171,11 +182,12 @@ class ContainmentTests(unittest.TestCase):
         self.assertEqual(self.platform.pids, [])
 
     def test_resource_binding_commit_failure_after_allocation_never_reallocates(self):
+        allocate = self.platform.prepare
         def prepare(claim):
-            self.platform.prepared += 1
+            resource = allocate(claim)
             self.ledger._db.set_authorizer(lambda code, value, *rest:
                 sqlite3.SQLITE_DENY if code == sqlite3.SQLITE_TRANSACTION and value == "COMMIT" else sqlite3.SQLITE_OK)
-            return self.platform.resource
+            return resource
         self.platform.prepare = prepare
         try:
             with self.assertRaises(sqlite3.DatabaseError):
@@ -183,6 +195,42 @@ class ContainmentTests(unittest.TestCase):
         finally:
             self.ledger._db.set_authorizer(None)
         self.assertIsNone(self.ledger.executor_resource(self.claim))
+        with self.assertRaises(ExecutionConflict):
+            self.launcher.admit(self.claim)
+        self.assertEqual(self.platform.prepared, 1)
+        self.assertEqual(self.platform.pids, [])
+        self.assertEqual(self.platform.aborted, [(self.claim, self.platform.resource)])
+        self.assertTrue(self.platform.closed)
+
+    def test_stop_during_allocation_revokes_unbound_resource(self):
+        allocate = self.platform.prepare
+        def stopped(claim):
+            resource = allocate(claim)
+            self.ledger.stop(claim.identity)
+            return resource
+        self.platform.prepare = stopped
+        with self.assertRaises(ExecutionConflict):
+            self.launcher.admit(self.claim)
+        self.assertEqual(self.platform.aborted, [(self.claim, self.platform.resource)])
+        self.assertTrue(self.platform.closed)
+        self.assertIsNone(self.ledger.executor_resource(self.claim))
+        self.assertEqual(self.platform.pids, [])
+        self.assertIsNone(self.launcher.observe(self.claim))
+
+    def test_unavailable_allocation_abort_never_becomes_stop_proof(self):
+        allocate = self.platform.prepare
+        def stopped(claim):
+            resource = allocate(claim)
+            self.ledger.stop(claim.identity)
+            return resource
+        def unavailable(claim, resource):
+            raise RuntimeError("synthetic abort unavailable")
+        self.platform.prepare, self.platform.abort = stopped, unavailable
+        with self.assertRaises(ExecutionConflict):
+            self.launcher.admit(self.claim)
+        self.platform.empty = True
+        self.assertIsNone(self.launcher.observe(self.claim))
+        self.assertFalse(self.platform.closed)
         with self.assertRaises(ExecutionConflict):
             self.launcher.admit(self.claim)
         self.assertEqual(self.platform.prepared, 1)
@@ -243,6 +291,7 @@ class ContainmentTests(unittest.TestCase):
         self.assertTrue(self.ledger.status(next_identity).sealed)
         self.assertEqual(self.platform.prepared, 2)
         self.assertEqual(self.platform.pids, [])
+        self.assertEqual(self.platform.aborted, [])
 
     def test_contained_checks_preserve_the_shorter_host_command_timeout(self):
         self.admit()

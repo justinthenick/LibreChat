@@ -54,6 +54,9 @@ class GatedExecutor:
     seal(claim, resource) durably forbids subsequent attachment, including delayed
     requests; stop kills all owned work; inspect returns ExecutorSnapshot from
     independent platform evidence. Boot/root/resource/policy drift is unknown.
+    abort(claim, resource) revokes an allocated-but-unbound resource, verifying
+    allocation ownership before touching it; it must reject another claim's
+    resource even if prepare erroneously returned that identity.
     Acknowledgement loss never authorizes a release or automatic retry.
     """
 
@@ -66,7 +69,7 @@ class GatedExecutor:
     def _available(self):
         if (not self.enabled or self.platform is None or os.getpid() != self._pid
                 or not all(callable(getattr(self.platform, method, None))
-                           for method in ("prepare", "attach", "seal", "stop", "inspect"))):
+                           for method in ("prepare", "attach", "seal", "stop", "inspect", "abort"))):
             raise ExecutionConflict("executor containment unavailable")
 
     def admit(self, claim):
@@ -75,13 +78,21 @@ class GatedExecutor:
         if previous is not None:
             self.ledger.bind_executor(claim, previous)
             return
+        resource = None
         try:
             resource = self.platform.prepare(claim)
             if type(resource) is not ExecutorResource:
                 raise ExecutionConflict("executor resource unconfirmed")
             self.ledger.bind_executor(claim, resource)
         except Exception:
-            self.ledger.seal_executor(claim)
+            try:
+                self.ledger.seal_executor(claim)
+            finally:
+                if type(resource) is ExecutorResource:
+                    try:
+                        self.platform.abort(claim, resource)
+                    except Exception:
+                        pass
             raise ExecutionConflict("executor allocation unknown") from None
 
     def run(self, claim, frame, remaining):

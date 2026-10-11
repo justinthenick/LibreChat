@@ -224,6 +224,10 @@ reused across claims, including under a different policy ID. Release is serializ
 with the existing durable seal and absolute dispatch deadline. Failed attachment,
 timeout or uncertain helper results seal admission; delayed attachment cannot
 release workload after that seal.
+If allocation returns a known resource but binding fails, a claim-bound platform
+abort revokes that allocation even when the ledger seal/commit also fails. Abort
+must verify allocation ownership and reject a resource belonging to another claim.
+An unavailable abort remains unresolved; its failure is never reported as proof.
 
 The injected platform is a trusted, bounded capability, not request data. It must
 durably reject delayed attachments after seal, contain all helper descendants,

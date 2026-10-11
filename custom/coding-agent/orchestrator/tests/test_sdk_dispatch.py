@@ -91,6 +91,11 @@ class SyntheticExecutorPlatform:
     def stop(self, claim, resource):
         pass
 
+    def abort(self, claim, resource):
+        if resource.resource_id != claim.attempt_id:
+            raise RuntimeError("wrong synthetic allocation")
+        self.closed = True
+
     def inspect(self, claim, resource):
         return ExecutorSnapshot(claim, resource, self.closed, self.empty)
 
