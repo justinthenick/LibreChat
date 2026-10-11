@@ -93,12 +93,12 @@ export function validateManagedDraftProvenance(
   });
 }
 
-/** Compare immutable Git trees at pinned commits, including every bundled file and mode. */
+/** Compare pinned Git trees and return the verified direct definition's exact basename and mode. */
 export async function assertManagedDraftUpstream(
   provenance: Readonly<ManagedDraftProvenance>,
   target: { commitSha: string; treeSha: string },
   getJson: (path: string) => Promise<unknown>,
-): Promise<void> {
+): Promise<Readonly<{ path: string; mode: string }>> {
   try {
     const selected = Object.freeze({
       commitSha: sha(target.commitSha),
@@ -132,7 +132,9 @@ export async function assertManagedDraftUpstream(
       return sha(object(result.tree).sha);
     }
     const original = await skillTree(await rootFor(provenance.baseCommitSha));
-    const definition = (await entries(original)).filter((entry) => entry.path === 'SKILL.md');
+    const definition = (await entries(original)).filter(
+      (entry) => typeof entry.path === 'string' && entry.path.toUpperCase() === 'SKILL.MD',
+    );
     if (
       definition.length !== 1 ||
       definition[0].type !== 'blob' ||
@@ -144,6 +146,7 @@ export async function assertManagedDraftUpstream(
     for (const commit of [provenance.publishedCommitSha, selected.commitSha]) {
       if ((await skillTree(await rootFor(commit))) !== original) fail();
     }
+    return Object.freeze({ path: text(definition[0].path), mode: text(definition[0].mode) });
   } catch {
     fail();
   }
