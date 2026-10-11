@@ -1,5 +1,6 @@
 """Real httpcore HTTP/1 parsing; only DNS, sockets and TLS wire I/O are synthetic."""
 import io
+import gc
 import socket
 import ssl
 import threading
@@ -67,7 +68,8 @@ class AuthTransportTests(unittest.TestCase):
     def setUp(self):
         self.counter = Counter()
         self.cancelled = threading.Event()
-        self.control = WorkerControl(self.counter, self.cancelled, threading.Event(),
+        self.limited = threading.Event()
+        self.control = WorkerControl(self.counter, self.cancelled, self.limited,
                                      time.monotonic() + 60, 3, io.BytesIO())
         self.hook = lambda name: None
         self.wires = []
@@ -212,6 +214,73 @@ class AuthTransportTests(unittest.TestCase):
             exchange.signing_keys()
         self.assertFalse(exchange._transport.lock.locked())
         self.assertIsNone(exchange._transport.stream)
+
+    def test_control_failures_survive_io_and_cleanup_errors_and_remain_terminal(self):
+        for stage in ('dns', 'connect', 'tls', 'send', 'recv'):
+            for category in (WorkerCancelled, WorkerDeadline):
+                for io_error in (False, True):
+                    with self.subTest(stage=stage, category=category, io_error=io_error):
+                        self.wires.clear()
+                        self.cancelled.clear()
+                        self.limited.clear()
+                        self.counter.value = 0
+                        self.control._deadline = time.monotonic() + 60
+                        exchange = self.bind()
+                        def interrupt(name):
+                            if name != stage:
+                                return
+                            for wire in self.wires:
+                                wire.close_error = True
+                            if category is WorkerCancelled:
+                                self.cancelled.set()
+                            elif category is WorkerDeadline:
+                                self.control._deadline = time.monotonic() - 1
+                            if io_error:
+                                raise socket.timeout('synthetic-timeout-secret')
+                        self.hook = interrupt
+                        for operation in (exchange.signing_keys,
+                                          lambda: exchange.refresh('synthetic-token')):
+                            try:
+                                operation()
+                            except Exception as error:
+                                self.assertIs(type(error), category)
+                                self.assertIsNone(error.__context__)
+                                self.assertIsNone(error.__cause__)
+                                self.assertNotIn('synthetic', str(error))
+                            else:
+                                self.fail('Control failure must remain terminal')
+                            self.cancelled.clear()
+                            self.limited.clear()
+                            self.control._deadline = time.monotonic() + 60
+                        self.assertEqual(self.counter.value, 1)
+                        self.assertLessEqual(len(self.wires), 1)
+                        self.assertFalse(exchange._transport.lock.locked())
+                        self.assertIsNone(exchange._transport.stream)
+                        self.assertTrue(all('close' in wire.events for wire in self.wires))
+
+    def test_response_limits_survive_socket_cleanup_failure(self):
+        chunked = (b'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n'
+                   b'Transfer-Encoding: chunked\r\n\r\n'
+                   + (b'1;' + b'x' * 1000 + b'\r\na\r\n') * (MAX_HTTP_RESPONSE_BYTES // 1000 + 1)
+                   + b'0\r\n\r\n')
+        unraisable = []
+        guard = patch('sys.unraisablehook', lambda error: unraisable.append(error.exc_type))
+        guard.start()
+        self.addCleanup(guard.stop)
+        for payload in (response(b'x' * (MAX_REPLY + 1)), chunked):
+            self.wires.clear()
+            self.counter.value = 0
+            self.payload = payload
+            exchange = self.bind()
+            self.hook = lambda name: setattr(self.wires[0], 'close_error', True) if name == 'recv' else None
+            for operation in (exchange.signing_keys, lambda: exchange.refresh('synthetic-token')):
+                with self.assertRaises(WorkerLimit):
+                    operation()
+            self.assertEqual(self.counter.value, 1)
+            self.assertFalse(exchange._transport.lock.locked())
+            self.assertIsNone(exchange._transport.stream)
+        gc.collect()
+        self.assertEqual(unraisable, [])
 
     def test_chunked_body_and_plaintext_http_framing_are_bounded(self):
         head = b'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\n\r\n'
