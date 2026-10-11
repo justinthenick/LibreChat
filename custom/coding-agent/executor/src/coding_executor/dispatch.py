@@ -31,9 +31,10 @@ class FencedWorkspace:
                 or self.authorize(claim.identity) is not True):
             raise ExecutionConflict("workspace dispatch disabled or unauthorized")
 
-    def admit(self, claim, *, max_requests, timeout_seconds):
+    def admit(self, claim, *, max_requests, timeout_seconds, deadline_monotonic=None):
         self._authorized(claim)
-        self.ledger.configure_dispatch(claim, max_requests=max_requests, timeout_seconds=timeout_seconds)
+        self.ledger.configure_dispatch(claim, max_requests=max_requests, timeout_seconds=timeout_seconds,
+                                       deadline_monotonic=deadline_monotonic)
 
     def dispatch(self, claim, action_id, operation, arguments):
         self._authorized(claim)

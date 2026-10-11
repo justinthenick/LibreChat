@@ -88,6 +88,9 @@ class FencedFixture(ExecutorFixture):
             stopped = self.sealed and self.requests == 0 and self.in_flight == 0
             return Observation(claim, "quiescent" if stopped else "running", stopped)
 
+    def application(self, app):
+        return app
+
     def __enter__(self):
         import uvicorn
         from fastmcp import FastMCP
@@ -95,7 +98,7 @@ class FencedFixture(ExecutorFixture):
         mcp = FastMCP("fenced-offline-fixture")
         for name in EXPECTED_CODING_EXECUTOR_TOOLS:
             mcp.tool(name=name)(getattr(self, name))
-        app = mcp.http_app(path="/mcp", stateless_http=True)
+        app = self.application(mcp.http_app(path="/mcp", stateless_http=True))
         async def guarded(scope, receive, send):
             if scope["type"] != "http":
                 return await app(scope, receive, send)

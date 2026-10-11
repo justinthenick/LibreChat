@@ -353,12 +353,18 @@ class ExecutionService:
             raise ExecutionConflict("persisted claim mismatch")
         return record, row
 
-    def configure_dispatch(self, claim: Claim, *, max_requests: int, timeout_seconds: float):
+    def configure_dispatch(self, claim: Claim, *, max_requests: int, timeout_seconds: float,
+                           deadline_monotonic: float | None = None):
         """Trusted admission only. Repeated configuration never renews the deadline."""
         if (type(max_requests) is not int or not 1 <= max_requests <= 64
                 or type(timeout_seconds) not in (int, float)
                 or not math.isfinite(timeout_seconds) or not 0 < timeout_seconds <= 300):
             raise ValueError("bounded dispatch limits required")
+        entered = time.monotonic()
+        if deadline_monotonic is not None and (type(deadline_monotonic) not in (int, float)
+                or not math.isfinite(deadline_monotonic) or deadline_monotonic <= entered):
+            raise ValueError("unexpired absolute dispatch deadline required")
+        deadline = min(entered + timeout_seconds, deadline_monotonic or entered + timeout_seconds)
         with self._access(mutate=True), self._transaction():
             record, operation = self._claim_record(claim)
             if record["sealed"] or operation["state"] != "running":
@@ -371,7 +377,7 @@ class ExecutionService:
                 return
             self._db.execute("INSERT INTO dispatch_limits VALUES (?, ?, ?, NULL)",
                              (claim.attempt_id, max_requests, timeout_seconds))
-            self._dispatch_deadlines[claim.attempt_id] = time.monotonic() + timeout_seconds
+            self._dispatch_deadlines[claim.attempt_id] = deadline
 
     def task_for(self, claim: Claim):
         with self._access():

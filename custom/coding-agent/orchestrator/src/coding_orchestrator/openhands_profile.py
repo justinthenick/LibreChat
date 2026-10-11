@@ -34,7 +34,8 @@ def _raise_run_failure(error: Exception) -> None:
 
 
 class _ScopedEvents:
-    def __init__(self, context: RunContext, control: WorkerControl):
+    def __init__(self, context: RunContext, control: WorkerControl, actions=None):
+        self.actions = actions
         self.context, self.control = context, control
         self.collector = EvidenceCollector(context.repository_alias)
         self.denied = False
@@ -72,11 +73,14 @@ class _ScopedEvents:
             except Exception:
                 self.denied = True
                 raise
+            if self.actions is not None:
+                self.actions.capture(event)
             self.control.emit_progress({"evidence": self.collector.snapshot()})
 
 
 class _BoundBackend(OpenHandsBackend):
-    def __init__(self, *args, binding, **kwargs):
+    def __init__(self, *args, binding, actions=None, **kwargs):
+        self._actions = actions
         self._binding = binding
         super().__init__(*args, llm=binding.llm, **kwargs)
 
@@ -84,6 +88,10 @@ class _BoundBackend(OpenHandsBackend):
         agent = super()._build_agent()
         self._binding.assert_bound(agent.llm)
         return agent
+
+    def _prepare_conversation(self, conversation):
+        if self._actions is not None:
+            self._actions.install(conversation)
 
 
 @dataclass(frozen=True)
@@ -100,6 +108,7 @@ class OpenHandsJobRunner:
     token_factory: Callable[[], str]
     llm_factory: Callable[[], object]
     transport_factory: Callable[[], object] | None = None
+    dispatch_factory: Callable[[RunContext, WorkerControl], object] | None = None
 
     def __post_init__(self) -> None:
         _validate_endpoint(self.endpoint)
@@ -107,6 +116,8 @@ class OpenHandsJobRunner:
             raise ValueError("Explicit child-side factories are required")
         if self.transport_factory is not None and not callable(self.transport_factory):
             raise ValueError("Invalid transport factory")
+        if self.dispatch_factory is not None and not callable(self.dispatch_factory):
+            raise ValueError("Invalid dispatch factory")
 
     def __call__(self, context: RunContext, control: WorkerControl) -> dict:
         from openhands.sdk.conversation.exceptions import ConversationRunError
@@ -115,14 +126,18 @@ class OpenHandsJobRunner:
         try:
             control._check()
             RunScope(context.repository_alias, context.task_mode)
-            events = _ScopedEvents(context, control)
+            actions = None
+            if self.dispatch_factory is not None:
+                from .sdk_dispatch import BoundActions
+                actions = BoundActions(self.dispatch_factory(context, control), control)
+            events = _ScopedEvents(context, control, actions)
             token, llm = self.token_factory(), self.llm_factory()
             if type(token) is not str or not token or getattr(llm, "model", None) != "openai/gpt-5.6-sol":
                 raise OpenHandsProfileError("openhands_profile_configuration")
             control._check()
             transport = self.transport_factory() if self.transport_factory is not None else None
             with BoundedResponses(llm, control, transport=transport) as binding:
-                backend = _BoundBackend(self.endpoint, token, binding=binding,
+                backend = _BoundBackend(self.endpoint, token, binding=binding, actions=actions,
                                         scratch_root=tempfile.gettempdir())
                 prompt = ("Selected repository: " + context.repository_alias
                           + ". Required task_mode: " + context.task_mode
@@ -132,7 +147,7 @@ class OpenHandsJobRunner:
                 # when ten requests finish without completing the task.
                 result = backend.run(BackendRunRequest(prompt, max_iterations=11), on_event=events)
                 control._check()
-                events._require(not events.denied)
+                events._require(not events.denied and (actions is None or not actions.failed))
                 return {"execution_status": result.execution_status,
                         "final_response": result.final_response.encode("utf-8")[:8192].decode("utf-8", "ignore"),
                         "evidence": events.collector.snapshot()}

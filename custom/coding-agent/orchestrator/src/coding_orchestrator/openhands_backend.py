@@ -338,6 +338,9 @@ class OpenHandsBackend:
             ),
         )
 
+    def _prepare_conversation(self, conversation):
+        pass
+
     def run(
         self,
         request: BackendRunRequest,
@@ -426,6 +429,7 @@ class OpenHandsBackend:
                         + repr(runtime_names)
                     )
 
+                self._prepare_conversation(conversation)
                 conversation.run()
 
                 action_tools = tuple(
