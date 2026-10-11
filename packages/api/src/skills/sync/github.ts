@@ -274,7 +274,7 @@ function isSafeRelativePath(value: string): boolean {
 
 function makeUpstreamId(source: SkillSyncGitHubSourceConfig, rootPath: string): string {
   // Identity is keyed on the stable, admin-controlled source id and the skill's
-  // root path only â€” never owner/repo/ref. Repointing a source to a renamed or
+  // root path only — never owner/repo/ref. Repointing a source to a renamed or
   // replacement repository (or rotating its ref) keeps the same upstream id, so
   // existing mirrors are updated in place instead of being treated as new and
   // colliding on the (name, author, tenantId) uniqueness constraint.
@@ -497,7 +497,7 @@ function sanitizeDiagnosticText(value: string): string {
 }
 
 function truncateText(value: string, maxLength: number): string {
-  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}â€¦` : value;
+  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
 }
 
 function summarizeValidationIssues(issues: unknown): string | undefined {
@@ -597,13 +597,13 @@ function isSourceFatalError(error: unknown): boolean {
 function truncateSkipMessage(message: string): string {
   const sanitized = escapeDiagnosticControlCharacters(message);
   return sanitized.length > SKIP_MESSAGE_MAX
-    ? `${sanitized.slice(0, SKIP_MESSAGE_MAX - 1)}â€¦`
+    ? `${sanitized.slice(0, SKIP_MESSAGE_MAX - 1)}…`
     : sanitized;
 }
 
 function truncateSkipPath(path: string): string {
   const sanitized = escapeDiagnosticControlCharacters(path);
-  return sanitized.length > SKIP_PATH_MAX ? `${sanitized.slice(0, SKIP_PATH_MAX - 1)}â€¦` : sanitized;
+  return sanitized.length > SKIP_PATH_MAX ? `${sanitized.slice(0, SKIP_PATH_MAX - 1)}…` : sanitized;
 }
 
 function truncateSkipName(name: string | undefined): string | undefined {
@@ -611,7 +611,7 @@ function truncateSkipName(name: string | undefined): string | undefined {
     return name;
   }
   const sanitized = escapeDiagnosticControlCharacters(name);
-  return sanitized.length > SKIP_NAME_MAX ? `${sanitized.slice(0, SKIP_NAME_MAX - 1)}â€¦` : sanitized;
+  return sanitized.length > SKIP_NAME_MAX ? `${sanitized.slice(0, SKIP_NAME_MAX - 1)}…` : sanitized;
 }
 
 /**

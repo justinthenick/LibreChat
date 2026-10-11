@@ -254,3 +254,47 @@ test('keeps files beneath a nested definition outside configured discovery depth
   const snapshot = await captureGitHubSkillGeneration(fixture.input);
   expect(snapshot.files.map((file) => file.path)).toEqual(['child/SKILL.md', 'child/notes.txt']);
 });
+
+test.each([
+  ['description: Explicit', 'Explicit'],
+  ['when-to-use: Contextual', 'Contextual'],
+])('preserves description semantics for %s', async (field, expected) => {
+  fixture.close();
+  const markdown = `---\nname: writer\n${field}\n---\nBody`;
+  fixture = createGenerationFixture({ 'SKILL.md': markdown });
+  const manifest = validateSkillBundle(await captureGitHubSkillGeneration(fixture.input));
+  expect(manifest.definition.description).toBe(expected);
+  expect(manifest.definition.body).toBe(markdown);
+});
+
+test('still rejects a missing selected name', async () => {
+  fixture.close();
+  fixture = createGenerationFixture({ 'SKILL.md': '---\ndescription: Writes\n---\nBody' });
+  await expect(captureGitHubSkillGeneration(fixture.input)).rejects.toThrow(
+    'invalid_skill_selection',
+  );
+});
+
+test.each(['skills/writer', ''])('separates child packages at selected root %s', async (root) => {
+  fixture.close();
+  fixture = createGenerationFixture(
+    {
+      'SKILL.md': '---\nname: writer\n---\nParent',
+      'child/sKiLl.Md': '---\nname: child\n---\nChild',
+      'child/notes.txt': 'child notes',
+      'childish/notes.txt': 'parent sibling',
+    },
+    undefined,
+    root,
+  );
+  const childRoot = root ? `${root}/child` : 'child';
+  fixture.input.source.paths = [root, childRoot];
+  fixture.input.source.skillDiscoveryDepth = 0;
+  const parent = await captureGitHubSkillGeneration(fixture.input);
+  expect(parent.files.map((file) => file.path)).toEqual(['childish/notes.txt']);
+  fixture.input.selection.skillPath = childRoot;
+  fixture.input.selection.name = 'child';
+  const child = await captureGitHubSkillGeneration(fixture.input);
+  expect(child.files.map((file) => file.path)).toEqual(['notes.txt']);
+  expect(validateSkillBundle(child).definition.description).toBe('child');
+});
