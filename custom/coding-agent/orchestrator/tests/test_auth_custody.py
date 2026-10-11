@@ -187,6 +187,7 @@ class CustodyTests(unittest.TestCase):
                  json.dumps(self.payload(unexpected=True)).encode()]
         for index, raw in enumerate(cases):
             self.store = self.create(Path(self.temp.name) / f'bad-{index}.sqlite')
+            self.control = control()
             with self.assertRaises(CustodyError):
                 self.rotate(transport=self.transport(lambda _, data=raw: httpx.Response(200,
                     headers={'content-type': 'application/json'}, content=data)))
@@ -335,6 +336,7 @@ class CustodyTests(unittest.TestCase):
     def test_lock_cleanup_preserves_primary_control_and_committed_outcome(self):
         for index, category in enumerate((WorkerCancelled, WorkerDeadline, WorkerLimit, CustodyError)):
             self.store = self.create(Path(self.temp.name) / f'cleanup-{index}.sqlite')
+            self.control = control()
             original = self.store._guard
             @contextmanager
             def broken_cleanup():
@@ -351,6 +353,15 @@ class CustodyTests(unittest.TestCase):
             recovered = self.store.recover(claim(), 0, 0, 'rotation')
             self.assertEqual(recovered.state,
                 'committed' if category is CustodyError else 'reauthentication_required')
+
+    def test_real_budget_exhaustion_blocks_pending_without_physical_dispatch(self):
+        self.control._maximum = 0
+        with self.assertRaises(WorkerLimit):
+            self.rotate()
+        self.assertEqual(self.calls, [])
+        self.assertEqual(self.control._counter.value, 0)
+        self.assertEqual(self.store.recover(claim(), 0, 0, 'rotation').state,
+                         'reauthentication_required')
 
     def test_real_process_crash_intervals_preserve_atomicity_and_never_replay(self):
         context = multiprocessing.get_context('fork')
