@@ -49,6 +49,8 @@ class _ScopedEvents:
         from openhands.sdk.event import ActionEvent, ObservationEvent
         from openhands.sdk.mcp.definition import MCPToolAction
 
+        if self.actions is not None:
+            self.actions.raise_control_failure()
         self.control._check()
         self._require(not self.denied)
         if isinstance(event, ActionEvent):
