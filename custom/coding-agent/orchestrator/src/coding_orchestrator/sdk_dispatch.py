@@ -57,6 +57,11 @@ class BoundActions:
         self.dispatch, self.control = dispatch, control
         self.pending = None
         self.failed = False
+        self.control_failure = None
+
+    def raise_control_failure(self):
+        if self.control_failure is not None:
+            raise self.control_failure from None
 
     def capture(self, event):
         from openhands.sdk.event import ActionEvent
@@ -77,6 +82,7 @@ class BoundActions:
         from openhands.sdk.mcp.tool import MCPToolDefinition
         from openhands.sdk.tool.builtins import FinishTool
         from .openhands_backend import EXPECTED_OPENHANDS_RUNTIME_TOOLS
+        self.raise_control_failure()
         if set(tools) != EXPECTED_OPENHANDS_RUNTIME_TOOLS:
             raise OpenHandsProfileError("sdk_dispatch_tool_contract")
         bound = {}
@@ -107,7 +113,8 @@ class BoundActions:
             text = _encoded(result)
             return MCPToolObservation.from_call_tool_result(tool_name=name,
                 result=CallToolResult(content=[TextContent(type="text", text=text)], isError=False))
-        except (WorkerCancelled, WorkerDeadline, WorkerLimit):
+        except (WorkerCancelled, WorkerDeadline, WorkerLimit) as error:
+            self.control_failure = error
             self.failed = True
             raise
         except Exception:

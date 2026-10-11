@@ -350,9 +350,12 @@ class BoundActionTests(unittest.TestCase):
                         actions.dispatch = dispatch
                     else:
                         interrupt()
-                    with self.assertRaises(failure):
+                    with self.assertRaises(failure) as raised:
                         actions.execute('read_file', event.action)
                     self.assertTrue(actions.failed)
+                    with self.assertRaises(failure) as retained:
+                        actions.raise_control_failure()
+                    self.assertIs(raised.exception, retained.exception)
                     self.assertEqual(len(calls), int(after))
                     actions.control._cancelled.clear()
                     actions.control._deadline = time.monotonic() + 5
