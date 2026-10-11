@@ -442,13 +442,13 @@ class CredentialDispatchTests(unittest.TestCase):
 
     def test_runner_sdk_loop_rotation_and_progress_are_secret_free(self):
         from test_profile_sdk_integration import fixture_llm, FixtureTransport
-        from coding_orchestrator.openhands_backend import OpenHandsBackend
+        from coding_orchestrator.openhands_backend import OpenHandsBackend, RESTRICTED_SYSTEM_PROMPT
         from coding_orchestrator.restricted_agent import RestrictedOpenHandsAgent
         # Substitute only the executor tool catalog: this slice performs a real
         # SDK finish-only loop without MCP discovery or any socket connection.
         def agent(backend):
             return RestrictedOpenHandsAgent(llm=backend._llm, tools=[],
-                include_default_tools=['FinishTool'], mcp_config={})
+                include_default_tools=['FinishTool'], mcp_config={}, system_prompt=RESTRICTED_SYSTEM_PROMPT)
         runner = OpenHandsJobRunner('https://fixture.invalid/mcp', unused_factory, fixture_llm,
             synthetic_model_factory=ClaimDispatch(self.claim, unused_factory))
         encoded = pickle.dumps(runner)
