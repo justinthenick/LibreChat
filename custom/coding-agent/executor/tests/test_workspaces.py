@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 from pathlib import Path
 
 WORKSPACES_PATH = (
@@ -229,6 +230,59 @@ class WorkspaceManagerTest(unittest.TestCase):
         self.assertEqual(rejected.exit_code, 126)
         self.assertIn("command_not_allowed", rejected.stderr)
         self.assertFalse(marker.exists())
+
+    def test_allowlist_subprocess_dispatch_and_rejections(self) -> None:
+        task = self.manager.create_task("demo", "dispatch-checks", "main")
+        task_id = task["task_id"]
+
+        fake_process = MagicMock()
+        fake_process.pid = 999999
+        fake_process.communicate.return_value = ("simulated output", "")
+        fake_process.returncode = 0
+        fake_process.__enter__.return_value = fake_process
+        fake_process.__exit__.return_value = False
+
+        with patch.object(workspaces_module.subprocess, "Popen", return_value=fake_process) as mock_popen, \
+             patch.object(workspaces_module.os, "killpg"):
+            # 1. Approved command passes allowlist and dispatches expected argument vector
+            result = self.manager.run_check(
+                task_id,
+                "npm run test:packages:data-provider",
+            )
+            self.assertEqual(result.exit_code, 0)
+            self.assertEqual(result.stdout, "simulated output")
+            mock_popen.assert_called_once()
+            call_args, call_kwargs = mock_popen.call_args
+            self.assertEqual(
+                call_args[0],
+                ["npm", "run", "test:packages:data-provider"],
+            )
+            self.assertEqual(call_kwargs["cwd"], Path(task["path"]))
+            mock_popen.reset_mock()
+
+            # 2. Extra arguments and unapproved scripts never spawn a subprocess.
+            unapproved_scripts = [
+                "npm run test:packages:data-provider -- --runInBand",
+                "npm run test:packages:data-provider -- --help",
+                "npm run test:packages:data-provider --",
+                "npm run test:packages:data-provider --silent",
+                "npm run test:packages:data-provider unexpected",
+                "npm run test:packages:data-provider ; sh -c 'echo blocked'",
+                "npm run deploy",
+                "npm run test:api",
+            ]
+            for cmd in unapproved_scripts:
+                rejected = self.manager.run_check(task_id, cmd)
+                self.assertEqual(rejected.exit_code, 126)
+                self.assertIn("command_not_allowed", rejected.stderr)
+                mock_popen.assert_not_called()
+
+            # 3. Direct shell execution remains rejected without spawning subprocess
+            for cmd in ["sh -c 'touch unsafe-marker'", "bash -c 'echo pwned'"]:
+                rejected = self.manager.run_check(task_id, cmd)
+                self.assertEqual(rejected.exit_code, 126)
+                self.assertIn("command_not_allowed", rejected.stderr)
+                mock_popen.assert_not_called()
 
     def test_modification_checkpoint_blocks_exploration_until_first_patch(self) -> None:
         task = self.manager.create_task("demo", "checkpoint gate", "main")
