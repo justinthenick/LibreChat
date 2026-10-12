@@ -1,13 +1,21 @@
 # NAS telemetry freshness acceptance
 
-Status: investigation / draft. No production change.
+Status: implementation proposed in draft PR #225. Runtime change is **not yet merged or deployed**.
 
 ## Evidence (2026-10-12)
 - Last retrieved `nas-status/telemetry/latest.json` timestamp: `2026-10-08T20:06:57+1000`.
 - Last published executor: HTTP 200, version 0.1.14; maintenance reachable. **Historical only, not current health.**
 - `deploy/synology/publish-telemetry.sh` writes `telemetry/latest.json`, `telemetry/launchpad.json`, and `telemetry/latest.log` to `nas-status`.
 - `deploy/synology/launchpad-telemetry.py` already collects sanitized executor/maintenance connectivity.
-- Publisher uses a telemetry marker; inspect invocation cadence in `autodeploy.sh` before changing anything.
+- `autodeploy.sh` invokes the publisher on successful deployments, deployment failures, and healthy steady-state polls when the marker is absent or older than 60 minutes. The NAS scheduler's enabled state and actual polling cadence are not yet verified.
+- The new `telemetry-freshness.py` uses Python 3 `os.stat().st_mtime`, not Synology-dependent `find -mmin`; host Python 3 is already required by `autodeploy.sh`.
+- `publish-telemetry.sh` updates the marker only after successful publication. An unsuccessful publish leaves the prior marker unchanged, allowing retry on a later healthy poll.
+- Focused shell regression test covers missing, recent, stale, future-dated, and malformed-content markers; `Synology Admin Settings` CI explicitly executes it.
+
+## Remaining NAS-side acceptance
+- Confirm the DSM scheduler is enabled and actually invokes `autodeploy.sh` at its configured cadence.
+- After merge, verify a new `nas-status/telemetry/latest.json` timestamp from the NAS and check that no unnecessary LibreChat deployment occurred.
+- Keep old telemetry classified as historical until that fresh publication is observed.
 
 ## Questions to resolve
 1. How often is `autodeploy.sh` scheduled, and under which branches does it invoke the publisher?
