@@ -48,6 +48,37 @@ writer dependencies and approval boundaries. Activation stays disabled.
   source generation and digest. Ready snapshot provenance must identify that
   original source generation and bundle revision.
 
+## Logical draft reservation discovery
+
+`readDraftReservation(actor, { sourceId, name })` locates the existing
+tenant/owner/name reservation without requiring its ID. It returns a frozen
+metadata-only handle: ID, name, source ID, status, attempt and revision. It does
+not read source or draft payloads. A matching name owned by the same actor but
+bound to another source rejects instead of appearing absent. Different names
+for the same source remain valid; there is no one-draft-per-source constraint.
+
+This is an isolated diagnostic read, not an access-controlled response. Actor
+filtering does not authenticate the caller, and a `ready` status in the handle
+neither validates content nor grants permission. Pending/failed metadata can
+identify a reservation for a separately requested recovery; it is not usable
+draft content and discovery never recovers or changes state.
+
+`prepareDraftByName` accepts the same explicit selection and candidate ID as
+`prepareDraft`. It validates and detaches the actor, name, IDs, selected source
+generation and digest before discovery. When a reservation exists, it substitutes
+only the canonical draft ID and calls the existing `prepareDraft`. Full bundle
+validation and the original commit transaction still apply. Ready reuse preserves
+the draft's edits and original source generation, including newer ready edits
+committed after discovery; pending and failed reservations reject. Revocation
+after discovery still prevents a fenced commit. There is no direct return of
+discovered content and no new authorization mechanism.
+
+Concurrent absent lookups can prepare distinct candidate IDs. The existing unique
+tenant/owner/name index chooses one commit winner; the other operation conflicts.
+There is no automatic retry, deletion, rebase or recovery. An uncertain result
+must be resolved using the original operation ID and request digest, not another
+lookup or newly prepared operation. A missing receipt remains unresolved.
+
 ## Receipts and restart
 
 Preparation returns a frozen operation with `operationId`, `requestDigest`,

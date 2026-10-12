@@ -228,6 +228,41 @@ test('scope filters reject cross-tenant source pins and cross-owner draft transi
   expect(await store.readDraft(draftId, { ...actor, ownerId: 'owner-b' })).toBeNull();
 });
 
+test('logical reservation reads use the existing scoped name key and majority primary reads', async () => {
+  const draft = await initialize();
+  const spy = jest.spyOn(mongoose.mongo.Collection.prototype, 'findOne');
+  try {
+    expect(await store.readDraftReservation(draft.name, actor)).toEqual(draft);
+    expect(spy).toHaveBeenCalledWith(
+      { name: draft.name, ...actor },
+      { readPreference: 'primary', readConcern: { level: 'majority' } },
+    );
+    expect(await store.readDraftReservation(draft.name, { ...actor, ownerId: 'other' })).toBeNull();
+    expect(
+      await store.readDraftReservation(draft.name, { ...actor, tenantId: 'other' }),
+    ).toBeNull();
+    expect(await store.readDraftReservation(draft.name, { ...actor, tenantId: null })).toBeNull();
+    expect(await store.readDraftReservation('unreserved', actor)).toBeNull();
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test.each(['', 'invalid name', 'x'.repeat(65), null, { $ne: null }])(
+  'rejects malformed reservation names before querying: %p',
+  async (name) => {
+    const spy = jest.spyOn(mongoose.mongo.Collection.prototype, 'findOne');
+    try {
+      await expect(store.readDraftReservation(name as never, actor)).rejects.toThrow(
+        'skill_capture_draft',
+      );
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+  },
+);
+
 test('pending and failed reservations cannot be reused as ready drafts', async () => {
   const draft = await initialize();
   const source = (await store.readSource(sourceId, actor.tenantId))!;

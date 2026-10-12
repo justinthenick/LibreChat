@@ -51,6 +51,10 @@ export interface DraftExpectation {
   revision: number;
 }
 
+export type SkillDraftReservation = Readonly<
+  Pick<CaptureDraft, '_id' | 'name' | 'sourceId' | 'status' | 'attempt' | 'revision'>
+>;
+
 export interface IsolatedValidatedCapture {
   resolveReceipt: (
     actor: CaptureIdentity,
@@ -59,6 +63,10 @@ export interface IsolatedValidatedCapture {
   ) => Promise<StoredSkillSource | StoredSkillDraft | null>;
   readSource: (actor: CaptureIdentity, sourceId: string) => Promise<StoredSkillSource | null>;
   readDraft: (actor: CaptureIdentity, draftId: string) => Promise<StoredSkillDraft | null>;
+  readDraftReservation: (
+    actor: CaptureIdentity,
+    request: Pick<CaptureDraft, 'sourceId' | 'name'>,
+  ) => Promise<SkillDraftReservation | null>;
   prepareSource: (
     operationId: string,
     actor: CaptureIdentity,
@@ -75,6 +83,7 @@ export interface IsolatedValidatedCapture {
     request: Pick<SkillDraftCaptureRequest, 'draftId' | 'name'> &
       Pick<CaptureDraft, 'sourceId' | 'sourceGeneration' | 'sourceDigest'>,
   ) => Promise<PreparedSkillCapture<StoredSkillDraft>>;
+  prepareDraftByName: IsolatedValidatedCapture['prepareDraft'];
   prepareComplete: (
     operationId: string,
     actor: CaptureIdentity,
@@ -119,6 +128,32 @@ function actorCopy(input: CaptureIdentity): Readonly<CaptureIdentity> {
 function validId(id: string): string {
   if (typeof id !== 'string' || !/^[a-f0-9]{24}$/.test(id)) fail();
   return id;
+}
+
+function validName(name: string): string {
+  if (typeof name !== 'string' || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(name)) fail();
+  return name;
+}
+
+function draftRequestCopy(
+  input: Parameters<IsolatedValidatedCapture['prepareDraft']>[2],
+): Parameters<IsolatedValidatedCapture['prepareDraft']>[2] {
+  const request = {
+    draftId: validId(input.draftId),
+    name: validName(input.name),
+    sourceId: validId(input.sourceId),
+    sourceGeneration: input.sourceGeneration,
+    sourceDigest: input.sourceDigest,
+  };
+  if (
+    request.draftId === request.sourceId ||
+    !Number.isSafeInteger(request.sourceGeneration) ||
+    request.sourceGeneration < 1 ||
+    typeof request.sourceDigest !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(request.sourceDigest)
+  )
+    fail();
+  return Object.freeze(request);
 }
 
 function snapshotCopy(snapshot: SkillBundleSnapshot): SkillBundleSnapshot {
@@ -247,6 +282,38 @@ function validatedCapture(store: CapturePersistence): IsolatedValidatedCapture {
     return record ? draftRecord(record) : null;
   }
 
+  async function readDraftReservation(
+    inputActor: CaptureIdentity,
+    input: Pick<CaptureDraft, 'sourceId' | 'name'>,
+  ): Promise<SkillDraftReservation | null> {
+    const actor = actorCopy(inputActor);
+    const sourceId = validId(input.sourceId);
+    const name = validName(input.name);
+    const record = await store.readDraftReservation(name, actor);
+    if (!record) return null;
+    if (
+      record.tenantId !== actor.tenantId ||
+      record.ownerId !== actor.ownerId ||
+      record.sourceId !== sourceId ||
+      record.name !== name ||
+      record._id === sourceId ||
+      !['initializing', 'failed', 'ready'].includes(record.status) ||
+      !Number.isSafeInteger(record.attempt) ||
+      record.attempt < 1 ||
+      !Number.isSafeInteger(record.revision) ||
+      record.revision < 1
+    )
+      fail();
+    return Object.freeze({
+      _id: validId(record._id),
+      name,
+      sourceId,
+      status: record.status,
+      attempt: record.attempt,
+      revision: record.revision,
+    });
+  }
+
   async function resolveReceipt(
     inputActor: CaptureIdentity,
     operationId: string,
@@ -334,20 +401,7 @@ function validatedCapture(store: CapturePersistence): IsolatedValidatedCapture {
     input: Parameters<IsolatedValidatedCapture['prepareDraft']>[2],
   ): Promise<PreparedSkillCapture<StoredSkillDraft>> {
     const actor = actorCopy(inputActor);
-    const request = {
-      draftId: validId(input.draftId),
-      name: input.name,
-      sourceId: validId(input.sourceId),
-      sourceGeneration: input.sourceGeneration,
-      sourceDigest: input.sourceDigest,
-    };
-    if (
-      !Number.isSafeInteger(request.sourceGeneration) ||
-      request.sourceGeneration < 1 ||
-      typeof request.sourceDigest !== 'string' ||
-      !/^[a-f0-9]{64}$/.test(request.sourceDigest)
-    )
-      fail();
+    const request = draftRequestCopy(input);
     const [record, existing] = await Promise.all([
       store.readGeneration(request.sourceId, actor.tenantId, request.sourceGeneration),
       readDraft(actor, request.draftId),
@@ -383,6 +437,20 @@ function validatedCapture(store: CapturePersistence): IsolatedValidatedCapture {
         return draftRecord(result);
       },
     );
+  }
+
+  async function prepareDraftByName(
+    operationId: string,
+    inputActor: CaptureIdentity,
+    input: Parameters<IsolatedValidatedCapture['prepareDraft']>[2],
+  ): Promise<PreparedSkillCapture<StoredSkillDraft>> {
+    const actor = actorCopy(inputActor);
+    const request = draftRequestCopy(input);
+    const existing = await readDraftReservation(actor, request);
+    return prepareDraft(operationId, actor, {
+      ...request,
+      draftId: existing?._id ?? request.draftId,
+    });
   }
 
   async function transition(
@@ -447,9 +515,11 @@ function validatedCapture(store: CapturePersistence): IsolatedValidatedCapture {
   return {
     readSource,
     readDraft,
+    readDraftReservation,
     resolveReceipt,
     prepareSource,
     prepareDraft,
+    prepareDraftByName,
     prepareComplete: (id, actor, expected, snapshot) =>
       transition(id, actor, expected, 'complete', snapshot),
     prepareEdit: (id, actor, expected, snapshot) =>

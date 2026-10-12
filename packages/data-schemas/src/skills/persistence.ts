@@ -111,6 +111,7 @@ export interface CapturePersistence {
     generation: number,
   ) => Promise<CaptureSource | null>;
   readDraft: (id: string, actor: CaptureIdentity) => Promise<CaptureDraft | null>;
+  readDraftReservation: (name: string, actor: CaptureIdentity) => Promise<CaptureDraft | null>;
   readPayload: (digest: string) => Promise<string>;
   resolve: (operationId: string, requestDigest: string) => Promise<Receipt | null>;
 }
@@ -490,6 +491,13 @@ async function createCapturePersistence(
         { _id: id, ...identity(actor) },
         { readPreference: 'primary', readConcern: { level: 'majority' } },
       ),
+    readDraftReservation: async (name, actor) => {
+      if (typeof name !== 'string' || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(name)) reject('draft');
+      return drafts.findOne(
+        { name, ...identity(actor) },
+        { readPreference: 'primary', readConcern: { level: 'majority' } },
+      );
+    },
     readPayload: async (digest) => {
       if (!HASH.test(digest)) reject('payload');
       const blob = await blobs.findOne(
