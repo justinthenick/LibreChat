@@ -1,16 +1,3 @@
-2026-10-12 16:10:02 LibreChat deployment check started
-2026-10-12 16:10:02 Cloudflare tunnel integration enabled
-2026-10-12 16:10:02 Synology Admin Settings integration enabled
-2026-10-12 16:11:33 No deployment change; healthy deployment already recorded at 20e8dff1
-2026-10-12 16:15:02 LibreChat deployment check started
-2026-10-12 16:15:03 Cloudflare tunnel integration enabled
-2026-10-12 16:15:03 Synology Admin Settings integration enabled
-2026-10-12 16:16:13 No deployment change; healthy deployment already recorded at 20e8dff1
-2026-10-12 16:20:10 LibreChat deployment check started
-2026-10-12 16:20:11 Cloudflare tunnel integration enabled
-2026-10-12 16:20:11 Synology Admin Settings integration enabled
-2026-10-12 16:22:01 No deployment change; healthy deployment already recorded at 20e8dff1
-2026-10-12 16:25:10 LibreChat deployment check started
 2026-10-12 16:25:11 Cloudflare tunnel integration enabled
 2026-10-12 16:25:11 Synology Admin Settings integration enabled
 2026-10-12 16:26:20 No deployment change; healthy deployment already recorded at 20e8dff1
@@ -38,3 +25,16 @@
 2026-10-12 16:51:40 Compose update completed
 2026-10-12 16:59:17 ERROR: LibreChat API recreation failed
 2026-10-12 16:59:18 Collecting deployment diagnostics for stage api_recreate
+2026-10-12 16:59:51 Sanitised GitHub telemetry published
+2026-10-12 17:00:06 LibreChat deployment check started
+2026-10-12 17:00:07 Cloudflare tunnel integration enabled
+2026-10-12 17:00:07 Synology Admin Settings integration enabled
+2026-10-12 17:01:11 Retrying deployment at ab380834; last successful deployment was 20e8dff1
+2026-10-12 17:01:12 Official LibreChat Admin Panel dedicated session secret ready
+2026-10-12 17:01:16 Synology Admin Settings privileged worker ready
+2026-10-12 17:01:17 NAS read-only infrastructure worker ready
+2026-10-12 17:01:19 Compose validation passed
+2026-10-12 17:02:57 Image pull completed
+2026-10-12 17:02:59 Compose update completed
+2026-10-12 17:09:21 ERROR: LibreChat API recreation failed
+2026-10-12 17:09:22 Collecting deployment diagnostics for stage api_recreate
