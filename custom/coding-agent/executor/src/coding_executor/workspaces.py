@@ -34,6 +34,7 @@ ALLOWED_COMMANDS: tuple[tuple[str, ...], ...] = (
     ("pytest",),
     ("npm", "test"),
     ("npm", "run", "test"),
+    ("npm", "run", "test:packages:data-provider"),
     ("npm", "run", "lint"),
     ("npm", "run", "build"),
     ("pnpm", "test"),
