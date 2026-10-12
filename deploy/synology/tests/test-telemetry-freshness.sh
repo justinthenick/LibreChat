@@ -6,6 +6,8 @@ GATE="${2:-deploy/synology/telemetry-freshness.py}"
 sh -n "$SCRIPT"
 python3 -m py_compile "$GATE"
 grep -Fq 'if telemetry_configured && python3 "$DEPLOY_DIR/telemetry-freshness.py" "$TELEMETRY_MARKER"; then' "$SCRIPT" || { echo "production telemetry gate missing" >&2; exit 1; }
+grep -Fq 'publish_telemetry check steady_state_periodic "$REMOTE_SHA"' "$SCRIPT" || { echo "routine telemetry branch missing" >&2; exit 1; }
+grep -Fq 'publish_telemetry check steady_state "$REMOTE_SHA"' "$SCRIPT" || { echo "recovery telemetry branch missing" >&2; exit 1; }
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT HUP INT TERM
 MARKER="$TMP/last-publish"
