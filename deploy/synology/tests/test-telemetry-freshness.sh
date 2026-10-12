@@ -21,6 +21,10 @@ check() {
 [ "$(check)" = 1 ] || { echo "missing marker should publish" >&2; exit 1; }
 touch "$TELEMETRY_MARKER"
 [ "$(check)" = 0 ] || { echo "new marker should not publish" >&2; exit 1; }
-touch -t "$(date -u -d '65 minutes ago' +%Y%m%d%H%M.%S)" "$TELEMETRY_MARKER"
+python3 - "$TELEMETRY_MARKER" <<'PY'
+import os, sys, time
+stamp = time.time() - 65 * 60
+os.utime(sys.argv[1], (stamp, stamp))
+PY
 [ "$(check)" = 1 ] || { echo "old marker should publish" >&2; exit 1; }
 echo "steady-state telemetry gate PASS"
