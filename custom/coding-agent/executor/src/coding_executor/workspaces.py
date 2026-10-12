@@ -292,7 +292,11 @@ class WorkspaceManager:
     def run_check(self, task_id: str, command: str, timeout_seconds: int | None = None) -> CommandResult:
         task = self._task(task_id)
         args = shlex.split(command, posix=True)
-        if not args or not any(tuple(args[: len(prefix)]) == prefix for prefix in ALLOWED_COMMANDS):
+        allowed = any(tuple(args[: len(prefix)]) == prefix for prefix in ALLOWED_COMMANDS)
+        exact_command = ("npm", "run", "test:packages:data-provider")
+        if tuple(args[: len(exact_command)]) == exact_command:
+            allowed = tuple(args) == exact_command
+        if not allowed:
             allowed = ", ".join(" ".join(prefix) for prefix in ALLOWED_COMMANDS)
             return CommandResult(
                 command=command,

@@ -247,7 +247,7 @@ class WorkspaceManagerTest(unittest.TestCase):
             # 1. Approved command passes allowlist and dispatches expected argument vector
             result = self.manager.run_check(
                 task_id,
-                "npm run test:packages:data-provider -- --runInBand",
+                "npm run test:packages:data-provider",
             )
             self.assertEqual(result.exit_code, 0)
             self.assertEqual(result.stdout, "simulated output")
@@ -255,13 +255,19 @@ class WorkspaceManagerTest(unittest.TestCase):
             call_args, call_kwargs = mock_popen.call_args
             self.assertEqual(
                 call_args[0],
-                ["npm", "run", "test:packages:data-provider", "--", "--runInBand"],
+                ["npm", "run", "test:packages:data-provider"],
             )
             self.assertEqual(call_kwargs["cwd"], Path(task["path"]))
             mock_popen.reset_mock()
 
-            # 2. Unapproved npm scripts are rejected with exit code 126 without spawning subprocess
+            # 2. Extra arguments and unapproved scripts never spawn a subprocess.
             unapproved_scripts = [
+                "npm run test:packages:data-provider -- --runInBand",
+                "npm run test:packages:data-provider -- --help",
+                "npm run test:packages:data-provider --",
+                "npm run test:packages:data-provider --silent",
+                "npm run test:packages:data-provider unexpected",
+                "npm run test:packages:data-provider ; sh -c 'echo blocked'",
                 "npm run deploy",
                 "npm run test:api",
             ]
