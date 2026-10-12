@@ -21,6 +21,12 @@ replica set with sessions. `activateSkillCapturePersistence` always throws
   Completion, failure, recovery and editing compare the entire expected draft,
   including status, attempt and revision. Recovery advances the attempt; edits
   advance the revision. Ready reuse preserves edits and the original pinned base.
+- `readDraftReservation(name, actor)` reads the same tenant/owner/name key from
+  the primary with majority concern. It validates the name before querying and
+  adds no index or source-only uniqueness rule. This remains a storage-only
+  diagnostic; it confers no authority. The validated bridge checks the requested
+  source ID and exposes only detached reservation metadata before full prepare
+  and commit validation.
 - Staged bytes and receipts roll back if a later operation fails. Payload inserts
   never overwrite existing bytes, and reads check their SHA-256 digest. There is
   no deletion or garbage collection API, so this slice cannot reset counters or

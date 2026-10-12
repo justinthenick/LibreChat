@@ -73,7 +73,11 @@ function reader(snapshot: SkillBundleSnapshot) {
 }
 
 function expectation(draft: StoredSkillDraft) {
-  return { draftId, attempt: draft.record.attempt, revision: draft.record.revision };
+  return {
+    draftId: draft.record._id,
+    attempt: draft.record.attempt,
+    revision: draft.record.revision,
+  };
 }
 
 function reservation(source: StoredSkillSource) {
@@ -887,6 +891,329 @@ test('historical receipts also reject corrupted or semantically replaced payload
   await expect(plan.resolve()).rejects.toThrow('skill_capture_payload_corrupt');
 });
 
+describe('logical draft reservations', () => {
+  const candidateId = 'd'.repeat(24);
+  const lookup = { sourceId, name: 'writer-draft' };
+
+  async function boundedDiscovery<T>(operation: Promise<T>): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<T>((_resolve, reject) => {
+          timer = setTimeout(() => reject(new Error('discovery_barrier_timeout')), 4000);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  test('discovers only detached metadata and reuses ready edits without knowing their ID', async () => {
+    const draft = await ready();
+    const manifest = validateSkillBundle(draft.capture.snapshot!);
+    const edited = await (
+      await api.prepareEdit(
+        'edit-before-discovery',
+        actor,
+        expectation(draft),
+        await bundle('unused', 'original bytes', {
+          ...manifest,
+          definition: { ...manifest.definition, body: 'keep my edits' },
+        }),
+      )
+    ).commit();
+    const spy = jest.spyOn(mongoose.mongo.Collection.prototype, 'findOne');
+    let discovered: Awaited<ReturnType<IsolatedValidatedCapture['readDraftReservation']>>;
+    try {
+      discovered = await api.readDraftReservation(actor, lookup);
+      expect(spy).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(discovered).toEqual({
+      _id: draftId,
+      ...lookup,
+      status: 'ready',
+      attempt: edited.record.attempt,
+      revision: edited.record.revision,
+    });
+    expect(Object.isFrozen(discovered)).toBe(true);
+    const newer = await (
+      await api.prepareSource('sync-before-reuse', actor, {
+        sourceId,
+        expectedGeneration: 1,
+        upstreamRevision,
+        snapshot: await bundle('new source'),
+      })
+    ).commit();
+    const plan = await api.prepareDraftByName('reuse-discovered', actor, {
+      ...reservation(newer),
+      draftId: candidateId,
+    });
+    expect(await plan.commit()).toEqual(edited);
+    expect(edited.record.sourceGeneration).toBe(1);
+    expect(await api.readDraft(actor, candidateId)).toBeNull();
+    expect(await connection.db!.collection('capture_drafts').countDocuments()).toBe(1);
+  });
+
+  test('two absent lookups with distinct candidate IDs have exactly one commit winner', async () => {
+    const selected = await source();
+    const plans = await Promise.all(
+      [draftId, candidateId].map((id, index) =>
+        api.prepareDraftByName(`candidate-${index}`, actor, {
+          ...reservation(selected),
+          draftId: id,
+        }),
+      ),
+    );
+    const outcomes = await Promise.allSettled(plans.map((plan) => plan.commit()));
+    expect(outcomes.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(outcomes.filter((result) => result.status === 'rejected')).toHaveLength(1);
+    const winner = outcomes.find((result) => result.status === 'fulfilled');
+    if (!winner || winner.status !== 'fulfilled') throw new Error('missing_reservation_winner');
+    const losingIndex = outcomes.findIndex((result) => result.status === 'rejected');
+    expect(await plans[losingIndex].resolve()).toBeNull();
+    expect(await connection.db!.collection('capture_receipts').countDocuments()).toBe(2);
+    expect(await connection.db!.collection('capture_drafts').countDocuments()).toBe(1);
+    expect((await api.readDraftReservation(actor, lookup))?._id).toBe(winner.value.record._id);
+    const finished = await (
+      await api.prepareComplete(
+        'complete-winner',
+        actor,
+        expectation(winner.value),
+        await copied(winner.value),
+      )
+    ).commit();
+    const fresh = await api.prepareDraftByName('explicit-reuse', actor, {
+      ...reservation(selected),
+      draftId: candidateId,
+    });
+    expect(await fresh.commit()).toEqual(finished);
+  });
+
+  test.each(['generation', 'digest'])(
+    'ready discovery cannot bypass selected source %s validation',
+    async (field) => {
+      await ready();
+      const request = { ...(await currentReservation()), draftId: candidateId };
+      if (field === 'generation') request.sourceGeneration = 2;
+      else request.sourceDigest = '0'.repeat(64);
+      await expect(api.prepareDraftByName('invalid-selection', actor, request)).rejects.toThrow(
+        'invalid_skill_selection',
+      );
+      expect(await connection.db!.collection('capture_receipts').countDocuments()).toBe(3);
+      expect(await api.readDraft(actor, candidateId)).toBeNull();
+    },
+  );
+
+  test('a different source cannot reuse an occupied logical name', async () => {
+    const draft = await ready();
+    const otherSourceId = 'e'.repeat(24);
+    const other = await (
+      await api.prepareSource('other-source', actor, {
+        sourceId: otherSourceId,
+        expectedGeneration: 0,
+        upstreamRevision,
+        snapshot: await bundle('other', 'other bytes', { skillId: otherSourceId }),
+      })
+    ).commit();
+    await expect(
+      api.readDraftReservation(actor, { ...lookup, sourceId: otherSourceId }),
+    ).rejects.toThrow('invalid_skill_selection');
+    await expect(
+      api.prepareDraftByName('collision', actor, {
+        ...reservation(other),
+        draftId: candidateId,
+      }),
+    ).rejects.toThrow('invalid_skill_selection');
+    expect(await api.readDraft(actor, draftId)).toEqual(draft);
+    expect(await connection.db!.collection('capture_drafts').countDocuments()).toBe(1);
+    expect(await connection.db!.collection('capture_receipts').countDocuments()).toBe(4);
+  });
+
+  test('different names for the same source remain separate reservations', async () => {
+    const selected = await source();
+    const first = await (
+      await api.prepareDraftByName('first-name', actor, reservation(selected))
+    ).commit();
+    const second = await (
+      await api.prepareDraftByName('second-name', actor, {
+        ...reservation(selected),
+        draftId: candidateId,
+        name: 'another-draft',
+      })
+    ).commit();
+    expect(first.record.sourceId).toBe(second.record.sourceId);
+    expect(first.record._id).not.toBe(second.record._id);
+    expect(await connection.db!.collection('capture_drafts').countDocuments()).toBe(2);
+  });
+
+  test.each([
+    { ...actor, ownerId: 'other' },
+    { ...actor, tenantId: 'other' },
+    { ...actor, tenantId: null },
+  ])('logical discovery isolates the actor scope %p', async (foreign) => {
+    await ready();
+    expect(await api.readDraftReservation(foreign, lookup)).toBeNull();
+  });
+
+  test('another owner can reserve the same name without adopting the existing owner draft', async () => {
+    await ready();
+    const foreign = { ...actor, ownerId: 'other' };
+    const selected = await currentReservation();
+    const draft = await (
+      await api.prepareDraftByName('other-owner', foreign, { ...selected, draftId: candidateId })
+    ).commit();
+    expect(draft.record.ownerId).toBe(foreign.ownerId);
+    expect(draft.record._id).toBe(candidateId);
+    expect((await api.readDraftReservation(actor, lookup))?._id).toBe(draftId);
+    expect((await api.readDraftReservation(foreign, lookup))?._id).toBe(candidateId);
+  });
+
+  test.each(['initializing', 'failed'] as const)(
+    '%s reservations cannot be reused as ready',
+    async (status) => {
+      let draft = await initializing();
+      if (status === 'failed')
+        draft = await (await api.prepareFail('fail', actor, expectation(draft))).commit();
+      const before = await connection.db!.collection('capture_receipts').countDocuments();
+      expect((await api.readDraftReservation(actor, lookup))?.status).toBe(status);
+      await expect(
+        api.prepareDraftByName('unavailable', actor, {
+          ...(await currentReservation()),
+          draftId: candidateId,
+        }),
+      ).rejects.toThrow('invalid_skill_selection');
+      expect(await api.readDraft(actor, draftId)).toEqual(draft);
+      expect(await api.readDraft(actor, candidateId)).toBeNull();
+      expect(await connection.db!.collection('capture_receipts').countDocuments()).toBe(before);
+    },
+  );
+
+  test.each(['other', null])(
+    'the same name in tenant %p reserves its own source and draft',
+    async (tenantId) => {
+      await ready();
+      const foreign = { ...actor, tenantId };
+      const foreignSourceId = 'e'.repeat(24);
+      const selected = await (
+        await api.prepareSource('foreign-source', foreign, {
+          sourceId: foreignSourceId,
+          expectedGeneration: 0,
+          upstreamRevision,
+          snapshot: await bundle('foreign', 'foreign bytes', {
+            tenantId,
+            skillId: foreignSourceId,
+          }),
+        })
+      ).commit();
+      await expect(
+        api.prepareDraftByName('foreign-selection', foreign, {
+          ...(await currentReservation()),
+          draftId: candidateId,
+        }),
+      ).rejects.toThrow('invalid_skill_selection');
+      const draft = await (
+        await api.prepareDraftByName('foreign-draft', foreign, {
+          ...reservation(selected),
+          draftId: candidateId,
+        })
+      ).commit();
+      expect(draft.record).toMatchObject({ _id: candidateId, tenantId, sourceId: foreignSourceId });
+      expect((await api.readDraftReservation(actor, lookup))?._id).toBe(draftId);
+      expect(
+        (await api.readDraftReservation(foreign, { ...lookup, sourceId: foreignSourceId }))?._id,
+      ).toBe(candidateId);
+      expect(await connection.db!.collection('capture_drafts').countDocuments()).toBe(2);
+    },
+  );
+
+  test.each(['actor', 'name', 'source', 'generation', 'digest'])(
+    'invalid %s rejects before discovery',
+    async (field) => {
+      const selected = await source();
+      const who = { ...actor };
+      const request = { ...reservation(selected), draftId: candidateId };
+      if (field === 'actor') who.ownerId = '';
+      if (field === 'name') request.name = { $ne: null } as never;
+      if (field === 'source') request.sourceId = 'invalid';
+      if (field === 'generation') request.sourceGeneration = 0;
+      if (field === 'digest') request.sourceDigest = 'invalid';
+      const spy = jest.spyOn(mongoose.mongo.Collection.prototype, 'findOne');
+      try {
+        await expect(api.prepareDraftByName('invalid-input', who, request)).rejects.toThrow(
+          'invalid_skill_selection',
+        );
+        expect(spy).not.toHaveBeenCalled();
+      } finally {
+        spy.mockRestore();
+      }
+    },
+  );
+
+  test('selected generation and caller inputs are detached before asynchronous discovery', async () => {
+    const selected = await source();
+    const request = { ...reservation(selected), draftId: candidateId };
+    const who = { ...actor };
+    let entered!: () => void;
+    let release!: () => void;
+    const started = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const released = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const original = mongoose.mongo.Collection.prototype.findOne;
+    let armed = true;
+    const spy = jest
+      .spyOn(mongoose.mongo.Collection.prototype, 'findOne')
+      .mockImplementation(async function (
+        this: mongo.Collection,
+        ...args: Parameters<typeof original>
+      ) {
+        if (armed && this.collectionName === 'capture_drafts') {
+          armed = false;
+          entered();
+          await released;
+        }
+        return original.apply(this, args);
+      });
+    const pending = api.prepareDraftByName('detached-lookup', who, request);
+    const settled = pending.then(
+      () => undefined,
+      () => undefined,
+    );
+    try {
+      await boundedDiscovery(started);
+      const newer = await (
+        await api.prepareSource('sync-during-discovery', actor, {
+          sourceId,
+          expectedGeneration: 1,
+          upstreamRevision,
+          snapshot: await bundle('new source'),
+        })
+      ).commit();
+      Object.assign(request, reservation(newer), { draftId: 'f'.repeat(24), name: 'mutated' });
+      who.ownerId = 'other';
+      who.tenantId = 'other';
+    } finally {
+      release();
+      spy.mockRestore();
+      await boundedDiscovery(settled).catch(() => undefined);
+    }
+    const draft = await (await boundedDiscovery(pending)).commit();
+    expect(draft.record).toMatchObject({
+      _id: candidateId,
+      ...actor,
+      name: lookup.name,
+      sourceId,
+      sourceGeneration: 1,
+      sourceDigest: selected.record.digest,
+    });
+  }, 15000);
+});
+
 describe('validated capture with the synthetic transactional fence', () => {
   let authority: Awaited<ReturnType<typeof createIsolatedCaptureAuthority>>;
   let grant: CaptureAuthorization;
@@ -1075,6 +1402,59 @@ describe('validated capture with the synthetic transactional fence', () => {
     expect(await blocked.resolve()).toBeNull();
     expect(await api.readDraft(actor, draftId)).toEqual(edited);
     expect(await useCount()).toBe(6);
+  });
+
+  test('logical ready reuse observes newer edits and still fences revocation after discovery', async () => {
+    const draft = await ready();
+    const request = { ...(await currentReservation()), draftId: 'd'.repeat(24) };
+    expect((await api.readDraftReservation(actor, request))?._id).toBe(draftId);
+    const plan = await api.prepareDraftByName('logical-reuse', actor, request);
+    const edited = await edit(draft, 'newer than discovery');
+    expect(await plan.commit()).toEqual(edited);
+    expect(edited.record.sourceGeneration).toBe(1);
+    const blocked = await api.prepareDraftByName('revoked-logical-reuse', actor, request);
+    await authority.replace(actor, sourceId, 1, []);
+    await expect(blocked.commit()).rejects.toThrow('authorization_denied');
+    expect(await blocked.resolve()).toBeNull();
+    expect(await api.readDraft(actor, draftId)).toEqual(edited);
+    expect(await api.readDraft(actor, request.draftId)).toBeNull();
+    expect(await useCount()).toBe(5);
+    expect(await connection.db!.collection('capture_receipts').countDocuments()).toBe(5);
+  });
+
+  test('logical reuse lost acknowledgement resolves the canonical historical receipt without replay', async () => {
+    const draft = await ready();
+    const plan = await api.prepareDraftByName('logical-lost-reply', actor, {
+      ...(await currentReservation()),
+      draftId: 'd'.repeat(24),
+    });
+    const loseReply = async () => {
+      await plan.commit();
+      throw new Error('lost_reply');
+    };
+    await expect(loseReply()).rejects.toThrow('lost_reply');
+    const edited = await edit(draft, 'after lost acknowledgement');
+    await (
+      await api.prepareSource('sync-after-lost-reply', actor, {
+        sourceId,
+        expectedGeneration: 1,
+        upstreamRevision,
+        snapshot: await bundle('later source'),
+      })
+    ).commit();
+    await authority.replace(actor, sourceId, 1, []);
+    const restarted = await createIsolatedFencedValidatedCapture(connection, grant);
+    const receiptCount = await connection.db!.collection('capture_receipts').countDocuments();
+    expect(await plan.resolve()).toEqual(draft);
+    expect(await restarted.resolveReceipt(actor, plan.operationId, plan.requestDigest)).toEqual(
+      draft,
+    );
+    expect(await api.readDraft(actor, draftId)).toEqual(edited);
+    expect(await connection.db!.collection('capture_receipts').countDocuments()).toBe(receiptCount);
+    expect(await useCount()).toBe(6);
+    await expect(plan.commit()).rejects.toThrow('operation_exists');
+    expect(await useCount()).toBe(6);
+    expect(await connection.db!.collection('capture_receipts').countDocuments()).toBe(receiptCount);
   });
 
   test('lost completion replies resolve exact historical bundles after edit, sync and revocation', async () => {
