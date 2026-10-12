@@ -11,8 +11,9 @@ import type {
   CaptureOperation,
 } from '@librechat/data-schemas/isolated-capture';
 import type { Connection, mongo } from 'mongoose';
-import type { IsolatedValidatedCapture, StoredSkillDraft } from './persistence';
+import type { IsolatedValidatedCapture, StoredSkillDraft, StoredSkillSource } from './persistence';
 import type { SkillBundleManifest, SkillBundleSnapshot } from './bundles';
+import type { GenerationFixture } from './generation.helper';
 import {
   activateValidatedSkillCapture,
   createIsolatedValidatedCapture,
@@ -75,6 +76,22 @@ function expectation(draft: StoredSkillDraft) {
   return { draftId, attempt: draft.record.attempt, revision: draft.record.revision };
 }
 
+function reservation(source: StoredSkillSource) {
+  return {
+    sourceId: source.record._id,
+    sourceGeneration: source.record.generation,
+    sourceDigest: source.record.digest,
+    draftId,
+    name: 'writer-draft',
+  };
+}
+
+async function currentReservation() {
+  const source = await api.readSource(actor, sourceId);
+  if (!source) throw new Error('missing_fixture_source');
+  return reservation(source);
+}
+
 async function source(snapshot?: SkillBundleSnapshot) {
   return (
     await api.prepareSource('source', actor, {
@@ -88,9 +105,7 @@ async function source(snapshot?: SkillBundleSnapshot) {
 
 async function initializing() {
   await source();
-  return (
-    await api.prepareDraft('reserve', actor, { sourceId, draftId, name: 'writer-draft' })
-  ).commit();
+  return (await api.prepareDraft('reserve', actor, await currentReservation())).commit();
 }
 
 async function copied(draft: StoredSkillDraft) {
@@ -154,7 +169,7 @@ test('pinned Git generations survive sync, draft copy and lost-reply recovery in
     const plan = await prepareGitHubSkillGeneration(api, 'git-first', actor, 0, first.input);
     const committed = await plan.commit();
     const draft = await (
-      await api.prepareDraft('git-draft', actor, { sourceId, draftId, name: 'writer-draft' })
+      await api.prepareDraft('git-draft', actor, reservation(committed))
     ).commit();
     const stale = await prepareGitHubSkillGeneration(api, 'git-stale', actor, 1, first.input);
     await (await prepareGitHubSkillGeneration(api, 'git-second', actor, 1, second.input)).commit();
@@ -178,6 +193,294 @@ test('pinned Git generations survive sync, draft copy and lost-reply recovery in
     first.close();
     second.close();
   }
+});
+
+describe('explicit Git generation handoff', () => {
+  let first: GenerationFixture;
+  let second: GenerationFixture;
+  let selected: StoredSkillSource;
+  let authority: Awaited<ReturnType<typeof createIsolatedCaptureAuthority>>;
+  let grant: CaptureAuthorization;
+  const operations: CaptureOperation[] = [
+    'source',
+    'reserve',
+    'complete',
+    'fail',
+    'recover',
+    'edit',
+  ];
+
+  beforeEach(async () => {
+    first = createGenerationFixture();
+    second = createGenerationFixture({
+      'SKILL.md': '---\nname: writer\ndescription: Writes\n---\nReplacement instructions',
+      'notes/readme.txt': 'replacement bytes',
+    });
+    authority = await createIsolatedCaptureAuthority(connection);
+    grant = await authority.replace(actor, sourceId, 0, operations);
+    api = await createIsolatedFencedValidatedCapture(connection, grant);
+    selected = await (
+      await prepareGitHubSkillGeneration(api, 'selected', actor, 0, first.input)
+    ).commit();
+  });
+
+  afterEach(() => {
+    first?.close();
+    second?.close();
+  });
+
+  async function advance() {
+    return (await prepareGitHubSkillGeneration(api, 'advance', actor, 1, second.input)).commit();
+  }
+
+  async function finish(draft: StoredSkillDraft) {
+    const result = await (
+      await api.prepareComplete('finish', actor, expectation(draft), await copied(draft))
+    ).commit();
+    expect(result.record.sourceGeneration).toBe(selected.record.generation);
+    expect(result.record.sourceDigest).toBe(selected.record.digest);
+    expect(validateSkillBundle(result.capture.snapshot!).definition.body).toContain(
+      'Original instructions',
+    );
+    expect(result.capture.snapshot!.files[0].base64).toBe(
+      Buffer.from('original bytes').toString('base64'),
+    );
+    return result;
+  }
+
+  test('sync before preparation cannot replace the selected retained generation', async () => {
+    await advance();
+    const plan = await api.prepareDraft('reserve-selected', actor, reservation(selected));
+    await finish(await plan.commit());
+    expect((await api.readSource(actor, sourceId))!.record.generation).toBe(2);
+  });
+
+  test('preparation reads the selected retained generation only once', async () => {
+    const original = mongoose.mongo.Collection.prototype.findOne;
+    let generationReads = 0;
+    const spy = jest
+      .spyOn(mongoose.mongo.Collection.prototype, 'findOne')
+      .mockImplementation(async function (
+        this: mongo.Collection,
+        ...args: Parameters<typeof original>
+      ) {
+        if (this.collectionName === 'capture_generations') generationReads++;
+        return original.apply(this, args);
+      });
+    try {
+      await api.prepareDraft('single-generation-read', actor, reservation(selected));
+      expect(generationReads).toBe(1);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test('sync during the actual retained-generation read cannot change the selection', async () => {
+    let entered!: () => void;
+    let release!: () => void;
+    const started = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const released = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const original = mongoose.mongo.Collection.prototype.findOne;
+    let armed = true;
+    const spy = jest
+      .spyOn(mongoose.mongo.Collection.prototype, 'findOne')
+      .mockImplementation(async function (
+        this: mongo.Collection,
+        ...args: Parameters<typeof original>
+      ) {
+        if (armed && this.collectionName === 'capture_generations') {
+          armed = false;
+          entered();
+          await released;
+        }
+        return original.apply(this, args);
+      });
+    const pending = api.prepareDraft('during-read', actor, reservation(selected));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        started,
+        new Promise<void>((_resolve, reject) => {
+          timer = setTimeout(() => reject(new Error('handoff_barrier_timeout')), 4000);
+        }),
+      ]);
+      await advance();
+    } finally {
+      clearTimeout(timer);
+      release();
+      spy.mockRestore();
+      await pending;
+    }
+    expect((await finish(await (await pending).commit())).record.sourceGeneration).toBe(1);
+  });
+
+  test.each([
+    'missing-generation',
+    'missing-digest',
+    'zero',
+    'fraction',
+    'future',
+    'digest',
+    'source',
+    'tenant',
+  ])('rejects %s without falling back to the current source or writing a receipt', async (kind) => {
+    const request = reservation(selected);
+    const identity = { ...actor };
+    if (kind === 'missing-generation') Reflect.deleteProperty(request, 'sourceGeneration');
+    if (kind === 'missing-digest') Reflect.deleteProperty(request, 'sourceDigest');
+    if (kind === 'zero') request.sourceGeneration = 0;
+    if (kind === 'fraction') request.sourceGeneration = 1.5;
+    if (kind === 'future') request.sourceGeneration = 2;
+    if (kind === 'digest') request.sourceDigest = 'f'.repeat(64);
+    if (kind === 'source') request.sourceId = 'f'.repeat(24);
+    if (kind === 'tenant') identity.tenantId = 'other';
+    await expect(api.prepareDraft('invalid-selection', identity, request)).rejects.toThrow(
+      'invalid_skill_selection',
+    );
+    expect(await connection.db!.collection('capture_drafts').countDocuments()).toBe(0);
+    expect(await connection.db!.collection('capture_receipts').countDocuments()).toBe(1);
+    expect(
+      (await connection.db!.collection<{ uses: number }>('capture_authority').findOne({}))?.uses,
+    ).toBe(1);
+  });
+
+  test('detaches actor and selection before asynchronous preparation', async () => {
+    const request = reservation(selected);
+    const identity = { ...actor };
+    const pending = api.prepareDraft('detached-selection', identity, request);
+    request.sourceGeneration = 999;
+    request.sourceDigest = 'f'.repeat(64);
+    request.sourceId = 'f'.repeat(24);
+    request.name = 'changed';
+    identity.ownerId = 'other';
+    identity.tenantId = 'other';
+    await advance();
+    expect((await finish(await (await pending).commit())).record.sourceGeneration).toBe(1);
+  });
+
+  test('rejects a digest from a different committed generation', async () => {
+    const newer = await advance();
+    await expect(
+      api.prepareDraft('mixed-generations', actor, {
+        ...reservation(selected),
+        sourceGeneration: newer.record.generation,
+      }),
+    ).rejects.toThrow('invalid_skill_selection');
+    expect(await connection.db!.collection('capture_drafts').countDocuments()).toBe(0);
+    expect(await connection.db!.collection('capture_receipts').countDocuments()).toBe(2);
+  });
+
+  test('competing reservations have one winner and cannot substitute a newer generation', async () => {
+    const newer = await advance();
+    const plans = await Promise.all([
+      api.prepareDraft('competing-old', actor, reservation(selected)),
+      api.prepareDraft('competing-new', actor, reservation(newer)),
+    ]);
+    const outcomes = await Promise.allSettled(plans.map((plan) => plan.commit()));
+    expect(outcomes.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(outcomes.filter((result) => result.status === 'rejected')).toHaveLength(1);
+    const winner = outcomes.findIndex((result) => result.status === 'fulfilled');
+    const draft = (await api.readDraft(actor, draftId))!;
+    expect(draft.record.sourceDigest).toBe([selected, newer][winner].record.digest);
+    expect(await plans[winner].resolve()).toEqual(draft);
+    expect(await plans[1 - winner].resolve()).toBeNull();
+    expect(await connection.db!.collection('capture_drafts').countDocuments()).toBe(1);
+  });
+
+  test('newer selection reuses ready edits and preserves historical reservation receipts', async () => {
+    const reservationPlan = await api.prepareDraft(
+      'reservation-reply-lost',
+      actor,
+      reservation(selected),
+    );
+    const draft = await reservationPlan.commit();
+    const completionPlan = await api.prepareComplete(
+      'completion-reply-lost',
+      actor,
+      expectation(draft),
+      await copied(draft),
+    );
+    const original = await completionPlan.commit();
+    const manifest = validateSkillBundle(original.capture.snapshot!);
+    const editedSnapshot = await captureSkillBundle({
+      manifest: { ...manifest, definition: { ...manifest.definition, body: 'user edits' } },
+      readFile: reader(original.capture.snapshot!),
+    });
+    const edited = await (
+      await api.prepareEdit('edit-selected', actor, expectation(original), editedSnapshot)
+    ).commit();
+    const newer = await advance();
+    expect(
+      await (await api.prepareDraft('reuse-selected', actor, reservation(newer))).commit(),
+    ).toEqual(edited);
+    api = await createIsolatedFencedValidatedCapture(connection, grant);
+    expect(
+      await api.resolveReceipt(actor, reservationPlan.operationId, reservationPlan.requestDigest),
+    ).toEqual(draft);
+    expect(
+      await api.resolveReceipt(actor, completionPlan.operationId, completionPlan.requestDigest),
+    ).toEqual(original);
+    await expect(reservationPlan.commit()).rejects.toThrow();
+    await expect(completionPlan.commit()).rejects.toThrow();
+    await expect(
+      api.resolveReceipt(
+        { ...actor, ownerId: 'other' },
+        reservationPlan.operationId,
+        reservationPlan.requestDigest,
+      ),
+    ).rejects.toThrow('invalid_skill_selection');
+    const foreign = await api.prepareDraft(
+      'foreign-owner',
+      { ...actor, ownerId: 'other' },
+      reservation(newer),
+    );
+    await expect(foreign.commit()).rejects.toThrow();
+    expect(await api.readDraft(actor, draftId)).toEqual(edited);
+  });
+
+  test('explicit recovery retains selected bytes and fences a stale attempt after sync and revocation', async () => {
+    const draft = await (
+      await api.prepareDraft('reserve-recovery', actor, reservation(selected))
+    ).commit();
+    const stale = await api.prepareComplete(
+      'stale-completion',
+      actor,
+      expectation(draft),
+      await copied(draft),
+    );
+    const failed = await (
+      await api.prepareFail('fail-selected', actor, expectation(draft))
+    ).commit();
+    await advance();
+    await authority.replace(actor, sourceId, grant.epoch, []);
+    await expect(stale.commit()).rejects.toThrow('authorization_denied');
+    expect(await stale.resolve()).toBeNull();
+    grant = await authority.replace(actor, sourceId, 2, operations);
+    api = await createIsolatedFencedValidatedCapture(connection, grant);
+    const recovered = await (
+      await api.prepareRecover('recover-selected', actor, expectation(failed))
+    ).commit();
+    await expect(
+      api.prepareComplete('wrong-attempt', actor, expectation(draft), await copied(draft)),
+    ).rejects.toThrow('invalid_skill_selection');
+    const result = await finish(recovered);
+    expect(result.record.attempt).toBe(2);
+    expect(await stale.resolve()).toBeNull();
+  });
+
+  test('revocation blocks a prepared retained-generation reservation without publishing a draft', async () => {
+    await advance();
+    const plan = await api.prepareDraft('revoked-selection', actor, reservation(selected));
+    await authority.replace(actor, sourceId, grant.epoch, []);
+    await expect(plan.commit()).rejects.toThrow('authorization_denied');
+    expect(await plan.resolve()).toBeNull();
+    expect(await connection.db!.collection('capture_drafts').countDocuments()).toBe(0);
+    expect(await connection.db!.collection('capture_receipts').countDocuments()).toBe(2);
+  });
 });
 
 test('an incomplete Git generation leaves no source, payload or receipt', async () => {
@@ -348,7 +651,7 @@ test('prepared source CAS rejects a concurrent sync without replacing its bundle
 
 test('prepared draft stays pinned across newer source generations', async () => {
   await source();
-  const plan = await api.prepareDraft('pin', actor, { sourceId, draftId, name: 'writer-draft' });
+  const plan = await api.prepareDraft('pin', actor, await currentReservation());
   await (
     await api.prepareSource('sync', actor, {
       sourceId,
@@ -390,7 +693,7 @@ test('valid ready edits survive sync and repeated draft creation, while stale ed
     })
   ).commit();
   const reused = await (
-    await api.prepareDraft('reuse', actor, { sourceId, draftId, name: 'writer-draft' })
+    await api.prepareDraft('reuse', actor, await currentReservation())
   ).commit();
   expect(reused).toEqual(edited);
   expect(validateSkillBundle(reused.capture.snapshot!).definition.body).toBe('user edits');
@@ -512,7 +815,7 @@ test.each(['fail', 'recover'] as const)(
 
 test('a prepared ready-reuse receipt survives subsequent edits', async () => {
   const draft = await ready();
-  const plan = await api.prepareDraft('reuse', actor, { sourceId, draftId, name: 'writer-draft' });
+  const plan = await api.prepareDraft('reuse', actor, await currentReservation());
   expect(await plan.commit()).toEqual(draft);
   const manifest = validateSkillBundle(draft.capture.snapshot!);
   const edited = await bundle('unused', 'original bytes', {
@@ -540,7 +843,13 @@ test('opaque storage cannot make an invalid bundle trusted merely by hashing it'
   );
   await expect(api.readSource(actor, sourceId)).rejects.toThrow('invalid_skill_selection');
   await expect(
-    api.prepareDraft('draft', actor, { sourceId, draftId, name: 'writer-draft' }),
+    api.prepareDraft('draft', actor, {
+      sourceId,
+      draftId,
+      name: 'writer-draft',
+      sourceGeneration: 1,
+      sourceDigest: digest,
+    }),
   ).rejects.toThrow('invalid_skill_selection');
 });
 
@@ -748,11 +1057,7 @@ describe('validated capture with the synthetic transactional fence', () => {
 
   test('ready reuse returns newer edits while retaining its base and still requires the grant', async () => {
     const original = await ready();
-    const reuse = await api.prepareDraft('reuse', actor, {
-      sourceId,
-      draftId,
-      name: 'writer-draft',
-    });
+    const reuse = await api.prepareDraft('reuse', actor, await currentReservation());
     const edited = await edit(original, 'user edit');
     await (
       await api.prepareSource('sync', actor, {
@@ -764,11 +1069,7 @@ describe('validated capture with the synthetic transactional fence', () => {
     ).commit();
     expect(await reuse.commit()).toEqual(edited);
     expect(edited.record.sourceGeneration).toBe(1);
-    const blocked = await api.prepareDraft('blocked-reuse', actor, {
-      sourceId,
-      draftId,
-      name: 'writer-draft',
-    });
+    const blocked = await api.prepareDraft('blocked-reuse', actor, await currentReservation());
     await authority.replace(actor, sourceId, 1, []);
     await expect(blocked.commit()).rejects.toThrow('authorization_denied');
     expect(await blocked.resolve()).toBeNull();

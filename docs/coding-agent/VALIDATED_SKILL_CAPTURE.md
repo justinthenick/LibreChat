@@ -28,8 +28,12 @@ writer dependencies and approval boundaries. Activation stays disabled.
 - Every source read checks both the payload's storage digest and bundle revision,
   manifest and all file bytes. It also checks the retained generation record.
   SHA-256 storage integrity alone never makes arbitrary JSON a valid bundle.
-- Draft preparation uses `beginSkillDraft`. A new draft pins the loaded generation
-  even if sync advances before commit. Existing ready drafts retain their edited
+- Draft preparation requires the selected committed `sourceGeneration` and
+  `sourceDigest` alongside `sourceId`. It validates that retained generation in
+  the actor's tenant; missing or mismatched references reject without a latest
+  source fallback. Inputs are detached before the first await. `beginSkillDraft`
+  pins those bytes even if sync advances before or during preparation or commit.
+  Existing ready drafts retain their edited
   snapshot and original source base; pending/failed drafts cannot be reused.
 - Completion uses `completeSkillDraft` to require the exact definition, manifest
   and file set derived from the pinned source. A separately valid bundle with a
