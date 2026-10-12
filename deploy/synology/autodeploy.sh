@@ -482,7 +482,7 @@ if [ -z "$REMOTE_SHA" ]; then log "ERROR: could not resolve remote branch $BRANC
 if [ "$LAST_SUCCESS_SHA" = "$REMOTE_SHA" ] && [ "$LOCAL_SHA" = "$REMOTE_SHA" ] && [ "$FORCE_DEPLOY" != "1" ]; then
   if steady_state_check; then
     log "No deployment change; healthy deployment already recorded at $(short_sha "$REMOTE_SHA")"
-    if telemetry_configured && { [ ! -f "$TELEMETRY_MARKER" ] || [ -n "$(find "$TELEMETRY_MARKER" -mmin +60 -print 2>/dev/null)" ]; }; then publish_telemetry check steady_state "$REMOTE_SHA" || true; fi
+    if telemetry_configured && python3 "$DEPLOY_DIR/telemetry-freshness.py" "$TELEMETRY_MARKER"; then publish_telemetry check steady_state "$REMOTE_SHA" || true; fi
     exit 0
   fi
   log "Recorded deployment at $(short_sha "$REMOTE_SHA") is not healthy; reconciling runtime state"
