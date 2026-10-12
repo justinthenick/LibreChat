@@ -1,30 +1,33 @@
 #!/bin/sh
-# Regression test for the steady-state telemetry publication gate.
+# Regression test for the production steady-state telemetry publication gate.
 set -eu
 SCRIPT="${1:-deploy/synology/autodeploy.sh}"
+GATE="${2:-deploy/synology/telemetry-freshness.py}"
 sh -n "$SCRIPT"
-LINE=$(grep -F 'if telemetry_configured && { [ ! -f "$TELEMETRY_MARKER" ]' "$SCRIPT")
-[ -n "$LINE" ] || { echo "telemetry gate missing" >&2; exit 1; }
+python3 -m py_compile "$GATE"
+grep -Fq 'if telemetry_configured && python3 "$DEPLOY_DIR/telemetry-freshness.py" "$TELEMETRY_MARKER"; then' "$SCRIPT" || { echo "production telemetry gate missing" >&2; exit 1; }
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT HUP INT TERM
-TELEMETRY_MARKER="$TMP/last-publish"
-REMOTE_SHA=test-sha
-CALLS="$TMP/calls"
-telemetry_configured() { return 0; }
-publish_telemetry() { printf '%s %s %s\n' "$1" "$2" "$3" >> "$CALLS"; }
-# Evaluate only the extracted condition, not the deployment script.
-check() {
-  : > "$CALLS"
-  eval "$LINE"
-  wc -l < "$CALLS" | tr -d ' '
-}
-[ "$(check)" = 1 ] || { echo "missing marker should publish" >&2; exit 1; }
-touch "$TELEMETRY_MARKER"
-[ "$(check)" = 0 ] || { echo "new marker should not publish" >&2; exit 1; }
-python3 - "$TELEMETRY_MARKER" <<'PY'
+MARKER="$TMP/last-publish"
+should_publish() { python3 "$GATE" "$MARKER" || { echo "expected telemetry publication" >&2; exit 1; }; }
+should_skip() { if python3 "$GATE" "$MARKER"; then echo "expected telemetry throttle" >&2; exit 1; fi; }
+set_age() {
+  python3 - "$MARKER" "$1" <<'PY'
 import os, sys, time
-stamp = time.time() - 65 * 60
+stamp = time.time() - int(sys.argv[2])
 os.utime(sys.argv[1], (stamp, stamp))
 PY
-[ "$(check)" = 1 ] || { echo "old marker should publish" >&2; exit 1; }
-echo "steady-state telemetry gate PASS"
+}
+should_publish  # Missing marker
+printf 'prior-success\n' > "$MARKER"
+should_skip     # Just published
+set_age 3500
+should_skip     # Less than one hour old
+set_age 3700
+should_publish  # More than one hour old
+set_age -1000
+should_publish  # Corrupt future marker cannot indefinitely suppress reports
+printf 'malformed marker content\n' > "$MARKER"
+set_age 3700
+should_publish  # Marker content is not parsed; actual mtime is authoritative
+printf 'steady-state telemetry gate PASS\n'
