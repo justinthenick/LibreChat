@@ -9,6 +9,7 @@ Status: implementation proposed in draft PR #225. Runtime change is **not yet me
 - `deploy/synology/launchpad-telemetry.py` already collects sanitized executor/maintenance connectivity.
 - `autodeploy.sh` invokes the publisher on successful deployments, deployment failures, and healthy steady-state polls when the marker is absent or older than 60 minutes. The NAS scheduler's enabled state and actual polling cadence are not yet verified.
 - The new `telemetry-freshness.py` uses Python 3 `os.stat().st_mtime`, not Synology-dependent `find -mmin`; host Python 3 is already required by `autodeploy.sh`.
+- A due heartbeat with an existing marker is `check / steady_state_periodic`, distinct from missing-marker `check / steady_state` recovery. This avoids false recovery statuses and hourly success-history commits. The routine poll updates the latest snapshots but does not create a historical recovery event.
 - `publish-telemetry.sh` updates the marker only after successful publication. An unsuccessful publish leaves the prior marker unchanged, allowing retry on a later healthy poll.
 - Focused shell regression test covers missing, recent, stale, future-dated, and malformed-content markers; `Synology Admin Settings` CI explicitly executes it.
 
