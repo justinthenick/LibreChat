@@ -49,3 +49,9 @@ export type CodeReviewRecovery =
       code: CodeReviewFailure;
       expiresAt: number;
     };
+
+/** Safe per-session discovery; never includes service credentials or filesystem paths. */
+export interface CodeReviewConfig {
+  enabled: boolean;
+  repositories: string[];
+}

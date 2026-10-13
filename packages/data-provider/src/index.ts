@@ -70,6 +70,7 @@ export * from './codeEnvRef';
 export * from './types/preview';
 
 export type {
+  CodeReviewConfig,
   CodeReviewRequest,
   CodeReviewFinding,
   CodeReviewResult,

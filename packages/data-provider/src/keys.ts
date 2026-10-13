@@ -1,4 +1,5 @@
 export enum QueryKeys {
+  reviewConfig = 'reviewConfig',
   previewJob = 'previewJob',
   messages = 'messages',
   sharedMessages = 'sharedMessages',

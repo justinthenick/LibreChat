@@ -17,6 +17,8 @@ import { ReviewWorkerError } from './worker';
 export interface ReviewRoutesConfig {
   enabled?: boolean;
   client: ReviewClientConfig;
+  /** Explicit tenant-scoped IDs; paths and caller-supplied policy are never accepted. */
+  repositories?: readonly { id: string; tenantId?: string }[];
 }
 
 /** Mandatory existing middleware is supplied by the thin LibreChat JS wrapper. */
@@ -25,6 +27,7 @@ export function createReviewRouter(
   security: {
     authenticate: RequestHandler;
     checkBan: RequestHandler;
+    authorize?: RequestHandler;
   },
 ): Router {
   const router = Router();
@@ -55,6 +58,17 @@ export function createReviewRouter(
     res.setHeader('cache-control', 'no-store');
     next();
   });
+  if (security.authorize) router.use(security.authorize);
+  const repositoriesFor = (req: ServerRequest) =>
+    config.repositories?.filter(({ tenantId }) => tenantId === resolveRequestTenantId(req));
+  const requireRepository = (req: ServerRequest, repository: string) => {
+    if (config.repositories && !repositoriesFor(req)?.some(({ id }) => id === repository))
+      throw new ReviewWorkerError('forbidden');
+  };
+  router.get('/config', (incoming, res) => {
+    const repositories = repositoriesFor(incoming as ServerRequest)?.map(({ id }) => id) ?? [];
+    res.status(200).json({ enabled: repositories.length > 0, repositories });
+  });
   router.use(json({ limit: 4096, strict: true }));
   const limit = (max: number) =>
     rateLimit({
@@ -84,6 +98,7 @@ export function createReviewRouter(
             .strict()
             .safeParse(req.body);
           if (!body.success) throw new ReviewWorkerError('invalid_request');
+          requireRepository(req, body.data.request.repository);
           const result = await client.run(body.data.request, principal, undefined, body.data.id);
           if (!res.destroyed) res.status(200).json(result);
         } else {
@@ -108,6 +123,7 @@ export function createReviewRouter(
         .safeParse(req.body);
       if (!body.success || Buffer.byteLength(JSON.stringify(req.body) ?? '') > 4096)
         throw new ReviewWorkerError('invalid_request');
+      requireRepository(req, body.data.request.repository);
       const record = await client.status(body.data.id, body.data.request, {
         userId: req.user!.id,
         tenantId: resolveRequestTenantId(req),

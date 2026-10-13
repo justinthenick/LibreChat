@@ -7,29 +7,112 @@ const { execFileSync } = require('node:child_process');
 const { randomUUID } = require('node:crypto');
 const { createServer } = require('node:http');
 const { createRequire } = require('node:module');
+const Module = require('node:module');
 const root = path.resolve(__dirname, '../../../../..');
 const appRequire = createRequire(path.join(root, 'package.json'));
 const express = appRequire('express');
 const jwt = appRequire('jsonwebtoken');
 const passport = appRequire('passport');
-const { Strategy, ExtractJwt } = appRequire('passport-jwt');
-const { createReviewRouter, createReviewHttpHandler } = appRequire('@librechat/api/coding');
+const api = appRequire('@librechat/api');
+const { createReviewHttpHandler } = appRequire('@librechat/api/coding');
 const requireJwtAuth = appRequire(path.join(root, 'api/server/middleware/requireJwtAuth.js'));
 const secret = 'offline-fixture-only-not-a-production-secret';
-let dir, repo, scratch, request, url, starts, servers;
+let dir, repo, scratch, request, url, starts, servers, serviceUrl;
+const bannedUsers = new Set();
+const banStore = new Map();
 const actualNow = Date.now.bind(Date);
 const users = {
-  alice: { id: 'alice', tenantId: 'tenant-a' },
-  bob: { id: 'bob', tenantId: 'tenant-a' },
-  eve: { id: 'eve', tenantId: 'tenant-b' },
+  alice: { _id: 'alice', role: 'ADMIN', tenantId: 'tenant-a' },
+  bob: { _id: 'bob', role: 'ADMIN', tenantId: 'tenant-a' },
+  eve: { _id: 'eve', role: 'ADMIN', tenantId: 'tenant-b' },
+  member: { _id: 'member', role: 'USER', tenantId: 'tenant-a' },
+  deleting: {
+    _id: 'deleting',
+    role: 'ADMIN',
+    tenantId: 'tenant-a',
+    agentTriggerDeletionStartedAt: new Date(),
+  },
 };
-passport.use(
-  'jwt',
-  new Strategy(
-    { jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), secretOrKey: secret },
-    (payload, done) => done(null, users[payload.sub] || false),
-  ),
-);
+function loadFixtureModule(relative, overrides) {
+  const original = Module._load;
+  Module._load = function (name, parent, main) {
+    if (Object.hasOwn(overrides, name)) return overrides[name];
+    return original.call(
+      this,
+      name.startsWith('~/') ? path.join(root, 'api', name.slice(2)) : name,
+      parent,
+      main,
+    );
+  };
+  try {
+    const target = path.join(root, relative);
+    delete appRequire.cache[appRequire.resolve(target)];
+    return appRequire(target);
+  } finally {
+    Module._load = original;
+  }
+}
+const models = {
+  getUserById: async (id) => (users[id] ? { ...users[id] } : null),
+  updateUser: async () => {
+    throw new Error('Fixture users must not require mutation');
+  },
+  findUser: async () => null,
+  getUserPrincipals: async ({ userId, role }) => [
+    { principalType: 'user', principalId: userId, role },
+  ],
+  hasCapabilityForPrincipals: async ({ principals, capability, tenantId }) =>
+    capability === 'access:admin' &&
+    principals.some(
+      ({ principalId }) =>
+        users[principalId]?.role === 'ADMIN' && users[principalId]?.tenantId === tenantId,
+    ),
+};
+process.env.JWT_SECRET = secret;
+const jwtLogin = loadFixtureModule('api/strategies/jwtStrategy.js', { '~/models': models });
+passport.use('jwt', jwtLogin());
+const checkBan = loadFixtureModule('api/server/middleware/checkBan.js', {
+  '@librechat/api': { ...api, keyvMongo: banStore },
+  '~/models': models,
+  '~/cache': {
+    getLogStores: () => ({
+      opts: { ttl: 60000 },
+      get: async (id) => (bannedUsers.has(id) ? { expiresAt: Date.now() + 60000 } : undefined),
+      delete: async () => true,
+    }),
+  },
+});
+const capabilities = loadFixtureModule('api/server/middleware/roles/capabilities.js', {
+  '~/models': models,
+});
+async function developmentApp(overrides = {}) {
+  Object.assign(process.env, {
+    NODE_ENV: 'development',
+    BAN_VIOLATIONS: 'true',
+    CODING_REVIEW_DEVELOPMENT: 'true',
+    CODING_REVIEW_URL: serviceUrl,
+    CODING_REVIEW_TOKEN: 'offline-review-service-token-fixture',
+    CODING_REVIEW_MODEL: 'gpt-5.6-sol',
+    CODING_REVIEW_REPOSITORIES: JSON.stringify([{ id: 'fixture', tenantId: 'tenant-a' }]),
+    ...overrides,
+  });
+  const router = loadFixtureModule('api/server/routes/reviewDevelopment.js', {
+    '~/server/middleware': { requireJwtAuth, checkBan },
+    '~/server/middleware/roles/capabilities': capabilities,
+  });
+  const app = express();
+  app.use(passport.initialize());
+  app.use(api.capabilityContextMiddleware);
+  app.use(
+    '/api/reviews',
+    (req, res, next) => {
+      if (req.method === 'POST' && req.path === '/') starts++;
+      next();
+    },
+    router,
+  );
+  return (await listen(() => app)) + '/api/reviews';
+}
 function git(...args) {
   return execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8' }).trim();
 }
@@ -62,7 +145,7 @@ async function post(route, body, user = 'alice', signal) {
     signal,
     headers: {
       'content-type': 'application/json',
-      authorization: `Bearer ${jwt.sign({ sub: user }, secret, { expiresIn: '1h' })}`,
+      authorization: `Bearer ${jwt.sign({ id: user }, secret, { expiresIn: '1h' })}`,
     },
     body: JSON.stringify(body),
   });
@@ -135,28 +218,10 @@ beforeEach(async () => {
   const service = await listen((address) =>
     createReviewHttpHandler({ ...config, url: address + '/review' }),
   );
-  const app = express();
-  app.use(passport.initialize());
-  app.use(
-    '/api/reviews',
-    (req, res, next) => {
-      if (req.method === 'POST' && req.path === '/') starts++;
-      next();
-    },
-    createReviewRouter(
-      {
-        enabled: true,
-        client: {
-          enabled: true,
-          url: service + '/review',
-          token: config.token,
-          model: config.worker.model,
-        },
-      },
-      { authenticate: requireJwtAuth, checkBan: (req, res, next) => next() },
-    ),
-  );
-  url = (await listen(() => app)) + '/api/reviews';
+  serviceUrl = service + '/review';
+  bannedUsers.clear();
+  banStore.clear();
+  url = await developmentApp();
 });
 afterEach(async () => {
   Date.now = actualNow;
@@ -220,7 +285,7 @@ test('owner switch: valid JWT for another owner or tenant cannot retrieve the re
   const id = randomUUID();
   await completed(id);
   assert.equal((await status(id, 'bob')).body.state, 'unknown');
-  assert.equal((await status(id, 'eve')).body.state, 'unknown');
+  assert.equal((await status(id, 'eve')).status, 403);
   assert.equal(
     (
       await fetch(url + '/status', {
@@ -244,4 +309,79 @@ test('expiry: retained outcome expires without resubmitting execution', async ()
   Date.now = () => actualNow() + 600001;
   assert.equal((await status(id)).body.state, 'unknown');
   assert.equal(starts, 1);
+});
+
+test('development gate: disabled and malformed configurations cannot start workers', async () => {
+  for (const setting of [
+    { CODING_REVIEW_DEVELOPMENT: 'false' },
+    { NODE_ENV: 'production' },
+    { CODING_REVIEW_REPOSITORIES: 'invalid' },
+    { CODING_REVIEW_TOKEN: 'short' },
+  ]) {
+    url = await developmentApp(setting);
+    assert.equal((await post('', { id: randomUUID(), request })).status, 503);
+    assert.equal(await exists('started'), false);
+  }
+});
+test('actual JWT, user-state, ban and capability checks prevent worker admission', async () => {
+  for (const user of ['missing', 'deleting', 'member']) {
+    assert.equal(
+      (await post('', { id: randomUUID(), request }, user)).status,
+      user === 'member' ? 403 : 401,
+    );
+  }
+  bannedUsers.add('alice');
+  assert.equal((await post('', { id: randomUUID(), request })).status, 403);
+  assert.equal(await exists('started'), false);
+});
+test('discovery exposes only authorized tenant repository IDs without service secrets', async () => {
+  const config = async (user) =>
+    fetch(url + '/config', {
+      headers: { authorization: `Bearer ${jwt.sign({ id: user }, secret, { expiresIn: '1h' })}` },
+    });
+  assert.deepEqual(await (await config('alice')).json(), {
+    enabled: true,
+    repositories: ['fixture'],
+  });
+  assert.deepEqual(await (await config('eve')).json(), { enabled: false, repositories: [] });
+  assert.equal((await config('member')).status, 403);
+  assert.equal((await fetch(url + '/config')).status, 401);
+  assert.equal(await exists('started'), false);
+});
+test('caller identity, repository and malformed head cannot override trusted policy', async () => {
+  const claimedAdmin = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${jwt.sign({ id: 'member', role: 'ADMIN', tenantId: 'tenant-b' }, secret, { expiresIn: '1h' })}`,
+      'x-tenant-id': 'tenant-a',
+    },
+    body: JSON.stringify({ id: randomUUID(), request }),
+  });
+  assert.equal(claimedAdmin.status, 403);
+
+  assert.equal(
+    (await post('', { id: randomUUID(), request, principal: { userId: 'alice' } }, 'member'))
+      .status,
+    403,
+  );
+  assert.equal(
+    (await post('', { id: randomUUID(), request: { ...request, repository: 'outside' } })).status,
+    403,
+  );
+  assert.equal((await post('', { id: randomUUID(), request }, 'eve')).status, 403);
+  assert.equal(
+    (await post('', { id: randomUUID(), request: { ...request, head: 'HEAD' } })).status,
+    400,
+  );
+  assert.equal(
+    (
+      await post('', {
+        id: randomUUID(),
+        request: { ...request, head: request.head + ';touch nope' },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(await exists('started'), false);
 });

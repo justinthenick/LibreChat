@@ -3,8 +3,9 @@
 This slice exports `createReviewHttpHandler(config)` and `createReviewRouter(config,
 security)`. The former returns a Node HTTP callback without creating or binding a
 server. `api/server/routes/reviews.js` supplies the existing `requireJwtAuth` and
-`checkBan` middleware to the router factory. It is deliberately absent from the
-application route index and server mounts. Both sides remain disabled by default;
+`checkBan` middleware to the router factory. The application now mounts a separate `reviewDevelopment.js` wrapper with
+the existing `ACCESS_ADMIN` capability check and validated development-only settings.
+See [development wiring](../../../../../custom/coding-agent/orchestrator/REVIEW.md#development-only-application-wiring-default-off). Both sides remain disabled by default;
 no credentials or environment settings are provisioned.
 
 ## Requests and ownership
@@ -73,7 +74,7 @@ Separate existing JWT, ban and tenant suites cover those middleware implementati
 the thin-wrapper test verifies composition using fixture security middleware.
 No deployed proxy, live identity provider, real credential or model call is involved.
 
-Activation remains separate: register routes only when explicitly authorized,
+Production activation remains separate:
 configure a dedicated service token and repository policy, approved private TLS
 path and hosts, single service process ownership, HTTP header/body/socket limits,
 proxy timeouts, sanitized audit integration and host lifecycle/aggregate limits.
@@ -81,7 +82,7 @@ No production listener or configuration is introduced here. Horizontal deploymen
 would require a deliberate ownership design; these process-local limits are not
 distributed guarantees.
 
-## Next smallest UI slice
+## Original UI requirements (implemented in the development panel)
 
 Add a disabled/gated authenticated review form using existing shared primitives,
 English localization and React Query. Submit an authorized repository identifier

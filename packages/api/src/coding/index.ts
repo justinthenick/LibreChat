@@ -18,3 +18,5 @@ export { createReviewHttpHandler } from './review/http';
 export { createReviewRouter } from './review/routes';
 export type { ReviewRoutesConfig } from './review/routes';
 export type { ReviewClient } from './review/transport';
+
+export { getDevelopmentReviewConfig } from './review/development';
