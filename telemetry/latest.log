@@ -1,40 +1,40 @@
-2026-10-13 20:10:05 LibreChat deployment check started
-2026-10-13 20:10:05 Cloudflare tunnel integration enabled
-2026-10-13 20:10:05 Synology Admin Settings integration enabled
-2026-10-13 20:11:27 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-13 20:15:02 LibreChat deployment check started
-2026-10-13 20:15:03 Cloudflare tunnel integration enabled
-2026-10-13 20:15:03 Synology Admin Settings integration enabled
-2026-10-13 20:16:25 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-13 20:20:08 LibreChat deployment check started
-2026-10-13 20:20:08 Cloudflare tunnel integration enabled
-2026-10-13 20:20:08 Synology Admin Settings integration enabled
-2026-10-13 20:22:42 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-13 20:25:04 LibreChat deployment check started
-2026-10-13 20:25:05 Cloudflare tunnel integration enabled
-2026-10-13 20:25:05 Synology Admin Settings integration enabled
-2026-10-13 20:26:30 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-13 20:30:02 LibreChat deployment check started
-2026-10-13 20:30:02 Cloudflare tunnel integration enabled
-2026-10-13 20:30:02 Synology Admin Settings integration enabled
-2026-10-13 20:31:30 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-13 20:35:07 LibreChat deployment check started
-2026-10-13 20:35:07 Deployment lock is present; wait for its owner or review interrupted deployment on the host
-2026-10-13 20:40:14 LibreChat deployment check started
-2026-10-13 20:40:16 Deployment lock is present; wait for its owner or review interrupted deployment on the host
-2026-10-13 20:45:10 LibreChat deployment check started
-2026-10-13 20:45:10 Deployment lock is present; wait for its owner or review interrupted deployment on the host
-2026-10-13 20:50:11 LibreChat deployment check started
-2026-10-13 20:50:12 Deployment lock is present; wait for its owner or review interrupted deployment on the host
-2026-10-13 20:55:10 LibreChat deployment check started
-2026-10-13 20:55:10 Deployment lock is present; wait for its owner or review interrupted deployment on the host
-2026-10-13 21:00:13 LibreChat deployment check started
-2026-10-13 21:00:14 Deployment lock is present; wait for its owner or review interrupted deployment on the host
-2026-10-13 21:05:27 LibreChat deployment check started
-2026-10-13 21:05:27 Deployment lock is present; wait for its owner or review interrupted deployment on the host
-2026-10-13 21:10:15 LibreChat deployment check started
-2026-10-13 21:10:15 Deployment lock is present; wait for its owner or review interrupted deployment on the host
-2026-10-13 21:15:13 LibreChat deployment check started
-2026-10-13 21:15:14 Cloudflare tunnel integration enabled
-2026-10-13 21:15:14 Synology Admin Settings integration enabled
-2026-10-13 21:22:44 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-13 21:23:44 Cloudflare tunnel integration enabled
+2026-10-13 21:23:44 Synology Admin Settings integration enabled
+2026-10-13 21:27:39 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-13 21:27:50 LibreChat deployment check started
+2026-10-13 21:27:51 Cloudflare tunnel integration enabled
+2026-10-13 21:27:51 Synology Admin Settings integration enabled
+2026-10-13 21:29:18 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-13 21:30:07 LibreChat deployment check started
+2026-10-13 21:30:07 Cloudflare tunnel integration enabled
+2026-10-13 21:30:07 Synology Admin Settings integration enabled
+2026-10-13 21:31:35 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-13 21:35:04 LibreChat deployment check started
+2026-10-13 21:35:04 Cloudflare tunnel integration enabled
+2026-10-13 21:35:04 Synology Admin Settings integration enabled
+2026-10-13 21:36:36 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-13 21:40:03 LibreChat deployment check started
+2026-10-13 21:40:04 Cloudflare tunnel integration enabled
+2026-10-13 21:40:04 Synology Admin Settings integration enabled
+2026-10-13 21:42:09 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-13 21:45:03 LibreChat deployment check started
+2026-10-13 21:45:04 Cloudflare tunnel integration enabled
+2026-10-13 21:45:04 Synology Admin Settings integration enabled
+2026-10-13 21:46:41 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-13 21:50:07 LibreChat deployment check started
+2026-10-13 21:50:08 Cloudflare tunnel integration enabled
+2026-10-13 21:50:08 Synology Admin Settings integration enabled
+2026-10-13 21:51:49 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-13 21:55:09 LibreChat deployment check started
+2026-10-13 21:55:10 Cloudflare tunnel integration enabled
+2026-10-13 21:55:10 Synology Admin Settings integration enabled
+2026-10-13 21:56:36 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 06:50:03 LibreChat deployment check started
+2026-10-14 07:31:49 Cloudflare tunnel integration enabled
+2026-10-14 07:31:49 Synology Admin Settings integration enabled
+2026-10-14 07:44:03 Recorded deployment at f30a5524 is not healthy; reconciling runtime state
+2026-10-14 07:44:03 Reconciling unhealthy deployment at f30a5524
+2026-10-14 07:44:06 Official LibreChat Admin Panel dedicated session secret ready
+2026-10-14 07:44:10 Synology Admin Settings privileged worker ready
+2026-10-14 07:44:20 ERROR: NAS read-only infrastructure worker did not become ready
+2026-10-14 07:44:20 Collecting deployment diagnostics for stage nas_infra_worker
