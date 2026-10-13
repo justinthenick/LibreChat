@@ -49,7 +49,8 @@ class DNSOverlaySelectionTests(unittest.TestCase):
                         files.append(root / "docker-compose.admin.yml")
                     if dns:
                         files.append(dns_path)
-                    args = ["up", "-d", "--no-deps", "--force-recreate", "api"]
+                    args = ["--project-name", "existing-project", "up", "-d",
+                            "--no-deps", "--force-recreate", "api"]
                     expected = ["docker-compose"]
                     for file in files:
                         expected.extend(["-f", str(file)])
@@ -124,9 +125,13 @@ class DNSOverlayComposeTests(unittest.TestCase):
         self.assertEqual(self.config().stdout, before.stdout)
 
     def test_invalid_dns_is_rejected_by_compose(self):
-        self.overlay.write_text(json.dumps({"version": "3.7",
-            "services": {"api": {"dns": {"invalid": "resolver"}}}}))
-        self.assertNotEqual(self.config(overlay=True).returncode, 0)
+        for content in (
+            json.dumps({"version": "3.7", "services": {"api": {"dns": {"invalid": "resolver"}}}}),
+            'version: "3.7"\nservices: [',
+        ):
+            with self.subTest(content=content):
+                self.overlay.write_text(content)
+                self.assertNotEqual(self.config(overlay=True).returncode, 0)
 
     def test_existing_dns_is_preserved_by_default_and_merges_when_enabled(self):
         data = json.loads(self.base.read_text())
