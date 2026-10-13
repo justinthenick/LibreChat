@@ -741,3 +741,30 @@ describe('axios 401 interceptor — Authorization header guard', () => {
     expect(getCallsForUrl('/api/messages')).toHaveLength(1);
   });
 });
+
+describe('non-replaying review POST helper', () => {
+  it('does not replay a 401 or invoke refresh after sending', async () => {
+    setTokenHeader('fixture-not-expiring-token');
+    mockAdapter.mockImplementation((config: InternalAxiosRequestConfig) => create401Error(config));
+    await expect(dataRequest.postOnce('/api/reviews', { id: 'fixture' })).rejects.toMatchObject({
+      response: { status: 401 },
+    });
+    expect(mockAdapter).toHaveBeenCalledTimes(1);
+    expect(getCallsForUrl('/api/auth/refresh')).toHaveLength(0);
+    expect(mockAdapter.mock.calls[0][0].timeout).toBe(180000);
+  });
+  it('does not retry an uncertain failure and respects a pre-aborted signal', async () => {
+    setTokenHeader('fixture-not-expiring-token');
+    mockAdapter.mockRejectedValue(new Error('connection lost'));
+    await expect(dataRequest.postOnce('/api/reviews', { id: 'fixture' })).rejects.toThrow(
+      'connection lost',
+    );
+    expect(mockAdapter).toHaveBeenCalledTimes(1);
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      dataRequest.postOnce('/api/reviews', { id: 'fixture' }, controller.signal),
+    ).rejects.toBeDefined();
+    expect(mockAdapter).toHaveBeenCalledTimes(1);
+  });
+});
