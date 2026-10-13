@@ -831,3 +831,12 @@ that remote work stopped. Uncontained workers can bypass Python wrappers. No liv
 auth files, service identity/ACLs, provider compatibility or network behavior are
 established. Actual authenticated worker delivery, trusted provider key provenance
 and reviewed containment remain prerequisites for any future activation.
+
+
+## Finish-only PR review (Stage 4)
+
+The separate `coding-agent-pr-review` entry point reviews an operator-selected
+local commit pair. It never connects to `coding_executor`, publishes to GitHub,
+approves a PR, merges, or deploys. See `REVIEW.md` for the integration contract,
+acceptance procedure, limits, and remaining gates. From an uninstalled checkout,
+use `PYTHONPATH=src python -B -m coding_orchestrator.review_cli`.

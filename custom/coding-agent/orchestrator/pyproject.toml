@@ -23,6 +23,7 @@ openhands = [
 
 [project.scripts]
 coding-agent-backend = "coding_orchestrator.cli:main"
+coding-agent-pr-review = "coding_orchestrator.review_cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/coding_orchestrator"]
