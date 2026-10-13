@@ -1,8 +1,3 @@
-2026-10-13 21:35:04 Synology Admin Settings integration enabled
-2026-10-13 21:36:36 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-13 21:40:03 LibreChat deployment check started
-2026-10-13 21:40:04 Cloudflare tunnel integration enabled
-2026-10-13 21:40:04 Synology Admin Settings integration enabled
 2026-10-13 21:42:09 No deployment change; healthy deployment already recorded at f30a5524
 2026-10-13 21:45:03 LibreChat deployment check started
 2026-10-13 21:45:04 Cloudflare tunnel integration enabled
@@ -38,3 +33,8 @@
 2026-10-14 09:06:22 Image pull completed
 2026-10-14 09:15:57 ERROR: Compose update failed
 2026-10-14 09:15:57 Collecting deployment diagnostics for stage compose_up
+2026-10-14 09:19:08 Sanitised GitHub telemetry published
+2026-10-14 09:20:10 LibreChat deployment check started
+2026-10-14 09:20:11 Cloudflare tunnel integration enabled
+2026-10-14 09:20:11 Synology Admin Settings integration enabled
+2026-10-14 09:28:24 No deployment change; healthy deployment already recorded at f30a5524
