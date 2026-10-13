@@ -35,6 +35,7 @@ import {
   useRefreshTokenMutation,
 } from '~/data-provider';
 import { TAuthConfig, TUserContext, TAuthContext, TResError } from '~/common';
+import { PREVIEW_STORAGE_PREFIX } from '~/data-provider/Preview/session';
 import useTimeout from './useTimeout';
 import store from '~/store';
 
@@ -51,6 +52,13 @@ if (import.meta.hot) {
  * that reliably sees the transition. Both are cleared together so neither can be added to an exit
  * path the other was wired into. */
 const endSessionClientState = (): void => {
+  try {
+    Object.keys(sessionStorage)
+      .filter((key) => key.startsWith(PREVIEW_STORAGE_PREFIX))
+      .forEach((key) => sessionStorage.removeItem(key));
+  } catch {
+    // Storage can be unavailable in restricted browser sessions.
+  }
   clearRetainedFileDeletions();
   clearComposerDraftStorage();
 };

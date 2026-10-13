@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { SkillSyncGitHubSourceConfig } from 'librechat-data-provider';
 import type {
   RepoCommit,
@@ -11,11 +12,22 @@ import { normalizeRepoPath } from '../path';
 import { SkillSyncError } from '../errors';
 
 const GITHUB_API_BASE = 'https://api.github.com';
+const MAX_GIT_COMPONENT_BYTES = 255;
+const MAX_GIT_PATH_BYTES = 4096;
+const MAX_RETAINED_GIT_PATH_BYTES = 8 * 1024 * 1024;
+const MAX_GIT_TREE_REQUESTS = 256;
+const MAX_GIT_TREE_RESPONSE_BYTES = 32 * 1024 * 1024;
+
+interface GitAcquisitionBudget {
+  remainingEntries: number;
+  remainingBytes: number;
+  remainingRequests: number;
+}
 
 export const GITHUB_FINE_GRAINED_TOKEN_RECOMMENDATION =
   'Use a GitHub fine-grained personal access token scoped to the selected repository with read-only Contents and Metadata permissions.';
 
-type FetchFn = typeof fetch;
+type FetchFn = (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch>;
 
 type GitHubTreeEntry = {
   path: string;
@@ -52,7 +64,59 @@ export type GitHubRepoAdapterConfig = {
   source: SkillSyncGitHubSourceConfig;
   token: string;
   fetchFn: FetchFn;
+  /** Opt-in complete Git-object verification; legacy mirror behavior is unchanged. */
+  verifyGitObjects?: boolean;
 };
+
+function gitHash(type: 'blob' | 'tree', bytes: Buffer): string {
+  return createHash('sha1').update(`${type} ${bytes.length}\0`).update(bytes).digest('hex');
+}
+
+function invalidObject(): never {
+  throw new SkillSyncError('GITHUB_OBJECT_INVALID', 'GitHub object failed integrity validation');
+}
+
+function verifyTree(tree: GitHubTreeResponse, sha: string): void {
+  if (tree.sha !== sha || !/^[a-f0-9]{40}$/.test(sha) || tree.truncated) invalidObject();
+  if (!Array.isArray(tree.tree) || tree.tree.length > 10000) invalidObject();
+  const names = new Set<string>();
+  const entries = tree.tree
+    .map((entry) => {
+      if (
+        typeof entry.path !== 'string' ||
+        !entry.path ||
+        Buffer.byteLength(entry.path, 'utf8') > MAX_GIT_COMPONENT_BYTES ||
+        /[\0/\\]/.test(entry.path) ||
+        entry.path === '.' ||
+        entry.path === '..' ||
+        names.has(entry.path) ||
+        !/^[a-f0-9]{40}$/.test(entry.sha) ||
+        !(
+          (entry.type === 'tree' && entry.mode === '040000') ||
+          (entry.type === 'blob' && ['100644', '100755', '120000'].includes(entry.mode)) ||
+          (entry.type === 'commit' && entry.mode === '160000')
+        )
+      )
+        invalidObject();
+      names.add(entry.path);
+      return entry;
+    })
+    .sort((a, b) =>
+      Buffer.compare(
+        Buffer.from(a.path + (a.type === 'tree' ? '/' : '')),
+        Buffer.from(b.path + (b.type === 'tree' ? '/' : '')),
+      ),
+    );
+  const bytes = Buffer.concat(
+    entries.map((entry) =>
+      Buffer.concat([
+        Buffer.from(`${entry.mode.replace(/^0/, '')} ${entry.path}\0`),
+        Buffer.from(entry.sha, 'hex'),
+      ]),
+    ),
+  );
+  if (gitHash('tree', bytes) !== sha) invalidObject();
+}
 
 function buildGitHubHeaders(token: string): HeadersInit {
   return {
@@ -80,6 +144,42 @@ async function readGitHubErrorMessage(response: Response): Promise<string | unde
   }
 }
 
+/** Inspect only a small error prefix, with a deadline for nonclosing bodies. */
+async function readBoundedGitHubErrorMessage(response: Response): Promise<string | undefined> {
+  const reader = response.body?.getReader();
+  if (!reader) return undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), 500);
+  });
+  const read = async (): Promise<string | undefined> => {
+    const chunks: Uint8Array[] = [];
+    let length = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        length += value.byteLength;
+        if (length > 16 * 1024 || chunks.length >= 256) return undefined;
+        chunks.push(value);
+      }
+      const body = JSON.parse(
+        new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)),
+      ) as { message?: unknown };
+      return typeof body?.message === 'string' ? body.message : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  try {
+    return await Promise.race([read(), timeout]);
+  } finally {
+    clearTimeout(timer);
+    void reader.cancel().catch(() => undefined);
+    reader.releaseLock();
+  }
+}
+
 function isGitHubRateLimitResponse(params: {
   status: number;
   remaining: string | null;
@@ -97,6 +197,8 @@ async function githubJson<T>(params: {
   fetchFn: FetchFn;
   token: string;
   pathname: string;
+  maxResponseBytes?: number;
+  onResponseBytes?: (bytes: number) => void;
 }): Promise<T> {
   let response: Response;
   try {
@@ -110,11 +212,40 @@ async function githubJson<T>(params: {
     );
   }
   if (response.ok) {
+    if (params.maxResponseBytes !== undefined) {
+      const reader = response.body?.getReader();
+      if (!reader) invalidObject();
+      const chunks: Uint8Array[] = [];
+      let length = 0;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          length += value.byteLength;
+          if (length > params.maxResponseBytes || chunks.length > 100000) invalidObject();
+          params.onResponseBytes?.(value.byteLength);
+          chunks.push(value);
+        }
+        return JSON.parse(
+          new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)),
+        ) as T;
+      } finally {
+        void reader.cancel().catch(() => undefined);
+        reader.releaseLock();
+      }
+    }
     return (await response.json()) as T;
   }
   const remaining = response.headers.get('x-ratelimit-remaining');
   const retryAfter = response.headers.get('retry-after');
-  const message = await readGitHubErrorMessage(response);
+  let message: string | undefined;
+  if (params.maxResponseBytes === undefined) {
+    message = await readGitHubErrorMessage(response);
+  } else if (response.status === 403 && remaining !== '0' && !retryAfter) {
+    message = await readBoundedGitHubErrorMessage(response);
+  } else {
+    void response.body?.cancel().catch(() => undefined);
+  }
   if (response.status === 401 || response.status === 403 || response.status === 429) {
     const code = isGitHubRateLimitResponse({
       status: response.status,
@@ -154,14 +285,32 @@ export function createGitHubRepoAdapter(config: GitHubRepoAdapterConfig): GitRep
   const owner = encodeURIComponent(source.owner);
   const repo = encodeURIComponent(source.repo);
 
-  async function fetchTree(treeSha: string, recursive: boolean): Promise<GitHubTreeResponse> {
-    return githubJson<GitHubTreeResponse>({
+  async function fetchTree(
+    treeSha: string,
+    recursive: boolean,
+    budget?: GitAcquisitionBudget,
+  ): Promise<GitHubTreeResponse> {
+    if (budget && budget.remainingRequests-- <= 0) invalidObject();
+    const tree = await githubJson<GitHubTreeResponse>({
       fetchFn,
       token,
       pathname: `/repos/${owner}/${repo}/git/trees/${encodeURIComponent(treeSha)}${
         recursive ? '?recursive=1' : ''
       }`,
+      maxResponseBytes: config.verifyGitObjects ? 8 * 1024 * 1024 : undefined,
+      onResponseBytes: budget
+        ? (bytes) => {
+            if (bytes > budget.remainingBytes) invalidObject();
+            budget.remainingBytes -= bytes;
+          }
+        : undefined,
     });
+    if (budget) {
+      if (!Array.isArray(tree.tree) || tree.tree.length > budget.remainingEntries) invalidObject();
+      budget.remainingEntries -= tree.tree.length;
+    }
+    if (config.verifyGitObjects) verifyTree(tree, treeSha);
+    return tree;
   }
 
   /**
@@ -173,11 +322,12 @@ export function createGitHubRepoAdapter(config: GitHubRepoAdapterConfig): GitRep
     rootTreeSha: string,
     normalizedPath: string,
     assertNotCancelled: AssertNotCancelled,
+    budget?: GitAcquisitionBudget,
   ): Promise<string> {
     let treeSha = rootTreeSha;
     for (const segment of normalizedPath.split('/')) {
       assertNotCancelled();
-      const tree = await fetchTree(treeSha, false);
+      const tree = await fetchTree(treeSha, false, budget);
       assertNotCancelled();
       if (tree.truncated) {
         throw new SkillSyncError('GITHUB_TREE_TRUNCATED', 'GitHub tree response was truncated');
@@ -199,7 +349,15 @@ export function createGitHubRepoAdapter(config: GitHubRepoAdapterConfig): GitRep
       fetchFn,
       token,
       pathname: `/repos/${owner}/${repo}/commits/${encodeGitHubPath(source.ref)}`,
+      maxResponseBytes: config.verifyGitObjects ? 8 * 1024 * 1024 : undefined,
     });
+    if (
+      config.verifyGitObjects &&
+      (!/^[a-f0-9]{40}$/.test(source.ref) ||
+        commit.sha !== source.ref ||
+        !/^[a-f0-9]{40}$/.test(commit.commit.tree.sha))
+    )
+      invalidObject();
     return { id: commit.sha, treeId: commit.commit.tree.sha };
   }
 
@@ -208,9 +366,63 @@ export function createGitHubRepoAdapter(config: GitHubRepoAdapterConfig): GitRep
     params: FetchTreeEntriesParams,
   ): Promise<RepoTreeEntry[]> {
     const normalizedPath = normalizeRepoPath(params.pathPrefix);
+    const prefixBytes = Buffer.byteLength(normalizedPath, 'utf8');
+    const prefixDepth = normalizedPath ? normalizedPath.split('/').length : 0;
+    if (
+      config.verifyGitObjects &&
+      (prefixBytes > MAX_GIT_PATH_BYTES ||
+        prefixDepth > 64 ||
+        normalizedPath
+          .split('/')
+          .some((part) => Buffer.byteLength(part, 'utf8') > MAX_GIT_COMPONENT_BYTES))
+    )
+      invalidObject();
+    const budget = config.verifyGitObjects
+      ? {
+          remainingEntries: 10000,
+          remainingBytes: MAX_GIT_TREE_RESPONSE_BYTES,
+          remainingRequests: MAX_GIT_TREE_REQUESTS,
+        }
+      : undefined;
     const treeSha = normalizedPath
-      ? await resolveTreeShaAtPath(commit.treeId, normalizedPath, params.assertNotCancelled)
+      ? await resolveTreeShaAtPath(commit.treeId, normalizedPath, params.assertNotCancelled, budget)
       : commit.treeId;
+
+    if (config.verifyGitObjects) {
+      const entries: RepoTreeEntry[] = [];
+      const pending = [{ sha: treeSha, prefix: normalizedPath, prefixBytes, depth: prefixDepth }];
+      let retainedPathBytes = 0;
+      while (pending.length) {
+        const current = pending.pop()!;
+        params.assertNotCancelled();
+        if (current.depth > 64) invalidObject();
+        const tree = await fetchTree(current.sha, false, budget);
+        params.assertNotCancelled();
+        for (const entry of tree.tree) {
+          params.assertNotCancelled();
+          const pathBytes =
+            current.prefixBytes + (current.prefix ? 1 : 0) + Buffer.byteLength(entry.path, 'utf8');
+          if (
+            entries.length >= 10000 ||
+            current.depth > 64 ||
+            pathBytes > MAX_GIT_PATH_BYTES ||
+            pathBytes > MAX_RETAINED_GIT_PATH_BYTES - retainedPathBytes
+          )
+            invalidObject();
+          retainedPathBytes += pathBytes;
+          const path = current.prefix ? `${current.prefix}/${entry.path}` : entry.path;
+          entries.push({ ...toRepoTreeEntry(entry, path), mode: entry.mode });
+          if (entry.type === 'tree')
+            pending.push({
+              sha: entry.sha,
+              prefix: path,
+              prefixBytes: pathBytes,
+              depth: current.depth + 1,
+            });
+        }
+      }
+      return entries;
+    }
 
     params.assertNotCancelled();
     const tree = await fetchTree(treeSha, true);
@@ -227,10 +439,19 @@ export function createGitHubRepoAdapter(config: GitHubRepoAdapterConfig): GitRep
   }
 
   async function fetchFileContent(_commit: RepoCommit, entry: RepoTreeEntry): Promise<Buffer> {
+    if (
+      config.verifyGitObjects &&
+      (!Number.isSafeInteger(entry.size) ||
+        entry.size === undefined ||
+        entry.size < 0 ||
+        entry.size > 5 * 1024 * 1024)
+    )
+      invalidObject();
     const blob = await githubJson<GitHubBlobResponse>({
       fetchFn,
       token,
       pathname: `/repos/${owner}/${repo}/git/blobs/${encodeURIComponent(entry.id)}`,
+      maxResponseBytes: config.verifyGitObjects ? 2 * entry.size! + 65536 : undefined,
     });
     if (blob.encoding !== 'base64') {
       throw new SkillSyncError(
@@ -238,7 +459,18 @@ export function createGitHubRepoAdapter(config: GitHubRepoAdapterConfig): GitRep
         `Unsupported GitHub blob encoding "${blob.encoding}"`,
       );
     }
-    return Buffer.from(blob.content.replace(/\s/g, ''), 'base64');
+    const content = blob.content.replace(/\s/g, '');
+    const bytes = Buffer.from(content, 'base64');
+    if (
+      config.verifyGitObjects &&
+      (blob.sha !== entry.id ||
+        blob.size !== bytes.length ||
+        entry.size !== bytes.length ||
+        bytes.toString('base64') !== content ||
+        gitHash('blob', bytes) !== entry.id)
+    )
+      invalidObject();
+    return bytes;
   }
 
   return { resolveCommit, fetchTreeEntries, fetchFileContent };

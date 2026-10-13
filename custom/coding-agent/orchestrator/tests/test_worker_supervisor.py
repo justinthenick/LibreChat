@@ -1,0 +1,325 @@
+"""Real ledgers, child worker and SDK; only external authority/provider are fixtures."""
+from contextlib import contextmanager
+from dataclasses import replace
+from functools import partial
+import importlib
+from pathlib import Path
+import socket
+import sys
+import tempfile
+import threading
+import time
+import unittest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "executor" / "src"))
+from coding_executor.executions import Observation
+from coding_orchestrator.job_store import ExecutionIdentity as JobIdentity, JobStore, StoreBusy
+from coding_orchestrator.jobs import JobError, JobRequest, JobService, Principal, RunScope
+from coding_orchestrator.job_worker import ProcessWorker, RunContext
+from coding_orchestrator.openhands_profile import create_openhands_profile
+from test_profile_sdk_integration import (ExecutorFixture, FixtureTransport, GuardedFixtureRunner,
+                                         fixture_llm, fixture_token, BEFORE, AFTER)
+
+
+def attempt_token(claim):
+    return "synthetic-attempt-" + claim.attempt_id
+
+
+def bind_fixture_runner(runner, claim):
+    return GuardedFixtureRunner(replace(runner, token_factory=partial(attempt_token, claim)), runner.endpoint)
+
+
+def simple_runner(context, control):
+    from test_jobs import result
+    control.before_provider_request()
+    return result()
+
+
+class SlowSerializedRunner:
+    def __reduce__(self):
+        time.sleep(.1)
+        return (SlowSerializedRunner, ())
+
+    def __call__(self, context, control):
+        return simple_runner(context, control)
+
+
+class FencedFixture(ExecutorFixture):
+    authority_id = "synthetic-supervisor"
+
+    def __init__(self, root):
+        super().__init__(root)
+        self.claim = None
+        self.sealed = False
+        self.requests = 0
+        self.proof_available = True
+        self.launch_mode = "running"
+        self.inspect = None
+        self.stop_gate = None
+        self.stop_entered = threading.Event()
+
+    def launch(self, claim):
+        persisted = self.inspect(claim.identity)
+        if not any(op.claim == claim for op in persisted.operations):
+            raise AssertionError("launch occurred before durable claim")
+        with self.lock:
+            if self.claim is not None:
+                raise AssertionError("attempt replayed")
+            self.claim = claim
+        if self.launch_mode == "raise":
+            raise RuntimeError("synthetic lost launch reply")
+        if self.launch_mode == "mismatch":
+            return Observation(replace(claim, attempt_id="foreign"), "running", False)
+        return Observation(claim, "running", False)
+
+    def stop(self, claim):
+        self.stop_entered.set()
+        if self.stop_gate is not None:
+            self.stop_gate.wait(5)
+        with self.lock:
+            if claim != self.claim:
+                raise AssertionError("wrong stop identity")
+            self.sealed = True
+
+    def observe(self, claim):
+        with self.lock:
+            if claim != self.claim or not self.proof_available:
+                return None
+            stopped = self.sealed and self.requests == 0 and self.in_flight == 0
+            return Observation(claim, "quiescent" if stopped else "running", stopped)
+
+    def application(self, app):
+        return app
+
+    def __enter__(self):
+        import uvicorn
+        from fastmcp import FastMCP
+        from coding_orchestrator.openhands_backend import EXPECTED_CODING_EXECUTOR_TOOLS
+        mcp = FastMCP("fenced-offline-fixture")
+        for name in EXPECTED_CODING_EXECUTOR_TOOLS:
+            mcp.tool(name=name)(getattr(self, name))
+        app = self.application(mcp.http_app(path="/mcp", stateless_http=True))
+        async def guarded(scope, receive, send):
+            if scope["type"] != "http":
+                return await app(scope, receive, send)
+            with self.lock:
+                headers = dict(scope.get("headers", []))
+                allowed = (self.claim is not None and not self.sealed
+                           and headers.get(b"authorization") == ("Bearer " + attempt_token(self.claim)).encode())
+                if allowed:
+                    self.requests += 1
+            if not allowed:
+                await send({"type": "http.response.start", "status": 403, "headers": []})
+                return await send({"type": "http.response.body", "body": b"fenced"})
+            try:
+                await app(scope, receive, send)
+            finally:
+                with self.lock:
+                    self.requests -= 1
+        self.listener = socket.socket()
+        self.listener.bind(("127.0.0.1", 0))
+        self.listener.listen(128)
+        self.endpoint = "http://127.0.0.1:%d/mcp" % self.listener.getsockname()[1]
+        self.server = uvicorn.Server(uvicorn.Config(guarded, log_level="critical", lifespan="on"))
+        self.thread = threading.Thread(target=self.server.run, kwargs={"sockets": [self.listener]}, daemon=True)
+        self.thread.start()
+        deadline = time.monotonic() + 10
+        while not self.server.started and time.monotonic() < deadline:
+            time.sleep(.01)
+        if not self.server.started:
+            raise RuntimeError("fixture did not start")
+        return self
+
+
+class WorkerSupervisorTests(unittest.TestCase):
+    def adapter_type(self):
+        try:
+            return importlib.import_module("coding_orchestrator.worker_supervisor").LedgerWorkerSupervisor
+        except ModuleNotFoundError:
+            self.fail("trusted worker supervisor is missing")
+
+    @contextmanager
+    def job(self, *, scenario="flow", bind=bind_fixture_runner, **options):
+        adapter_type = self.adapter_type()
+        with tempfile.TemporaryDirectory() as root, FencedFixture(root) as fixture, \
+                JobStore(Path(root) / "jobs.sqlite") as store:
+            owner = Principal("owner", "tenant")
+            adapter = adapter_type(Path(root) / "executor", authority=fixture,
+                identity_for=lambda context: store.execution_identity(owner.user_id, owner.tenant_id, context.job_id),
+                bind_runner=bind)
+            fixture.inspect = adapter.ledger.status
+            for key, value in options.items():
+                setattr(fixture, key, value)
+            profile = create_openhands_profile(profile_id="synthetic-supervised", repository_aliases=frozenset({"fixture"}),
+                endpoint=fixture.endpoint, token_factory=fixture_token, llm_factory=fixture_llm,
+                transport_factory=FixtureTransport(scenario), authorize=lambda *_: True,
+                confirm_stopped=adapter.confirm_stopped)
+            service = JobService(store, profile=profile, enabled=True, worker_factory=adapter.worker_factory)
+            try:
+                yield service, fixture, owner, adapter
+            finally:
+                service.close()
+                adapter.close()
+
+    def request(self, **limits):
+        return JobRequest("Fix the disposable fixture.", "key", "generation", 1,
+                          RunScope("fixture", "modification"), **{"timeout_seconds": 60, **limits})
+
+    def wait(self, service, owner, run):
+        deadline = time.monotonic() + 70
+        while run["state"] in {"queued", "running", "cancelling"} and time.monotonic() < deadline:
+            time.sleep(.02)
+            run = service.get_run(owner, run["job_id"])
+        self.assertNotIn(run["state"], {"queued", "running", "cancelling"}, run)
+        while service._active is not None and time.monotonic() < deadline:
+            time.sleep(.01)
+        self.assertIsNone(service._active)
+        return run
+
+    def reconcile(self, service, owner, job_id):
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline:
+            if service.reconcile_run(owner, job_id):
+                return
+            time.sleep(.01)
+        self.fail("exact fenced proof did not reconcile")
+
+    def test_actual_sdk_failing_check_patch_passing_check_is_bound_to_durable_attempt(self):
+        import httpx
+        with self.job() as (service, fixture, owner, adapter):
+            request = self.request()
+            run = self.wait(service, owner, service.start_run(owner, request))
+            self.assertEqual(run["state"], "completed", run)
+            self.assertEqual(run["request_count"], 8)
+            self.assertEqual([c["exit_code"] for c in run["result"]["evidence"]["checks"]], [1, 0])
+            self.assertTrue(run["result"]["evidence"]["evidence_complete"])
+            self.assertEqual((fixture.source / "calculator.py").read_text(), BEFORE)
+            self.assertEqual((fixture.task / "calculator.py").read_text(), AFTER)
+            status = adapter.ledger.status(fixture.claim.identity)
+            self.assertTrue(status.sealed)
+            self.assertEqual(status.state, "stopped")
+            self.assertEqual(len(status.operations), 1)
+            self.assertEqual(service.start_run(owner, request), run)
+            self.assertEqual(len(fixture.checks), 2)
+            response = httpx.post(fixture.endpoint, headers={"Authorization": "Bearer " + attempt_token(fixture.claim)},
+                                  json={"jsonrpc": "2.0", "id": 99, "method": "tools/list"})
+            self.assertEqual(response.status_code, 403)
+
+    def test_ambiguous_external_stop_keeps_quarantine_until_explicit_exact_proof(self):
+        with self.job(scenario="finish", proof_available=False) as (service, fixture, owner, adapter):
+            request = self.request()
+            run = self.wait(service, owner, service.start_run(owner, request))
+            self.assertEqual(run["error_code"], "execution_stop_unconfirmed")
+            with self.assertRaises(StoreBusy):
+                service.start_run(owner, replace(request, idempotency_key="next", generation_epoch=2))
+            self.assertFalse(service.reconcile_run(owner, run["job_id"]))
+            fixture.proof_available = True
+            self.reconcile(service, owner, run["job_id"])
+            self.assertEqual(service.get_run(owner, run["job_id"]), run)
+            self.assertEqual(adapter.ledger.status(fixture.claim.identity).state, "stopped")
+
+    def test_uncertain_launch_never_runs_the_child_and_can_reconcile_known_nonstart(self):
+        for mode in ("raise", "mismatch"):
+            with self.subTest(mode=mode), self.job(launch_mode=mode, proof_available=False) as (service, fixture, owner, adapter):
+                run = self.wait(service, owner, service.start_run(owner, self.request()))
+                self.assertEqual(run["request_count"], 0)
+                self.assertEqual(fixture.calls, [])
+                self.assertEqual(run["error_code"], "execution_stop_unconfirmed")
+                fixture.proof_available = True
+                self.reconcile(service, owner, run["job_id"])
+
+    def test_request_limit_is_preserved_through_supervised_worker(self):
+        with self.job() as (service, fixture, owner, adapter):
+            run = self.wait(service, owner, service.start_run(owner, self.request(max_requests=1)))
+            self.assertEqual(run["state"], "failed", run)
+            self.assertEqual(run["error_code"], "worker_limit")
+            self.assertEqual(run["request_count"], 1)
+            self.assertEqual(fixture.calls, ["create_task"])
+
+    def test_binding_delay_cannot_reset_job_deadline(self):
+        def delayed(runner, claim):
+            time.sleep(.1)
+            return bind_fixture_runner(runner, claim)
+        with self.job(bind=delayed) as (service, fixture, owner, adapter):
+            run = self.wait(service, owner, service.start_run(owner, self.request(timeout_seconds=.05)))
+            self.assertEqual(run["state"], "timed_out", run)
+            self.assertEqual(run["request_count"], 0)
+            self.assertEqual(fixture.calls, [])
+
+    def test_bind_and_serialization_failure_have_no_child_dispatch(self):
+        def failed(*args):
+            raise RuntimeError("synthetic binding failure")
+        def unpicklable(*args):
+            return lambda *a: None
+        for bind in (failed, unpicklable):
+            with self.subTest(bind=bind), self.job(bind=bind) as (service, fixture, owner, adapter):
+                run = self.wait(service, owner, service.start_run(owner, self.request()))
+                self.assertEqual(run["state"], "failed", run)
+                self.assertEqual(run["request_count"], 0)
+                self.assertEqual(fixture.calls, [])
+                self.assertEqual(adapter.ledger.status(fixture.claim.identity).state, "stopped")
+
+    def test_claim_commit_failure_prevents_authority_and_child_launch(self):
+        with self.job() as (service, fixture, owner, adapter):
+            adapter.ledger._db.execute("CREATE TRIGGER reject_claim BEFORE INSERT ON operations BEGIN SELECT RAISE(ABORT, 'fixture'); END")
+            with self.assertRaises(JobError):
+                service.start_run(owner, self.request())
+            self.assertIsNone(fixture.claim)
+            self.assertEqual(fixture.calls, [])
+            run = service.start_run(owner, self.request())
+            self.reconcile(service, owner, run["job_id"])
+            self.assertEqual(service.get_run(owner, run["job_id"])["state"], "failed")
+
+    def test_restart_missing_local_handle_never_infers_quiescence(self):
+        with self.job(scenario="finish", proof_available=False) as (service, fixture, owner, adapter):
+            run = self.wait(service, owner, service.start_run(owner, self.request()))
+            identity = service.store.execution_identity(owner.user_id, owner.tenant_id, run["job_id"])
+            service.close()
+            adapter.close()
+            fixture.proof_available = True
+            replacement = self.adapter_type()(fixture.source.parent / "executor", authority=fixture,
+                identity_for=lambda _: identity, bind_runner=bind_fixture_runner)
+            try:
+                self.assertIsNone(replacement.confirm_stopped(identity))
+                self.assertEqual(replacement.ledger.status(fixture.claim.identity).state, "unknown")
+            finally:
+                replacement.close()
+
+    def test_missing_execution_cannot_manufacture_empty_tombstone_proof(self):
+        with self.job() as (service, fixture, owner, adapter):
+            identity = JobIdentity("missing", "missing", owner.user_id, owner.tenant_id,
+                                   "generation", 1, "synthetic-supervised", "fixture", "modification")
+            self.assertIsNone(adapter.confirm_stopped(identity))
+            from coding_executor.executions import ExecutionIdentity
+            from dataclasses import asdict
+            self.assertEqual(adapter.ledger.status(ExecutionIdentity(**asdict(identity))).state, "unknown")
+
+    def test_cancel_remains_local_while_external_stop_is_stalled(self):
+        gate = threading.Event()
+        with self.job(stop_gate=gate) as (service, fixture, owner, adapter):
+            try:
+                run = service.start_run(owner, self.request())
+                start = time.monotonic()
+                service.cancel_run(owner, run["job_id"], generation_id="generation", generation_epoch=1)
+                self.assertLess(time.monotonic() - start, .2)
+                run = self.wait(service, owner, run)
+                self.assertTrue(fixture.stop_entered.is_set())
+                self.assertEqual(run["error_code"], "execution_stop_unconfirmed")
+            finally:
+                gate.set()
+            self.reconcile(service, owner, run["job_id"])
+
+    def test_absolute_deadline_includes_trusted_runner_serialization(self):
+        try:
+            worker = ProcessWorker(SlowSerializedRunner(), RunContext("job", "test", "fixture", "read_only"),
+                                   timeout_seconds=10, deadline_monotonic=time.monotonic() + .05)
+        except TypeError:
+            self.fail("worker lacks absolute admission deadline")
+        try:
+            worker.start()
+            outcome = worker.poll()
+            self.assertIsNotNone(outcome)
+            self.assertEqual(outcome.state, "timed_out")
+            self.assertEqual(outcome.request_count, 0)
+        finally:
+            worker.close()

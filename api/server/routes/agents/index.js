@@ -52,6 +52,7 @@ const responses = require('./responses');
 const openai = require('./openai');
 const { v1 } = require('./v1');
 const chat = require('./chat');
+const preview = require('./preview');
 
 const { LIMIT_MESSAGE_IP, LIMIT_MESSAGE_USER } = process.env ?? {};
 
@@ -131,6 +132,7 @@ router.use((req, _res, next) => {
 });
 router.use(checkBan);
 router.use(uaParser);
+router.use('/preview', preview);
 
 /**
  * Stream endpoints - mounted before chatRouter to bypass rate limiters

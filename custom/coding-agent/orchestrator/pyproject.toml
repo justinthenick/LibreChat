@@ -16,10 +16,14 @@ test = [
 ]
 openhands = [
   "openhands-sdk==1.51.0",
+  "httpcore==1.0.9",
+  "httpx==0.28.1",
+  "joserfc==1.7.5",
 ]
 
 [project.scripts]
 coding-agent-backend = "coding_orchestrator.cli:main"
+coding-agent-pr-review = "coding_orchestrator.review_cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/coding_orchestrator"]

@@ -34,6 +34,7 @@ import type { Types } from 'mongoose';
 import type { ServerRequest, StrategyFunctions } from '~/types';
 import { extractSkillContent, inspectContentWithTraversal } from '~/protection';
 import { contentFilterBlockResponse } from '~/middleware/contentFilter';
+import { getSkillSelectionRevision } from './selection';
 import { resolveSkillFilePathParam } from './path';
 import { parseSkillMarkdown } from './parse';
 import { isBinaryBuffer } from './binary';
@@ -164,6 +165,7 @@ function serializeSkill(
     displayTitle: skill.displayTitle,
     description: skill.description,
     body: skill.body,
+    selectionRevision: getSkillSelectionRevision(skill),
     frontmatter: serializeFrontmatter(skill.frontmatter),
     category: skill.category,
     disableModelInvocation: skill.disableModelInvocation,

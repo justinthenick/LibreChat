@@ -484,6 +484,38 @@ describe('userGroup methods', () => {
   });
 
   describe('getUserPrincipals caching', () => {
+    function deferred() {
+      let resolve!: () => void;
+      const promise = new Promise<void>((done) => {
+        resolve = done;
+      });
+      return { promise, resolve };
+    }
+
+    async function waitForBarrier(barrier: Promise<void>, caller: Promise<unknown>) {
+      await Promise.race([
+        barrier,
+        caller.then(() => {
+          throw new Error('Caller completed before reaching the expected barrier');
+        }),
+      ]);
+    }
+
+    async function withDeadline<T>(operation: Promise<T>): Promise<T> {
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([
+          operation,
+          new Promise<never>((_resolve, reject) => {
+            // Failure guard only: barriers, not elapsed time, determine the schedule.
+            timeout = setTimeout(() => reject(new Error('Cache test operation stalled')), 5000);
+          }),
+        ]);
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
     function createFakeCache() {
       const store = new Map<string, unknown>();
       return {
@@ -756,66 +788,138 @@ describe('userGroup methods', () => {
       expect(cache.set).toHaveBeenCalledWith('shape-ext-1', [group._id.toString()]);
     });
 
-    it('deduplicates concurrent cache builds for the same member key', async () => {
-      const user = await createTestUser({ idOnTheSource: 'dedup-ext-1' });
-      const cache = {
-        get: jest.fn(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 10));
-          return undefined;
-        }),
-        set: jest.fn(async () => undefined),
-      };
-      const cachedMethods = createUserGroupMethods(mongoose, { getCache: jest.fn(() => cache) });
-      const params = {
-        userId: user._id.toString(),
-        role: SystemRoles.USER,
-        idOnTheSource: 'dedup-ext-1',
-      };
+    it.each([false, true])(
+      'deduplicates overlapping cache builds (lock: %s)',
+      async (withLock) => {
+        const user = await createTestUser({ idOnTheSource: 'dedup-ext-1' });
+        const group = await Group.create({
+          name: 'Overlap',
+          source: 'local',
+          memberIds: ['dedup-ext-1'],
+        });
+        const writeStarted = deferred();
+        const allowWrite = deferred();
+        const backing = createFakeCache();
+        const cache = {
+          ...backing,
+          set: jest.fn(async (key: string, value: unknown) => {
+            writeStarted.resolve();
+            await allowWrite.promise;
+            await backing.set(key, value);
+          }),
+          ...(withLock
+            ? {
+                acquireLock: jest.fn(async () => 'lock-token'),
+                releaseLock: jest.fn(async () => undefined),
+                lockWaitMs: 5000,
+              }
+            : {}),
+        };
+        const cachedMethods = createUserGroupMethods(mongoose, { getCache: jest.fn(() => cache) });
+        const params = {
+          userId: user._id.toString(),
+          role: SystemRoles.USER,
+          idOnTheSource: 'dedup-ext-1',
+        };
 
-      const [first, second, third] = await Promise.all([
-        cachedMethods.getUserPrincipals(params),
-        cachedMethods.getUserPrincipals(params),
-        cachedMethods.getUserPrincipals(params),
-      ]);
+        const findSpy = jest.spyOn(Group, 'find');
+        const callers = [cachedMethods.getUserPrincipals(params)];
+        try {
+          await withDeadline(waitForBarrier(writeStarted.promise, callers[0]));
+          callers.push(
+            cachedMethods.getUserPrincipals(params),
+            cachedMethods.getUserPrincipals(params),
+          );
+          // Drain ready promise continuations while the first build is explicitly blocked.
+          // No elapsed-time assumption or database-speed race controls the overlap.
+          await new Promise<void>((resolve) => setImmediate(resolve));
+          expect(cache.get).toHaveBeenCalledTimes(withLock ? 4 : 3);
+          expect(backing.store.size).toBe(0);
+          expect(findSpy).toHaveBeenCalledTimes(1);
+          expect(cache.set).toHaveBeenCalledTimes(1);
+          allowWrite.resolve();
+          const [first, second, third] = await withDeadline(Promise.all(callers));
+          expect(first).toEqual(second);
+          expect(second).toEqual(third);
+          expect(groupPrincipalIds(first)).toEqual([group._id.toString()]);
+          expect(backing.store.get('dedup-ext-1')).toEqual([group._id.toString()]);
+          expect(await cachedMethods.getUserPrincipals(params)).toEqual(first);
+          expect(findSpy).toHaveBeenCalledTimes(1);
+          expect(cache.set).toHaveBeenCalledTimes(1);
+          if (withLock) {
+            expect(cache.acquireLock).toHaveBeenCalledTimes(1);
+            expect(cache.acquireLock).toHaveBeenCalledWith('USER_PRINCIPALS_LOCK:dedup-ext-1');
+            expect(cache.releaseLock).toHaveBeenCalledTimes(1);
+          }
+        } finally {
+          allowWrite.resolve();
+          try {
+            await withDeadline(Promise.allSettled(callers));
+          } finally {
+            findSpy.mockRestore();
+          }
+        }
+      },
+      15000,
+    );
 
-      expect(first).toEqual(second);
-      expect(second).toEqual(third);
-      expect(cache.get).toHaveBeenCalledTimes(3);
-      expect(cache.set).toHaveBeenCalledTimes(1);
-    });
-
-    it('shares one lock and DB build across concurrent same-process callers', async () => {
-      const user = await createTestUser({ idOnTheSource: 'lock-ext-1' });
-      const cache = {
-        get: jest.fn(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 10));
-          return undefined;
-        }),
-        set: jest.fn(async () => undefined),
-        acquireLock: jest.fn(async () => 'lock-token'),
-        releaseLock: jest.fn(async () => undefined),
-        lockWaitMs: 5000,
-      };
-      const cachedMethods = createUserGroupMethods(mongoose, { getCache: jest.fn(() => cache) });
-      const params = {
-        userId: user._id.toString(),
-        role: SystemRoles.USER,
-        idOnTheSource: 'lock-ext-1',
-      };
-
-      const [first, second, third] = await Promise.all([
-        cachedMethods.getUserPrincipals(params),
-        cachedMethods.getUserPrincipals(params),
-        cachedMethods.getUserPrincipals(params),
-      ]);
-
-      expect(first).toEqual(second);
-      expect(second).toEqual(third);
-      expect(cache.acquireLock).toHaveBeenCalledTimes(1);
-      expect(cache.acquireLock).toHaveBeenCalledWith('USER_PRINCIPALS_LOCK:lock-ext-1');
-      expect(cache.set).toHaveBeenCalledTimes(1);
-      expect(cache.releaseLock).toHaveBeenCalledTimes(1);
-    });
+    it.each([false, true])(
+      'handles a delayed cache read (captured miss: %s)',
+      async (captureMiss) => {
+        const user = await createTestUser({ idOnTheSource: 'delayed-ext-1' });
+        const group = await Group.create({
+          name: 'Delayed',
+          source: 'local',
+          memberIds: ['delayed-ext-1'],
+        });
+        const cache = createFakeCache();
+        const readStarted = deferred();
+        const allowRead = deferred();
+        cache.get.mockImplementationOnce(async (key) => {
+          const observed = cache.store.get(key);
+          readStarted.resolve();
+          await allowRead.promise;
+          return captureMiss ? observed : cache.store.get(key);
+        });
+        const cachedMethods = createCachedMethods(cache);
+        const params = {
+          userId: user._id.toString(),
+          role: SystemRoles.USER,
+          idOnTheSource: 'delayed-ext-1',
+        };
+        const findSpy = jest.spyOn(Group, 'find');
+        const delayed = cachedMethods.getUserPrincipals(params);
+        const callers = [delayed];
+        try {
+          await withDeadline(waitForBarrier(readStarted.promise, delayed));
+          const concurrent = cachedMethods.getUserPrincipals(params);
+          callers.push(concurrent);
+          const completed = await withDeadline(concurrent);
+          expect(groupPrincipalIds(completed)).toEqual([group._id.toString()]);
+          expect(cache.set).toHaveBeenCalledTimes(1);
+          expect(findSpy).toHaveBeenCalledTimes(1);
+          // Reproduce the old timer race exactly: the earlier read resumes only AFTER
+          // the other caller's build and pending-entry cleanup have completed.
+          allowRead.resolve();
+          const result = await withDeadline(delayed);
+          expect(result).toEqual(completed);
+          expect(groupPrincipalIds(result)).toEqual([group._id.toString()]);
+          expect(findSpy).toHaveBeenCalledTimes(captureMiss ? 2 : 1);
+          expect(cache.set).toHaveBeenCalledTimes(captureMiss ? 2 : 1);
+          expect(cache.store.get('delayed-ext-1')).toEqual([group._id.toString()]);
+          expect(await cachedMethods.getUserPrincipals(params)).toEqual(result);
+          expect(findSpy).toHaveBeenCalledTimes(captureMiss ? 2 : 1);
+        } finally {
+          allowRead.resolve();
+          try {
+            await withDeadline(Promise.allSettled(callers));
+          } finally {
+            findSpy.mockRestore();
+          }
+        }
+      },
+      15000,
+    );
 
     it('waits for a locked build from another process instead of querying', async () => {
       const user = await createTestUser({ idOnTheSource: 'wait-ext-1' });

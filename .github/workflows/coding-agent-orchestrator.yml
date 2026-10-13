@@ -4,12 +4,20 @@ on:
   pull_request:
     paths:
       - 'custom/coding-agent/orchestrator/**'
+      - 'custom/coding-agent/executor/src/coding_executor/**'
+      - 'packages/api/src/coding/**'
+      - 'api/server/routes/agents/preview.js'
+      - 'api/server/routes/agents/index.js'
       - '.github/workflows/coding-agent-orchestrator.yml'
   push:
     branches:
       - server/synology
     paths:
       - 'custom/coding-agent/orchestrator/**'
+      - 'custom/coding-agent/executor/src/coding_executor/**'
+      - 'packages/api/src/coding/**'
+      - 'api/server/routes/agents/preview.js'
+      - 'api/server/routes/agents/index.js'
       - '.github/workflows/coding-agent-orchestrator.yml'
 
 permissions:
@@ -37,3 +45,11 @@ jobs:
         run: python -m compileall -q src tests
       - name: Run isolated SDK regression tests
         run: PYTHONPATH=src python -B tests/run_tests.py
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24.16.0'
+          package-manager-cache: false
+      - name: Install isolated preview test toolchain
+        run: npm ci --prefix tests/preview --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org
+      - name: Typecheck and test disabled preview API
+        run: PREVIEW_TEST_TOOLS="$PWD/tests/preview" PREVIEW_TEST_PYTHON="$(command -v python)" node tests/preview/run.cjs

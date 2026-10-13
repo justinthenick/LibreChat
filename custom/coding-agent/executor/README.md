@@ -116,3 +116,142 @@ cleanup and controlled restart without changing this server's coding tool surfac
 Production activation requires staging validation, an immutable lock mount, pinned
 image and a separate maintenance token. Task modes and exploration counters now
 survive restarts; legacy tasks without saved state default to read-only/exhausted.
+
+## Dormant execution records (offline development)
+
+`coding_executor.executions.ExecutionService` is a library only. It is not
+imported by the MCP server or registered as a tool. The dormant orchestrator
+supervisor and explicit FencedWorkspace adapter compose it; live tools and
+configuration are unchanged.
+
+A trusted embedding supervisor supplies an authority ID and bounded launch,
+observe and stop callbacks. The caller must first authenticate/authorize the full
+ExecutionIdentity (job/execution, user/tenant, generation/epoch, profile,
+repository and task mode). This library is not authentication or a sandbox.
+
+- `advance(identity)` durably registers a generation and seals older executions
+  within the exact user/tenant/generation/profile/repository/mode lineage. It does
+  not dispatch or stop anything. Epochs from unrelated lineages are incomparable.
+- `start(identity, operation_id, request_sha256)` persists an operation claim,
+  random attempt ID and configured authority before invoking launch once. The
+  digest must bind the canonical authorized request; the future adapter must
+  validate that binding before executing. The ledger stores no prompt, command,
+  credential or result payload. Identical replay returns status even after seal;
+  conflicting replay fails. Any unresolved operation globally blocks new claims.
+- `stop(identity)` commits a seal before contacting the supervisor. An unknown
+  identity gets a durable stop-before-start tombstone. New operations cannot be
+  claimed after sealing. `reconcile(identity)` explicitly queries observations.
+- `status(identity)` reads durable state without callbacks. Missing records are
+  unknown. An execution is stopped only when sealed and all claimed operations
+  have exact authoritative quiescent-and-fenced observations. Completed operations
+  alone leave an execution open for another action, up to 64 operations.
+
+The supervisor must durably fence delayed delivery of each attempt before it
+reports quiescent-and-fenced; absence, local worker exit and request timeout are
+insufficient. Observations must match all identity, operation, digest, attempt and
+supervisor authority fields. Changing supervisor authority cannot resolve earlier
+claims. A future process/transport adapter must establish this contract; the
+synthetic supervisor tests do not prove any live executor has stopped.
+
+A private owned directory (0700) holds SQLite and the exclusive owner lock (0600).
+Use a trusted local filesystem with working SQLite durability and POSIX flock;
+retain the directory and all tombstones across restarts. Do not share it with
+untrusted repository code. One process owns the ledger. Restart seals all existing
+executions and marks unresolved operations unknown without callbacks or replay.
+There is no expiry, force-clear or automatic cleanup. A lock protects local
+launch/stop ordering; supervisor callbacks run outside transactions, may read
+status, and must not reenter mutations or block indefinitely.
+
+Acceptance uses real SQLite and synthetic callbacks for lost replies, restart,
+replay conflicts, generation fences, exact proof matching, persistence failures,
+exclusive ownership and concurrent launch/stop. The existing Coding Agent Executor
+Linux CI runs these tests. No live transport, credentials, provider calls or service
+activation are required. Authentication, request/result transport, a durable
+process supervisor and orchestrator integration remain separate work.
+
+### Dormant claim-bound workspace dispatch
+
+`FencedWorkspace` defaults off and is never registered by `server.py`. A trusted
+host supplies an authenticated full Claim, exact authorization policy, the existing
+ExecutionService and WorkspaceManager. `admit` fixes a maximum of 64 actions and
+an absolute monotonic deadline of at most 300 seconds; reconfiguration cannot
+renew it. Tool frames cannot select identity, task ID, commands or repository.
+Only read-only task creation, bounded inspection and operator-named checks are
+available. Existing path validation, exploration budgets and maintenance locking
+remain in the actual WorkspaceManager path.
+
+Action IDs/digests and the created task binding live in the existing execution
+database, beneath the existing job-worker claim. They are not another attempt
+ledger. Each action commits an unknown receipt before dispatch; replay never
+executes again, even if a response was lost. A single owned action thread allows
+stop to seal immediately without waiting on workspace work. No database or
+admission lock spans that work. Caller wait is deadline-bounded; late work remains
+tracked and blocks further admission. Deadlines do not kill work or prove stop.
+
+Exact external supervisor evidence is still required for quiescence, including
+after successful workspace return. In-flight action threads suppress stop proof.
+Restart seals all executions, retains action receipts/task bindings and cannot
+replay delayed requests. Unknown outcomes are resolved only by exact authority
+evidence; absence of a thread, a PID exit or WorkspaceManager process-group cleanup
+does not establish containment of escaped descendants. A production supervisor
+and authenticated transport must enforce this contract before activation.
+
+Synthetic tests use real SQLite, real disposable Git worktrees and an injected
+authority. They cover commit-before-dispatch, request/deadline limits, replay,
+identity mismatch, stop races, late completion, restart, task binding and traversal.
+No service, network setting, credential file or provider is configured by this code.
+
+### Dormant gated executor containment
+
+`GatedExecutor` is disabled by default and has no default platform implementation.
+An enabled `FencedWorkspace` without a launcher rejects admission. Its legacy
+direct path requires the explicit `testing_uncontained=True` test-only opt-in;
+no live factory or configuration may select that path. Future activation must
+require a validated platform launcher and independent whole-job stop authority.
+Supplying it to `FencedWorkspace` routes every workspace operation through a fixed
+helper, including task creation, inspection, Git and checks. The helper waits on a
+private one-byte pipe before importing workspace code. Only the read end is
+inherited; loss of the owning process closes the unreleased gate. The trusted
+platform must attach the still-gated helper to the exact resource before the
+ledger releases it. No shell, request-selected helper or credentials are passed.
+Host command/output limits and the maintenance lock remain in effect.
+
+The existing execution database stores one allocation intent and immutable
+platform/boot/root/resource/policy identity per claim. Intent commits before
+allocation, and identity commits before release. Allocation acknowledgement loss
+remains unresolved and is never retried. Physical resource identities cannot be
+reused across claims, including under a different policy ID. Release is serialized
+with the existing durable seal and absolute dispatch deadline. Failed attachment,
+timeout or uncertain helper results seal admission; delayed attachment cannot
+release workload after that seal.
+If allocation returns a known resource but binding fails, a claim-bound platform
+abort revokes that allocation even when the ledger seal/commit also fails. Abort
+must verify allocation ownership and reject a resource belonging to another claim.
+An unavailable abort remains unresolved; its failure is never reported as proof.
+
+The injected platform is a trusted, bounded capability, not request data. It must
+durably reject delayed attachments after seal, contain all helper descendants,
+prevent migration/escape, and independently inspect the pinned resource. Resource
+identity must include boot and filesystem/object incarnation; a path or PID alone
+is insufficient. A future Linux adapter must validate those guarantees against
+the actual delegated environment before it can be enabled. This increment does
+not configure cgroups, grant privileges, install a launcher or activate a service.
+Without that platform, admission fails closed with containment unavailable.
+
+`ExecutorQuiescence` is deliberately separate from whole-job `Observation`. It
+requires a sealed ledger, no in-flight executor action, and an exact independent
+snapshot reporting both closed platform admission and no remaining owned work.
+Restart retains the resource binding and seals admission; missing, replaced or
+unobservable resources remain unknown. Helper exit, action-thread completion,
+process-group cleanup and missing handles do not produce proof. Executor evidence
+does not prove that an SDK worker elsewhere or a remote provider has stopped;
+the existing supervisor's missing-worker-handle quarantine remains intact.
+
+Linux CI runs real disposable Git/workspace operations through gated helpers and
+synthetic platform observations. Tests cover lost acknowledgements, cancellation
+and deadline during attachment, no delayed release/replay, resource drift,
+restart, failed stop and descendants reported as still present. These tests prove
+the protocol and helper execution path, not actual OS containment. No real
+platform containment test or production activation is claimed.
+The orchestrator's actual SDK-to-SDKWorkspace fixture also exercises gated
+workspace operations with both available and missing synthetic executor proof.

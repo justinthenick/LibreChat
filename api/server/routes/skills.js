@@ -10,6 +10,9 @@ const {
   getStorageMetadata,
   resolveRequestTenantId,
   restoreTenantContextFromReq,
+  validateManagedDraftProvenance,
+  assertManagedDraftUpstream,
+  ManagedDraftProvenanceError,
 } = require('@librechat/api');
 const { isValidObjectIdString, logger } = require('@librechat/data-schemas');
 const {
@@ -438,17 +441,8 @@ async function publishManagedDraftHandler(req, res) {
       return res.status(409).json({ error: 'Published source skill is no longer available' });
     }
 
-    const publishedMetadata = published.sourceMetadata ?? {};
-    const sourceId = metadata.sourceId ?? publishedMetadata.sourceId;
-    const owner = metadata.owner ?? publishedMetadata.owner;
-    const repo = metadata.repo ?? publishedMetadata.repo;
-    const ref = metadata.ref ?? publishedMetadata.ref;
-    const skillPath = metadata.skillPath ?? publishedMetadata.skillPath;
-    if (
-      ![sourceId, owner, repo, ref, skillPath].every((value) => typeof value === 'string' && value)
-    ) {
-      return res.status(409).json({ error: 'Managed draft is missing GitHub source metadata' });
-    }
+    const provenance = validateManagedDraftProvenance(metadata, published);
+    const { sourceId, owner, repo, ref, skillPath } = provenance;
 
     const status = await getSkillSyncStatus('github', sourceId, resolveRequestTenantId(req));
     const credentialKey = status?.credentialKey;
@@ -466,17 +460,31 @@ async function publishManagedDraftHandler(req, res) {
     const refPath = githubPathSegment(ref);
     const refPayload = await githubJson(token, 'GET', `${baseApi}/git/ref/heads/${refPath}`);
     const baseCommitSha = refPayload?.object?.sha;
-    if (!baseCommitSha) {
-      throw new Error('Unable to resolve GitHub base commit');
+    if (typeof baseCommitSha !== 'string' || !/^[a-f0-9]{40}$/.test(baseCommitSha)) {
+      throw new ManagedDraftProvenanceError();
     }
     const baseCommit = await githubJson(token, 'GET', `${baseApi}/git/commits/${baseCommitSha}`);
     const baseTreeSha = baseCommit?.tree?.sha;
-    if (!baseTreeSha) {
-      throw new Error('Unable to resolve GitHub base tree');
+    if (baseCommit?.sha !== baseCommitSha || !baseTreeSha) {
+      throw new ManagedDraftProvenanceError();
     }
+
+    const definition = await assertManagedDraftUpstream(
+      provenance,
+      { commitSha: baseCommitSha, treeSha: baseTreeSha },
+      (apiPath) => githubJson(token, 'GET', `${baseApi}${apiPath}`),
+    );
 
     const draftFiles = await listSkillFiles(draft._id);
     const publishedFiles = await listSkillFiles(published._id);
+    if (
+      [...draftFiles, ...publishedFiles].some(
+        (file) =>
+          typeof file.relativePath !== 'string' || file.relativePath.toUpperCase() === 'SKILL.MD',
+      )
+    ) {
+      throw new ManagedDraftProvenanceError();
+    }
     const tree = [];
 
     const skillBlob = await githubJson(token, 'POST', `${baseApi}/git/blobs`, {
@@ -484,8 +492,8 @@ async function publishManagedDraftHandler(req, res) {
       encoding: 'base64',
     });
     tree.push({
-      path: `${skillPath}/SKILL.md`,
-      mode: '100644',
+      path: `${skillPath}/${definition.path}`,
+      mode: definition.mode,
       type: 'blob',
       sha: skillBlob.sha,
     });
@@ -580,6 +588,9 @@ async function publishManagedDraftHandler(req, res) {
     });
   } catch (error) {
     logger.error('[POST /skills/:id/publish] Error publishing managed draft', error);
+    if (error instanceof ManagedDraftProvenanceError) {
+      return res.status(409).json({ error: error.code, message: error.message });
+    }
     const status = Number.isInteger(error?.status) ? error.status : 500;
     if (status === 401 || status === 403) {
       return res.status(409).json({

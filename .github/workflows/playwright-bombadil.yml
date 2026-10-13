@@ -1,15 +1,8 @@
 name: Bombadil Property Exploration
 
 on:
-  pull_request:
-    paths:
-      - '**'
-      - '!**.md'
-      - '!custom/coding-agent/**'
-      - '!.github/workflows/**'
-      - '.github/workflows/playwright-bombadil.yml'
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '30 5 * * *'
   workflow_dispatch:
     inputs:
       reason:
@@ -67,6 +60,9 @@ jobs:
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
+
+      - name: Check Bombadil regression cases
+        run: node --test e2e/bombadil/sidebar-navigation.test.cjs e2e/bombadil/parallel-placeholders.test.cjs
 
       - name: Restore data-provider build cache
         id: cache-data-provider
