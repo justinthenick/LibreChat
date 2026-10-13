@@ -1,5 +1,6 @@
 import type { AxiosResponse } from 'axios';
 import type { TInsightsAccessResponse, TInsightsParams, TInsightsResponse } from './types/insights';
+import type { CodeReviewRequest, CodeReviewResult, CodeReviewRecovery } from './types/reviews';
 import type { PreviewReply, PreviewStartRequest } from './types/preview';
 import type { TFileConfig } from './file-config';
 import type * as t from './types';
@@ -1557,3 +1558,22 @@ export interface ActiveJobsResponse {
 export const getActiveJobs = (): Promise<ActiveJobsResponse> => {
   return request.get(endpoints.activeJobs());
 };
+
+export function startReview(
+  body: { id: string; request: CodeReviewRequest },
+  signal?: AbortSignal,
+): Promise<CodeReviewResult> {
+  return request.postOnce(endpoints.reviews(), body, signal);
+}
+export function retrieveReview(
+  body: { id: string; request: CodeReviewRequest },
+  signal?: AbortSignal,
+): Promise<CodeReviewRecovery> {
+  return request.postOnce(`${endpoints.reviews()}/status`, body, signal);
+}
+export function cancelReview(
+  body: { id: string },
+  signal?: AbortSignal,
+): Promise<{ cancelled: true }> {
+  return request.postOnce(`${endpoints.reviews()}/cancel`, body, signal);
+}

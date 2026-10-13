@@ -24,6 +24,18 @@ async function _post(url: string, data?: any) {
   return response.data;
 }
 
+/** Uses normal authentication but never replays a sent POST after a 401. */
+async function _postOnce<T>(url: string, data: object, signal?: AbortSignal): Promise<T> {
+  const options: RetryableAxiosRequestConfig = {
+    headers: { 'Content-Type': 'application/json' },
+    signal,
+    _retry: true,
+    timeout: 180_000,
+  };
+  const response = await axios.post<T>(url, JSON.stringify(data), options);
+  return response.data;
+}
+
 async function _postMultiPart(url: string, formData: FormData, options?: AxiosRequestConfig) {
   const response = await axios.post(url, formData, {
     ...options,
@@ -423,6 +435,7 @@ export default {
   get: _get,
   getResponse: _getResponse,
   post: _post,
+  postOnce: _postOnce,
   postMultiPart: _postMultiPart,
   postTTS: _postTTS,
   put: _put,
