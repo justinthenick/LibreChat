@@ -216,15 +216,69 @@ REVIEW_TEST_PYTHON=/path/to/installed/sdk/python node custom/coding-agent/orches
 The interpreter must contain this orchestrator's pinned `openhands,test` extras.
 The runner installs nothing, uses fresh temporary state and permits only literal
 loopback networking. The backend workflow runs it independently of selective unit
-test gating. Seven deterministic scenarios cross real JWT verification, review
+test gating. Eleven deterministic scenarios cross real JWT verification, review
 routes, HTTP transport, worker limits/cleanup, Git diff collection, CLI and SDK
-finish/evidence validation. Only user lookup, ban checks and model responses are
-fixtures. Temporary repositories have real stacked base/head commits, hostile
+finish/evidence validation. The actual application development wrapper, JWT
+strategy, ban and capability middleware run against synthetic user/capability/ban
+storage and fake model responses. Temporary repositories have real stacked base/head commits, hostile
 content and no remotes; empty auth stores are checked after each case.
 
 Completion, delivery disconnect/retrieval, cancellation, stale selection, owner
-switch, unknown identity and expiry are covered. The expiry case advances the
+switch, unknown identity, expiry, malformed/disabled development settings, user
+state, bans, capability denial, tenant repository discovery and caller spoofing are covered. The expiry case advances the
 server clock, rather than waiting ten minutes. Local browser acceptance exercises
 actual React/AuthContext/Axios behavior separately; this CI runner has no browser
 and does not prove UI event ordering, persistent authentication/bans, remote-head
 freshness, restart recovery, live subscription compatibility or activation.
+
+## Development-only application wiring (default off)
+
+The historical checkpoints above describe earlier unregistered components. The
+application now mounts the existing panel at `/reviews` under its authenticated
+root layout and the thin router at `/api/reviews`. The route returns configuration
+unavailable unless **both** `NODE_ENV=development` and
+`CODING_REVIEW_DEVELOPMENT=true` are present and every setting below validates.
+Production mode cannot enable this development gate. No setting is installed or
+enabled by this change; no credentials or service listener are provisioned.
+
+The server reads these explicit environment settings at startup:
+
+| Setting | Requirement |
+| --- | --- |
+| `CODING_REVIEW_URL` | Existing reviewed service URL, HTTPS or literal HTTP loopback, exact `/review` path, no query/fragment/userinfo |
+| `CODING_REVIEW_TOKEN` | Explicit 32–256 character URL-safe transport token; never sent to the browser |
+| `CODING_REVIEW_MODEL` | Explicit model ID matching the service |
+| `CODING_REVIEW_REPOSITORIES` | Strict JSON array of 1–64 `{ "id": "fixture", "tenantId": "tenant-a" }` entries, at most 16 KiB |
+
+Omit `tenantId` only for the application's non-tenant principal. It is never a
+wildcard. Duplicate ID/tenant pairs, unknown fields, paths, invalid identities or
+malformed settings disable the entire gate. Repository IDs must also exist in
+the service's independent ID/path allowlist and authorization callback.
+
+The existing JWT strategy resolves the current stored user; existing ban checks,
+tenant context and `ACCESS_ADMIN` capability policy precede discovery and all
+operations. This conservative development pilot adds no capability grants or
+authentication framework. GET `/api/reviews/config` exposes only repository IDs
+for that trusted tenant; it exposes no paths, service URL, token or model settings.
+Start and retrieval recheck the server repository list. Cancellation retains
+service owner checks, allowing the owner to clean up a run even if its repository
+is removed from the list. Request JSON cannot supply principal, tenant or policy.
+
+Open `/reviews` directly while authenticated. The panel waits for successful
+server discovery; discovery failures keep it disabled. Its query cache is scoped
+to user and tenant, and identity changes abort pending discovery. Existing panel
+controls retain immutable commit selection, no automatic replay, explicit
+retrieval/cancellation, inert findings and human-review-required outcomes.
+
+Base/head still identify the **selected local commits**. This slice does not
+fetch a current remote PR head or establish that the selection is fresh. Recovery
+is process-local and expires after ten minutes; restart loses retained outcomes
+and cannot prove a remote provider stopped. Existing visible limitations remain.
+There is no publication path. Production activation, external containment,
+restart reconciliation and separately authorized live compatibility remain open.
+
+Verification uses synthetic repositories/users, empty auth stores and fake SDK
+responses only. New config and composed-page tests cover fail-closed settings,
+ready authentication, tenant/user changes, discovery, recovery and cancellation;
+the contract runner exercises the actual app wrapper and established middleware.
+No model call, login, production executor, NAS or deployment is involved.
