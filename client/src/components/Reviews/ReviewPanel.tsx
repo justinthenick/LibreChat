@@ -2,8 +2,8 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { Button, Input, Label } from '@librechat/client';
 import type { CodeReviewRequest, CodeReviewResult } from 'librechat-data-provider';
-import { useReviewActions } from '~/data-provider/Reviews';
 import { useAuthContext } from '~/hooks/AuthContext';
+import { useReviewActions } from '~/data-provider';
 import useLocalize from '~/hooks/useLocalize';
 
 type Notice =
@@ -221,6 +221,10 @@ function ReviewForm({ repositories }: { repositories: readonly string[] }) {
 
   async function cancel() {
     if (!validId || activity.current.cancelling) return;
+    if (activity.current.busy && activity.current.operation === 'status') {
+      invalidate();
+      setBusy(false);
+    }
     const sequence = activity.current.sequence;
     activity.current.cancelling = true;
     setCancelBusy(true);

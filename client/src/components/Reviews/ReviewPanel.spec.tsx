@@ -300,3 +300,20 @@ it('keeps a direct cancelled response uncertain until settlement is retrieved', 
     expect(screen.getByRole('status')).toHaveTextContent(mockTranslations.com_ui_review_cancelled),
   );
 });
+
+it('ignores a status response superseded by a cancellation acknowledgement', async () => {
+  const pending = deferred<Awaited<ReturnType<typeof dataService.retrieveReview>>>();
+  retrieve.mockReturnValue(pending.promise);
+  mount();
+  fill(id);
+  fireEvent.click(screen.getByRole('button', { name: 'Retrieve status / result' }));
+  await waitFor(() => expect(retrieve).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel review' }));
+  expect(await screen.findByText(/Cancellation request recorded/)).toBeInTheDocument();
+  expect(retrieve.mock.calls[0][1]?.aborted).toBe(true);
+  await act(async () => pending.resolve({ id, request, state: 'running', cancelRequested: false }));
+  expect(screen.getByText(/Cancellation request recorded/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Retrieve status / result' })).toBeEnabled();
+  expect(start).not.toHaveBeenCalled();
+  expect(cancel).toHaveBeenCalledTimes(1);
+});

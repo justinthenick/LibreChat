@@ -13,6 +13,7 @@ export * from './Projects';
 /* Scheduled chats */
 export * from './Schedules';
 export * from './Preview';
+export * from './Reviews';
 export * from './Subagents';
 export * from './Tools';
 export * from './connection';
