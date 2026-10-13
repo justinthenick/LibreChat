@@ -92,6 +92,9 @@ env_value() {
 }
 
 compose() {
+  if [ -f "$DEPLOY_DIR/docker-compose.dns.yml" ]; then
+    set -- -f "$DEPLOY_DIR/docker-compose.dns.yml" "$@"
+  fi
   if [ "$CLOUDFLARE_ENABLED" = "1" ] && [ "$ADMIN_SETTINGS_ENABLED" = "1" ]; then
     docker-compose -f "$DEPLOY_DIR/docker-compose.yml" -f "$CLOUDFLARE_OVERLAY" -f "$ADMIN_OVERLAY" "$@"
   elif [ "$CLOUDFLARE_ENABLED" = "1" ]; then
