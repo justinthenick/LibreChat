@@ -284,16 +284,24 @@ describe('offline HTTP bridge and authenticated route composition', () => {
   });
 
   it('expires retained records even with no further retrieval', async () => {
+    // Hold the clock stable so retention scheduling cannot lose a millisecond
+    // between calculating expiresAt and installing its timer.
+    jest.spyOn(Date, 'now').mockReturnValue(Date.now());
     const realTimeout = global.setTimeout;
-    jest
-      .spyOn(global, 'setTimeout')
-      .mockImplementation(((callback: () => void, ms?: number) =>
-        realTimeout(callback, ms === 600000 ? 50 : ms)) as typeof setTimeout);
+    let expire: (() => void) | undefined;
+    jest.spyOn(global, 'setTimeout').mockImplementation(((callback: () => void, ms?: number) => {
+      if (ms === 600000) expire = callback;
+      return realTimeout(callback, ms);
+    }) as typeof setTimeout);
     const client = createReviewClient({ ...config, model, send: createReviewService(config) });
     const id = randomUUID();
     await client.run(request, principal, undefined, id);
     expect(await client.status(id, request, principal)).toMatchObject({ state: 'completed' });
-    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(expire).toBeDefined();
+    if (!expire) throw new Error('retention timer was not scheduled');
+    // Exercise timer eviction with the clock still before expiry, so a status
+    // lookup cannot hide a broken timer by performing lazy expiration instead.
+    expire();
     expect(await client.status(id, request, principal)).toEqual({ id, state: 'unknown' });
   });
 
