@@ -68,3 +68,11 @@ export * from './agentToolOptions';
 /* code-execution sandbox */
 export * from './codeEnvRef';
 export * from './types/preview';
+
+export type {
+  CodeReviewRequest,
+  CodeReviewFinding,
+  CodeReviewResult,
+  CodeReviewRecovery,
+  CodeReviewFailure,
+} from './types/reviews';
