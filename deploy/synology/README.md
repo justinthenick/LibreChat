@@ -173,6 +173,45 @@ Windows Firewall should permit it only from the NAS address.
 The configured MCP is hidden from ordinary chat menus. Attach
 `coding_executor` only to the reviewed Software Engineering Agent.
 
+## Optional API DNS resolver
+
+DNS is unchanged by default. To opt in, an operator can copy
+`docker-compose.dns.yml.example` to the git-ignored
+`docker-compose.dns.yml` in this directory after reviewing it. Do not overwrite
+an existing local file. Autodeploy, the admin-settings worker and
+`manage-env.py compose-check` load this file last, after the active Cloudflare
+and admin overlays. The example changes only the API service's DNS. Restart an already
+running admin-settings worker after installing the loader changes so future
+settings updates retain the opt-in. Install the loader patch before creating
+the local file: an autodeploy process that pulls the patch is still executing
+its previously loaded shell functions. Activate the opt-in with a fresh
+deployment command or the restarted worker, never by relying on that first
+in-flight update.
+
+The example uses Tailscale's device-local resolver, `100.100.100.100`.
+Before enabling it, verify tailnet and public-domain lookups through that
+resolver from the actual API container. All external API DNS queries will then
+depend on Tailscale; no generic fallback resolver is added. NAS-wide DNS and
+other containers are unchanged. Verify Docker service-name resolution too.
+
+Compose merges DNS lists from multiple files. Check that the effective API DNS
+list contains only the intended resolver; reconcile any pre-existing DNS
+settings before enabling this example. Do not use unsupported YAML reset tags
+or interpolate a string as an optional YAML list.
+
+Use the existing deployment/worker path to recreate only `api` when applying
+this setting. Bare `docker-compose` commands do not automatically load this
+local file: manual commands must explicitly include the base file, all active
+overlays, and finally `-f docker-compose.dns.yml`. Renaming the local file out
+of that exact path and recreating `api` restores the previous resolver selection.
+Keep backups and verify health before changing MCP hostnames or retiring LAN
+fallback. The worker's automatic rollback restores its managed `.env`, not
+this operator-owned overlay. If DNS activation fails, restore or disable the
+overlay explicitly before recreating `api` with the previous configuration.
+Coordinate overlay edits and activation with the existing deployment lock;
+do not edit the file during a worker apply or scheduled deployment. Git updates preserve the ignored local file; deploy scripts must not
+replace it with the example automatically.
+
 ## Validate and deploy
 
 This NAS uses standalone Compose v1, so use `docker-compose`, not `docker compose`.

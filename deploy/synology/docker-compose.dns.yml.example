@@ -1,0 +1,8 @@
+version: "3.7"
+
+# Opt in only after verifying this resolver from the API container.
+# All external API DNS queries will depend on the local Tailscale service.
+services:
+  api:
+    dns:
+      - "100.100.100.100"

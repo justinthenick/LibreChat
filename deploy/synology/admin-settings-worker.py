@@ -247,6 +247,9 @@ def compose_cmd(values, args):
         cmd.extend(["-f", str(ROOT / "docker-compose.cloudflare.yml")])
     if manage_env.configured(values.get("ADMIN_SETTINGS_ACCESS_TOKEN")) and (ROOT / "docker-compose.admin.yml").exists():
         cmd.extend(["-f", str(ROOT / "docker-compose.admin.yml")])
+    dns = ROOT / "docker-compose.dns.yml"
+    if dns.is_file():
+        cmd.extend(["-f", str(dns)])
     cmd.extend(args)
     return cmd
 

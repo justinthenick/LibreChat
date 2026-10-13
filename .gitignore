@@ -114,6 +114,7 @@ junit.xml
 # docker override file
 docker-compose.override.yaml
 docker-compose.override.yml
+/deploy/synology/docker-compose.dns.yml
 
 # meilisearch
 meilisearch

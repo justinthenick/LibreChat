@@ -362,6 +362,9 @@ def compose_command(env_path, args):
         cmd.extend(["-f", str(cloudflare)])
     if configured(values.get("ADMIN_SETTINGS_ACCESS_TOKEN")) and admin.exists():
         cmd.extend(["-f", str(admin)])
+    dns = deploy_dir / "docker-compose.dns.yml"
+    if dns.is_file():
+        cmd.extend(["-f", str(dns)])
     cmd.extend(args)
     return cmd
 

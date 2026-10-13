@@ -62,11 +62,14 @@ jobs:
                   f"deploy/synology/librechat.yaml is {deployed}, but runtime expects {supported}"
               )
           PY
+      - name: Verify Compose parser is available
+        run: docker compose version
       - name: Run settings and read-only infrastructure regression tests
         run: |
           python -m unittest -v \
             deploy/synology/test_admin_rollout.py \
             deploy/synology/test_manage_env.py \
+            deploy/synology/test_dns_overlay.py \
             deploy/synology/test_admin_settings_worker.py \
             deploy/synology/test_admin_settings_recovery.py \
             deploy/synology/test_admin_settings_security.py \
