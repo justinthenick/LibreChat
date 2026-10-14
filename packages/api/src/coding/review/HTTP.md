@@ -166,3 +166,54 @@ Reference: [GitHub REST: Get a pull request](https://docs.github.com/en/rest/pul
 API version `2026-03-10`. Verification uses fake GitHub responses and the actual
 authenticated application wrapper with synthetic storage; no live lookup or
 model call is needed for these tests.
+
+## Optional durable review recovery (development, default off)
+
+The service can explicitly receive a `journal` opened by `createReviewJournal`
+from `@librechat/api/coding`. Configure absolute Linux paths for `python`
+(stdlib Python), `sourceRoot` (the orchestrator `src` directory), and `path`
+(a dedicated private SQLite database). Await journal creation before accepting
+requests and call `journal.close()` during shutdown. This does not add a route,
+environment switch, production bootstrap, or automatic activation. Keep the
+existing service authentication, repository authorization, PR identity checks,
+bounded worker, cancellation, cleanup, result validation and finish-only backend.
+
+The adapter reuses the orchestrator `JobStore` through a single lock-owning,
+credential-free Python helper. It persists the external review UUID, owner,
+tenant, repository alias, exact base/head, PR binding and configured model in
+the admission transaction before dispatch. Successful validated outcomes are
+committed after worker settlement and cleanup, before delivery. Completed
+recovery still checks the current PR identity. An interrupted response has no
+findings or freshness claim and remains observable without a GitHub lookup.
+
+Restart never repeats model dispatch. Previously active jobs become explicit
+`interrupted` records; unresolved execution reservations block new admissions.
+A helper failure fences its TS service generation permanently, cancels local
+work and rejects pending operations without retrying mutations or reconnecting.
+Only successful settled execution supplies trusted stop evidence. Failures,
+timeouts, cancellation without successful settlement, and process loss do not
+prove external quiescence and remain quarantined. If cancellation wins the
+terminal commit after successful worker settlement, persist cancelled, withhold
+findings, and release the reservation using that settlement evidence.
+
+Cancellation before admission persists a tombstone without taking an execution
+slot. No UUID may be replayed, including after finding expiry. Result payloads
+expire after 600 seconds (on access/admission and a 30-second maintenance sweep);
+identity tombstones remain. Admission is bounded to 64 retained result payloads
+and 1,024 lifetime records, failing closed at capacity. This milestone includes
+no deletion/reset, automatic reconciliation or reservation-release endpoint.
+Do not remove the journal to clear a quarantine: that loses no-replay evidence.
+
+Process crashes can leave orphaned execution or scratch directories. This
+milestone deliberately does not infer their termination or automate crash
+cleanup; trusted reconciliation and retention/tombstone lifecycle policy remain
+follow-up work before activation. Use a dedicated database, not the general job
+store database. The helper imports only stdlib persistence code and receives no
+provider credentials, executor access or publication capability.
+
+Offline tests use real SQLite/helper processes, fake workers/provider outputs
+and empty auth directories. They cover service/helper loss, both commit-before-
+acknowledgement windows, owner/tenant/PR/model mismatch, orphaned execution,
+precancellation, cancellation racing completion, expiry with no replay, lock
+contention and subsequent admission after trusted settlement. No live model or
+GitHub publication is part of those fixtures.
