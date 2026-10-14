@@ -7,6 +7,7 @@ import { useReviewActions } from '~/data-provider';
 import useLocalize from '~/hooks/useLocalize';
 
 type Notice =
+  | 'interrupted'
   | 'stale_review'
   | 'resolved'
   | 'idle'
@@ -21,6 +22,7 @@ type Notice =
   | 'failed'
   | 'completed';
 const notices = {
+  interrupted: 'com_ui_review_interrupted',
   stale_review: 'com_ui_review_stale',
   resolved: 'com_ui_review_resolved',
   idle: 'com_ui_review_idle',
@@ -265,6 +267,9 @@ function ReviewForm({ repositories }: { repositories: readonly string[] }) {
           setResult(value.result);
           setExpires(value.expiresAt);
           setNotice('completed');
+        } else if (value.state === 'interrupted') {
+          setNotice('interrupted');
+          setCancelAcknowledged(value.cancelRequested);
         } else if (value.state === 'running') {
           setNotice('running');
           setCancelAcknowledged(value.cancelRequested);

@@ -435,3 +435,16 @@ it.each(['user', 'tenant', 'selection'] as const)(
     expect(start).not.toHaveBeenCalled();
   },
 );
+
+it('shows interrupted recovery explicitly and never starts or replays work', async () => {
+  retrieve.mockResolvedValue({ id, request, state: 'interrupted', cancelRequested: true });
+  mount();
+  fill(id);
+  fireEvent.click(screen.getByRole('button', { name: 'Retrieve status / result' }));
+  expect(
+    await screen.findByText(/Review interrupted or execution stop unconfirmed/),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Human review required' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Start review' })).toBeDisabled();
+  expect(start).not.toHaveBeenCalled();
+});

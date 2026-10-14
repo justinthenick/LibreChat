@@ -35,9 +35,10 @@ export type CodeReviewFailure =
   | 'invalid_response'
   | 'configuration';
 
-/** Process-local recovery only. Unknown never authorizes resubmission. */
+/** Unknown or interrupted never authorizes resubmission. Durable storage is opt-in. */
 export type CodeReviewRecovery =
   | { id: string; state: 'unknown' }
+  | { id: string; state: 'interrupted'; request: CodeReviewRequest; cancelRequested: boolean }
   | { id: string; state: 'running'; request: CodeReviewRequest; cancelRequested: boolean }
   | {
       id: string;

@@ -20,3 +20,6 @@ export type { ReviewRoutesConfig } from './review/routes';
 export type { ReviewClient } from './review/transport';
 
 export { getDevelopmentReviewConfig } from './review/development';
+
+export { createReviewJournal } from './review/journal';
+export type { ReviewJournal, ReviewJournalConfig } from './review/journal';
