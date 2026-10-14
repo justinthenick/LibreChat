@@ -2,6 +2,7 @@ export interface CodeReviewRequest {
   repository: string;
   base: string;
   head: string;
+  pullRequest?: { number: number; repositoryId: number };
 }
 
 export interface CodeReviewFinding {
@@ -18,9 +19,12 @@ export interface CodeReviewResult extends CodeReviewRequest {
   provider: 'chatgpt_subscription';
   model: string;
   findings: CodeReviewFinding[];
+  /** App route rechecked PR identity immediately before returning this result. */
+  prCheckedAt?: string;
 }
 
 export type CodeReviewFailure =
+  | 'stale_review'
   | 'invalid_request'
   | 'forbidden'
   | 'busy'

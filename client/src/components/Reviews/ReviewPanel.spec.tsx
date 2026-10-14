@@ -1,7 +1,7 @@
 import { dataService } from 'librechat-data-provider';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
-import type { CodeReviewResult } from 'librechat-data-provider';
+import type { CodeReviewResult, CodeReviewSelection } from 'librechat-data-provider';
 import type { ReactNode } from 'react';
 import mockTranslations from '~/locales/en/translation.json';
 import ReviewPanel from './ReviewPanel';
@@ -43,6 +43,22 @@ const cancel = jest.fn<
   ReturnType<typeof dataService.cancelReview>,
   Parameters<typeof dataService.cancelReview>
 >();
+const resolveSelection = jest.fn<
+  ReturnType<typeof dataService.resolveReviewSelection>,
+  Parameters<typeof dataService.resolveReviewSelection>
+>();
+const binding = { number: 7, repositoryId: 123 };
+const selection: CodeReviewSelection = {
+  request: { ...request, pullRequest: binding },
+  pullRequest: 7,
+  status: 'resolved',
+  checkedAt: '2026-10-14T04:00:00.000Z',
+};
+const boundResult: CodeReviewResult = {
+  ...result,
+  pullRequest: binding,
+  prCheckedAt: selection.checkedAt,
+};
 function deferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((done) => {
@@ -80,6 +96,8 @@ beforeEach(() => {
   start.mockReset().mockResolvedValue(result);
   retrieve.mockReset().mockResolvedValue({ id, state: 'unknown' });
   cancel.mockReset().mockResolvedValue({ cancelled: true });
+  resolveSelection.mockReset().mockResolvedValue(selection);
+  jest.spyOn(dataService, 'resolveReviewSelection').mockImplementation(resolveSelection);
   jest.spyOn(dataService, 'startReview').mockImplementation(start);
   jest.spyOn(dataService, 'retrieveReview').mockImplementation(retrieve);
   jest.spyOn(dataService, 'cancelReview').mockImplementation(cancel);
@@ -317,3 +335,103 @@ it('ignores a status response superseded by a cancellation acknowledgement', asy
   expect(start).not.toHaveBeenCalled();
   expect(cancel).toHaveBeenCalledTimes(1);
 });
+
+async function selectPr() {
+  fireEvent.change(screen.getByLabelText('Pull request number (optional)'), {
+    target: { value: '7' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Resolve PR' }));
+  await waitFor(() => expect(resolveSelection).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Resolve PR' })).toBeEnabled());
+}
+it('binds resolved PR identity to admission and shows point-in-time verification', async () => {
+  start.mockResolvedValue(boundResult);
+  mount();
+  fill();
+  await selectPr();
+  fireEvent.click(screen.getByRole('button', { name: 'Start review' }));
+  expect(await screen.findByText(selection.checkedAt)).toBeInTheDocument();
+  expect(start.mock.calls[0][0]).toEqual({ id, request: selection.request });
+  expect(screen.getByText(/It may change afterward/)).toBeInTheDocument();
+});
+it('hides completed findings on stale recovery and keeps cancellation available', async () => {
+  start.mockResolvedValue(boundResult);
+  mount();
+  fill();
+  await selectPr();
+  fireEvent.click(screen.getByRole('button', { name: 'Start review' }));
+  expect(await screen.findByText(selection.checkedAt)).toBeInTheDocument();
+  retrieve.mockRejectedValue({ isAxiosError: true, response: { data: { code: 'stale_review' } } });
+  fireEvent.click(screen.getByRole('button', { name: 'Retrieve status / result' }));
+  expect(await screen.findByText(/PR closed or selected commits changed/)).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Human review required' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel review' }));
+  expect(await screen.findByText(/Cancellation request recorded/)).toBeInTheDocument();
+  expect(start).toHaveBeenCalledTimes(1);
+});
+it.each(['missing-binding', 'wrong-pr', 'wrong-repository', 'missing-check'] as const)(
+  'rejects %s in PR results',
+  async (change) => {
+    const value = { ...boundResult };
+    if (change === 'missing-binding') delete value.pullRequest;
+    if (change === 'wrong-pr') value.pullRequest = { ...binding, number: 8 };
+    if (change === 'wrong-repository') value.pullRequest = { ...binding, repositoryId: 456 };
+    if (change === 'missing-check') delete value.prCheckedAt;
+    start.mockResolvedValue(value);
+    mount();
+    fill();
+    await selectPr();
+    fireEvent.click(screen.getByRole('button', { name: 'Start review' }));
+    expect(await screen.findByText(/Outcome uncertain/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Human review required' }),
+    ).not.toBeInTheDocument();
+  },
+);
+it('preserves the original pair when resolving a moved PR for manual recovery', async () => {
+  resolveSelection.mockResolvedValue({
+    ...selection,
+    status: 'stale',
+    request: { ...selection.request, head: 'c'.repeat(40) },
+  });
+  mount();
+  fill(id);
+  await selectPr();
+  expect(screen.getByLabelText('Head commit (40-character SHA)')).toHaveValue(request.head);
+  expect(resolveSelection.mock.calls[0][0]).toEqual({
+    repository: request.repository,
+    pullRequest: 7,
+    expected: { base: request.base, head: request.head },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Retrieve status / result' }));
+  await waitFor(() => expect(retrieve).toHaveBeenCalledTimes(1));
+  expect(retrieve.mock.calls[0][0]).toEqual({ id, request: selection.request });
+  expect(start).not.toHaveBeenCalled();
+});
+it.each(['user', 'tenant', 'selection'] as const)(
+  'ignores a delayed PR resolution after %s changes',
+  async (change) => {
+    const pending = deferred<CodeReviewSelection>();
+    resolveSelection.mockReturnValue(pending.promise);
+    const page = mount();
+    fill();
+    fireEvent.change(screen.getByLabelText('Pull request number (optional)'), {
+      target: { value: '7' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Resolve PR' }));
+    await waitFor(() => expect(resolveSelection).toHaveBeenCalledTimes(1));
+    if (change === 'selection')
+      fireEvent.change(screen.getByLabelText('Pull request number (optional)'), {
+        target: { value: '8' },
+      });
+    else {
+      mockAuth.user =
+        change === 'user' ? { id: 'bob', tenantId: 'one' } : { id: 'alice', tenantId: 'two' };
+      page.rerender(<ReviewPanel enabled repositories={['fixture']} />);
+    }
+    await act(async () => pending.resolve(selection));
+    expect(resolveSelection.mock.calls[0][1]?.aborted).toBe(true);
+    expect(screen.getByRole('button', { name: 'Start review' })).toBeDisabled();
+    expect(start).not.toHaveBeenCalled();
+  },
+);

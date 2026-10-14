@@ -28,7 +28,7 @@ afterEach(() => {
 it('resolves actual stacked base/head, strips hostile metadata, and never uses a merge SHA', async () => {
   const result = await resolveReviewSelection(input, binding, fetcher);
   expect(result).toEqual({
-    request: { repository: 'fixture', ...pair },
+    request: { repository: 'fixture', ...pair, pullRequest: { number: 7, repositoryId: 123 } },
     pullRequest: 7,
     status: 'resolved',
     checkedAt: expect.any(String),
@@ -62,6 +62,7 @@ it.each(['current', 'head', 'base', 'closed', 'merged'] as const)(
       repository: 'fixture',
       base: data.base.sha,
       head: data.head.sha,
+      pullRequest: { number: 7, repositoryId: 123 },
     });
   },
 );

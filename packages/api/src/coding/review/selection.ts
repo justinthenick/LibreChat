@@ -127,7 +127,12 @@ export async function resolveReviewSelection(
       data.base.repo.full_name.toLowerCase() !== `${owner}/${name}`.toLowerCase()
     )
       throw new ReviewWorkerError('invalid_response');
-    const pair = { repository: request.repository, base: data.base.sha, head: data.head.sha };
+    const pair = {
+      repository: request.repository,
+      base: data.base.sha,
+      head: data.head.sha,
+      pullRequest: { number: request.pullRequest, repositoryId },
+    };
     let status: CodeReviewSelection['status'] = 'resolved';
     if (request.expected) {
       const matches = request.expected.base === pair.base && request.expected.head === pair.head;

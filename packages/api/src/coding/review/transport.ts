@@ -41,6 +41,7 @@ const envelopeSchema = z
 const errorSchema = z
   .object({
     code: z.enum([
+      'stale_review',
       'invalid_request',
       'forbidden',
       'busy',
@@ -83,9 +84,14 @@ const recoverySchema: z.ZodType<CodeReviewRecovery> = z.discriminatedUnion('stat
     .strict(),
 ]);
 const sameRequest = (left: CodeReviewRequest, right: CodeReviewRequest) =>
-  left.repository === right.repository && left.base === right.base && left.head === right.head;
+  left.repository === right.repository &&
+  left.base === right.base &&
+  left.head === right.head &&
+  left.pullRequest?.number === right.pullRequest?.number &&
+  left.pullRequest?.repositoryId === right.pullRequest?.repositoryId;
 
 export const reviewFailureStatus: Record<ReviewFailure, number> = {
+  stale_review: 409,
   invalid_request: 400,
   forbidden: 403,
   busy: 409,
@@ -620,9 +626,7 @@ export function createReviewClient(config: ReviewClientConfig): ReviewClient {
         if (
           response.status !== 200 ||
           !parsed.success ||
-          parsed.data.repository !== requested.repository ||
-          parsed.data.base !== requested.base ||
-          parsed.data.head !== requested.head ||
+          !sameRequest(parsed.data, requested) ||
           parsed.data.model !== model
         ) {
           throw new ReviewWorkerError('invalid_response');
