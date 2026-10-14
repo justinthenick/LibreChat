@@ -1,40 +1,40 @@
-2026-10-14 13:53:35 Official LibreChat Admin Panel healthy on its configured host port (default 3220)
-2026-10-14 13:53:37 NAS read-only infrastructure worker and MCP bridge healthy
-2026-10-14 13:53:50 Sanitised GitHub telemetry published
-2026-10-14 13:53:51 Deployment healthy at f30a5524431c9a99cfb0b76bab9f7c23ddc8e6fd
-2026-10-14 13:54:47 LibreChat deployment check started
-2026-10-14 13:54:49 Cloudflare tunnel integration enabled
-2026-10-14 13:54:49 Synology Admin Settings integration enabled
-2026-10-14 14:02:47 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-14 14:03:03 LibreChat deployment check started
-2026-10-14 14:03:04 Cloudflare tunnel integration enabled
-2026-10-14 14:03:04 Synology Admin Settings integration enabled
-2026-10-14 14:11:08 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-14 14:11:45 LibreChat deployment check started
-2026-10-14 14:11:46 Cloudflare tunnel integration enabled
-2026-10-14 14:11:46 Synology Admin Settings integration enabled
-2026-10-14 14:19:32 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-14 14:19:41 LibreChat deployment check started
-2026-10-14 14:19:42 Cloudflare tunnel integration enabled
-2026-10-14 14:19:42 Synology Admin Settings integration enabled
-2026-10-14 14:24:41 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-14 14:25:32 LibreChat deployment check started
-2026-10-14 14:25:33 Cloudflare tunnel integration enabled
-2026-10-14 14:25:33 Synology Admin Settings integration enabled
-2026-10-14 14:31:24 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-14 14:31:56 LibreChat deployment check started
-2026-10-14 14:31:56 Cloudflare tunnel integration enabled
-2026-10-14 14:32:01 Synology Admin Settings integration enabled
-2026-10-14 14:38:49 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-14 14:39:24 LibreChat deployment check started
-2026-10-14 14:39:24 Cloudflare tunnel integration enabled
-2026-10-14 14:39:24 Synology Admin Settings integration enabled
-2026-10-14 14:44:37 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-14 14:45:19 LibreChat deployment check started
-2026-10-14 14:45:19 Cloudflare tunnel integration enabled
-2026-10-14 14:45:19 Synology Admin Settings integration enabled
-2026-10-14 14:50:26 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-14 14:50:50 LibreChat deployment check started
 2026-10-14 14:50:50 Cloudflare tunnel integration enabled
 2026-10-14 14:50:50 Synology Admin Settings integration enabled
 2026-10-14 14:56:04 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 14:56:15 Sanitised GitHub telemetry published
+2026-10-14 14:56:46 LibreChat deployment check started
+2026-10-14 14:56:46 Cloudflare tunnel integration enabled
+2026-10-14 14:56:46 Synology Admin Settings integration enabled
+2026-10-14 15:03:28 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 15:04:24 LibreChat deployment check started
+2026-10-14 15:04:25 Cloudflare tunnel integration enabled
+2026-10-14 15:04:25 Synology Admin Settings integration enabled
+2026-10-14 15:11:21 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 15:12:19 LibreChat deployment check started
+2026-10-14 15:12:20 Cloudflare tunnel integration enabled
+2026-10-14 15:12:20 Synology Admin Settings integration enabled
+2026-10-14 15:18:46 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 15:19:39 LibreChat deployment check started
+2026-10-14 15:19:40 Cloudflare tunnel integration enabled
+2026-10-14 15:19:40 Synology Admin Settings integration enabled
+2026-10-14 15:25:37 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 15:26:19 LibreChat deployment check started
+2026-10-14 15:26:20 Cloudflare tunnel integration enabled
+2026-10-14 15:26:20 Synology Admin Settings integration enabled
+2026-10-14 15:30:49 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 15:31:29 LibreChat deployment check started
+2026-10-14 15:31:30 Cloudflare tunnel integration enabled
+2026-10-14 15:31:30 Synology Admin Settings integration enabled
+2026-10-14 15:38:50 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 15:39:20 LibreChat deployment check started
+2026-10-14 15:39:21 Cloudflare tunnel integration enabled
+2026-10-14 15:39:21 Synology Admin Settings integration enabled
+2026-10-14 15:44:57 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 15:45:04 LibreChat deployment check started
+2026-10-14 15:45:04 Cloudflare tunnel integration enabled
+2026-10-14 15:45:04 Synology Admin Settings integration enabled
+2026-10-14 15:50:49 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 15:50:58 LibreChat deployment check started
+2026-10-14 15:50:59 Cloudflare tunnel integration enabled
+2026-10-14 15:50:59 Synology Admin Settings integration enabled
+2026-10-14 15:56:17 No deployment change; healthy deployment already recorded at f30a5524
