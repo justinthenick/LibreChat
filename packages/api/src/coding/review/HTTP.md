@@ -127,7 +127,7 @@ Private repositories are deliberately unsupported until an explicitly approved
 existing GitHub authorization integration is selected. No new credential or
 permission is created. GitHub rate/access/network failures return fixed errors.
 
-The response includes `{request:{repository,base,head},pullRequest,status,checkedAt}`.
+The response includes `{request:{repository,base,head,pullRequest:{number,repositoryId}},pullRequest,status,checkedAt}`.
 It uses GitHub's actual `base.sha` and `head.sha`, including stacked bases and fork
 heads; it never substitutes `merge_commit_sha` or a default branch. Titles, bodies,
 URLs and other PR content are discarded. `status` is `resolved` without an expected
@@ -135,12 +135,32 @@ pair, `current` only for an exact pair match, `stale` if either SHA changed, or
 `closed` for a closed/merged PR. The timestamp records completion of this lookup.
 
 **This is a point-in-time observation, not a lease.** The PR can change immediately
-afterward. This independent slice does not bind the observation to admission,
-completion or publication; it does not fetch missing Git objects, start a worker,
-render a new UI flow or resolve durable recovery. Existing local-pair reviews
-remain explicitly local-pair reviews. The next integration must bind PR identity
-to the request and recheck it at admission and when presenting a completed result;
-publication would need its own fresh check and separate authorization.
+afterward. The request's optional `pullRequest` object is part of immutable run
+identity alongside repository/base/head. The server validates its repository ID
+against the current tenant mapping and rechecks the exact pair before dispatch.
+It rechecks again after successful execution and before returning a retained
+outcome. Closed/merged PRs or either changed SHA return `409 stale_review` with no
+findings. Lookup failures also withhold findings. Completed PR results include
+route-generated `prCheckedAt`; worker transport rejects worker-supplied timestamps.
+
+Recovery checks stored ownership and complete request identity before PR lookup.
+Removing or changing the PR binding cannot retrieve a bound result as a local-pair
+review. Unknown IDs remain unknown without lookup or resubmission. Cancellation
+remains owner-scoped and does not require current PR metadata; a cancellation
+recorded during admission lookup prevents the later worker dispatch. No extra
+route-local state or persistence is introduced.
+
+The UI resolves PR numbers using the authorized repository mapping. For recovery,
+enter the original review ID and commits before resolving: the original pair is
+preserved even if GitHub has moved. Selection or session changes clear displayed
+findings and invalidate delayed responses. A blank PR number selects explicit
+local-pair mode; these results carry no PR freshness claim. Neither mode publishes.
+
+The pre-dispatch check cannot atomically reserve GitHub's head. A change immediately
+after checking can still start work, but a changed pair observed at completion or
+recovery withholds findings. The UI labels the completion check as point-in-time.
+No Git object fetching, private-repository authorization, continuous freshness
+monitoring, automatic resubmission, or durable restart recovery is added.
 
 Reference: [GitHub REST: Get a pull request](https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request),
 API version `2026-03-10`. Verification uses fake GitHub responses and the actual

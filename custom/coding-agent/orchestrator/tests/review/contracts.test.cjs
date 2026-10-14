@@ -388,7 +388,7 @@ test('caller identity, repository and malformed head cannot override trusted pol
   assert.equal(await exists('started'), false);
 });
 
-function githubFixture() {
+function githubFixture(beforeResponse = async () => {}) {
   let calls = 0;
   const payload = {
     number: 7,
@@ -407,6 +407,7 @@ function githubFixture() {
       assert.equal(options.redirect, 'error');
       assert.equal(options.credentials, 'omit');
       assert.equal(new Headers(options.headers).has('authorization'), false);
+      await beforeResponse(calls, payload);
       return new Response(JSON.stringify(payload));
     }
     return actualFetch(target, options);
@@ -431,7 +432,10 @@ test('PR selection: actual stacked pair, force-push/base freshness and closed st
   const first = await post('/selection', body);
   assert.equal(first.status, 200);
   const selection = await first.json();
-  assert.deepEqual(selection.request, request);
+  assert.deepEqual(selection.request, {
+    ...request,
+    pullRequest: { number: 7, repositoryId: 123 },
+  });
   assert.equal(selection.status, 'resolved');
   assert.deepEqual(Object.keys(selection).sort(), [
     'checkedAt',
@@ -491,4 +495,130 @@ test('PR selection: explicit binding required and per-user lookup rate bounded',
   assert.equal((await post('/selection', body)).status, 429);
   assert.equal(fixture.calls(), 30);
   assert.equal(await exists('started'), false);
+});
+
+const prBinding = { number: 7, repositoryId: 123 };
+test('PR admission: stale head/base, closed state and wrong pinned ID fail without execution', async () => {
+  await selectionApp();
+  const fixture = githubFixture();
+  const selected = { ...request, pullRequest: prBinding };
+  for (const change of ['head', 'base', 'closed']) {
+    fixture.payload.head.sha = change === 'head' ? 'd'.repeat(40) : request.head;
+    fixture.payload.base.sha = change === 'base' ? 'e'.repeat(40) : request.base;
+    fixture.payload.state = change === 'closed' ? 'closed' : 'open';
+    const response = await post('', { id: randomUUID(), request: selected });
+    assert.equal(response.status, 409);
+    assert.deepEqual(await response.json(), { code: 'stale_review' });
+  }
+  assert.equal(
+    (
+      await post('', {
+        id: randomUUID(),
+        request: { ...selected, pullRequest: { ...prBinding, repositoryId: 456 } },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(fixture.calls(), 3);
+  assert.equal(await exists('started'), false);
+});
+test('PR result: exact binding survives worker retention and cannot be stripped, switched or read by another owner', async () => {
+  await selectionApp();
+  const fixture = githubFixture();
+  const id = randomUUID();
+  const original = request;
+  request = { ...request, pullRequest: prBinding };
+  const result = await completed(id);
+  assert.deepEqual(result.pullRequest, prBinding);
+  assert.ok(Number.isFinite(Date.parse(result.prCheckedAt)));
+  assert.equal(fixture.calls(), 3);
+  assert.equal((await status(id, 'alice', original)).status, 400);
+  for (const binding of [
+    { ...prBinding, number: 8 },
+    { ...prBinding, repositoryId: 456 },
+  ]) {
+    assert.equal((await status(id, 'alice', { ...request, pullRequest: binding })).status, 400);
+  }
+  assert.equal((await status(id, 'bob')).body.state, 'unknown');
+  assert.equal((await status(id, 'eve')).status, 403);
+  assert.equal(fixture.calls(), 3);
+  assert.equal((await post('', { id, request: original })).status, 400);
+  assert.equal(
+    (
+      await post('', {
+        id: randomUUID(),
+        request: { ...request, prCheckedAt: new Date().toISOString() },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(starts, 3);
+});
+for (const field of ['base', 'head'])
+  test(`PR result: ${field} changing during execution withholds direct and recovered findings`, async () => {
+    await selectionApp();
+    const fixture = githubFixture();
+    request = { ...request, pullRequest: prBinding };
+    await fs.writeFile(path.join(dir, 'hold'), '');
+    const id = randomUUID();
+    const pending = post('', { id, request });
+    await until(() => exists('started'));
+    fixture.payload[field].sha = 'c'.repeat(40);
+    await fs.rm(path.join(dir, 'hold'));
+    const response = await pending;
+    assert.equal(response.status, 409);
+    assert.deepEqual(await response.json(), { code: 'stale_review' });
+    assert.deepEqual(await status(id), { status: 409, body: { code: 'stale_review' } });
+    assert.equal((await post('/cancel', { id })).status, 200);
+    assert.equal(starts, 1);
+  });
+test('PR recovery: a later force-push or failed lookup withholds previously completed findings', async () => {
+  await selectionApp();
+  let fail = false;
+  const fixture = githubFixture(async () => {
+    if (fail) throw new Error('offline upstream failure');
+  });
+  request = { ...request, pullRequest: prBinding };
+  const id = randomUUID();
+  await completed(id);
+  fixture.payload.head.sha = 'c'.repeat(40);
+  assert.deepEqual(await status(id), { status: 409, body: { code: 'stale_review' } });
+  fixture.payload.head.sha = request.head;
+  fail = true;
+  assert.deepEqual(await status(id), { status: 502, body: { code: 'invalid_response' } });
+  assert.equal((await post('/cancel', { id })).status, 200);
+  assert.equal(starts, 1);
+});
+test('PR cancellation: cancellation during delayed admission prevents worker execution', async () => {
+  await selectionApp();
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const fixture = githubFixture(() => gate);
+  request = { ...request, pullRequest: prBinding };
+  const id = randomUUID();
+  const pending = post('', { id, request });
+  await until(() => fixture.calls() === 1);
+  assert.equal((await post('/cancel', { id })).status, 200);
+  release();
+  const response = await pending;
+  assert.equal(response.status, 499);
+  assert.deepEqual(await response.json(), { code: 'cancelled' });
+  assert.equal(await exists('started'), false);
+});
+test('PR cancellation: stale running work remains owner-cancellable and cleans scratch', async () => {
+  await selectionApp();
+  const fixture = githubFixture();
+  request = { ...request, pullRequest: prBinding };
+  await fs.writeFile(path.join(dir, 'hold'), '');
+  const id = randomUUID();
+  const pending = post('', { id, request });
+  await until(() => exists('started'));
+  fixture.payload.state = 'closed';
+  assert.equal((await status(id)).status, 409);
+  assert.equal((await post('/cancel', { id }, 'bob')).status, 403);
+  assert.equal((await post('/cancel', { id })).status, 200);
+  assert.equal((await pending).status, 499);
+  assert.equal(await exists('provider-called'), false);
 });
