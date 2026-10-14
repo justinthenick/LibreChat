@@ -1,40 +1,40 @@
-2026-10-13 21:42:09 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-13 21:45:03 LibreChat deployment check started
-2026-10-13 21:45:04 Cloudflare tunnel integration enabled
-2026-10-13 21:45:04 Synology Admin Settings integration enabled
-2026-10-13 21:46:41 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-13 21:50:07 LibreChat deployment check started
-2026-10-13 21:50:08 Cloudflare tunnel integration enabled
-2026-10-13 21:50:08 Synology Admin Settings integration enabled
-2026-10-13 21:51:49 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-13 21:55:09 LibreChat deployment check started
-2026-10-13 21:55:10 Cloudflare tunnel integration enabled
-2026-10-13 21:55:10 Synology Admin Settings integration enabled
-2026-10-13 21:56:36 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-14 06:50:03 LibreChat deployment check started
-2026-10-14 07:31:49 Cloudflare tunnel integration enabled
-2026-10-14 07:31:49 Synology Admin Settings integration enabled
-2026-10-14 07:44:03 Recorded deployment at f30a5524 is not healthy; reconciling runtime state
-2026-10-14 07:44:03 Reconciling unhealthy deployment at f30a5524
-2026-10-14 07:44:06 Official LibreChat Admin Panel dedicated session secret ready
-2026-10-14 07:44:10 Synology Admin Settings privileged worker ready
-2026-10-14 07:44:20 ERROR: NAS read-only infrastructure worker did not become ready
-2026-10-14 07:44:20 Collecting deployment diagnostics for stage nas_infra_worker
-2026-10-14 07:45:35 Sanitised GitHub telemetry published
-2026-10-14 07:46:29 LibreChat deployment check started
-2026-10-14 07:46:30 Cloudflare tunnel integration enabled
-2026-10-14 07:46:30 Synology Admin Settings integration enabled
-2026-10-14 08:55:11 Recorded deployment at f30a5524 is not healthy; reconciling runtime state
-2026-10-14 08:55:11 Reconciling unhealthy deployment at f30a5524
-2026-10-14 08:55:13 Official LibreChat Admin Panel dedicated session secret ready
-2026-10-14 08:55:15 Synology Admin Settings privileged worker ready
-2026-10-14 08:55:16 NAS read-only infrastructure worker ready
-2026-10-14 08:55:18 Compose validation passed
-2026-10-14 09:06:22 Image pull completed
-2026-10-14 09:15:57 ERROR: Compose update failed
-2026-10-14 09:15:57 Collecting deployment diagnostics for stage compose_up
-2026-10-14 09:19:08 Sanitised GitHub telemetry published
-2026-10-14 09:20:10 LibreChat deployment check started
-2026-10-14 09:20:11 Cloudflare tunnel integration enabled
-2026-10-14 09:20:11 Synology Admin Settings integration enabled
-2026-10-14 09:28:24 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 09:40:09 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 09:40:53 LibreChat deployment check started
+2026-10-14 09:40:54 Cloudflare tunnel integration enabled
+2026-10-14 09:40:54 Synology Admin Settings integration enabled
+2026-10-14 09:47:09 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 09:47:25 LibreChat deployment check started
+2026-10-14 09:47:26 Cloudflare tunnel integration enabled
+2026-10-14 09:47:26 Synology Admin Settings integration enabled
+2026-10-14 09:53:56 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 09:54:19 LibreChat deployment check started
+2026-10-14 09:54:19 Cloudflare tunnel integration enabled
+2026-10-14 09:54:19 Synology Admin Settings integration enabled
+2026-10-14 09:59:55 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 10:00:24 LibreChat deployment check started
+2026-10-14 10:00:25 Cloudflare tunnel integration enabled
+2026-10-14 10:00:25 Synology Admin Settings integration enabled
+2026-10-14 10:06:32 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 10:06:51 LibreChat deployment check started
+2026-10-14 10:06:52 Cloudflare tunnel integration enabled
+2026-10-14 10:06:52 Synology Admin Settings integration enabled
+2026-10-14 10:12:51 No deployment change; healthy deployment already recorded at f30a5524
+2026-10-14 13:15:12 LibreChat deployment check started
+2026-10-14 13:15:13 Cloudflare tunnel integration enabled
+2026-10-14 13:15:13 Synology Admin Settings integration enabled
+2026-10-14 13:20:56 Recorded deployment at f30a5524 is not healthy; reconciling runtime state
+2026-10-14 13:20:56 Reconciling unhealthy deployment at f30a5524
+2026-10-14 13:20:58 Official LibreChat Admin Panel dedicated session secret ready
+2026-10-14 13:21:01 Synology Admin Settings privileged worker ready
+2026-10-14 13:21:11 NAS read-only infrastructure worker ready
+2026-10-14 13:21:16 Compose validation passed
+2026-10-14 13:29:40 Image pull completed
+2026-10-14 13:39:36 Compose update completed
+2026-10-14 13:50:37 LibreChat API recreated for deployed runtime configuration
+2026-10-14 13:50:41 LibreChat health check passed
+2026-10-14 13:53:30 Production agents and coding-agent pilot seeded and validated
+2026-10-14 13:53:33 MCP workspace mount passed write/read/delete check
+2026-10-14 13:53:33 Cloudflare tunnel connector registered
+2026-10-14 13:53:35 Synology Admin Settings panel and worker healthy
+2026-10-14 13:53:35 Official LibreChat Admin Panel healthy on its configured host port (default 3220)
+2026-10-14 13:53:37 NAS read-only infrastructure worker and MCP bridge healthy
