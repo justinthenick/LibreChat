@@ -41,3 +41,25 @@ it.each([
     client: { enabled: false, url: '', token: '', model: '' },
   });
 });
+
+it('accepts an explicit pinned GitHub mapping without exposing or provisioning credentials', () => {
+  const github = { owner: 'fixture', name: 'repo', repositoryId: 123 };
+  expect(
+    getDevelopmentReviewConfig({
+      ...env,
+      CODING_REVIEW_REPOSITORIES: JSON.stringify([{ id: 'fixture', tenantId: 'tenant-a', github }]),
+    }).repositories,
+  ).toEqual([{ id: 'fixture', tenantId: 'tenant-a', github }]);
+});
+it.each([
+  { owner: '../evil', name: 'repo', repositoryId: 123 },
+  { owner: 'fixture', name: 'repo', repositoryId: 0 },
+  { owner: 'fixture', name: 'repo', repositoryId: 123, token: 'forbidden' },
+])('disables malformed GitHub mappings: %j', (github) => {
+  expect(
+    getDevelopmentReviewConfig({
+      ...env,
+      CODING_REVIEW_REPOSITORIES: JSON.stringify([{ id: 'fixture', github }]),
+    }).enabled,
+  ).toBe(false);
+});

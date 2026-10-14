@@ -95,3 +95,54 @@ on navigation, and do not add publication/merge actions. Test these states offli
 before proposing route/UI registration or activation. PR URL freshness resolution
 remains outside this immutable-pair slice. Lost responses can use status recovery
 within the bounded process-local retention window.
+
+## Development PR identity lookup
+
+`POST /api/reviews/selection` accepts exactly:
+
+```json
+{"repository":"fixture","pullRequest":7,"expected":{"base":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","head":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}
+```
+
+`expected` is optional. The existing development gate, JWT/user-state validation,
+ban checks, capability policy and tenant repository allowlist precede lookup.
+The configured repository entry must additionally contain a pinned GitHub binding:
+
+```json
+{"id":"fixture","tenantId":"tenant-a","github":{"owner":"fixture","name":"repo","repositoryId":123}}
+```
+
+This example is synthetic, not a usable runtime configuration. No binding is
+installed by this change. Discovery still exposes only authorized local IDs.
+Absent mappings fail closed. The browser cannot supply a host, owner, name,
+repository ID, credential or principal. The response's base repository ID and
+full name must match the trusted binding, preventing name reuse or wrong-repo
+responses from silently changing repository identity.
+
+The module issues one unauthenticated GET to the fixed `api.github.com` origin,
+without redirects, retries or application caching. It neither reads credentials
+nor uses the coding executor. It bounds the whole lookup to five seconds and the
+decoded response body to 64 KiB, with a 30-request/minute user/tenant limit.
+Private repositories are deliberately unsupported until an explicitly approved
+existing GitHub authorization integration is selected. No new credential or
+permission is created. GitHub rate/access/network failures return fixed errors.
+
+The response includes `{request:{repository,base,head},pullRequest,status,checkedAt}`.
+It uses GitHub's actual `base.sha` and `head.sha`, including stacked bases and fork
+heads; it never substitutes `merge_commit_sha` or a default branch. Titles, bodies,
+URLs and other PR content are discarded. `status` is `resolved` without an expected
+pair, `current` only for an exact pair match, `stale` if either SHA changed, or
+`closed` for a closed/merged PR. The timestamp records completion of this lookup.
+
+**This is a point-in-time observation, not a lease.** The PR can change immediately
+afterward. This independent slice does not bind the observation to admission,
+completion or publication; it does not fetch missing Git objects, start a worker,
+render a new UI flow or resolve durable recovery. Existing local-pair reviews
+remain explicitly local-pair reviews. The next integration must bind PR identity
+to the request and recheck it at admission and when presenting a completed result;
+publication would need its own fresh check and separate authorization.
+
+Reference: [GitHub REST: Get a pull request](https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request),
+API version `2026-03-10`. Verification uses fake GitHub responses and the actual
+authenticated application wrapper with synthetic storage; no live lookup or
+model call is needed for these tests.

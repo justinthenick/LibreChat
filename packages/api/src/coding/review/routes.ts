@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { Router, json } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import type { RequestHandler } from 'express';
+import type { ReviewGitHubRepository } from './selection';
 import type { ServerRequest } from '../../types/http';
 import type { ReviewClientConfig } from './transport';
 import {
@@ -10,6 +11,7 @@ import {
   reviewPrincipalSchema,
   reviewFailureStatus,
 } from './transport';
+import { resolveReviewSelection, reviewSelectionRequestSchema } from './selection';
 import { resolveRequestTenantId } from '../../middleware/tenant';
 import { reviewRequestSchema } from './schema';
 import { ReviewWorkerError } from './worker';
@@ -18,7 +20,7 @@ export interface ReviewRoutesConfig {
   enabled?: boolean;
   client: ReviewClientConfig;
   /** Explicit tenant-scoped IDs; paths and caller-supplied policy are never accepted. */
-  repositories?: readonly { id: string; tenantId?: string }[];
+  repositories?: readonly { id: string; tenantId?: string; github?: ReviewGitHubRepository }[];
 }
 
 /** Mandatory existing middleware is supplied by the thin LibreChat JS wrapper. */
@@ -84,6 +86,22 @@ export function createReviewRouter(
         res.status(429).json({ code: 'busy' });
       },
     });
+  router.post('/selection', limit(30), async (incoming, res) => {
+    const req = incoming as ServerRequest;
+    try {
+      const parsed = reviewSelectionRequestSchema.safeParse(req.body);
+      if (!parsed.success || Buffer.byteLength(JSON.stringify(req.body) ?? '') > 4096)
+        throw new ReviewWorkerError('invalid_request');
+      requireRepository(req, parsed.data.repository);
+      const binding = repositoriesFor(req)?.find(({ id }) => id === parsed.data.repository)?.github;
+      if (!binding) throw new ReviewWorkerError('configuration');
+      const selection = await resolveReviewSelection(parsed.data, binding);
+      if (!res.destroyed) res.status(200).json(selection);
+    } catch (error) {
+      const code = error instanceof ReviewWorkerError ? error.code : 'invalid_response';
+      if (!res.destroyed) res.status(reviewFailureStatus[code]).json({ code });
+    }
+  });
   const handler =
     (cancel: boolean): RequestHandler =>
     async (incoming, res) => {

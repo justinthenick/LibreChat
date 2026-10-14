@@ -55,3 +55,17 @@ export interface CodeReviewConfig {
   enabled: boolean;
   repositories: string[];
 }
+
+/** A point-in-time lookup, not a lease or authorization to publish/run a review. */
+export interface CodeReviewSelection {
+  request: CodeReviewRequest;
+  pullRequest: number;
+  status: 'resolved' | 'current' | 'stale' | 'closed';
+  checkedAt: string;
+}
+
+export interface CodeReviewSelectionRequest {
+  repository: string;
+  pullRequest: number;
+  expected?: Pick<CodeReviewRequest, 'base' | 'head'>;
+}
