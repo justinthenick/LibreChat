@@ -1,12 +1,17 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { dataService, QueryKeys } from 'librechat-data-provider';
-import type { CodeReviewRequest } from 'librechat-data-provider';
+import type { CodeReviewRequest, CodeReviewSelectionRequest } from 'librechat-data-provider';
 
 type Selection = { id: string; request: CodeReviewRequest; signal: AbortSignal };
 type Cancellation = { id: string; signal: AbortSignal };
 
 export function useReviewActions() {
   return {
+    resolve: useMutation(
+      ({ request, signal }: { request: CodeReviewSelectionRequest; signal: AbortSignal }) =>
+        dataService.resolveReviewSelection(request, signal),
+      { retry: false, networkMode: 'always' },
+    ),
     start: useMutation(({ signal, ...body }: Selection) => dataService.startReview(body, signal), {
       retry: false,
       networkMode: 'always',

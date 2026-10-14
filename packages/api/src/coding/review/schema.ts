@@ -5,6 +5,13 @@ export const reviewCommitSchema: z.ZodString = z
   .string()
   .length(40)
   .regex(/^[0-9a-f]{40}$/);
+const pullRequestSchema = z
+  .object({
+    number: z.number().int().positive().safe(),
+    repositoryId: z.number().int().positive().safe(),
+  })
+  .strict()
+  .optional();
 const text = z
   .string()
   .min(1)
@@ -19,6 +26,7 @@ const safeText = text.refine((value) =>
 
 export const reviewRequestSchema: z.ZodType<CodeReviewRequest> = z
   .object({
+    pullRequest: pullRequestSchema,
     repository: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/),
     base: reviewCommitSchema,
     head: reviewCommitSchema,
@@ -61,6 +69,7 @@ export const reviewResponseSchema = z
 
 export const reviewResultSchema: z.ZodType<CodeReviewResult> = z
   .object({
+    pullRequest: pullRequestSchema,
     repository: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/),
     base: reviewCommitSchema,
     head: reviewCommitSchema,

@@ -1,6 +1,8 @@
 import type { AxiosResponse } from 'axios';
 import type {
   CodeReviewConfig,
+  CodeReviewSelection,
+  CodeReviewSelectionRequest,
   CodeReviewRequest,
   CodeReviewResult,
   CodeReviewRecovery,
@@ -1585,4 +1587,11 @@ export function cancelReview(
 
 export function getReviewConfig(signal?: AbortSignal): Promise<CodeReviewConfig> {
   return request.get(`${endpoints.reviews()}/config`, { signal });
+}
+
+export function resolveReviewSelection(
+  body: CodeReviewSelectionRequest,
+  signal?: AbortSignal,
+): Promise<CodeReviewSelection> {
+  return request.postOnce(`${endpoints.reviews()}/selection`, body, signal);
 }
