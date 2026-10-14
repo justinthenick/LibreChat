@@ -168,7 +168,9 @@ export function createReviewRouter(
         tenantId: resolveRequestTenantId(req),
       });
       const prCheckedAt =
-        record.state === 'unknown' ? undefined : await checkPullRequest(req, record.request);
+        record.state === 'unknown' || record.state === 'interrupted'
+          ? undefined
+          : await checkPullRequest(req, record.request);
       const checked =
         record.state === 'completed' && prCheckedAt
           ? { ...record, result: { ...record.result, prCheckedAt } }

@@ -11,6 +11,7 @@ import type {
   ReviewFailure,
   CodeReviewWorker,
 } from './worker';
+import type { ReviewJournal } from './journal';
 import { createCodeReviewWorker, ReviewWorkerError } from './worker';
 import { reviewRequestSchema, reviewResultSchema } from './schema';
 
@@ -56,6 +57,14 @@ const errorSchema = z
   .strict();
 const recoverySchema: z.ZodType<CodeReviewRecovery> = z.discriminatedUnion('state', [
   z.object({ id: reviewRunIdSchema, state: z.literal('unknown') }).strict(),
+  z
+    .object({
+      id: reviewRunIdSchema,
+      state: z.literal('interrupted'),
+      request: reviewRequestSchema,
+      cancelRequested: z.boolean(),
+    })
+    .strict(),
   z
     .object({
       id: reviewRunIdSchema,
@@ -112,6 +121,8 @@ interface ReviewTransportConfig {
 
 export interface ReviewServiceConfig extends ReviewTransportConfig {
   worker: ReviewWorkerConfig;
+  /** Explicitly opened private durable store; no fallback if it fails. */
+  journal?: ReviewJournal;
 }
 
 export interface ReviewClientConfig extends ReviewTransportConfig {
@@ -238,6 +249,7 @@ export function createReviewService(
   const url = validateTransport(config);
   const credential = digest(`Bearer ${config.token}`);
   const worker = createCodeReviewWorker(config.worker);
+  const journal = config.journal;
   let active = false;
   interface ReviewRun {
     principal: ReviewPrincipal;
@@ -307,8 +319,61 @@ export function createReviewService(
         if (!parsed.success) throw new ReviewWorkerError('invalid_request');
         const { id, request, principal } = parsed.data;
         const entry = runs.get(id);
+        const durable = journal ? await journal.get(id, principal) : undefined;
         const unknown = () =>
           Response.json({ id, state: 'unknown' }, { headers: { 'cache-control': 'no-store' } });
+        if (journal) {
+          if (!durable?.request) return unknown();
+          if (!sameRequest(durable.request, request))
+            throw new ReviewWorkerError('invalid_request');
+          if (durable.model !== config.worker.model) throw new ReviewWorkerError('configuration');
+          if (
+            !config.worker.repositories.has(request.repository) ||
+            (await interruptible(
+              config.worker.authorize(principal, request.repository),
+              scope.signal,
+            )) !== true
+          )
+            throw new ReviewWorkerError('forbidden');
+          journal.assertReady();
+          let record: CodeReviewRecovery;
+          if (durable.state === 'completed') {
+            if (durable.expiresAt <= Date.now() || !durable.result) return unknown();
+            if (
+              !sameRequest(durable.result, request) ||
+              durable.result.model !== config.worker.model
+            )
+              throw new ReviewWorkerError('invalid_response');
+            record = {
+              id,
+              state: 'completed',
+              request,
+              result: durable.result,
+              expiresAt: durable.expiresAt,
+            };
+          } else if (durable.state === 'cancelled') {
+            if (durable.expiresAt <= Date.now()) return unknown();
+            record = {
+              id,
+              state: 'failed',
+              request,
+              code: 'cancelled',
+              expiresAt: durable.expiresAt,
+            };
+          } else if (durable.state === 'interrupted') {
+            record = {
+              id,
+              state: 'interrupted',
+              request,
+              cancelRequested: durable.cancelRequested,
+            };
+          } else {
+            record = { id, state: 'running', request, cancelRequested: durable.cancelRequested };
+          }
+          return Response.json(recoverySchema.parse(record), {
+            headers: { 'cache-control': 'no-store' },
+          });
+        }
         if (!entry || entry.expires <= Date.now()) {
           if (entry) remove(id);
           return unknown();
@@ -378,6 +443,19 @@ export function createReviewService(
           .safeParse(await readJson(incoming, REQUEST_BYTES, scope.signal, 'invalid_request'));
         if (!parsed.success) throw new ReviewWorkerError('invalid_request');
         const { id, principal } = parsed.data;
+        if (journal) {
+          try {
+            await journal.cancel(id, principal);
+          } catch (error) {
+            const activeEntry = runs.get(id);
+            if (
+              activeEntry?.principal.userId === principal.userId &&
+              activeEntry.principal.tenantId === principal.tenantId
+            )
+              activeEntry.cancel();
+            throw error;
+          }
+        }
         if ((runs.get(id)?.expires ?? Infinity) <= Date.now()) remove(id);
         const entry = runs.get(id) ?? reserve(id, principal, () => undefined, Date.now() + 600_000);
         if (
@@ -398,16 +476,28 @@ export function createReviewService(
         scope.close();
       }
     }
+    if (journal) {
+      try {
+        journal.assertReady();
+      } catch {
+        return failure(new ReviewWorkerError('configuration'));
+      }
+    }
     if (active) return failure(new ReviewWorkerError('busy'));
     if (incoming.signal.aborted) return failure(new ReviewWorkerError('cancelled'));
     active = true;
     const idHeader = incoming.headers.get('x-review-id');
-    if (idHeader !== null && !reviewRunIdSchema.safeParse(idHeader).success) {
+    if (
+      (journal && idHeader === null) ||
+      (idHeader !== null && !reviewRunIdSchema.safeParse(idHeader).success)
+    ) {
       active = false;
       return failure(new ReviewWorkerError('invalid_request'));
     }
     const scope = deadline(idHeader ? undefined : incoming.signal, SERVICE_TIMEOUT_MS);
     let admitted: ReturnType<typeof reserve> | undefined;
+    let persisted = false;
+    journal?.signal.addEventListener('abort', scope.cancel, { once: true });
     const operation = (async () => {
       const envelope = envelopeSchema.safeParse(
         await readJson(incoming, REQUEST_BYTES, scope.signal, 'invalid_request'),
@@ -430,6 +520,25 @@ export function createReviewService(
           (entry) => entry.request && entry.expires > Date.now(),
         ).length;
         if (retained >= 64) throw new ReviewWorkerError('busy');
+        if (journal) {
+          if (
+            !config.worker.repositories.has(envelope.data.request.repository) ||
+            (await interruptible(
+              config.worker.authorize(envelope.data.principal, envelope.data.request.repository),
+              scope.signal,
+            )) !== true
+          )
+            throw new ReviewWorkerError('forbidden');
+          const created = await journal.admit(
+            idHeader,
+            envelope.data.request,
+            envelope.data.principal,
+            config.worker.model,
+          );
+          journal.assertReady();
+          if (!created) throw new ReviewWorkerError('busy');
+          persisted = true;
+        }
         admitted = reserve(idHeader, envelope.data.principal, scope.cancel, Infinity);
         admitted.request = envelope.data.request;
       }
@@ -437,12 +546,24 @@ export function createReviewService(
       const validated = reviewResultSchema.parse(result);
       const body = JSON.stringify(validated);
       if (Buffer.byteLength(body) > RESPONSE_BYTES) throw new ReviewWorkerError('output_limit');
+      if (journal && idHeader && admitted) {
+        const completed = await journal.finish(idHeader, admitted.principal, validated);
+        persisted = false;
+        if (!completed) throw new ReviewWorkerError('cancelled');
+      }
       if (admitted && !admitted.code) admitted.result = validated;
       return new Response(body, {
         headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
       });
     })()
-      .catch((error) => {
+      .catch(async (error) => {
+        if (journal && persisted && admitted && idHeader) {
+          try {
+            await journal.finish(idHeader, admitted.principal);
+          } catch {
+            throw new ReviewWorkerError('configuration');
+          }
+        }
         if (admitted && !admitted.code)
           admitted.code = error instanceof ReviewWorkerError ? error.code : 'worker_failed';
         throw error;
@@ -450,6 +571,7 @@ export function createReviewService(
       .finally(() => {
         if (admitted && idHeader) retain(idHeader, admitted, Date.now() + 600_000);
         active = false;
+        journal?.signal.removeEventListener('abort', scope.cancel);
       });
     try {
       return await interruptible(operation, scope.signal);
