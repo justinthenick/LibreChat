@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ReviewRoutesConfig } from './routes';
 import { createReviewClient, reviewPrincipalSchema } from './transport';
+import { reviewGitHubRepositorySchema } from './selection';
 
 export interface ReviewDevelopmentEnvironment {
   NODE_ENV?: string;
@@ -16,6 +17,7 @@ const repositoriesSchema = z
     z
       .object({
         id: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/),
+        github: reviewGitHubRepositorySchema.optional(),
         tenantId: z
           .string()
           .optional()

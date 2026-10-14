@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { CodeReviewRequest, CodeReviewResult } from 'librechat-data-provider';
 
-const sha = z
+export const reviewCommitSchema: z.ZodString = z
   .string()
   .length(40)
   .regex(/^[0-9a-f]{40}$/);
@@ -20,8 +20,8 @@ const safeText = text.refine((value) =>
 export const reviewRequestSchema: z.ZodType<CodeReviewRequest> = z
   .object({
     repository: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/),
-    base: sha,
-    head: sha,
+    base: reviewCommitSchema,
+    head: reviewCommitSchema,
   })
   .strict();
 
@@ -48,8 +48,8 @@ export const reviewResponseSchema = z
   .object({
     ok: z.literal(true),
     mode: z.literal('review'),
-    base: sha,
-    head: sha,
+    base: reviewCommitSchema,
+    head: reviewCommitSchema,
     status: z.literal('human_review_required'),
     provider: z.literal('chatgpt_subscription'),
     model: z.string().min(1).max(100),
@@ -62,8 +62,8 @@ export const reviewResponseSchema = z
 export const reviewResultSchema: z.ZodType<CodeReviewResult> = z
   .object({
     repository: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/),
-    base: sha,
-    head: sha,
+    base: reviewCommitSchema,
+    head: reviewCommitSchema,
     status: z.literal('human_review_required'),
     provider: z.literal('chatgpt_subscription'),
     model: z.string().min(1).max(100),

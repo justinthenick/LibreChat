@@ -216,7 +216,7 @@ REVIEW_TEST_PYTHON=/path/to/installed/sdk/python node custom/coding-agent/orches
 The interpreter must contain this orchestrator's pinned `openhands,test` extras.
 The runner installs nothing, uses fresh temporary state and permits only literal
 loopback networking. The backend workflow runs it independently of selective unit
-test gating. Eleven deterministic scenarios cross real JWT verification, review
+test gating. Fourteen deterministic scenarios cross real JWT verification, review
 routes, HTTP transport, worker limits/cleanup, Git diff collection, CLI and SDK
 finish/evidence validation. The actual application development wrapper, JWT
 strategy, ban and capability middleware run against synthetic user/capability/ban
@@ -282,3 +282,15 @@ responses only. New config and composed-page tests cover fail-closed settings,
 ready authentication, tenant/user changes, discovery, recovery and cancellation;
 the contract runner exercises the actual app wrapper and established middleware.
 No model call, login, production executor, NAS or deployment is involved.
+
+
+### PR identity development follow-up
+
+The authenticated development router now supports a bounded, public-GitHub-only
+selection lookup and exact-pair comparison. See
+[the HTTP contract](../../../packages/api/src/coding/review/HTTP.md#development-pr-identity-lookup).
+It is independent of worker execution: no model call, Git fetch, publication or
+new credentials. All existing Stage 5 controls remain in place. The manual panel
+does not yet consume this lookup; an observed current pair is not a durable
+freshness guarantee. Admission/result binding and durable restart recovery remain
+the next integration gaps.

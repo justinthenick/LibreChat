@@ -71,6 +71,8 @@ export * from './types/preview';
 
 export type {
   CodeReviewConfig,
+  CodeReviewSelection,
+  CodeReviewSelectionRequest,
   CodeReviewRequest,
   CodeReviewFinding,
   CodeReviewResult,
