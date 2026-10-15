@@ -54,11 +54,11 @@ class ReviewBackendTests(unittest.TestCase):
             text=True,
         ).strip()
 
-    def run_review(self, report):
+    def run_review(self, report, *, on_stage=None):
         llm = TestLLM.from_messages(
             [scripted(report)], disable_vision=True
         )
-        backend = ReviewBackend(llm, self.scratch)
+        backend = ReviewBackend(llm, self.scratch, on_stage=on_stage)
         try:
             result = backend.run(self.repo, self.base, self.head)
             return result
@@ -85,6 +85,16 @@ class ReviewBackendTests(unittest.TestCase):
         self.assertEqual(
             result["status"], "human_review_required"
         )
+
+    def test_review_stages_are_fixed_and_reported_after_validation(self):
+        stages = []
+        result = self.run_review('{"findings":[]}', on_stage=stages.append)
+        self.assertEqual(result["status"], "human_review_required")
+        self.assertEqual(stages, [
+            "conversation_started",
+            "conversation_finished",
+            "result_validated",
+        ])
 
     def test_malformed_json_rejected(self):
         with self.assertRaises(ReviewError):
