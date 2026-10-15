@@ -20,9 +20,10 @@ const REVIEW_STAGES = new Set([
 
 /** Fixed stage labels and bounded counters, never child text or credentials. */
 export type ReviewWorkerDiagnostic =
-  | { type: 'stage'; stage: string }
+  | { type: 'stage'; stage: string; reviewId?: string | null }
   | {
       type: 'exit';
+      reviewId?: string | null;
       exitCode: number | null;
       signal: string | null;
       stdoutBytes: number;
@@ -81,6 +82,7 @@ export interface CodeReviewWorker {
     input: CodeReviewRequest,
     principal: ReviewPrincipal,
     signal?: AbortSignal,
+    reviewId?: string,
   ): Promise<CodeReviewResult>;
 }
 
@@ -94,7 +96,10 @@ export function createCodeReviewWorker(config: ReviewWorkerConfig): CodeReviewWo
     input: CodeReviewRequest,
     principal: ReviewPrincipal,
     signal?: AbortSignal,
+    reviewId?: string,
   ): Promise<CodeReviewResult> {
+    const diagnostic = (event: ReviewWorkerDiagnostic) =>
+      emitDiagnostic(settings.onDiagnostic, { ...event, reviewId: reviewId ?? null });
     const parsed = reviewRequestSchema.safeParse(input);
     if (!parsed.success) {
       throw new ReviewWorkerError('invalid_request');
@@ -163,7 +168,7 @@ export function createCodeReviewWorker(config: ReviewWorkerConfig): CodeReviewWo
         CODING_OPENHANDS_SCRATCH_ROOT: path.join(workspace, 'scratch'),
         CODING_REVIEW_STAGE_FD: '3',
       };
-      const output = await execute(python, repo, request, workspace, environment, signal, settings.onDiagnostic);
+      const output = await execute(python, repo, request, workspace, environment, signal, diagnostic);
       let response: ReturnType<typeof reviewResponseSchema.parse>;
       try {
         response = reviewResponseSchema.parse(JSON.parse(output));
@@ -177,7 +182,7 @@ export function createCodeReviewWorker(config: ReviewWorkerConfig): CodeReviewWo
       ) {
         throw new ReviewWorkerError('invalid_response');
       }
-      emitDiagnostic(settings.onDiagnostic, { type: 'stage', stage: 'schema_validated' });
+      diagnostic({ type: 'stage', stage: 'schema_validated' });
       return {
         ...request,
         status: response.status,
