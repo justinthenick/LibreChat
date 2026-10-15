@@ -1,6 +1,7 @@
 """OpenHands review execution without repository or MCP tools."""
 
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 from .backend import BackendContractError
@@ -17,7 +18,7 @@ from .review_limits import parse_report, validate_input
 
 
 class ReviewBackend:
-    def __init__(self, llm, scratch_root):
+    def __init__(self, llm, scratch_root, on_stage: Callable[[str], None] | None = None):
         if llm is None:
             raise BackendContractError("Review LLM required")
         self.llm = llm
@@ -25,6 +26,7 @@ class ReviewBackend:
         self.llm.stream_idle_timeout = min(self.llm.stream_idle_timeout or 30, 30)
         self.llm.num_retries = 0
         self.scratch_root = _validate_scratch_root(scratch_root)
+        self._on_stage = on_stage or (lambda _stage: None)
 
     def run(self, repo: Path, base: str, head: str) -> dict:
         from openhands.sdk.conversation.response_utils import (
@@ -98,7 +100,9 @@ class ReviewBackend:
                         "Review runtime tool contract mismatch"
                     )
 
+                self._on_stage("conversation_started")
                 conversation.run()
+                self._on_stage("conversation_finished")
 
                 actions = [
                     event.tool_name
@@ -119,6 +123,8 @@ class ReviewBackend:
                 )
                 report = parse_report(answer)
 
-                return validate_findings(lines, report)
+                validated = validate_findings(lines, report)
+                self._on_stage("result_validated")
+                return validated
             finally:
                 conversation.close()
