@@ -104,6 +104,10 @@ from pathlib import Path
 root=Path(__file__).parent
 with (root/'dispatches').open('a') as f: f.write(str(os.getpid())+'\\n')
 while (root/'hold').exists(): time.sleep(.01)
+if (root/'failure').exists():
+    os.write(3, b'conversation_finished\\n')
+    print('PRIVATE_DIAGNOSTIC_CANARY', file=sys.stderr)
+    sys.exit(1)
 print(json.dumps({'ok':True,'mode':'review','base':sys.argv[sys.argv.index('--base')+1],'head':sys.argv[sys.argv.index('--head')+1],'status':'human_review_required','provider':'chatgpt_subscription','model':'fixture-model','finding_count':0,'findings':[]}))
 `,
     { mode: 0o700 },
@@ -325,3 +329,34 @@ test('cancel race: cancellation before successful finish withholds findings and 
   assert.equal((await start(service, randomUUID())).status, 200);
   assert.equal(await count(), 2);
 });
+
+for (const mode of ['', 'diagnostic-capacity', 'diagnostic-closed']) {
+  test(
+    'diagnostics preserve failed-run quarantine and no replay: ' + (mode || 'recording'),
+    async () => {
+      let service = await launch(mode);
+      const id = randomUUID();
+      await fs.writeFile(path.join(dir, 'failure'), '');
+      assert.equal((await start(service, id)).status, 502);
+      if (!mode) {
+        const log = path.join(service.logDirectory, 'review-diagnostics.jsonl');
+        await until(async () => (await fs.readFile(log, 'utf8')).includes('child_exit'));
+        const text = await fs.readFile(log, 'utf8');
+        assert.ok(!text.includes('PRIVATE_DIAGNOSTIC_CANARY'));
+        const events = text.trim().split('\n').map(JSON.parse);
+        assert.ok(events.every((event) => event.reviewId === id));
+        assert.ok(events.some((event) => event.stage === 'conversation_finished'));
+        assert.equal(
+          events.find((event) => event.type === 'child_exit').classification,
+          'worker_failed',
+        );
+      }
+      await stop(service);
+      service = await launch(mode);
+      assert.equal((await (await status(service, id)).json()).state, 'interrupted');
+      assert.equal((await start(service, id)).status, 409);
+      assert.equal((await start(service, randomUUID())).status, 409);
+      assert.equal(await count(), 1);
+    },
+  );
+}

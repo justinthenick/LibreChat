@@ -10,7 +10,11 @@ subprocess.spawn = (...args) => {
   if (args[1]?.some((arg) => String(arg).endsWith('review_journal.py'))) helper = child;
   return child;
 };
-const { createReviewJournal, createReviewHttpHandler } = require('@librechat/api/coding');
+const {
+  createReviewJournal,
+  createReviewHttpHandler,
+  createReviewDiagnosticLog,
+} = require('@librechat/api/coding');
 const dir = process.argv[2];
 const mode = process.argv[3];
 const root = path.resolve(__dirname, '../../../../..');
@@ -38,6 +42,22 @@ async function exists(name) {
       return finish(id, principal, result);
     };
   }
+  const logDirectory = await fs.mkdtemp(path.join(dir, 'diagnostics-'));
+  const diagnosticLog = await createReviewDiagnosticLog({
+    directory: logDirectory,
+    maxBytes: 1024,
+    protectedRoots: [
+      path.join(dir, 'private'),
+      path.join(dir, 'empty-auth'),
+      path.join(dir, 'scratch'),
+      path.join(dir, 'repository'),
+    ],
+  });
+  if (mode === 'diagnostic-capacity') {
+    for (let i = 0; i < 64; i++)
+      diagnosticLog.onDiagnostic({ type: 'stage', stage: 'provider_ready' });
+  }
+  if (mode === 'diagnostic-closed') await diagnosticLog.close();
   const server = createServer();
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const url = `http://127.0.0.1:${server.address().port}/review`;
@@ -49,6 +69,7 @@ async function exists(name) {
       token: 'offline-review-service-token-fixture',
       journal,
       worker: {
+        onDiagnostic: diagnosticLog.onDiagnostic,
         python: path.join(dir, 'worker-python'),
         sourceRoot: path.join(root, 'custom/coding-agent/orchestrator/src'),
         scratchRoot: path.join(dir, 'scratch'),
@@ -70,5 +91,5 @@ async function exists(name) {
       },
     }),
   );
-  process.send({ url, helper: helper.pid });
+  process.send({ url, helper: helper.pid, logDirectory });
 })().catch(() => process.exit(1));
