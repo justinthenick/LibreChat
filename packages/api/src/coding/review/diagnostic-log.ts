@@ -3,6 +3,7 @@ import { constants } from 'node:fs';
 import { constants as osConstants } from 'node:os';
 import { lstat, open, realpath, readdir } from 'node:fs/promises';
 import type { ReviewWorkerDiagnostic } from './worker';
+import { reviewRunIdSchema } from './identity';
 
 const stages = new Set([
   'evidence_validated',
@@ -24,7 +25,6 @@ const classifications = new Set([
   'worker_failed',
   'invalid_response',
 ]);
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_RECORD_BYTES = 1024;
 
 export interface ReviewDiagnosticLogConfig {
@@ -57,10 +57,9 @@ function bounded(value: unknown): value is number {
 function sanitize(event: ReviewWorkerDiagnostic) {
   // Read once: hostile getters must not substitute an object after validation.
   const { type, reviewId: suppliedId } = event;
-  const reviewId =
-    typeof suppliedId === 'string' && suppliedId.length === 36 && uuid.test(suppliedId)
-      ? suppliedId.toLowerCase()
-      : null;
+  const parsedId =
+    typeof suppliedId === 'string' ? reviewRunIdSchema.safeParse(suppliedId) : undefined;
+  const reviewId = parsedId?.success ? parsedId.data : null;
   if (type === 'stage') {
     const { stage } = event;
     return stages.has(stage) ? { type: 'stage', reviewId, stage } : null;

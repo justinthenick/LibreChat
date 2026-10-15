@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import type { ReviewDiagnosticLog } from './diagnostic-log';
 import type { ReviewWorkerDiagnostic } from './worker';
 import { createReviewDiagnosticLog } from './diagnostic-log';
+import { reviewRunIdSchema } from './identity';
 
 const id = '12345678-1234-4123-8123-123456789abc';
 const stage = { type: 'stage', stage: 'provider_ready', reviewId: id } as const;
@@ -66,7 +67,7 @@ describe('private operator diagnostic log', () => {
     expect(sink.health()).toMatchObject({ state: 'closed', accepted: 2, dropped: 0 });
   });
 
-  it.each(['CANARY\nsecret', 'x'.repeat(100000), '', '12345678-1234-4123-0123-123456789abc'])(
+  it.each(['CANARY\nsecret', 'x'.repeat(100000), '', '12345678-1234-4123-g123-123456789abc'])(
     'replaces invalid correlation IDs with null (%s)',
     async (reviewId) => {
       const sink = await make();
@@ -75,6 +76,32 @@ describe('private operator diagnostic log', () => {
       expect((await records())[0].reviewId).toBeNull();
     },
   );
+
+  it.each([
+    '00000000-0000-0000-0000-000000000000',
+    'FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF',
+    ...Array.from(
+      '0123456789abcdef',
+      (nibble) => `12345678-9AbC-${nibble}123-${nibble}123-123456789AbC`,
+    ),
+  ])('uses admission grammar for direct log UUID %s', async (reviewId) => {
+    const canonical = reviewRunIdSchema.parse(reviewId);
+    const sink = await make();
+    sink.onDiagnostic({ ...stage, reviewId });
+    sink.onDiagnostic({
+      type: 'exit',
+      reviewId,
+      exitCode: 0,
+      signal: null,
+      stdoutBytes: 1,
+      stderrBytes: 0,
+      classification: 'success',
+    });
+    await sink.close();
+    const rows = await records();
+    expect(rows).toHaveLength(2);
+    expect(rows.every((row) => row.reviewId === canonical)).toBe(true);
+  });
 
   it('drops unknown labels, malformed scalar fields and throwing getters', async () => {
     const sink = await make();

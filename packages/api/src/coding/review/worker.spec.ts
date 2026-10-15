@@ -5,6 +5,7 @@ import { mkdtemp, mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promis
 import type { ReviewWorkerConfig } from './worker';
 import { createReviewDiagnosticLog } from './diagnostic-log';
 import { createCodeReviewWorker } from './worker';
+import { reviewRunIdSchema } from './identity';
 
 const request = { repository: 'librechat', base: 'a'.repeat(40), head: 'b'.repeat(40) };
 const principal = { userId: 'operator', tenantId: 'test' };
@@ -395,6 +396,49 @@ describe('code review worker with real isolated processes', () => {
       classification: 'worker_failed',
     });
     expect(JSON.stringify(events)).not.toContain('offline-fixture-interpreter');
+  });
+
+  it.each([
+    '00000000-0000-0000-0000-000000000000',
+    'FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF',
+    ...Array.from(
+      '0123456789abcdef',
+      (nibble) => `12345678-9AbC-${nibble}123-${nibble}123-123456789AbC`,
+    ),
+  ])('preserves admission UUID %s through worker events and private logs', async (reviewId) => {
+    const canonical = reviewRunIdSchema.parse(reviewId);
+    const events: import('./worker').ReviewWorkerDiagnostic[] = [];
+    const directory = path.join(root, 'uuid-logs');
+    await mkdir(directory, { mode: 0o700 });
+    const sink = await createReviewDiagnosticLog({
+      directory,
+      protectedRoots: [repo, scratch, config.authRoot],
+    });
+    try {
+      const worker = createCodeReviewWorker({
+        ...config,
+        onDiagnostic: (event) => {
+          events.push(event);
+          sink.onDiagnostic(event);
+        },
+      });
+      await expect(worker.run(request, principal, undefined, reviewId)).resolves.toMatchObject({
+        status: 'human_review_required',
+      });
+    } finally {
+      await sink.close();
+    }
+    expect(events.some((event) => event.type === 'stage')).toBe(true);
+    expect(events.some((event) => event.type === 'exit')).toBe(true);
+    expect(events.every((event) => event.reviewId === canonical)).toBe(true);
+    const text = await readFile(path.join(directory, 'review-diagnostics.jsonl'), 'utf8');
+    const rows = text
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    expect(rows).toHaveLength(events.length);
+    expect(rows.every((row) => row.reviewId === canonical)).toBe(true);
+    expect(text).not.toMatch(/CANARY|PRIVATE_VALUE/);
   });
 
   it('redacts arbitrary direct-caller review IDs before invoking any observer', async () => {

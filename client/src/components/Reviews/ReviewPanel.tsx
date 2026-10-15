@@ -230,7 +230,7 @@ function ReviewForm({ repositories }: { repositories: readonly string[] }) {
     setCancelAcknowledged(false);
     const sequence = activity.current.sequence;
     const selected = { ...request };
-    const runId = retrieve ? id : crypto.randomUUID();
+    const runId = (retrieve ? id : crypto.randomUUID()).toLowerCase();
     setId(runId);
     setNotice('running');
     const controller = new AbortController();

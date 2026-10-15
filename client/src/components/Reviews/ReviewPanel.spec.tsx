@@ -1,7 +1,11 @@
 import { dataService } from 'librechat-data-provider';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
-import type { CodeReviewResult, CodeReviewSelection } from 'librechat-data-provider';
+import type {
+  CodeReviewResult,
+  CodeReviewSelection,
+  CodeReviewRecovery,
+} from 'librechat-data-provider';
 import type { ReactNode } from 'react';
 import mockTranslations from '~/locales/en/translation.json';
 import ReviewPanel from './ReviewPanel';
@@ -448,3 +452,71 @@ it('shows interrupted recovery explicitly and never starts or replays work', asy
   expect(screen.getByRole('button', { name: 'Start review' })).toBeDisabled();
   expect(start).not.toHaveBeenCalled();
 });
+
+it.each(['running', 'completed', 'interrupted', 'failed', 'unknown'] as const)(
+  'recovers %s with a canonical response to a mixed-case UUID',
+  async (state) => {
+    const canonical = 'abcdefab-cdef-4abc-8def-abcdefabcdef';
+    const mixed = 'AbCdEfAb-CdEf-4AbC-8dEf-AbCdEfAbCdEf';
+    const responses: Record<typeof state, CodeReviewRecovery> = {
+      running: { id: canonical, request, state: 'running', cancelRequested: false },
+      completed: { id: canonical, request, state: 'completed', result, expiresAt: 1800000000000 },
+      interrupted: { id: canonical, request, state: 'interrupted', cancelRequested: true },
+      failed: {
+        id: canonical,
+        request,
+        state: 'failed',
+        code: 'worker_failed',
+        expiresAt: 1800000000000,
+      },
+      unknown: { id: canonical, state: 'unknown' },
+    };
+    const notices = {
+      running: mockTranslations.com_ui_review_running,
+      completed: mockTranslations.com_ui_review_completed,
+      interrupted: mockTranslations.com_ui_review_interrupted,
+      failed: mockTranslations.com_ui_review_failed,
+      unknown: mockTranslations.com_ui_review_unknown,
+    };
+    retrieve.mockResolvedValue(responses[state]);
+    mount();
+    fill(mixed);
+    fireEvent.click(screen.getByRole('button', { name: mockTranslations.com_ui_review_retrieve }));
+    await waitFor(() => expect(retrieve).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByLabelText('Review ID')).toHaveValue(canonical));
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: mockTranslations.com_ui_review_retrieve }),
+      ).toBeEnabled(),
+    );
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(notices[state]));
+    expect(retrieve.mock.calls[0][0]).toEqual({ id: canonical, request });
+    expect(start).not.toHaveBeenCalled();
+  },
+);
+
+it.each(['id', 'request'] as const)(
+  'rejects a different recovered %s despite mixed-case normalization',
+  async (mismatch) => {
+    const canonical = 'abcdefab-cdef-4abc-8def-abcdefabcdef';
+    retrieve.mockResolvedValue({
+      id: mismatch === 'id' ? id : canonical,
+      request: mismatch === 'request' ? { ...request, head: 'c'.repeat(40) } : request,
+      state: 'completed',
+      result,
+      expiresAt: 1800000000000,
+    });
+    mount();
+    fill(canonical.toUpperCase());
+    fireEvent.click(screen.getByRole('button', { name: mockTranslations.com_ui_review_retrieve }));
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        mockTranslations.com_ui_review_uncertain,
+      ),
+    );
+    expect(
+      screen.queryByRole('region', { name: mockTranslations.com_ui_review_result }),
+    ).not.toBeInTheDocument();
+    expect(start).not.toHaveBeenCalled();
+  },
+);
