@@ -208,6 +208,34 @@ describe('code review worker with real isolated processes', () => {
     });
   });
 
+  it.each(['success', 'stage_failure'])(
+    'ignores rejected asynchronous diagnostic sinks during %s',
+    async (scenario) => {
+      await writeFile(path.join(repo, 'scenario'), scenario);
+      let calls = 0;
+      const worker = createCodeReviewWorker({
+        ...config,
+        onDiagnostic: async () => {
+          calls++;
+          await Promise.resolve();
+          throw new Error('PRIVATE_VALUE');
+        },
+      });
+      if (scenario === 'success') {
+        await expect(worker.run(request, principal)).resolves.toMatchObject({
+          status: 'human_review_required',
+        });
+      } else {
+        await expect(worker.run(request, principal)).rejects.toMatchObject({
+          code: 'worker_failed',
+          message: 'Code review failed: worker_failed',
+        });
+      }
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(calls).toBeGreaterThan(0);
+    },
+  );
+
   it('rejects unexpected request fields before authorization or spawn', async () => {
     const authorize = jest.fn(config.authorize);
     await expect(
