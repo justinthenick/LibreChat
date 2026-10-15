@@ -29,6 +29,12 @@ if scenario == 'stderr':
     sys.exit(1)
 if scenario == 'memory':
     bytearray(5 * 1024 * 1024 * 1024)
+if scenario == 'stages':
+    os.write(3, b'evidence_validated\\nprovider_ready\\nconversation_started\\nconversation_finished\\nresult_validated\\n')
+if scenario == 'stage_failure':
+    os.write(3, b'evidence_validated\\nprovider_ready\\nconversation_started\\nPRIVATE_VALUE\\n')
+    print('PRIVATE_VALUE', file=sys.stderr)
+    sys.exit(1)
 if scenario == 'failure':
     print('PRIVATE_VALUE', file=sys.stderr)
     sys.exit(1)
@@ -141,6 +147,94 @@ describe('code review worker with real isolated processes', () => {
       message: 'Code review failed: worker_failed',
     });
   });
+
+  it('captures allowlisted stages and bounded exit counts without child text', async () => {
+    await writeFile(path.join(repo, 'scenario'), 'stages');
+    const events: import('./worker').ReviewWorkerDiagnostic[] = [];
+    const worker = createCodeReviewWorker({
+      ...config,
+      onDiagnostic: (event) => events.push(event),
+    });
+    await expect(worker.run(request, principal)).resolves.toMatchObject({
+      status: 'human_review_required',
+    });
+    expect(events.filter((event) => event.type === 'stage').map((event) => event.stage)).toEqual([
+      'evidence_validated',
+      'provider_ready',
+      'conversation_started',
+      'conversation_finished',
+      'result_validated',
+      'schema_validated',
+    ]);
+    expect(events.find((event) => event.type === 'exit')).toMatchObject({
+      exitCode: 0,
+      signal: null,
+      classification: 'success',
+    });
+    expect(JSON.stringify(events)).not.toContain('PRIVATE_VALUE');
+  });
+
+  it('keeps provider stderr secret and reports only fixed failed-exit diagnostics', async () => {
+    await writeFile(path.join(repo, 'scenario'), 'stage_failure');
+    const events: import('./worker').ReviewWorkerDiagnostic[] = [];
+    const worker = createCodeReviewWorker({
+      ...config,
+      onDiagnostic: (event) => events.push(event),
+    });
+    await expect(worker.run(request, principal)).rejects.toMatchObject({
+      code: 'worker_failed',
+    });
+    expect(events.filter((event) => event.type === 'stage').map((event) => event.stage)).toEqual([
+      'evidence_validated',
+      'provider_ready',
+      'conversation_started',
+    ]);
+    expect(events.find((event) => event.type === 'exit')).toMatchObject({
+      exitCode: 1,
+      classification: 'worker_failed',
+    });
+    expect(JSON.stringify(events)).not.toContain('PRIVATE_VALUE');
+  });
+
+  it('ignores a throwing diagnostics sink without changing the review result', async () => {
+    const worker = createCodeReviewWorker({
+      ...config,
+      onDiagnostic: () => {
+        throw new Error('PRIVATE_VALUE');
+      },
+    });
+    await expect(worker.run(request, principal)).resolves.toMatchObject({
+      status: 'human_review_required',
+    });
+  });
+
+  it.each(['success', 'stage_failure'])(
+    'ignores rejected asynchronous diagnostic sinks during %s',
+    async (scenario) => {
+      await writeFile(path.join(repo, 'scenario'), scenario);
+      let calls = 0;
+      const worker = createCodeReviewWorker({
+        ...config,
+        onDiagnostic: async () => {
+          calls++;
+          await Promise.resolve();
+          throw new Error('PRIVATE_VALUE');
+        },
+      });
+      if (scenario === 'success') {
+        await expect(worker.run(request, principal)).resolves.toMatchObject({
+          status: 'human_review_required',
+        });
+      } else {
+        await expect(worker.run(request, principal)).rejects.toMatchObject({
+          code: 'worker_failed',
+          message: 'Code review failed: worker_failed',
+        });
+      }
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(calls).toBeGreaterThan(0);
+    },
+  );
 
   it('rejects unexpected request fields before authorization or spawn', async () => {
     const authorize = jest.fn(config.authorize);

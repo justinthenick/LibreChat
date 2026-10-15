@@ -10,6 +10,43 @@ import { reviewRequestSchema, reviewResponseSchema } from './schema';
 
 export type ReviewFailure = CodeReviewFailure;
 
+const REVIEW_STAGES = new Set([
+  'evidence_validated',
+  'provider_ready',
+  'conversation_started',
+  'conversation_finished',
+  'result_validated',
+]);
+
+/** Fixed stage labels and bounded counters, never child text or credentials. */
+export type ReviewWorkerDiagnostic =
+  | { type: 'stage'; stage: string; reviewId?: string | null }
+  | {
+      type: 'exit';
+      reviewId?: string | null;
+      exitCode: number | null;
+      signal: string | null;
+      stdoutBytes: number;
+      stderrBytes: number;
+      classification: 'success' | ReviewFailure;
+    };
+
+function emitDiagnostic(
+  listener: ((event: ReviewWorkerDiagnostic) => void) | undefined,
+  event: ReviewWorkerDiagnostic,
+): void {
+  try {
+    const pending: unknown = listener?.(event);
+    if (pending && typeof (pending as PromiseLike<unknown>).then === 'function') {
+      // Attach rejection handling immediately: an async logging failure must
+      // never become an unhandled rejection or change the worker outcome.
+      void Promise.resolve(pending).catch(() => {});
+    }
+  } catch {
+    // Observability must not affect authorization, dispatch, or cleanup.
+  }
+}
+
 export class ReviewWorkerError extends Error {
   constructor(public readonly code: ReviewFailure) {
     super(`Code review failed: ${code}`);
@@ -30,6 +67,8 @@ export interface ReviewWorkerConfig {
   model: string;
   repositories: ReadonlyMap<string, string>;
   authorize: (principal: ReviewPrincipal, repository: string) => Promise<boolean>;
+  /** Operator-owned sink. Never include stderr or provider output. */
+  onDiagnostic?: (event: ReviewWorkerDiagnostic) => void;
 }
 
 const WALL_TIME_MS = 150_000;
@@ -48,6 +87,7 @@ export interface CodeReviewWorker {
     input: CodeReviewRequest,
     principal: ReviewPrincipal,
     signal?: AbortSignal,
+    reviewId?: string,
   ): Promise<CodeReviewResult>;
 }
 
@@ -61,7 +101,10 @@ export function createCodeReviewWorker(config: ReviewWorkerConfig): CodeReviewWo
     input: CodeReviewRequest,
     principal: ReviewPrincipal,
     signal?: AbortSignal,
+    reviewId?: string,
   ): Promise<CodeReviewResult> {
+    const diagnostic = (event: ReviewWorkerDiagnostic) =>
+      emitDiagnostic(settings.onDiagnostic, { ...event, reviewId: reviewId ?? null });
     const parsed = reviewRequestSchema.safeParse(input);
     if (!parsed.success) {
       throw new ReviewWorkerError('invalid_request');
@@ -128,8 +171,17 @@ export function createCodeReviewWorker(config: ReviewWorkerConfig): CodeReviewWo
         CODING_OPENHANDS_PROVIDER: 'chatgpt_subscription',
         CODING_OPENHANDS_MODEL: settings.model,
         CODING_OPENHANDS_SCRATCH_ROOT: path.join(workspace, 'scratch'),
+        CODING_REVIEW_STAGE_FD: '3',
       };
-      const output = await execute(python, repo, request, workspace, environment, signal);
+      const output = await execute(
+        python,
+        repo,
+        request,
+        workspace,
+        environment,
+        signal,
+        diagnostic,
+      );
       let response: ReturnType<typeof reviewResponseSchema.parse>;
       try {
         response = reviewResponseSchema.parse(JSON.parse(output));
@@ -143,6 +195,7 @@ export function createCodeReviewWorker(config: ReviewWorkerConfig): CodeReviewWo
       ) {
         throw new ReviewWorkerError('invalid_response');
       }
+      diagnostic({ type: 'stage', stage: 'schema_validated' });
       return {
         ...request,
         status: response.status,
@@ -178,6 +231,7 @@ function execute(
   workspace: string,
   environment: NodeJS.ProcessEnv,
   signal?: AbortSignal,
+  onDiagnostic?: (event: ReviewWorkerDiagnostic) => void,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
@@ -211,13 +265,28 @@ function execute(
         env: environment,
         shell: false,
         detached: true,
-        stdio: ['ignore', 'pipe', 'pipe'],
+        stdio: ['ignore', 'pipe', 'pipe', 'pipe'],
       },
     );
     let failure: ReviewFailure | undefined;
     let stdoutBytes = 0;
     let stderrBytes = 0;
     const chunks: Buffer[] = [];
+
+    // Only fixed labels on a private diagnostics pipe. Never parse stderr.
+    let stageBytes = 0;
+    let stageBuffer = '';
+    child.stdio[3]?.on('data', (chunk: Buffer) => {
+      stageBytes += chunk.length;
+      if (stageBytes > 512) return;
+      stageBuffer += chunk.toString('utf8');
+      while (stageBuffer.includes('\n')) {
+        const end = stageBuffer.indexOf('\n');
+        const stage = stageBuffer.slice(0, end);
+        stageBuffer = stageBuffer.slice(end + 1);
+        if (REVIEW_STAGES.has(stage)) emitDiagnostic(onDiagnostic, { type: 'stage', stage });
+      }
+    });
     const killGroup = () => {
       if (child.pid) {
         try {
@@ -234,7 +303,7 @@ function execute(
     const cancel = () => stop('cancelled');
     const timer = setTimeout(() => stop('timeout'), WALL_TIME_MS);
     signal?.addEventListener('abort', cancel, { once: true });
-    child.stdout.on('data', (chunk: Buffer) => {
+    child.stdout?.on('data', (chunk: Buffer) => {
       stdoutBytes += chunk.length;
       if (stdoutBytes > MAX_OUTPUT_BYTES) {
         stop('output_limit');
@@ -242,7 +311,7 @@ function execute(
         chunks.push(chunk);
       }
     });
-    child.stderr.on('data', (chunk: Buffer) => {
+    child.stderr?.on('data', (chunk: Buffer) => {
       stderrBytes += chunk.length;
       if (stderrBytes > MAX_STDERR_BYTES) {
         stop('output_limit');
@@ -250,7 +319,15 @@ function execute(
     });
     child.on('error', () => stop('worker_failed'));
     child.on('exit', killGroup);
-    child.on('close', (code) => {
+    child.on('close', (code, signalName) => {
+      emitDiagnostic(onDiagnostic, {
+        type: 'exit',
+        exitCode: code,
+        signal: signalName,
+        stdoutBytes,
+        stderrBytes,
+        classification: failure ?? (code === 0 ? 'success' : 'worker_failed'),
+      });
       clearTimeout(timer);
       signal?.removeEventListener('abort', cancel);
       if (failure || code !== 0) {

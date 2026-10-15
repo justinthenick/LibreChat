@@ -58,6 +58,19 @@ class ReviewCliTests(unittest.TestCase):
         self.assertEqual(result["status"], "not_reviewed")
         model.assert_not_called()
 
+    def test_preview_ignores_broken_diagnostic_writer(self):
+        import os
+
+        with patch.dict(os.environ, {"CODING_REVIEW_STAGE_FD": "3"}):
+            with patch(
+                "coding_orchestrator.review_cli.os.write",
+                side_effect=RuntimeError("PRIVATE_DIAGNOSTIC_VALUE"),
+            ):
+                code, output, errors = self.invoke("preview")
+        self.assertEqual(code, 0, errors)
+        self.assertEqual(json.loads(output)["status"], "not_reviewed")
+        self.assertNotIn("PRIVATE_DIAGNOSTIC_VALUE", output + errors)
+
     def test_preview_rejects_invalid_revision(self):
         code, output, _ = self.invoke("preview", base="HEAD")
         self.assertEqual(code, 1)
