@@ -10,6 +10,37 @@ import { reviewRequestSchema, reviewResponseSchema } from './schema';
 
 export type ReviewFailure = CodeReviewFailure;
 
+const REVIEW_STAGES = new Set([
+  'evidence_validated',
+  'provider_ready',
+  'conversation_started',
+  'conversation_finished',
+  'result_validated',
+]);
+
+/** Fixed stage labels and bounded counters, never child text or credentials. */
+export type ReviewWorkerDiagnostic =
+  | { type: 'stage'; stage: string }
+  | {
+      type: 'exit';
+      exitCode: number | null;
+      signal: string | null;
+      stdoutBytes: number;
+      stderrBytes: number;
+      classification: 'success' | ReviewFailure;
+    };
+
+function emitDiagnostic(
+  listener: ((event: ReviewWorkerDiagnostic) => void) | undefined,
+  event: ReviewWorkerDiagnostic,
+): void {
+  try {
+    listener?.(event);
+  } catch {
+    // Observability must not affect authorization, dispatch, or cleanup.
+  }
+}
+
 export class ReviewWorkerError extends Error {
   constructor(public readonly code: ReviewFailure) {
     super(`Code review failed: ${code}`);
@@ -30,6 +61,8 @@ export interface ReviewWorkerConfig {
   model: string;
   repositories: ReadonlyMap<string, string>;
   authorize: (principal: ReviewPrincipal, repository: string) => Promise<boolean>;
+  /** Operator-owned sink. Never include stderr or provider output. */
+  onDiagnostic?: (event: ReviewWorkerDiagnostic) => void;
 }
 
 const WALL_TIME_MS = 150_000;
@@ -128,8 +161,9 @@ export function createCodeReviewWorker(config: ReviewWorkerConfig): CodeReviewWo
         CODING_OPENHANDS_PROVIDER: 'chatgpt_subscription',
         CODING_OPENHANDS_MODEL: settings.model,
         CODING_OPENHANDS_SCRATCH_ROOT: path.join(workspace, 'scratch'),
+        CODING_REVIEW_STAGE_FD: '3',
       };
-      const output = await execute(python, repo, request, workspace, environment, signal);
+      const output = await execute(python, repo, request, workspace, environment, signal, settings.onDiagnostic);
       let response: ReturnType<typeof reviewResponseSchema.parse>;
       try {
         response = reviewResponseSchema.parse(JSON.parse(output));
@@ -143,6 +177,7 @@ export function createCodeReviewWorker(config: ReviewWorkerConfig): CodeReviewWo
       ) {
         throw new ReviewWorkerError('invalid_response');
       }
+      emitDiagnostic(settings.onDiagnostic, { type: 'stage', stage: 'schema_validated' });
       return {
         ...request,
         status: response.status,
@@ -178,6 +213,7 @@ function execute(
   workspace: string,
   environment: NodeJS.ProcessEnv,
   signal?: AbortSignal,
+  onDiagnostic?: (event: ReviewWorkerDiagnostic) => void,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
@@ -211,13 +247,28 @@ function execute(
         env: environment,
         shell: false,
         detached: true,
-        stdio: ['ignore', 'pipe', 'pipe'],
+        stdio: ['ignore', 'pipe', 'pipe', 'pipe'],
       },
     );
     let failure: ReviewFailure | undefined;
     let stdoutBytes = 0;
     let stderrBytes = 0;
     const chunks: Buffer[] = [];
+
+    // Only fixed labels on a private diagnostics pipe. Never parse stderr.
+    let stageBytes = 0;
+    let stageBuffer = '';
+    child.stdio[3]?.on('data', (chunk: Buffer) => {
+      stageBytes += chunk.length;
+      if (stageBytes > 512) return;
+      stageBuffer += chunk.toString('utf8');
+      while (stageBuffer.includes('\n')) {
+        const end = stageBuffer.indexOf('\n');
+        const stage = stageBuffer.slice(0, end);
+        stageBuffer = stageBuffer.slice(end + 1);
+        if (REVIEW_STAGES.has(stage)) emitDiagnostic(onDiagnostic, { type: 'stage', stage });
+      }
+    });
     const killGroup = () => {
       if (child.pid) {
         try {
@@ -250,7 +301,15 @@ function execute(
     });
     child.on('error', () => stop('worker_failed'));
     child.on('exit', killGroup);
-    child.on('close', (code) => {
+    child.on('close', (code, signalName) => {
+      emitDiagnostic(onDiagnostic, {
+        type: 'exit',
+        exitCode: code,
+        signal: signalName,
+        stdoutBytes,
+        stderrBytes,
+        classification: failure ?? (code === 0 ? 'success' : 'worker_failed'),
+      });
       clearTimeout(timer);
       signal?.removeEventListener('abort', cancel);
       if (failure || code !== 0) {
