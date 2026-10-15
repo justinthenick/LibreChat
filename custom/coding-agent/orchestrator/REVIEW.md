@@ -347,3 +347,40 @@ acknowledgement windows, owner/tenant/PR/model mismatch, orphaned execution,
 precancellation, cancellation racing completion, expiry with no replay, lock
 contention and subsequent admission after trusted settlement. No live model or
 GitHub publication is part of those fixtures.
+
+## Live-worker diagnostic and reconciliation follow-up (development only)
+
+The separate review worker now supports an **optional operator-owned** `onDiagnostic`
+callback. The application transport passes its validated review UUID into the
+worker, allowing callback events to be correlated with the durable admission.
+Events contain only fixed stages (`evidence_validated`, `provider_ready`,
+`conversation_started`, `conversation_finished`, `result_validated`,
+`schema_validated`) or child-exit fields (exit code, termination signal,
+stdout/stderr byte counts, fixed outcome classification). No child stderr,
+source code, model response, credentials, paths or arbitrary error messages
+are forwarded. The Python child emits stage labels on a private fd3 pipe;
+unknown labels and excess diagnostics are ignored. Listener exceptions cannot
+change a review outcome or release a reservation. Operators must explicitly
+configure and secure a suitable log sink; there is no default recording of
+these events. A stage label is a local progress observation, **not** proof
+that a provider received or finished a request.
+
+**The current durable safety policy is intentionally unchanged.**
+A missing/failed child, timeout, aborted response, supervisor restart or
+empty scratch directory cannot establish that an external execution has
+stopped. These cases must remain `interrupted` with an unresolved reservation.
+This change adds no approval rearming, journal deletion/reset, automatic retry,
+runtime activation, GitHub publication, or reconciliation endpoint.
+
+Before implementing a trusted reconciliation mutation, specify and test
+an authenticated supervisor attestation covering the exact review UUID,
+generation, owned process/process group, child closure, prevention of delayed
+dispatch, and any provider-side execution uncertainty. A local process
+exit alone is insufficient for provider-side quiescence. Keep the
+quarantined record visible and deny new dispatch if evidence is incomplete.
+A separate reviewed design and explicit operator approval are required before
+introducing any reservation-release operation.
+
+Run offline Python and API worker/restart regressions against this development
+branch before deployment. The historical interrupted live review must not
+be replayed; retain its SQLite database and consumed pilot approval marker.
