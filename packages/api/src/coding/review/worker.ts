@@ -32,12 +32,12 @@ export type ReviewWorkerDiagnostic =
     };
 
 function emitDiagnostic(
-  listener: ((event: ReviewWorkerDiagnostic) => void | Promise<void>) | undefined,
+  listener: ((event: ReviewWorkerDiagnostic) => void) | undefined,
   event: ReviewWorkerDiagnostic,
 ): void {
   try {
-    const pending = listener?.(event);
-    if (pending) {
+    const pending: unknown = listener?.(event);
+    if (pending && typeof (pending as PromiseLike<unknown>).then === 'function') {
       // Attach rejection handling immediately: an async logging failure must
       // never become an unhandled rejection or change the worker outcome.
       void Promise.resolve(pending).catch(() => {});
@@ -68,7 +68,7 @@ export interface ReviewWorkerConfig {
   repositories: ReadonlyMap<string, string>;
   authorize: (principal: ReviewPrincipal, repository: string) => Promise<boolean>;
   /** Operator-owned sink. Never include stderr or provider output. */
-  onDiagnostic?: (event: ReviewWorkerDiagnostic) => void | Promise<void>;
+  onDiagnostic?: (event: ReviewWorkerDiagnostic) => void;
 }
 
 const WALL_TIME_MS = 150_000;
@@ -231,7 +231,7 @@ function execute(
   workspace: string,
   environment: NodeJS.ProcessEnv,
   signal?: AbortSignal,
-  onDiagnostic?: (event: ReviewWorkerDiagnostic) => void | Promise<void>,
+  onDiagnostic?: (event: ReviewWorkerDiagnostic) => void,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
