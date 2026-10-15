@@ -22,6 +22,7 @@ let dir, repo, scratch, request, url, starts, servers, serviceUrl;
 const bannedUsers = new Set();
 const banStore = new Map();
 const actualNow = Date.now.bind(Date);
+let clockOffset = 0;
 const users = {
   alice: { _id: 'alice', role: 'ADMIN', tenantId: 'tenant-a' },
   bob: { _id: 'bob', role: 'ADMIN', tenantId: 'tenant-a' },
@@ -169,6 +170,8 @@ async function completed(id) {
   return result;
 }
 beforeEach(async () => {
+  clockOffset += 3_600_000;
+  Date.now = () => actualNow() + clockOffset;
   servers = [];
   starts = 0;
   dir = await fs.mkdtemp(path.join(os.tmpdir(), 'review-contract-'));
@@ -308,7 +311,7 @@ test('unknown ID: recovery cannot create work', async () => {
 test('expiry: retained outcome expires without resubmitting execution', async () => {
   const id = randomUUID();
   await completed(id);
-  Date.now = () => actualNow() + 600001;
+  Date.now = () => actualNow() + clockOffset + 600001;
   assert.equal((await status(id)).body.state, 'unknown');
   assert.equal(starts, 1);
 });
