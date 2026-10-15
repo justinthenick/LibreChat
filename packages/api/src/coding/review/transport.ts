@@ -542,7 +542,7 @@ export function createReviewService(
         admitted = reserve(idHeader, envelope.data.principal, scope.cancel, Infinity);
         admitted.request = envelope.data.request;
       }
-      const result = await worker.run(envelope.data.request, envelope.data.principal, scope.signal);
+      const result = await worker.run(envelope.data.request, envelope.data.principal, scope.signal, idHeader ?? undefined);
       const validated = reviewResultSchema.parse(result);
       const body = JSON.stringify(validated);
       if (Buffer.byteLength(body) > RESPONSE_BYTES) throw new ReviewWorkerError('output_limit');
