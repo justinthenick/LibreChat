@@ -168,7 +168,15 @@ export function createCodeReviewWorker(config: ReviewWorkerConfig): CodeReviewWo
         CODING_OPENHANDS_SCRATCH_ROOT: path.join(workspace, 'scratch'),
         CODING_REVIEW_STAGE_FD: '3',
       };
-      const output = await execute(python, repo, request, workspace, environment, signal, diagnostic);
+      const output = await execute(
+        python,
+        repo,
+        request,
+        workspace,
+        environment,
+        signal,
+        diagnostic,
+      );
       let response: ReturnType<typeof reviewResponseSchema.parse>;
       try {
         response = reviewResponseSchema.parse(JSON.parse(output));
@@ -290,7 +298,7 @@ function execute(
     const cancel = () => stop('cancelled');
     const timer = setTimeout(() => stop('timeout'), WALL_TIME_MS);
     signal?.addEventListener('abort', cancel, { once: true });
-    child.stdout.on('data', (chunk: Buffer) => {
+    child.stdout?.on('data', (chunk: Buffer) => {
       stdoutBytes += chunk.length;
       if (stdoutBytes > MAX_OUTPUT_BYTES) {
         stop('output_limit');
@@ -298,7 +306,7 @@ function execute(
         chunks.push(chunk);
       }
     });
-    child.stderr.on('data', (chunk: Buffer) => {
+    child.stderr?.on('data', (chunk: Buffer) => {
       stderrBytes += chunk.length;
       if (stderrBytes > MAX_STDERR_BYTES) {
         stop('output_limit');
