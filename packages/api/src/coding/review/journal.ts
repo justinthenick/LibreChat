@@ -5,6 +5,7 @@ import { realpath } from 'node:fs/promises';
 import type { CodeReviewRequest, CodeReviewResult } from 'librechat-data-provider';
 import type { ReviewPrincipal } from './worker';
 import { reviewRequestSchema, reviewResultSchema } from './schema';
+import { reviewRunIdSchema } from './identity';
 import { ReviewWorkerError } from './worker';
 
 export interface ReviewJournalRecord {
@@ -203,6 +204,9 @@ export async function createReviewJournal(config: ReviewJournalConfig): Promise<
     signal: controller.signal,
     assertReady,
     async admit(id, request, principal, model) {
+      const parsedId = reviewRunIdSchema.safeParse(id);
+      if (!parsedId.success) throw new ReviewWorkerError('invalid_request');
+      id = parsedId.data;
       const reply = await send({ operation: 'admit', id, principal, payload: { request, model } });
       if (reply.created === undefined || reply.record?.id !== id) {
         fence();
@@ -213,6 +217,9 @@ export async function createReviewJournal(config: ReviewJournalConfig): Promise<
       return reply.created;
     },
     async get(id, principal) {
+      const parsedId = reviewRunIdSchema.safeParse(id);
+      if (!parsedId.success) throw new ReviewWorkerError('invalid_request');
+      id = parsedId.data;
       const reply = await send({ operation: 'get', id, principal });
       if (reply.record === undefined || (reply.record !== null && reply.record.id !== id)) {
         fence();
@@ -221,9 +228,15 @@ export async function createReviewJournal(config: ReviewJournalConfig): Promise<
       return reply.record;
     },
     async cancel(id, principal) {
+      const parsedId = reviewRunIdSchema.safeParse(id);
+      if (!parsedId.success) throw new ReviewWorkerError('invalid_request');
+      id = parsedId.data;
       await send({ operation: 'cancel', id, principal });
     },
     async finish(id, principal, result) {
+      const parsedId = reviewRunIdSchema.safeParse(id);
+      if (!parsedId.success) throw new ReviewWorkerError('invalid_request');
+      id = parsedId.data;
       const reply = await send({
         operation: 'finish',
         id,

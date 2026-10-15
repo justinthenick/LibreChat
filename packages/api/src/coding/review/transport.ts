@@ -15,6 +15,8 @@ import type { ReviewJournal } from './journal';
 import { createCodeReviewWorker, ReviewWorkerError } from './worker';
 import { reviewRequestSchema, reviewResultSchema } from './schema';
 
+import { reviewRunIdSchema } from './identity';
+
 const REQUEST_BYTES = 4096;
 const RESPONSE_BYTES = 128_000;
 const SERVICE_TIMEOUT_MS = 165_000;
@@ -32,7 +34,7 @@ const principalId = z
 export const reviewPrincipalSchema: z.ZodType<ReviewPrincipal> = z
   .object({ userId: principalId, tenantId: principalId.optional() })
   .strict();
-export const reviewRunIdSchema: z.ZodString = z.string().uuid();
+export { reviewRunIdSchema } from './identity';
 const envelopeSchema = z
   .object({
     request: reviewRequestSchema,
@@ -486,11 +488,10 @@ export function createReviewService(
     if (active) return failure(new ReviewWorkerError('busy'));
     if (incoming.signal.aborted) return failure(new ReviewWorkerError('cancelled'));
     active = true;
-    const idHeader = incoming.headers.get('x-review-id');
-    if (
-      (journal && idHeader === null) ||
-      (idHeader !== null && !reviewRunIdSchema.safeParse(idHeader).success)
-    ) {
+    const rawIdHeader = incoming.headers.get('x-review-id');
+    const parsedIdHeader = reviewRunIdSchema.safeParse(rawIdHeader);
+    const idHeader = parsedIdHeader.success ? parsedIdHeader.data : null;
+    if ((journal && rawIdHeader === null) || (rawIdHeader !== null && !parsedIdHeader.success)) {
       active = false;
       return failure(new ReviewWorkerError('invalid_request'));
     }
@@ -650,7 +651,7 @@ export function createReviewClient(config: ReviewClientConfig): ReviewClient {
         const parsed = recoverySchema.safeParse(body);
         if (
           !parsed.success ||
-          parsed.data.id !== id ||
+          parsed.data.id !== envelope.data.id ||
           (parsed.data.state !== 'unknown' && !sameRequest(parsed.data.request, requested)) ||
           (parsed.data.state === 'completed' &&
             (!sameRequest(parsed.data.result, requested) || parsed.data.result.model !== model))

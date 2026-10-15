@@ -160,7 +160,7 @@ class JobStore:
     Opening after a restart interrupts active records; work is never replayed.
     """
 
-    def __init__(self, path, clock=time.time):
+    def __init__(self, path, clock=time.time, *, validate_identity=None):
         self._mutex = threading.RLock()
         self._clock = clock
         self._connection = None
@@ -212,6 +212,12 @@ class JobStore:
                 database.execute("""CREATE TABLE IF NOT EXISTS reservations (
                     job_id TEXT PRIMARY KEY, execution_id TEXT NOT NULL UNIQUE,
                     resolved_at REAL)""")
+                if validate_identity is not None:
+                    for row in database.execute("SELECT job_id, idempotency_key, generation_id FROM jobs"):
+                        for value in row:
+                            validate_identity(value)
+                    for row in database.execute("SELECT job_id FROM reservations"):
+                        validate_identity(row[0])
                 # Legacy history has no durable stop proof. Keep resolved rows
                 # as tombstones so reopening cannot resurrect their quarantine.
                 database.execute("""INSERT INTO reservations (job_id, execution_id)

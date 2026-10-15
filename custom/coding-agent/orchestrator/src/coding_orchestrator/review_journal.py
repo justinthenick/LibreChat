@@ -6,12 +6,28 @@ import json
 import sys
 import threading
 import time
+from uuid import UUID
 
 from job_store import JobStore, JobNotFound, StoreBusy, StoreError, IdempotencyConflict, StopEvidence
 
 MAX_BYTES = 132096
 MAX_RECORDS = 1024
 RETENTION = 600
+
+
+def canonical_id(value):
+    if not isinstance(value, str) or len(value) != 36:
+        raise ValueError("Invalid review ID")
+    canonical = str(UUID(value))
+    if value.lower() != canonical:
+        raise ValueError("Invalid review ID")
+    return canonical
+
+
+def validate_stored_identity(value):
+    # Never rename legacy keys or infer equivalence for durable stop evidence.
+    if canonical_id(value) != value:
+        raise ValueError("Noncanonical stored review identity")
 
 
 def public_record(row):
@@ -33,7 +49,7 @@ def dispatch(store, command):
     principal = command["principal"]
     if set(principal) - {"userId", "tenantId"}:
         raise ValueError("Invalid principal")
-    user, tenant, run_id = principal["userId"], principal.get("tenantId", ""), command["id"]
+    user, tenant, run_id = principal["userId"], principal.get("tenantId", ""), canonical_id(command["id"])
     store.discard_terminal_results(max(0, time.time() - RETENTION))
     if operation == "get":
         try:
@@ -92,7 +108,7 @@ def main():
     if len(sys.argv) != 2:
         return 1
     try:
-        with JobStore(sys.argv[1]) as store:
+        with JobStore(sys.argv[1], validate_identity=validate_stored_identity) as store:
             stopped = threading.Event()
             def expire():
                 while not stopped.wait(30):
