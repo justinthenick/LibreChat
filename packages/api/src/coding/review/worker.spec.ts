@@ -158,11 +158,14 @@ describe('code review worker with real isolated processes', () => {
     await expect(worker.run(request, principal)).resolves.toMatchObject({
       status: 'human_review_required',
     });
-    expect(events.filter((event) => event.type === 'stage').map((event) => event.stage))
-      .toEqual([
-        'evidence_validated', 'provider_ready', 'conversation_started',
-        'conversation_finished', 'result_validated', 'schema_validated',
-      ]);
+    expect(events.filter((event) => event.type === 'stage').map((event) => event.stage)).toEqual([
+      'evidence_validated',
+      'provider_ready',
+      'conversation_started',
+      'conversation_finished',
+      'result_validated',
+      'schema_validated',
+    ]);
     expect(events.find((event) => event.type === 'exit')).toMatchObject({
       exitCode: 0,
       signal: null,
@@ -181,8 +184,11 @@ describe('code review worker with real isolated processes', () => {
     await expect(worker.run(request, principal)).rejects.toMatchObject({
       code: 'worker_failed',
     });
-    expect(events.filter((event) => event.type === 'stage').map((event) => event.stage))
-      .toEqual(['evidence_validated', 'provider_ready', 'conversation_started']);
+    expect(events.filter((event) => event.type === 'stage').map((event) => event.stage)).toEqual([
+      'evidence_validated',
+      'provider_ready',
+      'conversation_started',
+    ]);
     expect(events.find((event) => event.type === 'exit')).toMatchObject({
       exitCode: 1,
       classification: 'worker_failed',
@@ -193,7 +199,9 @@ describe('code review worker with real isolated processes', () => {
   it('ignores a throwing diagnostics sink without changing the review result', async () => {
     const worker = createCodeReviewWorker({
       ...config,
-      onDiagnostic: () => { throw new Error('PRIVATE_VALUE'); },
+      onDiagnostic: () => {
+        throw new Error('PRIVATE_VALUE');
+      },
     });
     await expect(worker.run(request, principal)).resolves.toMatchObject({
       status: 'human_review_required',
