@@ -384,3 +384,114 @@ introducing any reservation-release operation.
 Run offline Python and API worker/restart regressions against this development
 branch before deployment. The historical interrupted live review must not
 be replayed; retain its SQLite database and consumed pilot approval marker.
+
+### Explicit private diagnostic recording (development only)
+
+The createReviewDiagnosticLog factory is exported from @librechat/api/coding.
+It does nothing until an operator explicitly constructs it and supplies its
+onDiagnostic callback to the worker configuration. This change installs no settings,
+log directory, listener, service bootstrap, or environment activation switch.
+
+Example composition, with operator-selected paths and existing service config:
+
+~~~ts
+const log = await createReviewDiagnosticLog({
+  directory: operatorSelectedEmptyPrivateDirectory,
+  protectedRoots: [
+    ...workerConfig.repositories.values(),
+    workerConfig.authRoot,
+    workerConfig.scratchRoot,
+    journalDirectory,
+  ],
+  maxBytes: 1048576,
+  maxPendingRecords: 64,
+});
+const handler = createReviewService({
+  ...serviceConfig,
+  worker: { ...workerConfig, onDiagnostic: log.onDiagnostic },
+});
+// Only during separately managed operator shutdown, after stopping admission:
+// await log.close();
+~~~
+
+All protected roots must already exist and be absolute. The operator must list
+every repository, credential, scratch and journal root, including any additional
+runtime-state directories. The sink rejects overlap in either direction.
+The directory must already exist, be empty, be owned by the process UID, and have
+mode 0700. Symlink components and Git checkout/worktree ancestry are rejected.
+The fixed file review-diagnostics.jsonl is exclusively created with mode 0600,
+O_NOFOLLOW and O_EXCL; existing files, links and nonregular entries are not opened.
+Concurrent constructors cannot share a log. No chmod, truncation, append-on-restart,
+rotation, automatic deletion, or retention cleanup is performed.
+
+The operator owns storage, access and retention. Keep these files on private local
+storage outside shared/synced folders. UUIDs and timestamps remain operational
+metadata, even though source and secrets are excluded. Checks assume a trusted
+operator and stable filesystem ancestry, not hostile concurrent path replacement
+or malicious code running under the same UID.
+
+Records are reconstructed from fixed scalar fields, never serialized from the
+input object. Schema version, UTC timestamp, sequence, UUID-or-null, allowlisted
+stage/classification, exit code/signal and capped byte counters are permitted.
+Unknown fields are omitted; invalid events are dropped; invalid UUIDs become null.
+Counters saturate at the worker stream budgets (128000/64000), not exact overflow
+sizes. Records cannot exceed 1024 bytes. No raw errors, stdout, stderr, findings,
+source, provider replies, user/tenant identities, paths or credentials are stored.
+The worker also sanitizes direct-caller IDs before invoking any observer.
+
+A child_exit classification of success means only that the child exited zero.
+It precedes response validation and cleanup and is not successful review
+settlement. Even schema_validated precedes cleanup and durable commit.
+Every stage is an observation, never provider completion or trusted stop evidence.
+No diagnostic event authorizes reservation release, reconciliation, retry,
+approval rearming, or replay.
+
+Writes are serialized asynchronously, with at most 64 pending records by default
+(configurable 1–256) and a lifetime file budget of 1 MiB by default (1024 bytes
+through 16 MiB). Queue pressure drops events; capacity stops further recording.
+Write failure stops recording without retry or fallback logging. The health()
+method exposes only fixed state and counters; it is not an HTTP endpoint.
+Review execution never awaits writes or close. The close() method is idempotent
+and drains accepted writes; a stalled filesystem can stall this operator shutdown
+await, but cannot grow the queue without bound or block review execution.
+Process termination may lose queued records or leave a final partial line:
+this is best-effort diagnostics, not a durable audit journal. Retain the file and
+choose a fresh private directory for a later explicitly authorized logging session.
+
+Offline regression fixtures use disposable directories and SQLite databases,
+synthetic child scripts and fake SDK output. Restart fixtures exercise logging
+during quarantine, no-replay and crash recovery, including closed/capacity sinks.
+No existing review database, approval marker, running service or provider account
+is needed. The historical interrupted review remains untouched.
+
+#### Private sink offline validation — 15 October 2026 (Sydney)
+
+Implemented from add6ffcb0561361353b9e779c78b598052dc5b08 in the separate
+pr234-private-diagnostics worktree on development/pr234-private-diagnostics.
+
+- Established guarded Python offline runner: 395 passed.
+- Four newly added mocked fd3 Python tests: 4 passed separately.
+- All six review Jest suites: 183 passed.
+- Full guarded offline contracts/restart runner: 33 passed, including three new
+  logging/quarantine/no-replay scenarios.
+- Strict targeted TypeScript (sink, worker and their tests), changed-file ESLint,
+  coding export JavaScript/declaration build, and git diff --check: passed.
+- Data-provider JavaScript/types and data-schemas builds: passed.
+- Full API build emitted JavaScript but failed declaration generation at the
+  unchanged stream/jobStoreCapabilities.ts:11 with TS9010 (missing explicit
+  exported variable annotation under isolatedDeclarations). No unrelated stream
+  fix was included. The targeted coding export declaration build passed.
+
+Validation reused installed Node v24.16.0, TypeScript/Jest and temporary build
+tooling through links in this worktree only; no packages were downloaded and no
+shared dependency, manifest, lockfile or active-service configuration changed.
+The existing winston and rotation plugin were resolved from the same installed
+tooling tree to avoid duplicate logger instances. Generated build outputs are
+local validation artifacts, not activation.
+
+The original acceptance worktree stayed clean at the pinned commit. The original
+interrupted review 601ea173-850c-482a-bc8d-8ed05ac8aabf, its SQLite reservation,
+consumed approval marker and running review services were not opened or changed.
+No external model review, retry, quarantine clearing, merge, deployment, NAS or
+production operation was performed. Tests restarted only their own disposable
+synthetic service/helper processes.

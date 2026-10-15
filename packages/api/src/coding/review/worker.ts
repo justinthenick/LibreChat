@@ -104,7 +104,16 @@ export function createCodeReviewWorker(config: ReviewWorkerConfig): CodeReviewWo
     reviewId?: string,
   ): Promise<CodeReviewResult> {
     const diagnostic = (event: ReviewWorkerDiagnostic) =>
-      emitDiagnostic(settings.onDiagnostic, { ...event, reviewId: reviewId ?? null });
+      emitDiagnostic(settings.onDiagnostic, {
+        ...event,
+        reviewId:
+          typeof reviewId === 'string' &&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            reviewId,
+          )
+            ? reviewId
+            : null,
+      });
     const parsed = reviewRequestSchema.safeParse(input);
     if (!parsed.success) {
       throw new ReviewWorkerError('invalid_request');
