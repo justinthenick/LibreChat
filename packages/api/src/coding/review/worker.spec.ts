@@ -1,7 +1,9 @@
 import os from 'node:os';
 import path from 'node:path';
+import fs from 'node:fs/promises';
 import { mkdtemp, mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises';
 import type { ReviewWorkerConfig } from './worker';
+import { createReviewDiagnosticLog } from './diagnostic-log';
 import { createCodeReviewWorker } from './worker';
 
 const request = { repository: 'librechat', base: 'a'.repeat(40), head: 'b'.repeat(40) };
@@ -29,6 +31,13 @@ if scenario == 'stderr':
     sys.exit(1)
 if scenario == 'memory':
     bytearray(5 * 1024 * 1024 * 1024)
+if scenario == 'fragmented':
+    os.write(3, b'evidence_')
+    time.sleep(0.02)
+    os.write(3, b'validated\\nCANARY\\nprovider_ready\\n')
+if scenario == 'flood':
+    os.write(3, b'CANARY' * 200)
+    os.write(3, b'\\nprovider_ready\\n')
 if scenario == 'stages':
     os.write(3, b'evidence_validated\\nprovider_ready\\nconversation_started\\nconversation_finished\\nresult_validated\\n')
 if scenario == 'stage_failure':
@@ -235,6 +244,170 @@ describe('code review worker with real isolated processes', () => {
       expect(calls).toBeGreaterThan(0);
     },
   );
+
+  it.each([
+    'success',
+    'stale',
+    'truncated',
+    'unicode',
+    'failure',
+    'stdout',
+    'stderr',
+    'fragmented',
+    'flood',
+  ])('composes the private sink with real offline worker %s', async (scenario) => {
+    await writeFile(path.join(repo, 'scenario'), scenario);
+    const directory = path.join(root, 'logs');
+    await mkdir(directory, { mode: 0o700 });
+    const sink = await createReviewDiagnosticLog({
+      directory,
+      protectedRoots: [repo, scratch, config.authRoot],
+    });
+    const worker = createCodeReviewWorker({ ...config, onDiagnostic: sink.onDiagnostic });
+    const id = '12345678-1234-4123-8123-123456789abc';
+    try {
+      const outcome = await worker.run(request, principal, undefined, id).catch((error) => error);
+      if (['success', 'fragmented', 'flood'].includes(scenario)) {
+        expect(outcome.status).toBe('human_review_required');
+      } else {
+        expect(outcome.code).toBeDefined();
+      }
+    } finally {
+      await sink.close();
+    }
+    const text = await readFile(path.join(directory, 'review-diagnostics.jsonl'), 'utf8');
+    const events = text
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    expect(events.every((event) => event.reviewId === id)).toBe(true);
+    expect(text).not.toMatch(/CANARY|PRIVATE_VALUE/);
+    expect(events.filter((event) => event.type === 'child_exit')).toHaveLength(1);
+    if (['stale', 'truncated', 'unicode'].includes(scenario)) {
+      expect(events.find((event) => event.type === 'child_exit').classification).toBe('success');
+      expect(events.some((event) => event.stage === 'schema_validated')).toBe(false);
+    }
+    if (scenario === 'fragmented') {
+      expect(events.filter((event) => event.type === 'stage').map((event) => event.stage)).toEqual([
+        'evidence_validated',
+        'provider_ready',
+        'schema_validated',
+      ]);
+    }
+    if (scenario === 'flood') {
+      expect(events.filter((event) => event.type === 'stage').map((event) => event.stage)).toEqual([
+        'schema_validated',
+      ]);
+    }
+    expect(await readdir(config.authRoot)).toEqual([]);
+  });
+
+  it.each(['cancelled', 'timeout'])(
+    'records %s without weakening process cleanup',
+    async (failure) => {
+      await writeFile(path.join(repo, 'scenario'), 'hang');
+      const directory = path.join(root, 'logs');
+      await mkdir(directory, { mode: 0o700 });
+      const sink = await createReviewDiagnosticLog({
+        directory,
+        protectedRoots: [repo, scratch, config.authRoot],
+      });
+      if (failure === 'timeout') {
+        const realTimeout = global.setTimeout;
+        jest
+          .spyOn(global, 'setTimeout')
+          .mockImplementation(((callback: () => void, milliseconds?: number) =>
+            realTimeout(
+              callback,
+              milliseconds === 150000 ? 200 : milliseconds,
+            )) as typeof setTimeout);
+      }
+      const controller = new AbortController();
+      const running = createCodeReviewWorker({ ...config, onDiagnostic: sink.onDiagnostic })
+        .run(request, principal, controller.signal)
+        .catch((error) => error);
+      if (failure === 'cancelled') {
+        await started();
+        controller.abort();
+      }
+      expect((await running).code).toBe(failure);
+      await sink.close();
+      const text = await readFile(path.join(directory, 'review-diagnostics.jsonl'), 'utf8');
+      expect(JSON.parse(text.trim()).classification).toBe(failure);
+      expect(await readdir(scratch)).toEqual([]);
+    },
+  );
+
+  it.each(['success', 'failure'])('disk failure cannot alter worker %s', async (scenario) => {
+    await writeFile(path.join(repo, 'scenario'), scenario);
+    const directory = path.join(root, 'logs');
+    await mkdir(directory, { mode: 0o700 });
+    const original = fs.open;
+    jest.spyOn(fs, 'open').mockImplementation(async (...args: Parameters<typeof fs.open>) => {
+      const file = await original(...args);
+      jest.spyOn(file, 'write').mockRejectedValue(new Error('PRIVATE_VALUE'));
+      return file;
+    });
+    const sink = await createReviewDiagnosticLog({
+      directory,
+      protectedRoots: [repo, scratch, config.authRoot],
+    });
+    const result = await createCodeReviewWorker({ ...config, onDiagnostic: sink.onDiagnostic })
+      .run(request, principal)
+      .catch((error) => error);
+    await sink.close();
+    expect(sink.health().state).toBe('failed');
+    if (scenario === 'success') expect(result.status).toBe('human_review_required');
+    else expect(result.code).toBe('worker_failed');
+  });
+
+  it('validated diagnostics do not mask cleanup failure or retain the local slot', async () => {
+    const events: import('./worker').ReviewWorkerDiagnostic[] = [];
+    const worker = createCodeReviewWorker({
+      ...config,
+      onDiagnostic: (event) => events.push(event),
+    });
+    const remove = jest.spyOn(fs, 'rm').mockRejectedValueOnce(new Error('PRIVATE_VALUE'));
+    await expect(worker.run(request, principal)).rejects.toMatchObject({ code: 'worker_failed' });
+    expect(
+      events.some((event) => event.type === 'stage' && event.stage === 'schema_validated'),
+    ).toBe(true);
+    remove.mockRestore();
+    for (const name of await readdir(scratch))
+      await rm(path.join(scratch, name), { recursive: true });
+    await expect(worker.run(request, principal)).resolves.toMatchObject({
+      status: 'human_review_required',
+    });
+  });
+
+  it('records a fixed child-exit failure when the fixture executable cannot spawn', async () => {
+    await writeFile(config.python, '#!/nonexistent/offline-fixture-interpreter\\n', {
+      mode: 0o700,
+    });
+    const events: import('./worker').ReviewWorkerDiagnostic[] = [];
+    await expect(
+      createCodeReviewWorker({ ...config, onDiagnostic: (event) => events.push(event) }).run(
+        request,
+        principal,
+      ),
+    ).rejects.toMatchObject({ code: 'worker_failed' });
+    expect(events.find((event) => event.type === 'exit')).toMatchObject({
+      classification: 'worker_failed',
+    });
+    expect(JSON.stringify(events)).not.toContain('offline-fixture-interpreter');
+  });
+
+  it('redacts arbitrary direct-caller review IDs before invoking any observer', async () => {
+    const events: import('./worker').ReviewWorkerDiagnostic[] = [];
+    await createCodeReviewWorker({ ...config, onDiagnostic: (event) => events.push(event) }).run(
+      request,
+      principal,
+      undefined,
+      'CANARY\nsecret',
+    );
+    expect(events.length).toBeGreaterThan(0);
+    expect(events.every((event) => event.reviewId === null)).toBe(true);
+  });
 
   it('rejects unexpected request fields before authorization or spawn', async () => {
     const authorize = jest.fn(config.authorize);
