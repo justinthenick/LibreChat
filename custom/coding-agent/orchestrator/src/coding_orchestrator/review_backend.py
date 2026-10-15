@@ -28,6 +28,13 @@ class ReviewBackend:
         self.scratch_root = _validate_scratch_root(scratch_root)
         self._on_stage = on_stage or (lambda _stage: None)
 
+    def _emit_stage(self, stage: str) -> None:
+        # Diagnostic callbacks are observational; never change review results.
+        try:
+            self._on_stage(stage)
+        except Exception:
+            pass
+
     def run(self, repo: Path, base: str, head: str) -> dict:
         from openhands.sdk.conversation.response_utils import (
             get_agent_final_response,
@@ -100,9 +107,9 @@ class ReviewBackend:
                         "Review runtime tool contract mismatch"
                     )
 
-                self._on_stage("conversation_started")
+                self._emit_stage("conversation_started")
                 conversation.run()
-                self._on_stage("conversation_finished")
+                self._emit_stage("conversation_finished")
 
                 actions = [
                     event.tool_name
@@ -124,7 +131,7 @@ class ReviewBackend:
                 report = parse_report(answer)
 
                 validated = validate_findings(lines, report)
-                self._on_stage("result_validated")
+                self._emit_stage("result_validated")
                 return validated
             finally:
                 conversation.close()
