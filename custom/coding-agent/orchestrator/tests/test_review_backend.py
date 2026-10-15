@@ -96,6 +96,39 @@ class ReviewBackendTests(unittest.TestCase):
             "result_validated",
         ])
 
+    def test_throwing_stage_callbacks_cannot_change_valid_review(self):
+        stages = []
+
+        def fail_diagnostics(stage):
+            stages.append(stage)
+            raise RuntimeError("PRIVATE_DIAGNOSTIC_VALUE")
+
+        result = self.run_review(
+            '{"findings":[]}', on_stage=fail_diagnostics
+        )
+        self.assertEqual(result["status"], "human_review_required")
+        self.assertEqual(result["finding_count"], 0)
+        self.assertEqual(stages, [
+            "conversation_started",
+            "conversation_finished",
+            "result_validated",
+        ])
+
+    def test_throwing_stage_callbacks_preserve_original_review_failure(self):
+        stages = []
+
+        def fail_diagnostics(stage):
+            stages.append(stage)
+            raise RuntimeError("PRIVATE_DIAGNOSTIC_VALUE")
+
+        with self.assertRaises(ReviewError) as caught:
+            self.run_review("not-json", on_stage=fail_diagnostics)
+        self.assertNotIn("PRIVATE_DIAGNOSTIC_VALUE", str(caught.exception))
+        self.assertEqual(stages, [
+            "conversation_started",
+            "conversation_finished",
+        ])
+
     def test_malformed_json_rejected(self):
         with self.assertRaises(ReviewError):
             self.run_review("not-json")
