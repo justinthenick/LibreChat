@@ -160,7 +160,7 @@ class JobStore:
     Opening after a restart interrupts active records; work is never replayed.
     """
 
-    def __init__(self, path, clock=time.time):
+    def __init__(self, path, clock=time.time, *, validate_identity=None):
         self._mutex = threading.RLock()
         self._clock = clock
         self._connection = None
@@ -201,18 +201,29 @@ class JobStore:
                         'completed','failed','cancelled','timed_out','interrupted')),
                     created_at REAL NOT NULL, updated_at REAL NOT NULL,
                     deadline_at REAL NOT NULL, metadata TEXT NOT NULL,
-                    result TEXT, error_code TEXT, request_count INTEGER NOT NULL DEFAULT 0,
+                    result TEXT, error_code TEXT, request_count INTEGER NOT NULL DEFAULT 0, request TEXT, cancel_requested INTEGER NOT NULL DEFAULT 0,
                     UNIQUE (user_id, tenant_id, idempotency_key))""")
+                if "cancel_requested" not in {row[1] for row in database.execute("PRAGMA table_info(jobs)")}:
+                    database.execute("ALTER TABLE jobs ADD COLUMN cancel_requested INTEGER NOT NULL DEFAULT 0")
+                if "request" not in {row[1] for row in database.execute("PRAGMA table_info(jobs)")}:
+                    database.execute("ALTER TABLE jobs ADD COLUMN request TEXT")
                 database.execute("""CREATE UNIQUE INDEX IF NOT EXISTS one_active_job
                     ON jobs ((1)) WHERE state IN ('queued','running','cancelling')""")
                 database.execute("""CREATE TABLE IF NOT EXISTS reservations (
                     job_id TEXT PRIMARY KEY, execution_id TEXT NOT NULL UNIQUE,
                     resolved_at REAL)""")
+                if validate_identity is not None:
+                    for row in database.execute("SELECT job_id, idempotency_key, generation_id FROM jobs"):
+                        for value in row:
+                            validate_identity(value)
+                    for row in database.execute("SELECT job_id FROM reservations"):
+                        validate_identity(row[0])
                 # Legacy history has no durable stop proof. Keep resolved rows
                 # as tombstones so reopening cannot resurrect their quarantine.
                 database.execute("""INSERT INTO reservations (job_id, execution_id)
                     SELECT job_id, lower(hex(randomblob(16))) FROM jobs
-                    WHERE job_id NOT IN (SELECT job_id FROM reservations)""")
+                    WHERE job_id NOT IN (SELECT job_id FROM reservations)
+                      AND error_code IS NOT 'cancelled_before_admission'""")
                 database.execute("""UPDATE jobs SET state='interrupted',
                     error_code='restart_interrupted', updated_at=?
                     WHERE state IN ('queued','running','cancelling')""", (self._now(),))
@@ -245,6 +256,7 @@ class JobStore:
     def _decode(row):
         record = dict(row)
         record["metadata"] = json.loads(record["metadata"])
+        record["request"] = json.loads(record["request"]) if record["request"] else None
         record["result"] = json.loads(record["result"]) if record["result"] else None
         return record
 
@@ -265,8 +277,16 @@ class JobStore:
         return row
 
     def admit(self, *, user_id, tenant_id, idempotency_key, fingerprint,
-              generation_id, generation_epoch, deadline_at, metadata=None):
+              generation_id, generation_epoch, deadline_at, metadata=None,
+              job_id=None, request=None, max_records=None, max_results=None):
         owner = self._owner(user_id, tenant_id)
+        if job_id is not None:
+            _identifier(job_id, "job_id")
+        request_json = _json_object(request) if request is not None else None
+        if max_records is not None and _counter(max_records, "max_records", 1024) == 0:
+            raise ValueError("Invalid store capacity")
+        if max_results is not None and _counter(max_results, "max_results", 1024) == 0:
+            raise ValueError("Invalid result capacity")
         _identifier(idempotency_key, "idempotency_key")
         _identifier(fingerprint, "fingerprint")
         _identifier(generation_id, "generation_id")
@@ -285,6 +305,13 @@ class JobStore:
             elif not 0 < _number(value, key) <= 300:
                 raise ValueError("Invalid timeout_seconds")
         with self._transaction() as database:
+            if job_id is not None:
+                existing_id = database.execute("SELECT * FROM jobs WHERE job_id=?", (job_id,)).fetchone()
+                if existing_id is not None:
+                    if (existing_id["user_id"], existing_id["tenant_id"]) != owner:
+                        raise JobNotFound("Job not owned by caller")
+                    if existing_id["error_code"] == "cancelled_before_admission":
+                        return self._decode(existing_id), False
             existing = database.execute(
                 "SELECT * FROM jobs WHERE user_id=? AND tenant_id=? AND idempotency_key=?",
                 (*owner, idempotency_key),
@@ -298,18 +325,57 @@ class JobStore:
                 raise StoreBusy("An active job already exists")
             if database.execute("SELECT 1 FROM reservations WHERE resolved_at IS NULL").fetchone():
                 raise StoreBusy("Execution stop remains unconfirmed")
+            if max_records is not None and database.execute("SELECT count(*) FROM jobs").fetchone()[0] >= max_records:
+                raise StoreBusy("Job history capacity reached")
+            if max_results is not None and database.execute("SELECT count(*) FROM jobs WHERE result IS NOT NULL").fetchone()[0] >= max_results:
+                raise StoreBusy("Result history capacity reached")
             now = self._now()
-            job_id = uuid4().hex
+            job_id = job_id or uuid4().hex
             database.execute("""INSERT INTO jobs (job_id, user_id, tenant_id,
                 idempotency_key, fingerprint, generation_id, generation_epoch, state,
-                created_at, updated_at, deadline_at, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?)""",
+                created_at, updated_at, deadline_at, metadata, request)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?)""",
                 (job_id, *owner, idempotency_key, fingerprint, generation_id,
-                 generation_epoch, now, now, deadline_at, metadata_json))
+                 generation_epoch, now, now, deadline_at, metadata_json, request_json))
             database.execute("INSERT INTO reservations (job_id, execution_id) VALUES (?, ?)",
                              (job_id, uuid4().hex))
             record = self._decode(self._find(database, *owner, job_id))
         return record, True
+
+    def cancel_external(self, user_id, tenant_id, job_id, *, max_records=1024):
+        """Durably cancel an external ID, including before its admission.
+
+        A pre-admission tombstone reserves no execution slot. It is never
+        promoted to a dispatch and survives reopening without quarantine.
+        """
+        owner = self._owner(user_id, tenant_id)
+        _identifier(job_id, "job_id")
+        if _counter(max_records, "max_records", 1024) == 0:
+            raise ValueError("Invalid store capacity")
+        with self._transaction() as database:
+            row = database.execute("SELECT * FROM jobs WHERE job_id=?", (job_id,)).fetchone()
+            if row is not None:
+                self._find(database, *owner, job_id)
+                if row["state"] in {"queued", "running"}:
+                    database.execute("UPDATE jobs SET state='cancelling', cancel_requested=1, error_code='cancel_requested', updated_at=? WHERE job_id=?",
+                                     (self._now(), job_id))
+                elif row["state"] == "interrupted":
+                    database.execute("UPDATE jobs SET cancel_requested=1 WHERE job_id=?", (job_id,))
+                return
+            if database.execute("SELECT count(*) FROM jobs").fetchone()[0] >= max_records:
+                raise StoreBusy("Job history capacity reached")
+            now = self._now()
+            database.execute("""INSERT INTO jobs (job_id,user_id,tenant_id,idempotency_key,fingerprint,
+                generation_id,generation_epoch,state,created_at,updated_at,deadline_at,metadata,error_code,cancel_requested)
+                VALUES (?,?,?,?,?,?,0,'cancelled',?,?,?,'{}','cancelled_before_admission',1)""",
+                (job_id,*owner,job_id,"",job_id,now,now,now))
+
+    def discard_terminal_results(self, before):
+        """Expire result payloads without deleting identity or execution fences."""
+        before = _number(before, "before")
+        with self._transaction() as database:
+            database.execute("""UPDATE jobs SET result=NULL WHERE updated_at<=?
+                AND state IN ('completed','failed','cancelled','timed_out','interrupted')""", (before,))
 
     def get(self, user_id, tenant_id, job_id):
         with self._transaction() as database:

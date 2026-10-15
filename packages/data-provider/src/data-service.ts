@@ -1,6 +1,13 @@
 import type { AxiosResponse } from 'axios';
+import type {
+  CodeReviewConfig,
+  CodeReviewSelection,
+  CodeReviewSelectionRequest,
+  CodeReviewRequest,
+  CodeReviewResult,
+  CodeReviewRecovery,
+} from './types/reviews';
 import type { TInsightsAccessResponse, TInsightsParams, TInsightsResponse } from './types/insights';
-import type { CodeReviewRequest, CodeReviewResult, CodeReviewRecovery } from './types/reviews';
 import type { PreviewReply, PreviewStartRequest } from './types/preview';
 import type { TFileConfig } from './file-config';
 import type * as t from './types';
@@ -1576,4 +1583,15 @@ export function cancelReview(
   signal?: AbortSignal,
 ): Promise<{ cancelled: true }> {
   return request.postOnce(`${endpoints.reviews()}/cancel`, body, signal);
+}
+
+export function getReviewConfig(signal?: AbortSignal): Promise<CodeReviewConfig> {
+  return request.get(`${endpoints.reviews()}/config`, { signal });
+}
+
+export function resolveReviewSelection(
+  body: CodeReviewSelectionRequest,
+  signal?: AbortSignal,
+): Promise<CodeReviewSelection> {
+  return request.postOnce(`${endpoints.reviews()}/selection`, body, signal);
 }

@@ -3,8 +3,9 @@
 This slice exports `createReviewHttpHandler(config)` and `createReviewRouter(config,
 security)`. The former returns a Node HTTP callback without creating or binding a
 server. `api/server/routes/reviews.js` supplies the existing `requireJwtAuth` and
-`checkBan` middleware to the router factory. It is deliberately absent from the
-application route index and server mounts. Both sides remain disabled by default;
+`checkBan` middleware to the router factory. The application now mounts a separate `reviewDevelopment.js` wrapper with
+the existing `ACCESS_ADMIN` capability check and validated development-only settings.
+See [development wiring](../../../../../custom/coding-agent/orchestrator/REVIEW.md#development-only-application-wiring-default-off). Both sides remain disabled by default;
 no credentials or environment settings are provisioned.
 
 ## Requests and ownership
@@ -73,7 +74,7 @@ Separate existing JWT, ban and tenant suites cover those middleware implementati
 the thin-wrapper test verifies composition using fixture security middleware.
 No deployed proxy, live identity provider, real credential or model call is involved.
 
-Activation remains separate: register routes only when explicitly authorized,
+Production activation remains separate:
 configure a dedicated service token and repository policy, approved private TLS
 path and hosts, single service process ownership, HTTP header/body/socket limits,
 proxy timeouts, sanitized audit integration and host lifecycle/aggregate limits.
@@ -81,7 +82,7 @@ No production listener or configuration is introduced here. Horizontal deploymen
 would require a deliberate ownership design; these process-local limits are not
 distributed guarantees.
 
-## Next smallest UI slice
+## Original UI requirements (implemented in the development panel)
 
 Add a disabled/gated authenticated review form using existing shared primitives,
 English localization and React Query. Submit an authorized repository identifier
@@ -94,3 +95,125 @@ on navigation, and do not add publication/merge actions. Test these states offli
 before proposing route/UI registration or activation. PR URL freshness resolution
 remains outside this immutable-pair slice. Lost responses can use status recovery
 within the bounded process-local retention window.
+
+## Development PR identity lookup
+
+`POST /api/reviews/selection` accepts exactly:
+
+```json
+{"repository":"fixture","pullRequest":7,"expected":{"base":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","head":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}
+```
+
+`expected` is optional. The existing development gate, JWT/user-state validation,
+ban checks, capability policy and tenant repository allowlist precede lookup.
+The configured repository entry must additionally contain a pinned GitHub binding:
+
+```json
+{"id":"fixture","tenantId":"tenant-a","github":{"owner":"fixture","name":"repo","repositoryId":123}}
+```
+
+This example is synthetic, not a usable runtime configuration. No binding is
+installed by this change. Discovery still exposes only authorized local IDs.
+Absent mappings fail closed. The browser cannot supply a host, owner, name,
+repository ID, credential or principal. The response's base repository ID and
+full name must match the trusted binding, preventing name reuse or wrong-repo
+responses from silently changing repository identity.
+
+The module issues one unauthenticated GET to the fixed `api.github.com` origin,
+without redirects, retries or application caching. It neither reads credentials
+nor uses the coding executor. It bounds the whole lookup to five seconds and the
+decoded response body to 64 KiB, with a 30-request/minute user/tenant limit.
+Private repositories are deliberately unsupported until an explicitly approved
+existing GitHub authorization integration is selected. No new credential or
+permission is created. GitHub rate/access/network failures return fixed errors.
+
+The response includes `{request:{repository,base,head,pullRequest:{number,repositoryId}},pullRequest,status,checkedAt}`.
+It uses GitHub's actual `base.sha` and `head.sha`, including stacked bases and fork
+heads; it never substitutes `merge_commit_sha` or a default branch. Titles, bodies,
+URLs and other PR content are discarded. `status` is `resolved` without an expected
+pair, `current` only for an exact pair match, `stale` if either SHA changed, or
+`closed` for a closed/merged PR. The timestamp records completion of this lookup.
+
+**This is a point-in-time observation, not a lease.** The PR can change immediately
+afterward. The request's optional `pullRequest` object is part of immutable run
+identity alongside repository/base/head. The server validates its repository ID
+against the current tenant mapping and rechecks the exact pair before dispatch.
+It rechecks again after successful execution and before returning a retained
+outcome. Closed/merged PRs or either changed SHA return `409 stale_review` with no
+findings. Lookup failures also withhold findings. Completed PR results include
+route-generated `prCheckedAt`; worker transport rejects worker-supplied timestamps.
+
+Recovery checks stored ownership and complete request identity before PR lookup.
+Removing or changing the PR binding cannot retrieve a bound result as a local-pair
+review. Unknown IDs remain unknown without lookup or resubmission. Cancellation
+remains owner-scoped and does not require current PR metadata; a cancellation
+recorded during admission lookup prevents the later worker dispatch. No extra
+route-local state or persistence is introduced.
+
+The UI resolves PR numbers using the authorized repository mapping. For recovery,
+enter the original review ID and commits before resolving: the original pair is
+preserved even if GitHub has moved. Selection or session changes clear displayed
+findings and invalidate delayed responses. A blank PR number selects explicit
+local-pair mode; these results carry no PR freshness claim. Neither mode publishes.
+
+The pre-dispatch check cannot atomically reserve GitHub's head. A change immediately
+after checking can still start work, but a changed pair observed at completion or
+recovery withholds findings. The UI labels the completion check as point-in-time.
+No Git object fetching, private-repository authorization, continuous freshness
+monitoring, automatic resubmission, or durable restart recovery is added.
+
+Reference: [GitHub REST: Get a pull request](https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request),
+API version `2026-03-10`. Verification uses fake GitHub responses and the actual
+authenticated application wrapper with synthetic storage; no live lookup or
+model call is needed for these tests.
+
+## Optional durable review recovery (development, default off)
+
+The service can explicitly receive a `journal` opened by `createReviewJournal`
+from `@librechat/api/coding`. Configure absolute Linux paths for `python`
+(stdlib Python), `sourceRoot` (the orchestrator `src` directory), and `path`
+(a dedicated private SQLite database). Await journal creation before accepting
+requests and call `journal.close()` during shutdown. This does not add a route,
+environment switch, production bootstrap, or automatic activation. Keep the
+existing service authentication, repository authorization, PR identity checks,
+bounded worker, cancellation, cleanup, result validation and finish-only backend.
+
+The adapter reuses the orchestrator `JobStore` through a single lock-owning,
+credential-free Python helper. It persists the external review UUID, owner,
+tenant, repository alias, exact base/head, PR binding and configured model in
+the admission transaction before dispatch. Successful validated outcomes are
+committed after worker settlement and cleanup, before delivery. Completed
+recovery still checks the current PR identity. An interrupted response has no
+findings or freshness claim and remains observable without a GitHub lookup.
+
+Restart never repeats model dispatch. Previously active jobs become explicit
+`interrupted` records; unresolved execution reservations block new admissions.
+A helper failure fences its TS service generation permanently, cancels local
+work and rejects pending operations without retrying mutations or reconnecting.
+Only successful settled execution supplies trusted stop evidence. Failures,
+timeouts, cancellation without successful settlement, and process loss do not
+prove external quiescence and remain quarantined. If cancellation wins the
+terminal commit after successful worker settlement, persist cancelled, withhold
+findings, and release the reservation using that settlement evidence.
+
+Cancellation before admission persists a tombstone without taking an execution
+slot. No UUID may be replayed, including after finding expiry. Result payloads
+expire after 600 seconds (on access/admission and a 30-second maintenance sweep);
+identity tombstones remain. Admission is bounded to 64 retained result payloads
+and 1,024 lifetime records, failing closed at capacity. This milestone includes
+no deletion/reset, automatic reconciliation or reservation-release endpoint.
+Do not remove the journal to clear a quarantine: that loses no-replay evidence.
+
+Process crashes can leave orphaned execution or scratch directories. This
+milestone deliberately does not infer their termination or automate crash
+cleanup; trusted reconciliation and retention/tombstone lifecycle policy remain
+follow-up work before activation. Use a dedicated database, not the general job
+store database. The helper imports only stdlib persistence code and receives no
+provider credentials, executor access or publication capability.
+
+Offline tests use real SQLite/helper processes, fake workers/provider outputs
+and empty auth directories. They cover service/helper loss, both commit-before-
+acknowledgement windows, owner/tenant/PR/model mismatch, orphaned execution,
+precancellation, cancellation racing completion, expiry with no replay, lock
+contention and subsequent admission after trusted settlement. No live model or
+GitHub publication is part of those fixtures.
