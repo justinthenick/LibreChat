@@ -22,14 +22,14 @@ _DIAGNOSTIC_STAGES = frozenset({
 
 
 def _worker_stage(stage: str) -> None:
-    if os.environ.get("CODING_REVIEW_STAGE_FD") != "3":
-        return
-    if stage not in _DIAGNOSTIC_STAGES:
-        raise ValueError("Invalid internal review stage")
+    # Diagnostics are observational: failures must not change review outcomes.
     try:
+        if os.environ.get("CODING_REVIEW_STAGE_FD") != "3":
+            return
+        if stage not in _DIAGNOSTIC_STAGES:
+            return
         os.write(3, (stage + "\n").encode("ascii"))
-    except OSError:
-        # Telemetry must never affect review execution or authorization.
+    except Exception:
         pass
 
 
