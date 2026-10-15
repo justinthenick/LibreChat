@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { constants } from 'node:fs';
-import { lstat, open, realpath, readdir } from 'node:fs/promises';
 import { constants as osConstants } from 'node:os';
+import { lstat, open, realpath, readdir } from 'node:fs/promises';
 import type { ReviewWorkerDiagnostic } from './worker';
 
 const stages = new Set([
