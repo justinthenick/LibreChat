@@ -15,7 +15,10 @@ const payload = () => ({
 });
 const response = (value = payload()) => new Response(JSON.stringify(value));
 const fetcher = jest.fn<ReturnType<typeof fetch>, Parameters<typeof fetch>>();
+let now = 1_800_000_000_000;
 beforeEach(() => {
+  now += 3_600_000;
+  jest.spyOn(Date, 'now').mockImplementation(() => now);
   fetcher.mockReset().mockResolvedValue(response());
 });
 afterEach(() => {
@@ -161,4 +164,72 @@ it('sanitizes network and invalid UTF-8 errors', async () => {
   await expect(resolveReviewSelection(input, binding, fetcher)).rejects.toMatchObject({
     code: 'invalid_response',
   });
+});
+
+it('reserves shared capacity synchronously for concurrent lookups and resets after a rolling hour', async () => {
+  fetcher.mockImplementation(async () => response());
+  const results = await Promise.allSettled(
+    Array.from({ length: 45 }, () => resolveReviewSelection(input, binding, fetcher)),
+  );
+  expect(results.filter((entry) => entry.status === 'fulfilled')).toHaveLength(30);
+  expect(fetcher).toHaveBeenCalledTimes(30);
+  for (const entry of results) {
+    if (entry.status === 'rejected')
+      expect(entry.reason).toMatchObject({ code: 'busy', message: 'Code review failed: busy' });
+  }
+  now += 3_599_999;
+  await expect(resolveReviewSelection(input, binding, fetcher)).rejects.toMatchObject({
+    code: 'busy',
+  });
+  expect(fetcher).toHaveBeenCalledTimes(30);
+  now += 1;
+  await expect(resolveReviewSelection(input, binding, fetcher)).resolves.toMatchObject({
+    status: 'resolved',
+  });
+  expect(fetcher).toHaveBeenCalledTimes(31);
+});
+
+it('counts unsuccessful attempts and never refunds or retries them', async () => {
+  fetcher.mockImplementation(async () => {
+    throw new Error('PRIVATE network details');
+  });
+  for (let i = 0; i < 10; i++) {
+    await expect(resolveReviewSelection(input, binding, fetcher)).rejects.toMatchObject({
+      code: 'invalid_response',
+    });
+  }
+  fetcher.mockImplementation(async () => new Response('PRIVATE upstream details', { status: 503 }));
+  for (let i = 0; i < 10; i++) {
+    await expect(resolveReviewSelection(input, binding, fetcher)).rejects.toMatchObject({
+      code: 'invalid_response',
+    });
+  }
+  fetcher.mockImplementation(async () => new Response('{}'));
+  for (let i = 0; i < 10; i++) {
+    await expect(resolveReviewSelection(input, binding, fetcher)).rejects.toMatchObject({
+      code: 'invalid_response',
+    });
+  }
+  await expect(resolveReviewSelection(input, binding, fetcher)).rejects.toMatchObject({
+    code: 'busy',
+    message: 'Code review failed: busy',
+  });
+  expect(fetcher).toHaveBeenCalledTimes(30);
+});
+
+it('does not create a fixed-window burst or reopen capacity when the clock moves backwards', async () => {
+  fetcher.mockImplementation(async () => response());
+  for (let i = 0; i < 15; i++) await resolveReviewSelection(input, binding, fetcher);
+  now += 1_800_000;
+  for (let i = 0; i < 15; i++) await resolveReviewSelection(input, binding, fetcher);
+  now -= 1_800_001;
+  await expect(resolveReviewSelection(input, binding, fetcher)).rejects.toMatchObject({
+    code: 'busy',
+  });
+  now += 3_600_001;
+  for (let i = 0; i < 15; i++) await resolveReviewSelection(input, binding, fetcher);
+  await expect(resolveReviewSelection(input, binding, fetcher)).rejects.toMatchObject({
+    code: 'busy',
+  });
+  expect(fetcher).toHaveBeenCalledTimes(45);
 });

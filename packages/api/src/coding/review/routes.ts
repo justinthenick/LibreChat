@@ -99,7 +99,8 @@ export function createReviewRouter(
       if (!res.destroyed) res.status(200).json(selection);
     } catch (error) {
       const code = error instanceof ReviewWorkerError ? error.code : 'invalid_response';
-      if (!res.destroyed) res.status(reviewFailureStatus[code]).json({ code });
+      if (!res.destroyed)
+        res.status(code === 'busy' ? 429 : reviewFailureStatus[code]).json({ code });
     }
   });
   const handler =

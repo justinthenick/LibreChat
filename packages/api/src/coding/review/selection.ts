@@ -44,6 +44,17 @@ const responseSchema = z.object({
   head: z.object({ sha: reviewCommitSchema }),
 });
 const MAX_BYTES = 65536;
+const LOOKUP_WINDOW_MS = 60 * 60 * 1000;
+const MAX_LOOKUPS = 30;
+let lookupAttempts: number[] = [];
+
+/** Shared across routers and principals; failed/in-flight attempts retain their slot. */
+function reserveLookup(): void {
+  const now = Date.now();
+  lookupAttempts = lookupAttempts.filter((started) => now - started < LOOKUP_WINDOW_MS);
+  if (lookupAttempts.length >= MAX_LOOKUPS) throw new ReviewWorkerError('busy');
+  lookupAttempts.push(now);
+}
 
 /** Reads public GitHub metadata only. No ambient authentication, redirects or retries. */
 export async function resolveReviewSelection(
@@ -55,6 +66,7 @@ export async function resolveReviewSelection(
   if (!parsed.success) throw new ReviewWorkerError('invalid_request');
   const binding = reviewGitHubRepositorySchema.safeParse(repository);
   if (!binding.success) throw new ReviewWorkerError('configuration');
+  reserveLookup();
   const request = parsed.data;
   const { owner, name, repositoryId } = binding.data;
   const controller = new AbortController();
