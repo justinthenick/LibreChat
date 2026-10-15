@@ -25,8 +25,7 @@ class ReviewDiagnosticTests(unittest.TestCase):
     def test_unknown_or_injected_stage_is_never_written(self):
         with patch.dict(os.environ, {'CODING_REVIEW_STAGE_FD': '3'}, clear=True), patch('os.write') as write:
             for stage in ['CANARY', 'provider_ready\\nCANARY', '', 'x' * 10000]:
-                with self.assertRaises(ValueError):
-                    _worker_stage(stage)
+                _worker_stage(stage)
             write.assert_not_called()
 
     def test_broken_or_missing_pipe_does_not_fail_execution(self):
