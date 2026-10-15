@@ -1,9 +1,9 @@
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { createReviewDiagnosticLog } from './diagnostic-log';
 import type { ReviewDiagnosticLog } from './diagnostic-log';
 import type { ReviewWorkerDiagnostic } from './worker';
+import { createReviewDiagnosticLog } from './diagnostic-log';
 
 const id = '12345678-1234-4123-8123-123456789abc';
 const stage = { type: 'stage', stage: 'provider_ready', reviewId: id } as const;
