@@ -495,3 +495,35 @@ consumed approval marker and running review services were not opened or changed.
 No external model review, retry, quarantine clearing, merge, deployment, NAS or
 production operation was performed. Tests restarted only their own disposable
 synthetic service/helper processes.
+
+#### Rebase onto the upstream Python P2 fix
+
+The private logging branch was rebased onto PR #234 commit
+4cf2f08fa605c2a02f991fdf8c39dad5f90b60db. The former local Python correction
+9ae3756dff93524ccd6a1c3bf8919475a931e267 was dropped as superseded.
+The upstream backend, CLI and their success/failure regression tests are retained
+byte-for-byte; the alternate local callback helper and duplicate tests are not
+part of this feature diff. The logging-specific fd3 test now asserts that unknown
+labels are silently dropped, matching the upstream outcome-neutral writer.
+
+The diff against PR #234 is limited to the explicit private sink, its public
+exports, worker correlation-ID redaction, offline logging/worker/restart tests
+and this operator documentation. It adds no runtime activation or recovery
+mutation. The original interrupted review, journal/quarantine, consumed approval,
+running services and original acceptance worktree remain outside this work.
+
+The earlier TS9010 limitation was reproduced independently on an unchanged
+add6ffcb baseline snapshot with the same Node 24.16.0 / tsdown 0.22.2 / rolldown
+1.1.5 tooling: full API declaration generation exited 1 at
+stream/jobStoreCapabilities.ts:11:14. That file and both build configurations
+were byte-identical to the baseline Git objects. No stream fix is included here.
+
+Rebased acceptance on 15 October 2026 (Sydney):
+54 affected Python review tests passed under the established isolated-state,
+loopback-only guard; all 183 tests in the six review Jest suites passed; all 33
+full offline contract/restart scenarios passed. Strict targeted TypeScript,
+changed-file ESLint, coding-export JavaScript/declarations and git diff --check
+passed. The private logging implementation and TypeScript/restart regressions
+were verified identical to cb89eadb; upstream Python implementation and P2 tests
+were verified identical to 4cf2f08fa. Only the private fd3 unknown-label assertion
+was adapted. No model or live review service participated in these checks.
