@@ -1,8 +1,3 @@
-2026-10-16 16:28:04 No deployment change; healthy deployment already recorded at f30a5524
-2026-10-16 16:29:04 LibreChat deployment check started
-2026-10-16 16:29:06 Cloudflare tunnel integration enabled
-2026-10-16 16:29:06 Synology Admin Settings integration enabled
-2026-10-16 16:46:39 No deployment change; healthy deployment already recorded at f30a5524
 2026-10-16 16:48:00 LibreChat deployment check started
 2026-10-16 16:48:01 Cloudflare tunnel integration enabled
 2026-10-16 16:48:01 Synology Admin Settings integration enabled
@@ -38,3 +33,8 @@
 2026-10-16 20:35:58 Official LibreChat Admin Panel dedicated session secret ready
 2026-10-16 20:36:11 ERROR: admin settings worker did not become ready
 2026-10-16 20:36:11 Collecting deployment diagnostics for stage admin_worker
+2026-10-16 20:38:03 Sanitised GitHub telemetry published
+2026-10-16 20:38:58 LibreChat deployment check started
+2026-10-16 20:38:59 Cloudflare tunnel integration enabled
+2026-10-16 20:38:59 Synology Admin Settings integration enabled
+2026-10-16 21:13:29 No deployment change; healthy deployment already recorded at f30a5524
