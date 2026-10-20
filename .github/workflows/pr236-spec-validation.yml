@@ -1,0 +1,59 @@
+name: PR236 isolated spec validation
+
+on:
+  push:
+    branches:
+      - validation/pr236-spec-repair-20261021
+    paths:
+      - .github/workflows/pr236-spec-validation.yml
+      - .github/pr236-validation/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr236-spec-validation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.repository == 'justinthenick/LibreChat' && github.ref == 'refs/heads/validation/pr236-spec-repair-20261021'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CI: 'true'
+      NODE_OPTIONS: --max-old-space-size=4096
+      npm_config_ignore_scripts: 'true'
+      npm_config_audit: 'false'
+      npm_config_fund: 'false'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      MONGOMS_DISABLE_POSTINSTALL: '1'
+      HUSKY: '0'
+    steps:
+      - name: Read validation harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          persist-credentials: false
+      - name: Read exact candidate baseline
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 63f65f2a17e771bee79332c7537e7cdaf0eb536f
+          path: source
+          persist-credentials: false
+      - name: Pin Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.16.0
+      - name: Install locked dependencies and validate baseline and repair
+        timeout-minutes: 22
+        run: node control/.github/pr236-validation/validate.cjs source evidence control/.github/pr236-validation/repair.patch
+      - name: Upload evidence even when validation fails
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr236-spec-validation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence/
+          retention-days: 14
+          if-no-files-found: warn

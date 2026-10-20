@@ -1,0 +1,146 @@
+diff --git a/packages/data-provider/specs/mcp.spec.ts b/packages/data-provider/specs/mcp.spec.ts
+index 31c8ac1..209861f 100644
+--- a/packages/data-provider/specs/mcp.spec.ts
++++ b/packages/data-provider/specs/mcp.spec.ts
+@@ -576,13 +576,17 @@ describe('MCP schemas', () => {
+         },
+       });
+ 
+-      expect(result.success).toBe(true);
+-      if (result.success && result.data.oauth) {
+-        expect(result.data.oauth.authorization_url).toBe('https://auth.example.com/authorize');
+-        expect(result.data.oauth.token_url).toBe('https://auth.example.com/token');
+-        expect(result.data.oauth.client_id).toBe('public-client-id');
+-        expect(result.data.oauth.scope).toBe('read execute');
+-      }
++      expect(result).toMatchObject({
++        success: true,
++        data: {
++          oauth: {
++            authorization_url: 'https://auth.example.com/authorize',
++            token_url: 'https://auth.example.com/token',
++            client_id: 'public-client-id',
++            scope: 'read execute',
++          },
++        },
++      });
+     });
+   });
+ 
+diff --git a/packages/data-provider/specs/parsers.spec.ts b/packages/data-provider/specs/parsers.spec.ts
+index 8d86ded..d89a327 100644
+--- a/packages/data-provider/specs/parsers.spec.ts
++++ b/packages/data-provider/specs/parsers.spec.ts
+@@ -185,7 +185,7 @@ describe('parseCompactConvo', () => {
+       });
+ 
+       expect(result).not.toBeNull();
+-      expect(result?.['iconURL']).toBeUndefined();
++      expect(result).not.toHaveProperty('iconURL');
+       expect(result?.model).toBe('gpt-4');
+     });
+ 
+@@ -203,7 +203,7 @@ describe('parseCompactConvo', () => {
+       });
+ 
+       expect(result).not.toBeNull();
+-      expect(result?.['iconURL']).toBeUndefined();
++      expect(result).not.toHaveProperty('iconURL');
+       expect(result?.agent_id).toBe('agent_123');
+     });
+ 
+@@ -221,7 +221,7 @@ describe('parseCompactConvo', () => {
+       });
+ 
+       expect(result).not.toBeNull();
+-      expect(result?.['iconURL']).toBeUndefined();
++      expect(result).not.toHaveProperty('iconURL');
+       expect(result?.model).toBe('claude-3-opus');
+     });
+ 
+@@ -239,7 +239,7 @@ describe('parseCompactConvo', () => {
+       });
+ 
+       expect(result).not.toBeNull();
+-      expect(result?.['iconURL']).toBeUndefined();
++      expect(result).not.toHaveProperty('iconURL');
+       expect(result?.model).toBe('gemini-pro');
+     });
+ 
+@@ -257,7 +257,7 @@ describe('parseCompactConvo', () => {
+       });
+ 
+       expect(result).not.toBeNull();
+-      expect(result?.['iconURL']).toBeUndefined();
++      expect(result).not.toHaveProperty('iconURL');
+       expect(result?.assistant_id).toBe('asst_123');
+     });
+ 
+@@ -278,7 +278,7 @@ describe('parseCompactConvo', () => {
+       });
+ 
+       expect(result).not.toBeNull();
+-      expect(result?.['iconURL']).toBeUndefined();
++      expect(result).not.toHaveProperty('iconURL');
+       expect(result?.model).toBe('gpt-4');
+       expect(result?.temperature).toBe(0.7);
+       expect(result?.top_p).toBe(0.9);
+@@ -298,7 +298,7 @@ describe('parseCompactConvo', () => {
+       });
+ 
+       expect(result).not.toBeNull();
+-      expect(result?.['iconURL']).toBeUndefined();
++      expect(result).not.toHaveProperty('iconURL');
+       expect(result?.model).toBe('gpt-4');
+     });
+   });
+@@ -551,7 +551,7 @@ describe('parseCompactConvo - defaultParamsEndpoint', () => {
+     });
+ 
+     expect(result).not.toBeNull();
+-    expect(result?.['iconURL']).toBeUndefined();
++    expect(result).not.toHaveProperty('iconURL');
+     expect(result?.maxOutputTokens).toBe(8192);
+   });
+ 
+@@ -571,7 +571,7 @@ describe('parseCompactConvo - defaultParamsEndpoint', () => {
+ 
+     expect(result).not.toBeNull();
+     expect(result?.promptCache).toBe(true);
+-    expect(result?.['iconURL']).toBeUndefined();
++    expect(result).not.toHaveProperty('iconURL');
+   });
+ 
+   test('should fall back to endpointType when defaultParamsEndpoint is null', () => {
+diff --git a/packages/data-provider/specs/request-interceptor-subdir.spec.ts b/packages/data-provider/specs/request-interceptor-subdir.spec.ts
+index 82d83a6..062d860 100644
+--- a/packages/data-provider/specs/request-interceptor-subdir.spec.ts
++++ b/packages/data-provider/specs/request-interceptor-subdir.spec.ts
+@@ -18,9 +18,8 @@ beforeAll(async () => {
+   baseElement.setAttribute('href', '/chat/');
+   document.head.appendChild(baseElement);
+ 
+-  const proc = process as typeof process & { browser?: boolean };
+-  originalProcessBrowser = proc.browser;
+-  proc.browser = true;
++  originalProcessBrowser = process.browser;
++  process.browser = true;
+ 
+   await import('../src/request');
+ });
+@@ -34,11 +33,12 @@ afterAll(() => {
+   axios.defaults.adapter = originalAdapter;
+   document.head.removeChild(baseElement);
+ 
+-  const proc = process as typeof process & { browser?: boolean };
+   if (originalProcessBrowser === undefined) {
+-    delete proc.browser;
++    if (!Reflect.deleteProperty(process, 'browser')) {
++      throw new TypeError('Cannot delete process.browser');
++    }
+   } else {
+-    proc.browser = originalProcessBrowser;
++    process.browser = originalProcessBrowser;
+   }
+ });
+ 
