@@ -16,6 +16,8 @@ test = [
 ]
 openhands = [
   "openhands-sdk==1.51.0",
+  # LiteLLM 1.106.1 imports CacheableResult, unavailable in MCP 1.30.0.
+  "litellm==1.105.1",
   "httpcore==1.0.9",
   "httpx==0.28.1",
   "joserfc==1.7.5",
