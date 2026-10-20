@@ -1,0 +1,44 @@
+name: PR236 controlled LiteLLM diagnosis
+on:
+  push:
+    branches: [validation/pr236-litellm-diagnostic-20261021]
+    paths:
+      - .github/workflows/pr236-orchestrator-diagnostic.yml
+      - .github/pr236-diagnostic/**
+permissions:
+  contents: read
+concurrency:
+  group: pr236-litellm-diagnostic-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  diagnose:
+    if: github.repository == 'justinthenick/LibreChat' && github.ref == 'refs/heads/validation/pr236-litellm-diagnostic-20261021'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ce8ab335a77c8dbad67a1c90d76ffe8dc35ab8bb
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12.15'
+      - name: Compare controlled dependency environments
+        run: python control/.github/pr236-diagnostic/diagnose.py source control/.github/pr236-diagnostic evidence
+      - name: Preserve diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr236-litellm-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            evidence/*.log
+            evidence/*.json
+            evidence/*.txt
+          retention-days: 14
+          if-no-files-found: error
