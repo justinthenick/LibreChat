@@ -56,3 +56,17 @@ Operator configuration still needs a dedicated transport credential, approved
 private network/TLS path, repository policy, host lifecycle/resource controls and
 proxy timeout verification. None is provisioned by this slice. Existing model
 authentication stays host-owned and is neither read nor copied by these fixtures.
+
+## Shared public GitHub lookup budget
+
+Public PR identity lookups share a process-wide budget of 30 outbound attempts
+per rolling hour, in addition to existing principal/tenant route limits. Capacity
+is reserved synchronously after input/binding validation and before fetching;
+network failures, rejected responses, malformed bodies and timeouts all consume
+an attempt. Exhaustion returns the fixed `busy` error (HTTP 429) without a fetch
+or retry. State is bounded to 30 timestamps.
+
+This conservative process-local budget leaves nominal headroom in GitHub's
+unauthenticated allowance, but does not coordinate other processes or traffic
+sharing an originating IP. Process replacement resets it. Multi-process
+deployment requires a shared budget or upstream quota coordination.

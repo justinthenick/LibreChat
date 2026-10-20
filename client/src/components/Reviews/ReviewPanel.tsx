@@ -7,6 +7,9 @@ import { useReviewActions } from '~/data-provider';
 import useLocalize from '~/hooks/useLocalize';
 
 type Notice =
+  | 'interrupted'
+  | 'stale_review'
+  | 'resolved'
   | 'idle'
   | 'running'
   | 'uncertain'
@@ -19,6 +22,9 @@ type Notice =
   | 'failed'
   | 'completed';
 const notices = {
+  interrupted: 'com_ui_review_interrupted',
+  stale_review: 'com_ui_review_stale',
+  resolved: 'com_ui_review_resolved',
   idle: 'com_ui_review_idle',
   running: 'com_ui_review_running',
   uncertain: 'com_ui_review_uncertain',
@@ -37,10 +43,16 @@ const severities = {
   minor: 'com_ui_review_minor',
 } as const;
 const sameRequest = (left: CodeReviewRequest, right: CodeReviewRequest) =>
-  left.repository === right.repository && left.base === right.base && left.head === right.head;
+  left.repository === right.repository &&
+  left.base === right.base &&
+  left.head === right.head &&
+  left.pullRequest?.number === right.pullRequest?.number &&
+  left.pullRequest?.repositoryId === right.pullRequest?.repositoryId;
 const validResult = (result: CodeReviewResult, request: CodeReviewRequest) =>
   result &&
   sameRequest(result, request) &&
+  (!request.pullRequest ||
+    (typeof result.prCheckedAt === 'string' && Number.isFinite(Date.parse(result.prCheckedAt)))) &&
   result.provider === 'chatgpt_subscription' &&
   result.status === 'human_review_required' &&
   typeof result.model === 'string' &&
@@ -60,6 +72,7 @@ const validResult = (result: CodeReviewResult, request: CodeReviewRequest) =>
 function failure(code?: string, terminal = false): Notice {
   if (!terminal && code === 'cancelled') return 'uncertain';
   if (
+    code === 'stale_review' ||
     code === 'cancelled' ||
     code === 'timeout' ||
     code === 'forbidden' ||
@@ -70,7 +83,7 @@ function failure(code?: string, terminal = false): Notice {
   return terminal ? 'failed' : 'uncertain';
 }
 
-/** Not mounted in navigation/routes. Both the caller gate and authenticated identity are required. */
+/** Both server discovery and authenticated identity are required. */
 export default function ReviewPanel({
   enabled = false,
   repositories = [],
@@ -97,6 +110,7 @@ function ReviewForm({ repositories }: { repositories: readonly string[] }) {
   const actions = useReviewActions();
   const [request, setRequest] = useState<CodeReviewRequest>({ repository: '', base: '', head: '' });
   const [id, setId] = useState('');
+  const [pullRequest, setPullRequest] = useState('');
   const [notice, setNotice] = useState<Notice>('idle');
   const [result, setResult] = useState<CodeReviewResult | null>(null);
   const [expires, setExpires] = useState<number>();
@@ -108,7 +122,7 @@ function ReviewForm({ repositories }: { repositories: readonly string[] }) {
     sequence: number;
     busy: boolean;
     cancelling: boolean;
-    operation?: 'start' | 'status';
+    operation?: 'start' | 'status' | 'resolve';
     controllers: Set<AbortController>;
   }>({ alive: true, sequence: 0, busy: false, cancelling: false, controllers: new Set() });
   const invalidate = () => {
@@ -137,13 +151,72 @@ function ReviewForm({ repositories }: { repositories: readonly string[] }) {
     setExpires(undefined);
     setNotice('idle');
   };
-  const valid =
+  const validPair =
     repositories.includes(request.repository) &&
     /^[0-9a-f]{40}$/.test(request.base) &&
     /^[0-9a-f]{40}$/.test(request.head);
+  const prNumber = /^[1-9][0-9]*$/.test(pullRequest) ? Number(pullRequest) : 0;
+  const validPr = Number.isSafeInteger(prNumber) && prNumber > 0;
+  const valid =
+    validPair && (!pullRequest || (validPr && request.pullRequest?.number === prNumber));
+  const canResolve = repositories.includes(request.repository) && validPr && (!id || validPair);
   const validId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const current = (sequence: number) =>
     activity.current.alive && sequence === activity.current.sequence;
+
+  async function resolve() {
+    if (!canResolve || activity.current.busy || activity.current.cancelling) return;
+    changed();
+    activity.current.operation = 'resolve';
+    activity.current.busy = true;
+    setBusy(true);
+    const sequence = activity.current.sequence;
+    const selected = { ...request };
+    const expected = id ? { base: selected.base, head: selected.head } : undefined;
+    const controller = new AbortController();
+    activity.current.controllers.add(controller);
+    try {
+      const value = await actions.resolve.mutateAsync({
+        request: {
+          repository: selected.repository,
+          pullRequest: prNumber,
+          ...(expected ? { expected } : {}),
+        },
+        signal: controller.signal,
+      });
+      if (!current(sequence)) return;
+      const binding = value.request?.pullRequest;
+      if (
+        value.request?.repository !== selected.repository ||
+        value.pullRequest !== prNumber ||
+        binding?.number !== prNumber ||
+        !Number.isSafeInteger(binding.repositoryId) ||
+        binding.repositoryId <= 0 ||
+        !/^[0-9a-f]{40}$/.test(value.request.base) ||
+        !/^[0-9a-f]{40}$/.test(value.request.head) ||
+        !Number.isFinite(Date.parse(value.checkedAt)) ||
+        !['resolved', 'current', 'stale', 'closed'].includes(value.status)
+      )
+        throw new Error('invalid_response');
+      setRequest({ ...value.request, ...(expected ?? {}) });
+      setNotice(
+        value.status === 'stale' || value.status === 'closed' ? 'stale_review' : 'resolved',
+      );
+    } catch (error) {
+      if (current(sequence))
+        setNotice(
+          isAxiosError<{ code?: string }>(error)
+            ? failure(error.response?.data?.code)
+            : 'uncertain',
+        );
+    } finally {
+      activity.current.controllers.delete(controller);
+      if (current(sequence)) {
+        activity.current.busy = false;
+        setBusy(false);
+      }
+    }
+  }
 
   async function run(retrieve: boolean) {
     if (!valid || (retrieve ? !validId : Boolean(id)) || activity.current.cancelling) return;
@@ -157,7 +230,7 @@ function ReviewForm({ repositories }: { repositories: readonly string[] }) {
     setCancelAcknowledged(false);
     const sequence = activity.current.sequence;
     const selected = { ...request };
-    const runId = retrieve ? id : crypto.randomUUID();
+    const runId = (retrieve ? id : crypto.randomUUID()).toLowerCase();
     setId(runId);
     setNotice('running');
     const controller = new AbortController();
@@ -194,6 +267,9 @@ function ReviewForm({ repositories }: { repositories: readonly string[] }) {
           setResult(value.result);
           setExpires(value.expiresAt);
           setNotice('completed');
+        } else if (value.state === 'interrupted') {
+          setNotice('interrupted');
+          setCancelAcknowledged(value.cancelRequested);
         } else if (value.state === 'running') {
           setNotice('running');
           setCancelAcknowledged(value.cancelRequested);
@@ -221,7 +297,7 @@ function ReviewForm({ repositories }: { repositories: readonly string[] }) {
 
   async function cancel() {
     if (!validId || activity.current.cancelling) return;
-    if (activity.current.busy && activity.current.operation === 'status') {
+    if (activity.current.busy && activity.current.operation !== 'start') {
       invalidate();
       setBusy(false);
     }
@@ -263,7 +339,7 @@ function ReviewForm({ repositories }: { repositories: readonly string[] }) {
           value={request.repository}
           onChange={(event) => {
             changed();
-            setRequest({ ...request, repository: event.target.value });
+            setRequest({ ...request, repository: event.target.value, pullRequest: undefined });
           }}
         />
         <datalist id={`${prefix}-repositories`}>
@@ -271,6 +347,27 @@ function ReviewForm({ repositories }: { repositories: readonly string[] }) {
             <option key={repository} value={repository} />
           ))}
         </datalist>
+        <Label htmlFor={`${prefix}-pr`}>{localize('com_ui_review_pr')}</Label>
+        <Input
+          id={`${prefix}-pr`}
+          value={pullRequest}
+          inputMode="numeric"
+          maxLength={16}
+          onChange={(event) => {
+            changed();
+            setPullRequest(event.target.value);
+            setRequest({ ...request, pullRequest: undefined });
+          }}
+        />
+        <p className="text-sm text-text-secondary">{localize('com_ui_review_pr_help')}</p>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={!canResolve || busy || cancelBusy}
+          onClick={() => void resolve()}
+        >
+          {localize('com_ui_review_resolve')}
+        </Button>
         {(['base', 'head'] as const).map((field) => (
           <div key={field} className="flex flex-col gap-2">
             <Label htmlFor={`${prefix}-${field}`}>
@@ -313,7 +410,7 @@ function ReviewForm({ repositories }: { repositories: readonly string[] }) {
           type="button"
           variant="outline"
           disabled={
-            !valid || !validId || cancelBusy || (busy && activity.current.operation === 'status')
+            !valid || !validId || cancelBusy || (busy && activity.current.operation !== 'start')
           }
           onClick={() => void run(true)}
         >
@@ -346,6 +443,16 @@ function ReviewForm({ repositories }: { repositories: readonly string[] }) {
             <dd>{result.base}</dd>
             <dt>{localize('com_ui_review_head')}</dt>
             <dd>{result.head}</dd>
+            {result.pullRequest && (
+              <>
+                <dt>{localize('com_ui_review_pr')}</dt>
+                <dd>{result.pullRequest.number}</dd>
+                <dt>{localize('com_ui_review_github_id')}</dt>
+                <dd>{result.pullRequest.repositoryId}</dd>
+                <dt>{localize('com_ui_review_checked')}</dt>
+                <dd>{result.prCheckedAt}</dd>
+              </>
+            )}
             <dt>{localize('com_ui_review_model')}</dt>
             <dd>{result.model}</dd>
             <dt>{localize('com_ui_review_id')}</dt>
@@ -359,6 +466,9 @@ function ReviewForm({ repositories }: { repositories: readonly string[] }) {
               </>
             )}
           </dl>
+          <p>
+            {localize(result.pullRequest ? 'com_ui_review_freshness' : 'com_ui_review_local_pair')}
+          </p>
           <p>{localize('com_ui_review_material')}</p>
           {result.findings.length === 0 && <p>{localize('com_ui_review_empty')}</p>}
           {result.findings.map((finding, index) => (

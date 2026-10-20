@@ -216,15 +216,314 @@ REVIEW_TEST_PYTHON=/path/to/installed/sdk/python node custom/coding-agent/orches
 The interpreter must contain this orchestrator's pinned `openhands,test` extras.
 The runner installs nothing, uses fresh temporary state and permits only literal
 loopback networking. The backend workflow runs it independently of selective unit
-test gating. Seven deterministic scenarios cross real JWT verification, review
+test gating. Twenty-one deterministic scenarios cross real JWT verification, review
 routes, HTTP transport, worker limits/cleanup, Git diff collection, CLI and SDK
-finish/evidence validation. Only user lookup, ban checks and model responses are
-fixtures. Temporary repositories have real stacked base/head commits, hostile
+finish/evidence validation. The actual application development wrapper, JWT
+strategy, ban and capability middleware run against synthetic user/capability/ban
+storage and fake model responses. Temporary repositories have real stacked base/head commits, hostile
 content and no remotes; empty auth stores are checked after each case.
 
 Completion, delivery disconnect/retrieval, cancellation, stale selection, owner
-switch, unknown identity and expiry are covered. The expiry case advances the
+switch, unknown identity, expiry, malformed/disabled development settings, user
+state, bans, capability denial, tenant repository discovery and caller spoofing are covered. The expiry case advances the
 server clock, rather than waiting ten minutes. Local browser acceptance exercises
 actual React/AuthContext/Axios behavior separately; this CI runner has no browser
 and does not prove UI event ordering, persistent authentication/bans, remote-head
 freshness, restart recovery, live subscription compatibility or activation.
+
+## Development-only application wiring (default off)
+
+The historical checkpoints above describe earlier unregistered components. The
+application now mounts the existing panel at `/reviews` under its authenticated
+root layout and the thin router at `/api/reviews`. The route returns configuration
+unavailable unless **both** `NODE_ENV=development` and
+`CODING_REVIEW_DEVELOPMENT=true` are present and every setting below validates.
+Production mode cannot enable this development gate. No setting is installed or
+enabled by this change; no credentials or service listener are provisioned.
+
+The server reads these explicit environment settings at startup:
+
+| Setting | Requirement |
+| --- | --- |
+| `CODING_REVIEW_URL` | Existing reviewed service URL, HTTPS or literal HTTP loopback, exact `/review` path, no query/fragment/userinfo |
+| `CODING_REVIEW_TOKEN` | Explicit 32–256 character URL-safe transport token; never sent to the browser |
+| `CODING_REVIEW_MODEL` | Explicit model ID matching the service |
+| `CODING_REVIEW_REPOSITORIES` | Strict JSON array of 1–64 `{ "id": "fixture", "tenantId": "tenant-a" }` entries, at most 16 KiB |
+
+Omit `tenantId` only for the application's non-tenant principal. It is never a
+wildcard. Duplicate ID/tenant pairs, unknown fields, paths, invalid identities or
+malformed settings disable the entire gate. Repository IDs must also exist in
+the service's independent ID/path allowlist and authorization callback.
+
+The existing JWT strategy resolves the current stored user; existing ban checks,
+tenant context and `ACCESS_ADMIN` capability policy precede discovery and all
+operations. This conservative development pilot adds no capability grants or
+authentication framework. GET `/api/reviews/config` exposes only repository IDs
+for that trusted tenant; it exposes no paths, service URL, token or model settings.
+Start and retrieval recheck the server repository list. Cancellation retains
+service owner checks, allowing the owner to clean up a run even if its repository
+is removed from the list. Request JSON cannot supply principal, tenant or policy.
+
+Open `/reviews` directly while authenticated. The panel waits for successful
+server discovery; discovery failures keep it disabled. Its query cache is scoped
+to user and tenant, and identity changes abort pending discovery. Existing panel
+controls retain immutable commit selection, no automatic replay, explicit
+retrieval/cancellation, inert findings and human-review-required outcomes.
+
+Base/head still identify the **selected local commits**. This slice does not
+fetch a current remote PR head or establish that the selection is fresh. Recovery
+is process-local and expires after ten minutes; restart loses retained outcomes
+and cannot prove a remote provider stopped. Existing visible limitations remain.
+There is no publication path. Production activation, external containment,
+restart reconciliation and separately authorized live compatibility remain open.
+
+Verification uses synthetic repositories/users, empty auth stores and fake SDK
+responses only. New config and composed-page tests cover fail-closed settings,
+ready authentication, tenant/user changes, discovery, recovery and cancellation;
+the contract runner exercises the actual app wrapper and established middleware.
+No model call, login, production executor, NAS or deployment is involved.
+
+
+### PR identity development follow-up
+
+The authenticated development router now supports a bounded, public-GitHub-only
+selection lookup and exact-pair comparison. See
+[the HTTP contract](../../../packages/api/src/coding/review/HTTP.md#development-pr-identity-lookup).
+The panel consumes this lookup and binds PR number/repository ID to the immutable
+run request. Admission and result delivery recheck actual base/head; stale or
+unverifiable outcomes withhold findings while cancellation remains available.
+The metadata lookup itself performs no model call, Git fetch, publication or
+credential access. All Stage 5 execution controls remain in place. Tests use fake
+provider responses and synthetic GitHub metadata only. Checks are point-in-time;
+private GitHub access and durable restart recovery remain outside this slice.
+
+## Optional durable review recovery (development, default off)
+
+The service can explicitly receive a `journal` opened by `createReviewJournal`
+from `@librechat/api/coding`. Configure absolute Linux paths for `python`
+(stdlib Python), `sourceRoot` (the orchestrator `src` directory), and `path`
+(a dedicated private SQLite database). Await journal creation before accepting
+requests and call `journal.close()` during shutdown. This does not add a route,
+environment switch, production bootstrap, or automatic activation. Keep the
+existing service authentication, repository authorization, PR identity checks,
+bounded worker, cancellation, cleanup, result validation and finish-only backend.
+
+The adapter reuses the orchestrator `JobStore` through a single lock-owning,
+credential-free Python helper. It persists the external review UUID, owner,
+tenant, repository alias, exact base/head, PR binding and configured model in
+the admission transaction before dispatch. Successful validated outcomes are
+committed after worker settlement and cleanup, before delivery. Completed
+recovery still checks the current PR identity. An interrupted response has no
+findings or freshness claim and remains observable without a GitHub lookup.
+
+Restart never repeats model dispatch. Previously active jobs become explicit
+`interrupted` records; unresolved execution reservations block new admissions.
+A helper failure fences its TS service generation permanently, cancels local
+work and rejects pending operations without retrying mutations or reconnecting.
+Only successful settled execution supplies trusted stop evidence. Failures,
+timeouts, cancellation without successful settlement, and process loss do not
+prove external quiescence and remain quarantined. If cancellation wins the
+terminal commit after successful worker settlement, persist cancelled, withhold
+findings, and release the reservation using that settlement evidence.
+
+Cancellation before admission persists a tombstone without taking an execution
+slot. No UUID may be replayed, including after finding expiry. Result payloads
+expire after 600 seconds (on access/admission and a 30-second maintenance sweep);
+identity tombstones remain. Admission is bounded to 64 retained result payloads
+and 1,024 lifetime records, failing closed at capacity. This milestone includes
+no deletion/reset, automatic reconciliation or reservation-release endpoint.
+Do not remove the journal to clear a quarantine: that loses no-replay evidence.
+
+Process crashes can leave orphaned execution or scratch directories. This
+milestone deliberately does not infer their termination or automate crash
+cleanup; trusted reconciliation and retention/tombstone lifecycle policy remain
+follow-up work before activation. Use a dedicated database, not the general job
+store database. The helper imports only stdlib persistence code and receives no
+provider credentials, executor access or publication capability.
+
+Offline tests use real SQLite/helper processes, fake workers/provider outputs
+and empty auth directories. They cover service/helper loss, both commit-before-
+acknowledgement windows, owner/tenant/PR/model mismatch, orphaned execution,
+precancellation, cancellation racing completion, expiry with no replay, lock
+contention and subsequent admission after trusted settlement. No live model or
+GitHub publication is part of those fixtures.
+
+## Live-worker diagnostic and reconciliation follow-up (development only)
+
+The separate review worker now supports an **optional operator-owned** `onDiagnostic`
+callback. The application transport passes its validated review UUID into the
+worker, allowing callback events to be correlated with the durable admission.
+Events contain only fixed stages (`evidence_validated`, `provider_ready`,
+`conversation_started`, `conversation_finished`, `result_validated`,
+`schema_validated`) or child-exit fields (exit code, termination signal,
+stdout/stderr byte counts, fixed outcome classification). No child stderr,
+source code, model response, credentials, paths or arbitrary error messages
+are forwarded. The Python child emits stage labels on a private fd3 pipe;
+unknown labels and excess diagnostics are ignored. Listener exceptions cannot
+change a review outcome or release a reservation. Operators must explicitly
+configure and secure a suitable log sink; there is no default recording of
+these events. A stage label is a local progress observation, **not** proof
+that a provider received or finished a request.
+
+**The current durable safety policy is intentionally unchanged.**
+A missing/failed child, timeout, aborted response, supervisor restart or
+empty scratch directory cannot establish that an external execution has
+stopped. These cases must remain `interrupted` with an unresolved reservation.
+This change adds no approval rearming, journal deletion/reset, automatic retry,
+runtime activation, GitHub publication, or reconciliation endpoint.
+
+Before implementing a trusted reconciliation mutation, specify and test
+an authenticated supervisor attestation covering the exact review UUID,
+generation, owned process/process group, child closure, prevention of delayed
+dispatch, and any provider-side execution uncertainty. A local process
+exit alone is insufficient for provider-side quiescence. Keep the
+quarantined record visible and deny new dispatch if evidence is incomplete.
+A separate reviewed design and explicit operator approval are required before
+introducing any reservation-release operation.
+
+Run offline Python and API worker/restart regressions against this development
+branch before deployment. The historical interrupted live review must not
+be replayed; retain its SQLite database and consumed pilot approval marker.
+
+### Explicit private diagnostic recording (development only)
+
+The createReviewDiagnosticLog factory is exported from @librechat/api/coding.
+It does nothing until an operator explicitly constructs it and supplies its
+onDiagnostic callback to the worker configuration. This change installs no settings,
+log directory, listener, service bootstrap, or environment activation switch.
+
+Example composition, with operator-selected paths and existing service config:
+
+~~~ts
+const log = await createReviewDiagnosticLog({
+  directory: operatorSelectedEmptyPrivateDirectory,
+  protectedRoots: [
+    ...workerConfig.repositories.values(),
+    workerConfig.authRoot,
+    workerConfig.scratchRoot,
+    journalDirectory,
+  ],
+  maxBytes: 1048576,
+  maxPendingRecords: 64,
+});
+const handler = createReviewService({
+  ...serviceConfig,
+  worker: { ...workerConfig, onDiagnostic: log.onDiagnostic },
+});
+// Only during separately managed operator shutdown, after stopping admission:
+// await log.close();
+~~~
+
+All protected roots must already exist and be absolute. The operator must list
+every repository, credential, scratch and journal root, including any additional
+runtime-state directories. The sink rejects overlap in either direction.
+The directory must already exist, be empty, be owned by the process UID, and have
+mode 0700. Symlink components and Git checkout/worktree ancestry are rejected.
+The fixed file review-diagnostics.jsonl is exclusively created with mode 0600,
+O_NOFOLLOW and O_EXCL; existing files, links and nonregular entries are not opened.
+Concurrent constructors cannot share a log. No chmod, truncation, append-on-restart,
+rotation, automatic deletion, or retention cleanup is performed.
+
+The operator owns storage, access and retention. Keep these files on private local
+storage outside shared/synced folders. UUIDs and timestamps remain operational
+metadata, even though source and secrets are excluded. Checks assume a trusted
+operator and stable filesystem ancestry, not hostile concurrent path replacement
+or malicious code running under the same UID.
+
+Records are reconstructed from fixed scalar fields, never serialized from the
+input object. Schema version, UTC timestamp, sequence, UUID-or-null, allowlisted
+stage/classification, exit code/signal and capped byte counters are permitted.
+Unknown fields are omitted; invalid events are dropped; invalid UUIDs become null.
+Counters saturate at the worker stream budgets (128000/64000), not exact overflow
+sizes. Records cannot exceed 1024 bytes. No raw errors, stdout, stderr, findings,
+source, provider replies, user/tenant identities, paths or credentials are stored.
+The worker also sanitizes direct-caller IDs before invoking any observer.
+
+A child_exit classification of success means only that the child exited zero.
+It precedes response validation and cleanup and is not successful review
+settlement. Even schema_validated precedes cleanup and durable commit.
+Every stage is an observation, never provider completion or trusted stop evidence.
+No diagnostic event authorizes reservation release, reconciliation, retry,
+approval rearming, or replay.
+
+Writes are serialized asynchronously, with at most 64 pending records by default
+(configurable 1–256) and a lifetime file budget of 1 MiB by default (1024 bytes
+through 16 MiB). Queue pressure drops events; capacity stops further recording.
+Write failure stops recording without retry or fallback logging. The health()
+method exposes only fixed state and counters; it is not an HTTP endpoint.
+Review execution never awaits writes or close. The close() method is idempotent
+and drains accepted writes; a stalled filesystem can stall this operator shutdown
+await, but cannot grow the queue without bound or block review execution.
+Process termination may lose queued records or leave a final partial line:
+this is best-effort diagnostics, not a durable audit journal. Retain the file and
+choose a fresh private directory for a later explicitly authorized logging session.
+
+Offline regression fixtures use disposable directories and SQLite databases,
+synthetic child scripts and fake SDK output. Restart fixtures exercise logging
+during quarantine, no-replay and crash recovery, including closed/capacity sinks.
+No existing review database, approval marker, running service or provider account
+is needed. The historical interrupted review remains untouched.
+
+#### Private sink offline validation — 15 October 2026 (Sydney)
+
+Implemented from add6ffcb0561361353b9e779c78b598052dc5b08 in the separate
+pr234-private-diagnostics worktree on development/pr234-private-diagnostics.
+
+- Established guarded Python offline runner: 395 passed.
+- Four newly added mocked fd3 Python tests: 4 passed separately.
+- All six review Jest suites: 183 passed.
+- Full guarded offline contracts/restart runner: 33 passed, including three new
+  logging/quarantine/no-replay scenarios.
+- Strict targeted TypeScript (sink, worker and their tests), changed-file ESLint,
+  coding export JavaScript/declaration build, and git diff --check: passed.
+- Data-provider JavaScript/types and data-schemas builds: passed.
+- Full API build emitted JavaScript but failed declaration generation at the
+  unchanged stream/jobStoreCapabilities.ts:11 with TS9010 (missing explicit
+  exported variable annotation under isolatedDeclarations). No unrelated stream
+  fix was included. The targeted coding export declaration build passed.
+
+Validation reused installed Node v24.16.0, TypeScript/Jest and temporary build
+tooling through links in this worktree only; no packages were downloaded and no
+shared dependency, manifest, lockfile or active-service configuration changed.
+The existing winston and rotation plugin were resolved from the same installed
+tooling tree to avoid duplicate logger instances. Generated build outputs are
+local validation artifacts, not activation.
+
+The original acceptance worktree stayed clean at the pinned commit. The original
+interrupted review 601ea173-850c-482a-bc8d-8ed05ac8aabf, its SQLite reservation,
+consumed approval marker and running review services were not opened or changed.
+No external model review, retry, quarantine clearing, merge, deployment, NAS or
+production operation was performed. Tests restarted only their own disposable
+synthetic service/helper processes.
+
+#### Rebase onto the upstream Python P2 fix
+
+The private logging branch was rebased onto PR #234 commit
+4cf2f08fa605c2a02f991fdf8c39dad5f90b60db. The former local Python correction
+9ae3756dff93524ccd6a1c3bf8919475a931e267 was dropped as superseded.
+The upstream backend, CLI and their success/failure regression tests are retained
+byte-for-byte; the alternate local callback helper and duplicate tests are not
+part of this feature diff. The logging-specific fd3 test now asserts that unknown
+labels are silently dropped, matching the upstream outcome-neutral writer.
+
+The diff against PR #234 is limited to the explicit private sink, its public
+exports, worker correlation-ID redaction, offline logging/worker/restart tests
+and this operator documentation. It adds no runtime activation or recovery
+mutation. The original interrupted review, journal/quarantine, consumed approval,
+running services and original acceptance worktree remain outside this work.
+
+The earlier TS9010 limitation was reproduced independently on an unchanged
+add6ffcb baseline snapshot with the same Node 24.16.0 / tsdown 0.22.2 / rolldown
+1.1.5 tooling: full API declaration generation exited 1 at
+stream/jobStoreCapabilities.ts:11:14. That file and both build configurations
+were byte-identical to the baseline Git objects. No stream fix is included here.
+
+Rebased acceptance on 15 October 2026 (Sydney):
+54 affected Python review tests passed under the established isolated-state,
+loopback-only guard; all 183 tests in the six review Jest suites passed; all 33
+full offline contract/restart scenarios passed. Strict targeted TypeScript,
+changed-file ESLint, coding-export JavaScript/declarations and git diff --check
+passed. The private logging implementation and TypeScript/restart regressions
+were verified identical to cb89eadb; upstream Python implementation and P2 tests
+were verified identical to 4cf2f08fa. Only the private fd3 unknown-label assertion
+was adapted. No model or live review service participated in these checks.

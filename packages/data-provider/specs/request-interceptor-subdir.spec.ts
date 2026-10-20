@@ -18,9 +18,8 @@ beforeAll(async () => {
   baseElement.setAttribute('href', '/chat/');
   document.head.appendChild(baseElement);
 
-  const proc = process as typeof process & { browser?: boolean };
-  originalProcessBrowser = proc.browser;
-  proc.browser = true;
+  originalProcessBrowser = process.browser;
+  process.browser = true;
 
   await import('../src/request');
 });
@@ -34,11 +33,12 @@ afterAll(() => {
   axios.defaults.adapter = originalAdapter;
   document.head.removeChild(baseElement);
 
-  const proc = process as typeof process & { browser?: boolean };
   if (originalProcessBrowser === undefined) {
-    delete proc.browser;
+    if (!Reflect.deleteProperty(process, 'browser')) {
+      throw new TypeError('Cannot delete process.browser');
+    }
   } else {
-    proc.browser = originalProcessBrowser;
+    process.browser = originalProcessBrowser;
   }
 });
 

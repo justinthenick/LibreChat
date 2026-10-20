@@ -1,1 +1,1 @@
-export { useReviewActions } from './queries';
+export { useReviewActions, useReviewConfigQuery } from './queries';

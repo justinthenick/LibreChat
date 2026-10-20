@@ -94,6 +94,28 @@ describe('offline review transport composed with the real worker', () => {
     return createReviewClient({ enabled: true, url, token, model, send: service });
   }
 
+  it('uses one UUID identity for mixed-case run, status and cancellation', async () => {
+    const service = createReviewService(config);
+    const review = client(service);
+    const id = '550e8400-e29b-41d4-a716-446655440000';
+    await expect(review.run(request, principal, undefined, id.toUpperCase())).resolves.toEqual(
+      result,
+    );
+    await expect(review.status(id.toUpperCase(), request, principal)).resolves.toMatchObject({
+      id,
+      state: 'completed',
+      result,
+    });
+    await expect(review.run(request, principal, undefined, id)).rejects.toMatchObject({
+      code: 'busy',
+    });
+    const cancelled = '550e8400-e29b-41d4-a716-446655440001';
+    await review.cancel(cancelled.toUpperCase(), principal);
+    await expect(review.run(request, principal, undefined, cancelled)).rejects.toMatchObject({
+      code: 'cancelled',
+    });
+  });
+
   it('round trips through authentication, authorization, OS limits and exact identity', async () => {
     const authorize = jest.fn(config.worker.authorize);
     const service = createReviewService({ ...config, worker: { ...config.worker, authorize } });
