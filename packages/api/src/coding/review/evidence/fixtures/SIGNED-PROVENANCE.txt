@@ -4,7 +4,7 @@ signed-profile.json is an unchanged copy of the independent producer's fixtures.
 SHA256: 855860970e67db44582ba342f552c48554932437a1ffe0e95f184ed15590dd6e
 Frozen specification SHA256: 96c7e775625b04565f1009227c90ffc62078d90f75922c55e77423520e093cf8
 
-Producer: separately assigned signed_fixture_producer task, implementing serialization and framing from the frozen specification without reading or importing the verifier or its test helpers. It produced two complete bundles: one and two records per guest/host producer, six signatures in total. Every frame, detached signature, artifact, caller context and expected result is fixed in the JSON. Consumer tests only decode bytes; they do not reserialize or regenerate signatures.
+Producer: an independently implemented offline generator that derived serialization and framing from the frozen specification without reading or importing the verifier or its test helpers. It produced two complete bundles: one and two records per guest/host producer, six signatures in total. Every frame, detached signature, artifact, caller context and expected result is fixed in the JSON. Consumer tests only decode bytes; they do not reserialize or regenerate signatures. The generator source hash is recorded below.
 
 Public identities: RFC 8032 section 7.1 tests 1 and 2, https://www.rfc-editor.org/rfc/rfc8032.txt . Retrieved RFC text SHA256: ed63657ff389301282b169b0abde9b5dd2c7e4d524fdfa5da6ff3094fc93c4c3. Under a separate explicit user grant, the producer imported the already-public test seeds ephemerally and signed only these synthetic frames. No new keypairs were generated. No seed, private-key encoding or credential is included here. These are newly produced profile signatures, not RFC signatures over the new frame.
 
