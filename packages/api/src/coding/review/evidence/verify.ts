@@ -105,7 +105,9 @@ const payloadSchema = z
     limitationCodes: z.tuple([z.literal('NO_RUNTIME_OBSERVATION'), z.literal('SYNTHETIC_ONLY')]),
     artifacts: z
       .array(
-        z.object({ name: text, bytes: z.number().int().min(1).max(65536), sha256: digest }).strict(),
+        z
+          .object({ name: text, bytes: z.number().int().min(1).max(65536), sha256: digest })
+          .strict(),
       )
       .min(1)
       .max(4),
@@ -254,7 +256,7 @@ export function verifyOfflineBundle(
     const snapshot = {
       frame: Buffer.from(envelope.frame),
       signature: Buffer.from(envelope.signature),
-      artifacts: envelope.artifacts.map((bytes) => Buffer.from(bytes)),
+      artifacts: envelope.artifacts.map((bytes: Uint8Array) => Buffer.from(bytes)),
     };
     const payload = parseFrame(snapshot.frame);
     if (!payload) return verdict(false, false, false, ['frame_or_schema']);

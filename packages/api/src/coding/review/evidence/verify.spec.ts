@@ -138,6 +138,8 @@ describe('real primitive verification of independent public RFC8032 vectors', ()
     ).toBe(true);
   });
   it('records the actual primitive runtime without claiming acceptance-set coverage', () => {
+    expect(process.versions.node).toBe('24.16.0');
+    expect(process.versions.openssl).toBe('3.5.6');
     console.info(
       `S4 fixture runtime Node=${process.versions.node} OpenSSL=${process.versions.openssl}`,
     );
@@ -237,7 +239,7 @@ describe('fabricated unsigned profile controls, never authenticated acceptance',
     'non-ascii',
     'oversize',
   ])('rejects noncanonical frame: %s', (kind) => {
-    let bytes = Buffer.from(envelope(0).frame);
+    let bytes: Buffer = Buffer.from(envelope(0).frame);
     const raw = canonical(payload(0));
     if (kind === 'domain') bytes[0] ^= 1;
     const offset = Buffer.byteLength('LibreChat/Supervisor/observation/S4-OFFLINE-1\0');
@@ -267,13 +269,19 @@ describe('fabricated unsigned profile controls, never authenticated acceptance',
       ...envelope(0),
       artifacts: Array.from({ length: 4 }, () => Buffer.alloc(65536)),
     };
-    const result = verifyOfflineBundle(Array.from({ length: 5 }, () => item), context);
+    const result = verifyOfflineBundle(
+      Array.from({ length: 5 }, () => item),
+      context,
+    );
     expect(result.reasons).toEqual(['aggregate_limit']);
   });
   it('requires exactly both configured producers and bounds bundle count', () => {
     expect(check(envelope(0), envelope(0)).bundleComplete).toBe(false);
     expect(verifyOfflineBundle([], context).bundleComplete).toBe(false);
-    const result = verifyOfflineBundle(Array.from({ length: 17 }, () => envelope(0)), context);
+    const result = verifyOfflineBundle(
+      Array.from({ length: 17 }, () => envelope(0)),
+      context,
+    );
     expect(result.reasons).toEqual(['context_or_bundle_limit']);
   });
   it('refuses arbitrary key enrollment even from the context', () => {
