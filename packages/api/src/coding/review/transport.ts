@@ -11,10 +11,11 @@ import type {
   ReviewFailure,
   CodeReviewWorker,
 } from './worker';
+import type { ReviewExecutionMode } from './execution';
 import type { ReviewJournal } from './journal';
-import { createCodeReviewWorker, ReviewWorkerError } from './worker';
 import { reviewRequestSchema, reviewResultSchema } from './schema';
-
+import { selectReviewExecutionBackend } from './execution';
+import { ReviewWorkerError } from './worker';
 import { reviewRunIdSchema } from './identity';
 
 const REQUEST_BYTES = 4096;
@@ -122,6 +123,8 @@ interface ReviewTransportConfig {
 }
 
 export interface ReviewServiceConfig extends ReviewTransportConfig {
+  /** Trusted operator selection; Supervisor remains unavailable. */
+  backend?: ReviewExecutionMode;
   worker: ReviewWorkerConfig;
   /** Explicitly opened private durable store; no fallback if it fails. */
   journal?: ReviewJournal;
@@ -248,9 +251,13 @@ export function createReviewService(
   if (config.enabled !== true) {
     return async () => failure(new ReviewWorkerError('configuration'));
   }
+  const createExecution = selectReviewExecutionBackend(config.backend);
+  if (!createExecution) {
+    return async () => failure(new ReviewWorkerError('configuration'));
+  }
   const url = validateTransport(config);
   const credential = digest(`Bearer ${config.token}`);
-  const worker = createCodeReviewWorker(config.worker);
+  const worker = createExecution(config.worker);
   const journal = config.journal;
   let active = false;
   interface ReviewRun {
