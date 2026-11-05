@@ -70,10 +70,16 @@ it.each([0, 1])('verifies and atomically archives fixed bundle %i across TS/Pyth
       'quarantine_clearance',
       'result_publication_authority',
     ]) {
-      expect(() => parseFixtureReceipt(protocolJson({ ...receipt, [field]: true }), request)).toThrow();
+      expect(() =>
+        parseFixtureReceipt(protocolJson({ ...receipt, [field]: true }), request),
+      ).toThrow();
     }
-    expect(() => parseFixtureReceipt(protocolJson({ ...receipt, class: 'runtime' }), request)).toThrow();
-    expect(() => parseFixtureReceipt(protocolJson({ ...receipt, verdict: true }), request)).toThrow();
+    expect(() =>
+      parseFixtureReceipt(protocolJson({ ...receipt, class: 'runtime' }), request),
+    ).toThrow();
+    expect(() =>
+      parseFixtureReceipt(protocolJson({ ...receipt, verdict: true }), request),
+    ).toThrow();
     expect(() => parseFixtureReceipt(protocolJson(receipt) + '\n', request)).toThrow();
     expect(() => parseFixtureReceipt(protocolJson(receipt), request + '\n')).toThrow();
     expect(() =>

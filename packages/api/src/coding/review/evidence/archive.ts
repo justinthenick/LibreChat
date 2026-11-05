@@ -113,7 +113,7 @@ export function fixtureArchiveRequest(
   });
 }
 
-export interface SyntheticArchiveReceipt {
+export type SyntheticArchiveReceipt = {
   version: 1;
   kind: 'synthetic_bundle_archived';
   class: 'S6_FIXED_SYNTHETIC_ARCHIVE';
@@ -130,7 +130,7 @@ export interface SyntheticArchiveReceipt {
   reservation_released: false;
   quarantine_clearance: false;
   result_publication_authority: false;
-}
+};
 
 /** Parse a historical archive receipt against its original request, never current authority. */
 export function parseFixtureReceipt(raw: string, request: string): SyntheticArchiveReceipt {
@@ -138,15 +138,22 @@ export function parseFixtureReceipt(raw: string, request: string): SyntheticArch
     throw new Error('Receipt limit');
   }
   const value = JSON.parse(raw) as SyntheticArchiveReceipt;
-  const original = JSON.parse(request) as Record<string, unknown>;
+  const original = JSON.parse(request) as {
+    namespace: string;
+    operation_id: string;
+    owner_epoch: number;
+    expected_version: number;
+    bundle_index: number;
+    bundle_digest: string;
+  };
   if (
     request !==
     fixtureArchiveRequest(
-      original.namespace as string,
-      original.operation_id as string,
-      original.owner_epoch as number,
-      original.expected_version as number,
-      original.bundle_index as number,
+      original.namespace,
+      original.operation_id,
+      original.owner_epoch,
+      original.expected_version,
+      original.bundle_index,
     )
   ) {
     throw new Error('Invalid original fixture request');
