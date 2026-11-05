@@ -1,7 +1,7 @@
 """Private, durable job state; no execution or transport capabilities."""
 from __future__ import annotations
 
-from contextlib import closing, contextmanager
+from contextlib import contextmanager
 from dataclasses import dataclass
 import fcntl
 import json
@@ -193,13 +193,12 @@ class JobStore:
             else:
                 # The existing private review helper imports job_store directly.
                 from integration import IntegrationRecords, check_mode, initialize
-            with closing(sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True)) as preflight:
-                preflight.row_factory = sqlite3.Row
-                check_mode(preflight, integration_namespace)
             self._connection = sqlite3.connect(
                 str(self.path), timeout=5, isolation_level=None, check_same_thread=False,
             )
             self._connection.row_factory = sqlite3.Row
+            # Reading may first recover a hot journal to committed state. Validate
+            # that recovered state before any application DDL, DML or reconciliation.
             check_mode(self._connection, integration_namespace)
             if integration_namespace is not None:
                 self._connection.execute("PRAGMA foreign_keys=ON")
