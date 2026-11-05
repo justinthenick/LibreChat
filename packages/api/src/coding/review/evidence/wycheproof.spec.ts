@@ -77,7 +77,7 @@ describe('independent public Wycheproof Ed25519 corpus, not signed S4 profile ac
     if (test.result === 'invalid') expect(outcome).not.toBe('verified');
   });
 
-  afterAll(() => {
+  it('accounts for every case and reports acceptable outcomes separately', () => {
     console.info(`Wycheproof observations ${JSON.stringify(observations)}`);
     expect(observations).toHaveLength(210);
     for (const expected of ['valid', 'invalid', 'acceptable']) {
