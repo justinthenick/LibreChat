@@ -10,7 +10,9 @@ describe('internal review execution selection', () => {
   });
 
   it.each(
-    ['supervisor', '', 'LOCAL', 'unknown', null, false, ['local'], {}].map((backend) => ({ backend })),
+    ['supervisor', '', 'LOCAL', 'unknown', null, false, ['local'], {}].map((backend) => ({
+      backend,
+    })),
   )(
     'refuses unsupported runtime selection $backend before configuration access',
     async ({ backend }) => {

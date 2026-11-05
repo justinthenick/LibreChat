@@ -15,8 +15,8 @@ import type { ReviewExecutionMode } from './execution';
 import type { ReviewJournal } from './journal';
 import { reviewRequestSchema, reviewResultSchema } from './schema';
 import { selectReviewExecutionBackend } from './execution';
-import { ReviewWorkerError } from './worker';
 import { reviewRunIdSchema } from './identity';
+import { ReviewWorkerError } from './worker';
 
 const REQUEST_BYTES = 4096;
 const RESPONSE_BYTES = 128_000;
