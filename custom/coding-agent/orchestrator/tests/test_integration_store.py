@@ -4,6 +4,8 @@ from pathlib import Path
 import hashlib
 import os
 import sqlite3
+import subprocess
+import sys
 import tempfile
 import unittest
 from uuid import uuid4
@@ -66,6 +68,36 @@ class IntegrationStoreTests(unittest.TestCase):
         self.assertEqual(self.store._connection.execute("PRAGMA foreign_keys").fetchone()[0], 1)
         self.assertEqual(self.rows("jobs"), [])
         self.assertEqual(self.rows("reservations"), [])
+
+    def test_standalone_helper_import_mode_preserves_types_and_both_stores(self):
+        source = Path(__file__).resolve().parents[1] / "src" / "coding_orchestrator"
+        script = """
+import sys
+from pathlib import Path
+from uuid import uuid4
+sys.path.insert(0, sys.argv[1])
+from job_store import JobStore, StoreError
+from integration import IntegrationMapping, StoreError as IntegrationStoreError
+assert StoreError is IntegrationStoreError
+root = Path(sys.argv[2])
+with JobStore(root / 'legacy' / 'jobs.sqlite') as store:
+    assert store.integration is None
+with JobStore(root / 'integrated' / 'jobs.sqlite',
+              integration_namespace=sys.argv[3]) as store:
+    assert store.integration.snapshot()['owner_epoch'] == 1
+    mapping = IntegrationMapping(str(uuid4()), str(uuid4()), 1, 'fixture', '',
+                                 'repository', 'a' * 40, 'b' * 40, 'profile', 'model')
+    receipt = store.integration.admit(mapping, str(uuid4()),
+                                      owner_epoch=1, expected_version=0)
+    assert receipt['live_authority'] is False
+    assert store.integration.query_operation(receipt['operation_id']) == receipt
+"""
+        result = subprocess.run(
+            [sys.executable, "-I", "-B", "-c", script, str(source),
+             self.directory.name, str(uuid4())],
+            capture_output=True, text=True, timeout=20, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_admission_groups_mapping_reservation_receipt_and_embargo(self):
         operation = str(uuid4())

@@ -188,7 +188,11 @@ class JobStore:
                 sidecar = self.path.with_name(self.path.name + suffix)
                 if os.path.lexists(sidecar):
                     os.close(_private_file(sidecar))
-            from .integration import IntegrationRecords, check_mode, initialize
+            if __package__:
+                from .integration import IntegrationRecords, check_mode, initialize
+            else:
+                # The existing private review helper imports job_store directly.
+                from integration import IntegrationRecords, check_mode, initialize
             with closing(sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True)) as preflight:
                 preflight.row_factory = sqlite3.Row
                 check_mode(preflight, integration_namespace)

@@ -13,9 +13,14 @@ import re
 import stat
 from uuid import UUID, uuid4
 
-from .job_store import (
-    IdempotencyConflict, JobNotFound, StoreBusy, StoreError, _counter, _identifier,
-)
+if __package__:
+    from .job_store import (
+        IdempotencyConflict, JobNotFound, StoreBusy, StoreError, _counter, _identifier,
+    )
+else:
+    from job_store import (
+        IdempotencyConflict, JobNotFound, StoreBusy, StoreError, _counter, _identifier,
+    )
 
 MAX_BLOB_BYTES = 128 * 1024
 MAX_COUNTER = (1 << 63) - 1
