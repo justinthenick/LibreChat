@@ -126,22 +126,27 @@ const observation = {
       return bytes.length > 0 && bytes.length <= 65536 && bytes.toString('base64') === value;
     }),
 };
-export const integrationCommandSchema: z.ZodType<IntegrationCommand> = z.discriminatedUnion('kind', [
-  z.object({ ...common, kind: z.literal('snapshot') }).strict(),
-  z.object({ ...common, kind: z.literal('query'), ...target }).strict(),
-  z.object({ ...common, kind: z.literal('admit'), ...target, ...fence }).strict(),
-  z.object({ ...common, kind: z.literal('cancel'), ...target, ...fence }).strict(),
-  z.object({ ...common, kind: z.literal('observe'), ...target, ...fence, ...observation }).strict(),
-  z
-    .object({
-      ...common,
-      kind: z.literal('finish'),
-      mapping: integrationMappingSchema,
-      ...fence,
-      verification_receipt_id: protocolId,
-    })
-    .strict(),
-]);
+export const integrationCommandSchema: z.ZodType<IntegrationCommand> = z.discriminatedUnion(
+  'kind',
+  [
+    z.object({ ...common, kind: z.literal('snapshot') }).strict(),
+    z.object({ ...common, kind: z.literal('query'), ...target }).strict(),
+    z.object({ ...common, kind: z.literal('admit'), ...target, ...fence }).strict(),
+    z.object({ ...common, kind: z.literal('cancel'), ...target, ...fence }).strict(),
+    z
+      .object({ ...common, kind: z.literal('observe'), ...target, ...fence, ...observation })
+      .strict(),
+    z
+      .object({
+        ...common,
+        kind: z.literal('finish'),
+        mapping: integrationMappingSchema,
+        ...fence,
+        verification_receipt_id: protocolId,
+      })
+      .strict(),
+  ],
+);
 const receipt = z
   .object({
     operation_id: protocolId,
