@@ -4,6 +4,11 @@ import { spawn } from 'node:child_process';
 import { realpath } from 'node:fs/promises';
 import type { CodeReviewRequest, CodeReviewResult } from 'librechat-data-provider';
 import type { ReviewPrincipal } from './worker';
+import type { IntegrationCommand, IntegrationReply } from './protocol';
+import {
+  bindIntegrationReply, integrationCommandSchema, integrationReplySchema,
+  protocolDigest, protocolId, protocolJson,
+} from './protocol';
 import { reviewRequestSchema, reviewResultSchema } from './schema';
 import { reviewRunIdSchema } from './identity';
 import { ReviewWorkerError } from './worker';
@@ -58,6 +63,7 @@ const replySchema = z.discriminatedUnion('ok', [
       ok: z.literal(true),
       created: z.boolean().optional(),
       record: recordSchema.nullable().optional(),
+      integration: integrationReplySchema.optional(),
     })
     .strict(),
   z
@@ -76,10 +82,15 @@ type Command = {
   payload?: { request: CodeReviewRequest; model: string };
   result?: CodeReviewResult;
 };
+type IntegrationWire = {
+  operation: 'integration_v1';
+  payload: IntegrationCommand;
+  payloadDigest: string;
+};
 const MAX_BYTES = 132096;
 
 /** A helper failure permanently fences this journal; mutation commands are never retried. */
-export async function createReviewJournal(config: ReviewJournalConfig): Promise<ReviewJournal> {
+async function createChannel(config: ReviewJournalConfig, namespace?: string) {
   if (
     process.platform !== 'linux' ||
     ![config.python, config.sourceRoot, config.path].every(path.isAbsolute)
@@ -89,7 +100,8 @@ export async function createReviewJournal(config: ReviewJournalConfig): Promise<
   await realpath(config.python);
   const child = spawn(
     config.python,
-    ['-B', '-S', '-s', path.join(sourceRoot, 'coding_orchestrator/review_journal.py'), config.path],
+    ['-B', '-S', '-s', path.join(sourceRoot, 'coding_orchestrator/review_journal.py'), config.path,
+      ...(namespace ? ['--integration-v1', namespace] : [])],
     {
       cwd: sourceRoot,
       shell: false,
@@ -110,6 +122,7 @@ export async function createReviewJournal(config: ReviewJournalConfig): Promise<
       resolve: (value: Reply) => void;
       reject: (error: Error) => void;
       timer: ReturnType<typeof setTimeout>;
+      command: Command | IntegrationWire;
     }
   >();
   let sequence = 0;
@@ -158,9 +171,13 @@ export async function createReviewJournal(config: ReviewJournalConfig): Promise<
       try {
         const raw: unknown = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(line));
         if (!ready) {
-          z.object({ ready: z.literal(true) })
-            .strict()
-            .parse(raw);
+          if (namespace) {
+            const greeting = z.object({ ready: z.literal(true), version: z.literal(1),
+              backend: z.literal('supervisor'), namespace: z.literal(namespace) }).strict().parse(raw);
+            if (line.toString('utf8') !== protocolJson(greeting)) throw new Error('Noncanonical greeting');
+          } else {
+            z.object({ ready: z.literal(true) }).strict().parse(raw);
+          }
           ready = true;
           clearTimeout(startupTimer);
           readyResolve();
@@ -169,6 +186,15 @@ export async function createReviewJournal(config: ReviewJournalConfig): Promise<
         const reply = replySchema.parse(raw);
         const command = pending.get(reply.sequence);
         if (!command) throw new Error('Unexpected journal reply');
+        if (namespace) {
+          if (!reply.ok || !reply.integration || Object.keys(reply).length !== 3 ||
+              command.command.operation !== 'integration_v1') throw new Error('Wrong protocol reply');
+          if (line.toString('utf8') !== protocolJson({ sequence: reply.sequence, ok: true,
+            integration: reply.integration })) throw new Error('Noncanonical reply');
+          bindIntegrationReply(command.command.payload, reply.integration);
+        } else if (reply.ok && reply.integration) {
+          throw new Error('Wrong journal mode');
+        }
         clearTimeout(command.timer);
         pending.delete(reply.sequence);
         command.resolve(reply);
@@ -183,15 +209,21 @@ export async function createReviewJournal(config: ReviewJournalConfig): Promise<
   const assertReady = () => {
     if (!ready || controller.signal.aborted) throw new ReviewWorkerError('configuration');
   };
-  const send = async (command: Command) => {
+  const send = async (command: Command | IntegrationWire) => {
     assertReady();
     if (pending.size >= 64) throw new ReviewWorkerError('busy');
     const next = ++sequence;
-    const body = JSON.stringify({ ...command, sequence: next }) + '\n';
+    if (!Number.isSafeInteger(next)) {
+      fence();
+      throw new ReviewWorkerError('configuration');
+    }
+    const body = (command.operation === 'integration_v1'
+      ? protocolJson({ ...command, sequence: next })
+      : JSON.stringify({ ...command, sequence: next })) + '\n';
     if (Buffer.byteLength(body) > MAX_BYTES) throw new ReviewWorkerError('output_limit');
     const reply = await new Promise<Reply>((resolve, reject) => {
       const timer = setTimeout(fence, 10_000);
-      pending.set(next, { resolve, reject, timer });
+      pending.set(next, { resolve, reject, timer, command });
       child.stdin.write(body, (error) => {
         if (error) fence();
       });
@@ -200,8 +232,44 @@ export async function createReviewJournal(config: ReviewJournalConfig): Promise<
     if (!reply.ok) throw new ReviewWorkerError(reply.code);
     return reply;
   };
+  return { signal: controller.signal, assertReady, send, fence, async close() {
+    fence();
+    await exited;
+  } };
+}
+
+export interface IntegrationJournal {
+  readonly signal: AbortSignal;
+  assertReady(): void;
+  execute(command: IntegrationCommand): Promise<IntegrationReply['result']>;
+  close(): Promise<void>;
+}
+
+/** Private, unregistered storage channel. Loss after sending leaves the outcome unknown. */
+export async function createIntegrationJournal(
+  config: ReviewJournalConfig, namespace: string,
+): Promise<IntegrationJournal> {
+  if (!protocolId.safeParse(namespace).success) throw new ReviewWorkerError('configuration');
+  const channel = await createChannel(config, namespace);
+  return { signal: channel.signal, assertReady: channel.assertReady, close: channel.close,
+    async execute(command) {
+      const parsed = integrationCommandSchema.safeParse(command);
+      if (!parsed.success || parsed.data.namespace !== namespace) throw new ReviewWorkerError('invalid_request');
+      const reply = await channel.send({ operation: 'integration_v1', payload: parsed.data,
+        payloadDigest: protocolDigest(parsed.data) });
+      if (!reply.integration) {
+        channel.fence();
+        throw new ReviewWorkerError('configuration');
+      }
+      return reply.integration.result;
+    },
+  };
+}
+
+export async function createReviewJournal(config: ReviewJournalConfig): Promise<ReviewJournal> {
+  const { signal, assertReady, send, fence, close } = await createChannel(config);
   return {
-    signal: controller.signal,
+    signal,
     assertReady,
     async admit(id, request, principal, model) {
       const parsedId = reviewRunIdSchema.safeParse(id);
@@ -252,9 +320,6 @@ export async function createReviewJournal(config: ReviewJournalConfig): Promise<
       }
       return reply.record.state === 'completed';
     },
-    async close() {
-      fence();
-      await exited;
-    },
+    close,
   };
 }

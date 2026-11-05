@@ -9,6 +9,7 @@ import time
 from uuid import UUID
 
 from job_store import JobStore, JobNotFound, StoreBusy, StoreError, IdempotencyConflict, StopEvidence
+from integration_protocol import canonical, dispatch as integration_dispatch, _uuid
 
 MAX_BYTES = 132096
 MAX_RECORDS = 1024
@@ -43,6 +44,8 @@ def public_record(row):
 
 
 def dispatch(store, command):
+    if store.integration is not None or command.get('operation') == 'integration_v1':
+        raise StoreError('Wrong journal mode')
     if set(command) - {"sequence", "operation", "id", "principal", "payload", "result"}:
         raise ValueError("Invalid command")
     operation = command["operation"]
@@ -97,18 +100,24 @@ def dispatch(store, command):
     raise ValueError("Invalid operation")
 
 
-def emit(value):
-    raw = json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+def emit(value, integrated=False):
+    raw = canonical(value) if integrated else json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
     if len(raw.encode()) > MAX_BYTES:
         raise ValueError("Response too large")
     print(raw, flush=True)
 
 
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) not in (2, 4):
         return 1
     try:
-        with JobStore(sys.argv[1], validate_identity=validate_stored_identity) as store:
+        namespace = None
+        if len(sys.argv) == 4:
+            if sys.argv[2] != '--integration-v1':
+                return 1
+            namespace = _uuid(sys.argv[3])
+        with JobStore(sys.argv[1], validate_identity=validate_stored_identity,
+                      integration_namespace=namespace) as store:
             stopped = threading.Event()
             def expire():
                 while not stopped.wait(30):
@@ -120,10 +129,15 @@ def main():
                         import os
                         os._exit(1)
             thread = threading.Thread(target=expire, daemon=True)
-            thread.start()
+            if namespace is None:
+                thread.start()
             try:
-                store.discard_terminal_results(max(0, time.time()-RETENTION))
-                emit({"ready": True})
+                if namespace is None:
+                    store.discard_terminal_results(max(0, time.time()-RETENTION))
+                    emit({"ready": True})
+                else:
+                    emit(dict(ready=True, version=1, backend='supervisor', namespace=namespace), True)
+                last_sequence = 0
                 while True:
                     line = sys.stdin.buffer.readline(MAX_BYTES+1)
                     if not line:
@@ -134,6 +148,14 @@ def main():
                     sequence = command["sequence"]
                     if type(sequence) is not int or sequence < 1:
                         return 1
+                    if namespace is not None:
+                        if (sequence != last_sequence + 1
+                                or line != (canonical(command) + '\n').encode('ascii')):
+                            return 1
+                        value = integration_dispatch(store, command)
+                        emit({"sequence": sequence, "ok": True, **value}, True)
+                        last_sequence = sequence
+                        continue
                     try:
                         value = dispatch(store, command)
                         emit({"sequence": sequence, "ok": True, **value})
@@ -145,7 +167,8 @@ def main():
                         emit({"sequence": sequence, "ok": False, "code": "invalid_request"})
             finally:
                 stopped.set()
-                thread.join(timeout=1)
+                if thread.is_alive():
+                    thread.join(timeout=1)
     except (StoreError, ValueError, KeyError, TypeError, OSError):
         return 1
 
