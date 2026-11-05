@@ -161,8 +161,9 @@ class JobStore:
     """
 
     def __init__(self, path, clock=time.time, *, validate_identity=None,
-                 integration_namespace=None):
+                 integration_namespace=None, fixture_namespace=None):
         self.integration = None
+        self.fixtures = None
         self._mutex = threading.RLock()
         self._clock = clock
         self._connection = None
@@ -190,13 +191,24 @@ class JobStore:
                     os.close(_private_file(sidecar))
             if __package__:
                 from .integration import IntegrationRecords, check_mode, initialize
+                from .fixture_archive import check_fixture_mode, initialize_fixture, FixtureArchive
             else:
                 # The existing private review helper imports job_store directly.
                 from integration import IntegrationRecords, check_mode, initialize
+                from fixture_archive import check_fixture_mode, initialize_fixture, FixtureArchive
             self._connection = sqlite3.connect(
                 str(self.path), timeout=5, isolation_level=None, check_same_thread=False,
             )
             self._connection.row_factory = sqlite3.Row
+            fixture_mode = check_fixture_mode(
+                self._connection, fixture_namespace, integration_namespace)
+            if fixture_mode:
+                self._connection.execute("PRAGMA journal_mode=DELETE")
+                self._connection.execute("PRAGMA synchronous=FULL")
+                with self._transaction() as database:
+                    initialize_fixture(database, fixture_namespace)
+                self.fixtures = FixtureArchive(self)
+                return
             # Reading may first recover a hot journal to committed state. Validate
             # that recovered state before any application DDL, DML or reconciliation.
             check_mode(self._connection, integration_namespace)
@@ -250,7 +262,7 @@ class JobStore:
             raise
 
     def _legacy_only(self):
-        if self.integration is not None:
+        if self.integration is not None or self.fixtures is not None:
             raise StoreError("Legacy mutation is unavailable in an integration namespace")
 
     def _now(self):
@@ -496,3 +508,4 @@ class JobStore:
 
     def __exit__(self, *exc):
         self.close()
+
