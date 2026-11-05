@@ -1,7 +1,7 @@
 """Private, durable job state; no execution or transport capabilities."""
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from dataclasses import dataclass
 import fcntl
 import json
@@ -160,7 +160,9 @@ class JobStore:
     Opening after a restart interrupts active records; work is never replayed.
     """
 
-    def __init__(self, path, clock=time.time, *, validate_identity=None):
+    def __init__(self, path, clock=time.time, *, validate_identity=None,
+                 integration_namespace=None):
+        self.integration = None
         self._mutex = threading.RLock()
         self._clock = clock
         self._connection = None
@@ -186,10 +188,17 @@ class JobStore:
                 sidecar = self.path.with_name(self.path.name + suffix)
                 if os.path.lexists(sidecar):
                     os.close(_private_file(sidecar))
+            from .integration import IntegrationRecords, check_mode, initialize
+            with closing(sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True)) as preflight:
+                preflight.row_factory = sqlite3.Row
+                check_mode(preflight, integration_namespace)
             self._connection = sqlite3.connect(
                 str(self.path), timeout=5, isolation_level=None, check_same_thread=False,
             )
             self._connection.row_factory = sqlite3.Row
+            check_mode(self._connection, integration_namespace)
+            if integration_namespace is not None:
+                self._connection.execute("PRAGMA foreign_keys=ON")
             self._connection.execute("PRAGMA journal_mode=DELETE")
             self._connection.execute("PRAGMA synchronous=FULL")
             with self._transaction() as database:
@@ -212,6 +221,8 @@ class JobStore:
                 database.execute("""CREATE TABLE IF NOT EXISTS reservations (
                     job_id TEXT PRIMARY KEY, execution_id TEXT NOT NULL UNIQUE,
                     resolved_at REAL)""")
+                if integration_namespace is not None:
+                    initialize(database, integration_namespace)
                 if validate_identity is not None:
                     for row in database.execute("SELECT job_id, idempotency_key, generation_id FROM jobs"):
                         for value in row:
@@ -227,11 +238,17 @@ class JobStore:
                 database.execute("""UPDATE jobs SET state='interrupted',
                     error_code='restart_interrupted', updated_at=?
                     WHERE state IN ('queued','running','cancelling')""", (self._now(),))
+            if integration_namespace is not None:
+                self.integration = IntegrationRecords(self)
         except BaseException as exc:
             self.close()
             if isinstance(exc, (OSError, sqlite3.Error)):
                 raise StoreError("Unable to open private job store") from exc
             raise
+
+    def _legacy_only(self):
+        if self.integration is not None:
+            raise StoreError("Legacy mutation is unavailable in an integration namespace")
 
     def _now(self):
         return _number(self._clock(), "clock")
@@ -279,6 +296,7 @@ class JobStore:
     def admit(self, *, user_id, tenant_id, idempotency_key, fingerprint,
               generation_id, generation_epoch, deadline_at, metadata=None,
               job_id=None, request=None, max_records=None, max_results=None):
+        self._legacy_only()
         owner = self._owner(user_id, tenant_id)
         if job_id is not None:
             _identifier(job_id, "job_id")
@@ -348,6 +366,7 @@ class JobStore:
         A pre-admission tombstone reserves no execution slot. It is never
         promoted to a dispatch and survives reopening without quarantine.
         """
+        self._legacy_only()
         owner = self._owner(user_id, tenant_id)
         _identifier(job_id, "job_id")
         if _counter(max_records, "max_records", 1024) == 0:
@@ -372,6 +391,7 @@ class JobStore:
 
     def discard_terminal_results(self, before):
         """Expire result payloads without deleting identity or execution fences."""
+        self._legacy_only()
         before = _number(before, "before")
         with self._transaction() as database:
             database.execute("""UPDATE jobs SET result=NULL WHERE updated_at<=?
@@ -408,6 +428,7 @@ class JobStore:
 
     def resolve_execution(self, user_id, tenant_id, job_id, evidence):
         """Release only this terminal reservation; preserve its public history."""
+        self._legacy_only()
         with self._transaction() as database:
             return self._resolve(database, self._find(database, user_id, tenant_id, job_id), evidence)
 
@@ -420,6 +441,7 @@ class JobStore:
 
     def transition(self, user_id, tenant_id, job_id, expected_states, new_state, *,
                    error_code=None, result=None, request_count=None, stop_evidence=None):
+        self._legacy_only()
         if isinstance(expected_states, str):
             raise ValueError("Expected states must be a collection")
         expected_states = frozenset(expected_states)
@@ -444,6 +466,7 @@ class JobStore:
         return True
 
     def update_progress(self, user_id, tenant_id, job_id, *, result=None, request_count=None):
+        self._legacy_only()
         result_json = self._progress(result, request_count)
         with self._transaction() as database:
             row = self._find(database, user_id, tenant_id, job_id)
