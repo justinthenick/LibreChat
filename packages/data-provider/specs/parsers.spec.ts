@@ -185,7 +185,7 @@ describe('parseCompactConvo', () => {
       });
 
       expect(result).not.toBeNull();
-      expect(result?.['iconURL']).toBeUndefined();
+      expect(result).not.toHaveProperty('iconURL');
       expect(result?.model).toBe('gpt-4');
     });
 
@@ -203,7 +203,7 @@ describe('parseCompactConvo', () => {
       });
 
       expect(result).not.toBeNull();
-      expect(result?.['iconURL']).toBeUndefined();
+      expect(result).not.toHaveProperty('iconURL');
       expect(result?.agent_id).toBe('agent_123');
     });
 
@@ -221,7 +221,7 @@ describe('parseCompactConvo', () => {
       });
 
       expect(result).not.toBeNull();
-      expect(result?.['iconURL']).toBeUndefined();
+      expect(result).not.toHaveProperty('iconURL');
       expect(result?.model).toBe('claude-3-opus');
     });
 
@@ -239,7 +239,7 @@ describe('parseCompactConvo', () => {
       });
 
       expect(result).not.toBeNull();
-      expect(result?.['iconURL']).toBeUndefined();
+      expect(result).not.toHaveProperty('iconURL');
       expect(result?.model).toBe('gemini-pro');
     });
 
@@ -257,7 +257,7 @@ describe('parseCompactConvo', () => {
       });
 
       expect(result).not.toBeNull();
-      expect(result?.['iconURL']).toBeUndefined();
+      expect(result).not.toHaveProperty('iconURL');
       expect(result?.assistant_id).toBe('asst_123');
     });
 
@@ -278,7 +278,7 @@ describe('parseCompactConvo', () => {
       });
 
       expect(result).not.toBeNull();
-      expect(result?.['iconURL']).toBeUndefined();
+      expect(result).not.toHaveProperty('iconURL');
       expect(result?.model).toBe('gpt-4');
       expect(result?.temperature).toBe(0.7);
       expect(result?.top_p).toBe(0.9);
@@ -298,7 +298,7 @@ describe('parseCompactConvo', () => {
       });
 
       expect(result).not.toBeNull();
-      expect(result?.['iconURL']).toBeUndefined();
+      expect(result).not.toHaveProperty('iconURL');
       expect(result?.model).toBe('gpt-4');
     });
   });
@@ -551,7 +551,7 @@ describe('parseCompactConvo - defaultParamsEndpoint', () => {
     });
 
     expect(result).not.toBeNull();
-    expect(result?.['iconURL']).toBeUndefined();
+    expect(result).not.toHaveProperty('iconURL');
     expect(result?.maxOutputTokens).toBe(8192);
   });
 
@@ -571,7 +571,7 @@ describe('parseCompactConvo - defaultParamsEndpoint', () => {
 
     expect(result).not.toBeNull();
     expect(result?.promptCache).toBe(true);
-    expect(result?.['iconURL']).toBeUndefined();
+    expect(result).not.toHaveProperty('iconURL');
   });
 
   test('should fall back to endpointType when defaultParamsEndpoint is null', () => {

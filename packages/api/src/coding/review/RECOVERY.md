@@ -86,3 +86,16 @@ status conservatively only while running, below the 60/minute read limit. Show t
 findings and expiry, explicit Cancel, and unknown/expired state that never auto-starts
 another review. Clear recovery state on user/tenant changes. Navigation only detaches
 delivery. Add offline UI state/reconnect/identity tests before any registration or activation.
+
+## Canonical durable review IDs
+
+Review UUIDs are validated and lowercased before service map access and every
+journal command. Principal, tenant, immutable request, and execution proof
+identities retain their exact existing comparisons. The private helper also
+validates and normalizes IDs before any journal operation.
+
+On opening a review journal, noncanonical stored job, idempotency, generation,
+or reservation IDs fail closed inside the startup transaction, before restart
+transitions or reservation backfill. No automatic key migration, merge, replay,
+or quarantine release is performed. Such legacy data requires a separately
+approved recovery decision; changing letter case is not stop evidence.

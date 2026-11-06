@@ -160,7 +160,10 @@ class JobStore:
     Opening after a restart interrupts active records; work is never replayed.
     """
 
-    def __init__(self, path, clock=time.time):
+    def __init__(self, path, clock=time.time, *, validate_identity=None,
+                 integration_namespace=None, fixture_namespace=None):
+        self.integration = None
+        self.fixtures = None
         self._mutex = threading.RLock()
         self._clock = clock
         self._connection = None
@@ -186,10 +189,31 @@ class JobStore:
                 sidecar = self.path.with_name(self.path.name + suffix)
                 if os.path.lexists(sidecar):
                     os.close(_private_file(sidecar))
+            if __package__:
+                from .integration import IntegrationRecords, check_mode, initialize
+                from .fixture_archive import check_fixture_mode, initialize_fixture, FixtureArchive
+            else:
+                # The existing private review helper imports job_store directly.
+                from integration import IntegrationRecords, check_mode, initialize
+                from fixture_archive import check_fixture_mode, initialize_fixture, FixtureArchive
             self._connection = sqlite3.connect(
                 str(self.path), timeout=5, isolation_level=None, check_same_thread=False,
             )
             self._connection.row_factory = sqlite3.Row
+            fixture_mode = check_fixture_mode(
+                self._connection, fixture_namespace, integration_namespace)
+            if fixture_mode:
+                self._connection.execute("PRAGMA journal_mode=DELETE")
+                self._connection.execute("PRAGMA synchronous=FULL")
+                with self._transaction() as database:
+                    initialize_fixture(database, fixture_namespace)
+                self.fixtures = FixtureArchive(self)
+                return
+            # Reading may first recover a hot journal to committed state. Validate
+            # that recovered state before any application DDL, DML or reconciliation.
+            check_mode(self._connection, integration_namespace)
+            if integration_namespace is not None:
+                self._connection.execute("PRAGMA foreign_keys=ON")
             self._connection.execute("PRAGMA journal_mode=DELETE")
             self._connection.execute("PRAGMA synchronous=FULL")
             with self._transaction() as database:
@@ -201,26 +225,45 @@ class JobStore:
                         'completed','failed','cancelled','timed_out','interrupted')),
                     created_at REAL NOT NULL, updated_at REAL NOT NULL,
                     deadline_at REAL NOT NULL, metadata TEXT NOT NULL,
-                    result TEXT, error_code TEXT, request_count INTEGER NOT NULL DEFAULT 0,
+                    result TEXT, error_code TEXT, request_count INTEGER NOT NULL DEFAULT 0, request TEXT, cancel_requested INTEGER NOT NULL DEFAULT 0,
                     UNIQUE (user_id, tenant_id, idempotency_key))""")
+                if "cancel_requested" not in {row[1] for row in database.execute("PRAGMA table_info(jobs)")}:
+                    database.execute("ALTER TABLE jobs ADD COLUMN cancel_requested INTEGER NOT NULL DEFAULT 0")
+                if "request" not in {row[1] for row in database.execute("PRAGMA table_info(jobs)")}:
+                    database.execute("ALTER TABLE jobs ADD COLUMN request TEXT")
                 database.execute("""CREATE UNIQUE INDEX IF NOT EXISTS one_active_job
                     ON jobs ((1)) WHERE state IN ('queued','running','cancelling')""")
                 database.execute("""CREATE TABLE IF NOT EXISTS reservations (
                     job_id TEXT PRIMARY KEY, execution_id TEXT NOT NULL UNIQUE,
                     resolved_at REAL)""")
+                if integration_namespace is not None:
+                    initialize(database, integration_namespace)
+                if validate_identity is not None:
+                    for row in database.execute("SELECT job_id, idempotency_key, generation_id FROM jobs"):
+                        for value in row:
+                            validate_identity(value)
+                    for row in database.execute("SELECT job_id FROM reservations"):
+                        validate_identity(row[0])
                 # Legacy history has no durable stop proof. Keep resolved rows
                 # as tombstones so reopening cannot resurrect their quarantine.
                 database.execute("""INSERT INTO reservations (job_id, execution_id)
                     SELECT job_id, lower(hex(randomblob(16))) FROM jobs
-                    WHERE job_id NOT IN (SELECT job_id FROM reservations)""")
+                    WHERE job_id NOT IN (SELECT job_id FROM reservations)
+                      AND error_code IS NOT 'cancelled_before_admission'""")
                 database.execute("""UPDATE jobs SET state='interrupted',
                     error_code='restart_interrupted', updated_at=?
                     WHERE state IN ('queued','running','cancelling')""", (self._now(),))
+            if integration_namespace is not None:
+                self.integration = IntegrationRecords(self)
         except BaseException as exc:
             self.close()
             if isinstance(exc, (OSError, sqlite3.Error)):
                 raise StoreError("Unable to open private job store") from exc
             raise
+
+    def _legacy_only(self):
+        if self.integration is not None or self.fixtures is not None:
+            raise StoreError("Legacy mutation is unavailable in an integration namespace")
 
     def _now(self):
         return _number(self._clock(), "clock")
@@ -245,6 +288,7 @@ class JobStore:
     def _decode(row):
         record = dict(row)
         record["metadata"] = json.loads(record["metadata"])
+        record["request"] = json.loads(record["request"]) if record["request"] else None
         record["result"] = json.loads(record["result"]) if record["result"] else None
         return record
 
@@ -265,8 +309,17 @@ class JobStore:
         return row
 
     def admit(self, *, user_id, tenant_id, idempotency_key, fingerprint,
-              generation_id, generation_epoch, deadline_at, metadata=None):
+              generation_id, generation_epoch, deadline_at, metadata=None,
+              job_id=None, request=None, max_records=None, max_results=None):
+        self._legacy_only()
         owner = self._owner(user_id, tenant_id)
+        if job_id is not None:
+            _identifier(job_id, "job_id")
+        request_json = _json_object(request) if request is not None else None
+        if max_records is not None and _counter(max_records, "max_records", 1024) == 0:
+            raise ValueError("Invalid store capacity")
+        if max_results is not None and _counter(max_results, "max_results", 1024) == 0:
+            raise ValueError("Invalid result capacity")
         _identifier(idempotency_key, "idempotency_key")
         _identifier(fingerprint, "fingerprint")
         _identifier(generation_id, "generation_id")
@@ -285,6 +338,13 @@ class JobStore:
             elif not 0 < _number(value, key) <= 300:
                 raise ValueError("Invalid timeout_seconds")
         with self._transaction() as database:
+            if job_id is not None:
+                existing_id = database.execute("SELECT * FROM jobs WHERE job_id=?", (job_id,)).fetchone()
+                if existing_id is not None:
+                    if (existing_id["user_id"], existing_id["tenant_id"]) != owner:
+                        raise JobNotFound("Job not owned by caller")
+                    if existing_id["error_code"] == "cancelled_before_admission":
+                        return self._decode(existing_id), False
             existing = database.execute(
                 "SELECT * FROM jobs WHERE user_id=? AND tenant_id=? AND idempotency_key=?",
                 (*owner, idempotency_key),
@@ -298,18 +358,59 @@ class JobStore:
                 raise StoreBusy("An active job already exists")
             if database.execute("SELECT 1 FROM reservations WHERE resolved_at IS NULL").fetchone():
                 raise StoreBusy("Execution stop remains unconfirmed")
+            if max_records is not None and database.execute("SELECT count(*) FROM jobs").fetchone()[0] >= max_records:
+                raise StoreBusy("Job history capacity reached")
+            if max_results is not None and database.execute("SELECT count(*) FROM jobs WHERE result IS NOT NULL").fetchone()[0] >= max_results:
+                raise StoreBusy("Result history capacity reached")
             now = self._now()
-            job_id = uuid4().hex
+            job_id = job_id or uuid4().hex
             database.execute("""INSERT INTO jobs (job_id, user_id, tenant_id,
                 idempotency_key, fingerprint, generation_id, generation_epoch, state,
-                created_at, updated_at, deadline_at, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?)""",
+                created_at, updated_at, deadline_at, metadata, request)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?)""",
                 (job_id, *owner, idempotency_key, fingerprint, generation_id,
-                 generation_epoch, now, now, deadline_at, metadata_json))
+                 generation_epoch, now, now, deadline_at, metadata_json, request_json))
             database.execute("INSERT INTO reservations (job_id, execution_id) VALUES (?, ?)",
                              (job_id, uuid4().hex))
             record = self._decode(self._find(database, *owner, job_id))
         return record, True
+
+    def cancel_external(self, user_id, tenant_id, job_id, *, max_records=1024):
+        """Durably cancel an external ID, including before its admission.
+
+        A pre-admission tombstone reserves no execution slot. It is never
+        promoted to a dispatch and survives reopening without quarantine.
+        """
+        self._legacy_only()
+        owner = self._owner(user_id, tenant_id)
+        _identifier(job_id, "job_id")
+        if _counter(max_records, "max_records", 1024) == 0:
+            raise ValueError("Invalid store capacity")
+        with self._transaction() as database:
+            row = database.execute("SELECT * FROM jobs WHERE job_id=?", (job_id,)).fetchone()
+            if row is not None:
+                self._find(database, *owner, job_id)
+                if row["state"] in {"queued", "running"}:
+                    database.execute("UPDATE jobs SET state='cancelling', cancel_requested=1, error_code='cancel_requested', updated_at=? WHERE job_id=?",
+                                     (self._now(), job_id))
+                elif row["state"] == "interrupted":
+                    database.execute("UPDATE jobs SET cancel_requested=1 WHERE job_id=?", (job_id,))
+                return
+            if database.execute("SELECT count(*) FROM jobs").fetchone()[0] >= max_records:
+                raise StoreBusy("Job history capacity reached")
+            now = self._now()
+            database.execute("""INSERT INTO jobs (job_id,user_id,tenant_id,idempotency_key,fingerprint,
+                generation_id,generation_epoch,state,created_at,updated_at,deadline_at,metadata,error_code,cancel_requested)
+                VALUES (?,?,?,?,?,?,0,'cancelled',?,?,?,'{}','cancelled_before_admission',1)""",
+                (job_id,*owner,job_id,"",job_id,now,now,now))
+
+    def discard_terminal_results(self, before):
+        """Expire result payloads without deleting identity or execution fences."""
+        self._legacy_only()
+        before = _number(before, "before")
+        with self._transaction() as database:
+            database.execute("""UPDATE jobs SET result=NULL WHERE updated_at<=?
+                AND state IN ('completed','failed','cancelled','timed_out','interrupted')""", (before,))
 
     def get(self, user_id, tenant_id, job_id):
         with self._transaction() as database:
@@ -342,6 +443,7 @@ class JobStore:
 
     def resolve_execution(self, user_id, tenant_id, job_id, evidence):
         """Release only this terminal reservation; preserve its public history."""
+        self._legacy_only()
         with self._transaction() as database:
             return self._resolve(database, self._find(database, user_id, tenant_id, job_id), evidence)
 
@@ -354,6 +456,7 @@ class JobStore:
 
     def transition(self, user_id, tenant_id, job_id, expected_states, new_state, *,
                    error_code=None, result=None, request_count=None, stop_evidence=None):
+        self._legacy_only()
         if isinstance(expected_states, str):
             raise ValueError("Expected states must be a collection")
         expected_states = frozenset(expected_states)
@@ -378,6 +481,7 @@ class JobStore:
         return True
 
     def update_progress(self, user_id, tenant_id, job_id, *, result=None, request_count=None):
+        self._legacy_only()
         result_json = self._progress(result, request_count)
         with self._transaction() as database:
             row = self._find(database, user_id, tenant_id, job_id)
@@ -404,3 +508,4 @@ class JobStore:
 
     def __exit__(self, *exc):
         self.close()
+

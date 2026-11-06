@@ -1,8 +1,11 @@
 import os from 'node:os';
 import path from 'node:path';
+import fs from 'node:fs/promises';
 import { mkdtemp, mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises';
 import type { ReviewWorkerConfig } from './worker';
+import { createReviewDiagnosticLog } from './diagnostic-log';
 import { createCodeReviewWorker } from './worker';
+import { reviewRunIdSchema } from './identity';
 
 const request = { repository: 'librechat', base: 'a'.repeat(40), head: 'b'.repeat(40) };
 const principal = { userId: 'operator', tenantId: 'test' };
@@ -29,6 +32,19 @@ if scenario == 'stderr':
     sys.exit(1)
 if scenario == 'memory':
     bytearray(5 * 1024 * 1024 * 1024)
+if scenario == 'fragmented':
+    os.write(3, b'evidence_')
+    time.sleep(0.02)
+    os.write(3, b'validated\\nCANARY\\nprovider_ready\\n')
+if scenario == 'flood':
+    os.write(3, b'CANARY' * 200)
+    os.write(3, b'\\nprovider_ready\\n')
+if scenario == 'stages':
+    os.write(3, b'evidence_validated\\nprovider_ready\\nconversation_started\\nconversation_finished\\nresult_validated\\n')
+if scenario == 'stage_failure':
+    os.write(3, b'evidence_validated\\nprovider_ready\\nconversation_started\\nPRIVATE_VALUE\\n')
+    print('PRIVATE_VALUE', file=sys.stderr)
+    sys.exit(1)
 if scenario == 'failure':
     print('PRIVATE_VALUE', file=sys.stderr)
     sys.exit(1)
@@ -140,6 +156,301 @@ describe('code review worker with real isolated processes', () => {
       code: 'worker_failed',
       message: 'Code review failed: worker_failed',
     });
+  });
+
+  it('captures allowlisted stages and bounded exit counts without child text', async () => {
+    await writeFile(path.join(repo, 'scenario'), 'stages');
+    const events: import('./worker').ReviewWorkerDiagnostic[] = [];
+    const worker = createCodeReviewWorker({
+      ...config,
+      onDiagnostic: (event) => events.push(event),
+    });
+    await expect(worker.run(request, principal)).resolves.toMatchObject({
+      status: 'human_review_required',
+    });
+    expect(events.filter((event) => event.type === 'stage').map((event) => event.stage)).toEqual([
+      'evidence_validated',
+      'provider_ready',
+      'conversation_started',
+      'conversation_finished',
+      'result_validated',
+      'schema_validated',
+    ]);
+    expect(events.find((event) => event.type === 'exit')).toMatchObject({
+      exitCode: 0,
+      signal: null,
+      classification: 'success',
+    });
+    expect(JSON.stringify(events)).not.toContain('PRIVATE_VALUE');
+  });
+
+  it('keeps provider stderr secret and reports only fixed failed-exit diagnostics', async () => {
+    await writeFile(path.join(repo, 'scenario'), 'stage_failure');
+    const events: import('./worker').ReviewWorkerDiagnostic[] = [];
+    const worker = createCodeReviewWorker({
+      ...config,
+      onDiagnostic: (event) => events.push(event),
+    });
+    await expect(worker.run(request, principal)).rejects.toMatchObject({
+      code: 'worker_failed',
+    });
+    expect(events.filter((event) => event.type === 'stage').map((event) => event.stage)).toEqual([
+      'evidence_validated',
+      'provider_ready',
+      'conversation_started',
+    ]);
+    expect(events.find((event) => event.type === 'exit')).toMatchObject({
+      exitCode: 1,
+      classification: 'worker_failed',
+    });
+    expect(JSON.stringify(events)).not.toContain('PRIVATE_VALUE');
+  });
+
+  it('ignores a throwing diagnostics sink without changing the review result', async () => {
+    const worker = createCodeReviewWorker({
+      ...config,
+      onDiagnostic: () => {
+        throw new Error('PRIVATE_VALUE');
+      },
+    });
+    await expect(worker.run(request, principal)).resolves.toMatchObject({
+      status: 'human_review_required',
+    });
+  });
+
+  it.each(['success', 'stage_failure'])(
+    'ignores rejected asynchronous diagnostic sinks during %s',
+    async (scenario) => {
+      await writeFile(path.join(repo, 'scenario'), scenario);
+      let calls = 0;
+      const worker = createCodeReviewWorker({
+        ...config,
+        onDiagnostic: async () => {
+          calls++;
+          await Promise.resolve();
+          throw new Error('PRIVATE_VALUE');
+        },
+      });
+      if (scenario === 'success') {
+        await expect(worker.run(request, principal)).resolves.toMatchObject({
+          status: 'human_review_required',
+        });
+      } else {
+        await expect(worker.run(request, principal)).rejects.toMatchObject({
+          code: 'worker_failed',
+          message: 'Code review failed: worker_failed',
+        });
+      }
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(calls).toBeGreaterThan(0);
+    },
+  );
+
+  it.each([
+    'success',
+    'stale',
+    'truncated',
+    'unicode',
+    'failure',
+    'stdout',
+    'stderr',
+    'fragmented',
+    'flood',
+  ])('composes the private sink with real offline worker %s', async (scenario) => {
+    await writeFile(path.join(repo, 'scenario'), scenario);
+    const directory = path.join(root, 'logs');
+    await mkdir(directory, { mode: 0o700 });
+    const sink = await createReviewDiagnosticLog({
+      directory,
+      protectedRoots: [repo, scratch, config.authRoot],
+    });
+    const worker = createCodeReviewWorker({ ...config, onDiagnostic: sink.onDiagnostic });
+    const id = '12345678-1234-4123-8123-123456789abc';
+    try {
+      const outcome = await worker.run(request, principal, undefined, id).catch((error) => error);
+      if (['success', 'fragmented', 'flood'].includes(scenario)) {
+        expect(outcome.status).toBe('human_review_required');
+      } else {
+        expect(outcome.code).toBeDefined();
+      }
+    } finally {
+      await sink.close();
+    }
+    const text = await readFile(path.join(directory, 'review-diagnostics.jsonl'), 'utf8');
+    const events = text
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    expect(events.every((event) => event.reviewId === id)).toBe(true);
+    expect(text).not.toMatch(/CANARY|PRIVATE_VALUE/);
+    expect(events.filter((event) => event.type === 'child_exit')).toHaveLength(1);
+    if (['stale', 'truncated', 'unicode'].includes(scenario)) {
+      expect(events.find((event) => event.type === 'child_exit').classification).toBe('success');
+      expect(events.some((event) => event.stage === 'schema_validated')).toBe(false);
+    }
+    if (scenario === 'fragmented') {
+      expect(events.filter((event) => event.type === 'stage').map((event) => event.stage)).toEqual([
+        'evidence_validated',
+        'provider_ready',
+        'schema_validated',
+      ]);
+    }
+    if (scenario === 'flood') {
+      expect(events.filter((event) => event.type === 'stage').map((event) => event.stage)).toEqual([
+        'schema_validated',
+      ]);
+    }
+    expect(await readdir(config.authRoot)).toEqual([]);
+  });
+
+  it.each(['cancelled', 'timeout'])(
+    'records %s without weakening process cleanup',
+    async (failure) => {
+      await writeFile(path.join(repo, 'scenario'), 'hang');
+      const directory = path.join(root, 'logs');
+      await mkdir(directory, { mode: 0o700 });
+      const sink = await createReviewDiagnosticLog({
+        directory,
+        protectedRoots: [repo, scratch, config.authRoot],
+      });
+      if (failure === 'timeout') {
+        const realTimeout = global.setTimeout;
+        jest
+          .spyOn(global, 'setTimeout')
+          .mockImplementation(((callback: () => void, milliseconds?: number) =>
+            realTimeout(
+              callback,
+              milliseconds === 150000 ? 200 : milliseconds,
+            )) as typeof setTimeout);
+      }
+      const controller = new AbortController();
+      const running = createCodeReviewWorker({ ...config, onDiagnostic: sink.onDiagnostic })
+        .run(request, principal, controller.signal)
+        .catch((error) => error);
+      if (failure === 'cancelled') {
+        await started();
+        controller.abort();
+      }
+      expect((await running).code).toBe(failure);
+      await sink.close();
+      const text = await readFile(path.join(directory, 'review-diagnostics.jsonl'), 'utf8');
+      expect(JSON.parse(text.trim()).classification).toBe(failure);
+      expect(await readdir(scratch)).toEqual([]);
+    },
+  );
+
+  it.each(['success', 'failure'])('disk failure cannot alter worker %s', async (scenario) => {
+    await writeFile(path.join(repo, 'scenario'), scenario);
+    const directory = path.join(root, 'logs');
+    await mkdir(directory, { mode: 0o700 });
+    const original = fs.open;
+    jest.spyOn(fs, 'open').mockImplementation(async (...args: Parameters<typeof fs.open>) => {
+      const file = await original(...args);
+      jest.spyOn(file, 'write').mockRejectedValue(new Error('PRIVATE_VALUE'));
+      return file;
+    });
+    const sink = await createReviewDiagnosticLog({
+      directory,
+      protectedRoots: [repo, scratch, config.authRoot],
+    });
+    const result = await createCodeReviewWorker({ ...config, onDiagnostic: sink.onDiagnostic })
+      .run(request, principal)
+      .catch((error) => error);
+    await sink.close();
+    expect(sink.health().state).toBe('failed');
+    if (scenario === 'success') expect(result.status).toBe('human_review_required');
+    else expect(result.code).toBe('worker_failed');
+  });
+
+  it('validated diagnostics do not mask cleanup failure or retain the local slot', async () => {
+    const events: import('./worker').ReviewWorkerDiagnostic[] = [];
+    const worker = createCodeReviewWorker({
+      ...config,
+      onDiagnostic: (event) => events.push(event),
+    });
+    const remove = jest.spyOn(fs, 'rm').mockRejectedValueOnce(new Error('PRIVATE_VALUE'));
+    await expect(worker.run(request, principal)).rejects.toMatchObject({ code: 'worker_failed' });
+    expect(
+      events.some((event) => event.type === 'stage' && event.stage === 'schema_validated'),
+    ).toBe(true);
+    remove.mockRestore();
+    for (const name of await readdir(scratch))
+      await rm(path.join(scratch, name), { recursive: true });
+    await expect(worker.run(request, principal)).resolves.toMatchObject({
+      status: 'human_review_required',
+    });
+  });
+
+  it('records a fixed child-exit failure when the fixture executable cannot spawn', async () => {
+    await writeFile(config.python, '#!/nonexistent/offline-fixture-interpreter\\n', {
+      mode: 0o700,
+    });
+    const events: import('./worker').ReviewWorkerDiagnostic[] = [];
+    await expect(
+      createCodeReviewWorker({ ...config, onDiagnostic: (event) => events.push(event) }).run(
+        request,
+        principal,
+      ),
+    ).rejects.toMatchObject({ code: 'worker_failed' });
+    expect(events.find((event) => event.type === 'exit')).toMatchObject({
+      classification: 'worker_failed',
+    });
+    expect(JSON.stringify(events)).not.toContain('offline-fixture-interpreter');
+  });
+
+  it.each([
+    '00000000-0000-0000-0000-000000000000',
+    'FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF',
+    ...Array.from(
+      '0123456789abcdef',
+      (nibble) => `12345678-9AbC-${nibble}123-${nibble}123-123456789AbC`,
+    ),
+  ])('preserves admission UUID %s through worker events and private logs', async (reviewId) => {
+    const canonical = reviewRunIdSchema.parse(reviewId);
+    const events: import('./worker').ReviewWorkerDiagnostic[] = [];
+    const directory = path.join(root, 'uuid-logs');
+    await mkdir(directory, { mode: 0o700 });
+    const sink = await createReviewDiagnosticLog({
+      directory,
+      protectedRoots: [repo, scratch, config.authRoot],
+    });
+    try {
+      const worker = createCodeReviewWorker({
+        ...config,
+        onDiagnostic: (event) => {
+          events.push(event);
+          sink.onDiagnostic(event);
+        },
+      });
+      await expect(worker.run(request, principal, undefined, reviewId)).resolves.toMatchObject({
+        status: 'human_review_required',
+      });
+    } finally {
+      await sink.close();
+    }
+    expect(events.some((event) => event.type === 'stage')).toBe(true);
+    expect(events.some((event) => event.type === 'exit')).toBe(true);
+    expect(events.every((event) => event.reviewId === canonical)).toBe(true);
+    const text = await readFile(path.join(directory, 'review-diagnostics.jsonl'), 'utf8');
+    const rows = text
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    expect(rows).toHaveLength(events.length);
+    expect(rows.every((row) => row.reviewId === canonical)).toBe(true);
+    expect(text).not.toMatch(/CANARY|PRIVATE_VALUE/);
+  });
+
+  it('redacts arbitrary direct-caller review IDs before invoking any observer', async () => {
+    const events: import('./worker').ReviewWorkerDiagnostic[] = [];
+    await createCodeReviewWorker({ ...config, onDiagnostic: (event) => events.push(event) }).run(
+      request,
+      principal,
+      undefined,
+      'CANARY\nsecret',
+    );
+    expect(events.length).toBeGreaterThan(0);
+    expect(events.every((event) => event.reviewId === null)).toBe(true);
   });
 
   it('rejects unexpected request fields before authorization or spawn', async () => {

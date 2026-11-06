@@ -13,6 +13,25 @@ from .backend import BackendContractError
 from .pr_review import ReviewError, collect_diff, extract_added_lines, validate_findings
 from .review_limits import validate_input
 
+# Private supervisor-only diagnostic pipe; never echo exception messages,
+# user-controlled source, provider errors, or credentials to this channel.
+_DIAGNOSTIC_STAGES = frozenset({
+    "evidence_validated", "provider_ready", "conversation_started",
+    "conversation_finished", "result_validated",
+})
+
+
+def _worker_stage(stage: str) -> None:
+    # Diagnostics are observational: failures must not change review outcomes.
+    try:
+        if os.environ.get("CODING_REVIEW_STAGE_FD") != "3":
+            return
+        if stage not in _DIAGNOSTIC_STAGES:
+            return
+        os.write(3, (stage + "\n").encode("ascii"))
+    except Exception:
+        pass
+
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="coding-agent-pr-review")
@@ -30,6 +49,7 @@ def main(argv=None) -> int:
         validate_input(diff)
         lines = extract_added_lines(diff)
         validate_findings(lines, {"findings": []})
+        _worker_stage("evidence_validated")
 
         # Include deletion-only files, not just files with additions.
         changed_files = []
@@ -65,9 +85,11 @@ def main(argv=None) -> int:
 
                 provider = OpenHandsProviderConfig.from_environment()
                 llm = provider.build_llm()
+                _worker_stage("provider_ready")
                 backend = ReviewBackend(
                     llm=llm,
                     scratch_root=scratch,
+                    on_stage=_worker_stage,
                 )
                 result = backend.run(repo, args.base, args.head)
                 result = {

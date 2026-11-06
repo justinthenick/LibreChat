@@ -576,13 +576,17 @@ describe('MCP schemas', () => {
         },
       });
 
-      expect(result.success).toBe(true);
-      if (result.success && result.data.oauth) {
-        expect(result.data.oauth.authorization_url).toBe('https://auth.example.com/authorize');
-        expect(result.data.oauth.token_url).toBe('https://auth.example.com/token');
-        expect(result.data.oauth.client_id).toBe('public-client-id');
-        expect(result.data.oauth.scope).toBe('read execute');
-      }
+      expect(result).toMatchObject({
+        success: true,
+        data: {
+          oauth: {
+            authorization_url: 'https://auth.example.com/authorize',
+            token_url: 'https://auth.example.com/token',
+            client_id: 'public-client-id',
+            scope: 'read execute',
+          },
+        },
+      });
     });
   });
 

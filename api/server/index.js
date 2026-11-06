@@ -385,6 +385,7 @@ const startServer = async () => {
   app.use('/api/projects', routes.projects);
   app.use('/api/prompts', routes.prompts);
   app.use('/api/skills', routes.skills);
+  app.use('/api/reviews', routes.reviews);
   app.use('/api/categories', routes.categories);
   app.use('/api/endpoints', routes.endpoints);
   app.use('/api/balance', routes.balance);

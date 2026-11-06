@@ -12,10 +12,15 @@ const home = mkdtempSync(path.join(os.tmpdir(), 'review-contract-home-'));
 try {
   const result = spawnSync(
     process.execPath,
-    ['--test', '--test-concurrency=1', path.join(__dirname, 'contracts.test.cjs')],
+    [
+      '--test',
+      '--test-concurrency=1',
+      path.join(__dirname, 'contracts.test.cjs'),
+      path.join(__dirname, 'restart.test.cjs'),
+    ],
     {
       stdio: 'inherit',
-      timeout: 180000,
+      timeout: 240000,
       env: {
         PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin`,
         HOME: home,

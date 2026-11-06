@@ -1,0 +1,17 @@
+Fixed synthetic S4-OFFLINE-1 profile fixtures
+
+signed-profile.json is an unchanged copy of the independent producer's fixtures.json.
+SHA256: 855860970e67db44582ba342f552c48554932437a1ffe0e95f184ed15590dd6e
+Frozen specification SHA256: 96c7e775625b04565f1009227c90ffc62078d90f75922c55e77423520e093cf8
+
+Producer: an independently implemented offline generator that derived serialization and framing from the frozen specification without reading or importing the verifier or its test helpers. It produced two complete bundles: one and two records per guest/host producer, six signatures in total. Every frame, detached signature, artifact, caller context and expected result is fixed in the JSON. Consumer tests only decode bytes; they do not reserialize or regenerate signatures. The generator source hash is recorded below.
+
+Public identities: RFC 8032 section 7.1 tests 1 and 2, https://www.rfc-editor.org/rfc/rfc8032.txt . Retrieved RFC text SHA256: ed63657ff389301282b169b0abde9b5dd2c7e4d524fdfa5da6ff3094fc93c4c3. Under a separate explicit user grant, the producer imported the already-public test seeds ephemerally and signed only these synthetic frames. No new keypairs were generated. No seed, private-key encoding or credential is included here. These are newly produced profile signatures, not RFC signatures over the new frame.
+
+Producer tooling: Node v24.22.1, OpenSSL 3.5.9, node:crypto pure Ed25519. The repository verifier uses Node 24.16.0 / OpenSSL 3.5.6. Framing and producer code are independent; primitive-library diversity is NOT claimed because both use OpenSSL.
+
+Reproducible recipe: derive the two public identities from the cited RFC examples; build the caller contexts and artifact strings recorded in the fixed JSON (artifact text role:count:sequence followed by LF); serialize each payload with sorted object keys and exact ASCII JSON; prepend the specified domain, NUL and four-byte big-endian length; sign the exact frame; advance each producer's previousRecordDigest with SHA256 of its preceding frame; retain only public bytes and hashes. Signing requires the separate synthetic-fixture grant and must not run in consumer CI. The separately retained producer.mjs source SHA256 is 8f876860f695a52ef1077dfbd64afe070568645d7208e1dd996b8e81cd1b4076; its public-only checker SHA256 is 25dd27ec87c411630eecbee0af47361262eeb7b2eba3d3ea2b1908004f87e358. Signing tools are deliberately not imported or added to this repository slice.
+
+Independent review used a separate read-only public-byte verifier with DER key import, without executing either producer script. It confirmed both bundles, six signatures, canonical framing, context binding, artifact lengths/hashes and chain/boundary completeness. Review tooling also used Node 24.22.1 / OpenSSL 3.5.9; this is independent review, not a second cryptographic implementation.
+
+Expected scope: bounded synthetic profile conformance only. Known public test seeds provide no real producer authenticity. No runtime trust, S3 completion, durable replay, isolation or cleanup authority follows. All live-authority outputs remain false and the verifier remains unregistered. Wycheproof adversarial primitive coverage remains a distinct test result.

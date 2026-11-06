@@ -2611,5 +2611,15 @@
   "com_ui_review_major": "Major",
   "com_ui_review_minor": "Minor",
   "com_ui_review_evidence": "Evidence",
-  "com_ui_review_recommendation": "Recommendation"
+  "com_ui_review_recommendation": "Recommendation",
+  "com_ui_review_pr": "Pull request number (optional)",
+  "com_ui_review_pr_help": "Resolve a public PR through the server repository mapping before starting. Leave blank for a local commit pair. For recovery, enter the original review ID and commits first; resolving preserves that pair.",
+  "com_ui_review_resolve": "Resolve PR",
+  "com_ui_review_resolved": "PR identity resolved. Admission and result delivery will recheck the selected commits.",
+  "com_ui_review_stale": "PR closed or selected commits changed. Findings are withheld. Cancel remains available; no automatic retry will occur.",
+  "com_ui_review_github_id": "GitHub repository ID",
+  "com_ui_review_checked": "PR identity last checked",
+  "com_ui_review_freshness": "The PR matched these commits at the displayed check time. It may change afterward; this is not continuing freshness verification.",
+  "com_ui_review_local_pair": "Local commit pair review. No PR identity or freshness was verified.",
+  "com_ui_review_interrupted": "Review interrupted or execution stop unconfirmed. No automatic retry will occur. New dispatch remains blocked pending trusted reconciliation."
 }
